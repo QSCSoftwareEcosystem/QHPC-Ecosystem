@@ -1,0 +1,78 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: example-toolkit
+  name: Example Quantum Toolkit
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [hybrid-workflows]
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: declared
+    validation_status: contract-valid
+    evidence: [tests/test_contract.py]
+  repository:
+    url: https://example.invalid/qsc/example-toolkit
+    revision: v0.1.0
+  visibility: internal
+  maturity: prototype
+spec:
+  component:
+    description: Illustrative operations used to validate the QHPC contracts.
+    license: BSD-3-Clause
+  operations:
+    - id: generate
+      title: Generate example circuit
+      inputs: {}
+      outputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+      parameters:
+        qubits:
+          type: integer
+          title: Number of qubits
+          required: true
+          default: 4
+          minimum: 1
+      runtime:
+        type: oci
+        reference: registry.internal/qsc/example-toolkit@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      invocation:
+        entrypoint: [/opt/qhpc/bin/generate]
+        arguments: [--qubits, "{{ parameters.qubits }}", --output, "{{ outputs.circuit }}"]
+      resources:
+        cpu: 1
+        memory_mb: 512
+        walltime_seconds: 300
+      execution_targets: [local-development]
+    - id: simulate
+      title: Simulate example circuit
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+      outputs:
+        results:
+          artifact_type: qhpc.measurement-results@1
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 1024
+          minimum: 1
+      runtime:
+        type: oci
+        reference: registry.internal/qsc/example-toolkit@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      invocation:
+        entrypoint: [/opt/qhpc/bin/simulate]
+        arguments: [--input, "{{ inputs.circuit }}", --output, "{{ outputs.results }}"]
+      resources:
+        cpu: 2
+        memory_mb: 1024
+        walltime_seconds: 600
+      execution_targets: [local-development]
+  documentation:
+    qappswiki: examples/example-toolkit.md

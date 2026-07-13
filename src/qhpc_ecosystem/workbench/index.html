@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>QHPC Workbench</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail" aria-label="Primary navigation">
+      <div class="brand" aria-label="QHPC Workbench">
+        <span class="brand-mark">Q</span>
+        <span class="brand-copy"><strong>QHPC</strong><small>Workbench</small></span>
+      </div>
+      <nav id="primary-nav">
+        <button class="nav-item active" data-view="projects" title="Projects"><span>PR</span>Projects</button>
+        <button class="nav-item" data-view="explore" title="Explore"><span>EX</span>Explore</button>
+        <button class="nav-item" data-view="compose" title="Compose"><span>CP</span>Compose</button>
+        <button class="nav-item" data-view="runs" title="Runs"><span>RN</span>Runs</button>
+        <button class="nav-item" data-view="artifacts" title="Artifacts"><span>AR</span>Artifacts</button>
+        <button class="nav-item" data-view="environments" title="Environments"><span>EN</span>Environments</button>
+      </nav>
+      <div class="rail-status">
+        <span class="status-dot" id="service-dot"></span>
+        <span><strong id="service-state">Connecting</strong><small>Local service</small></span>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="view-eyebrow">ECOSYSTEM / PROJECTS</p>
+          <h1 id="view-title">Software Thrust projects</h1>
+        </div>
+        <div class="topbar-actions">
+          <label class="search-control">
+            <span aria-hidden="true">⌕</span>
+            <input id="global-search" type="search" placeholder="Search registry" autocomplete="off">
+          </label>
+          <button class="button secondary" id="refresh-button">Refresh</button>
+        </div>
+      </header>
+
+      <section class="summary-strip" id="summary-strip" aria-label="Registry summary"></section>
+      <section class="workspace" id="workspace" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <aside class="inspector" id="inspector" aria-label="Details" aria-hidden="true">
+    <header>
+      <p class="eyebrow">REGISTRY RECORD</p>
+      <button class="icon-button" id="close-inspector" aria-label="Close details">×</button>
+    </header>
+    <div id="inspector-content"></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

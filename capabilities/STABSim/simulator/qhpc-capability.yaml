@@ -1,0 +1,59 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: stabsim-simulator
+  name: STABSim Stabilizer Simulator
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [stabsim]
+  repository:
+    url: https://github.com/seangarn32/STABSim
+    revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    description: CPU, GPU, and MPI stabilizer simulator with QASM and Stim parsing.
+  operations:
+    - id: analyze-metrics
+      title: Analyze QASM circuit metrics
+      description: Parse a transpiled QASM circuit and report STABSim structural metrics.
+      inputs:
+        circuit:
+          artifact_type: qhpc.transpiled-circuit@1
+      outputs:
+        metrics:
+          artifact_type: qhpc.circuit-metrics@1
+      parameters:
+        random_seed:
+          type: integer
+          title: Deterministic parser seed
+          default: 42
+          minimum: 0
+      runtime:
+        type: native-bundle
+        reference: qhpc-runtime://native/stabsim-a0d8d2e2a9fd-darwin-arm64.zip
+        digest: sha256:be15c1898b50095536f39cba25d4725673b496cb0e525c693a4ab59997d1c8c5
+      invocation:
+        entrypoint: [nwq_qasm]
+        arguments: [--qasm_file, "{{ inputs.circuit }}", --metrics]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [local-development]
+  resources:
+    - id: simulator-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/seangarn32/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
+  documentation:
+    qappswiki: packages/stabsim.md
+    url: https://github.com/seangarn32/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md

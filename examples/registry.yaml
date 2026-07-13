@@ -1,0 +1,445 @@
+api_version: qhpc/v1
+kind: Registry
+metadata:
+  entry_count: 7
+  catalog_digest: sha256:c8fa50a5655d9325d58d1da026733ef36ad74dd5587781b4ee9c6b8f03fcfcf8
+spec:
+  entries:
+  - descriptor_digest: sha256:b94db71f5f6c790216ef7f0a3993ba8f711eaf0f4776bfed3c085dbbd9b56928
+    catalog_repository: OpenQEvo
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id001
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id002
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: openqevo-library
+        name: OpenQEvo Library and Method Context
+        version: 0.1.0
+        project: cross-project
+        owners:
+        - openqevo
+        repository:
+          url: https://github.com/QSCSoftwareThrust/OpenQEvo
+          revision: 250550a3992bd57c032d4066843c2b03055c4b9d
+        integration:
+          authority: ecosystem
+          maintainers: *id001
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id002
+        visibility: public
+        maturity: pre-alpha
+      spec:
+        component:
+          description: OpenQEvo Python APIs, adapters, and structured method context.
+        operations:
+        - id: list-methods
+          title: List registered evolution methods
+          description: Return OpenQEvo method names, descriptions, and source attribution.
+          inputs: {}
+          outputs:
+            methods:
+              artifact_type: qhpc.method-catalog@1
+          parameters:
+            detailed:
+              type: boolean
+              title: Include method descriptions and source attribution
+              default: true
+          runtime:
+            type: python-wheel
+            reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+            digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+          invocation:
+            entrypoint:
+            - openqevo:list_methods_detail
+          resources:
+            cpu: 1
+            memory_mb: 512
+            walltime_seconds: 60
+          execution_targets:
+          - local-development
+        resources:
+        - id: python-library
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d
+        - id: method-context
+          kind: dataset
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d/context
+        documentation:
+          qappswiki: packages/openqevo.md
+          url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md
+  - descriptor_digest: sha256:a21b6187fe89b93af8568e542af01fd6ff7ed837028bd06dbb25fe4ca597a801
+    catalog_repository: QAppsWiki
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id003
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: contract-valid
+      evidence: &id004
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: qappswiki-tooling
+        name: QAppsWiki Tooling and Corpus
+        version: 0.1.0
+        project: cross-project
+        owners:
+        - qappswiki
+        repository:
+          url: https://github.com/QSCSoftwareThrust/QAppsWiki
+          revision: d5f0248945516a4198f92edd9764a2fe5b676549
+        integration:
+          authority: ecosystem
+          maintainers: *id003
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: contract-valid
+          evidence: *id004
+        visibility: public
+        maturity: alpha
+      spec:
+        component:
+          description: Markdown validation, graph construction, provenance, and query tooling.
+          license: MIT
+        resources:
+        - id: qappswiki-cli
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549/tools
+        - id: qappswiki-corpus
+          kind: dataset
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549
+        documentation:
+          qappswiki: docs/qsc-integration.md
+          url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md
+  - descriptor_digest: sha256:0c2d69142e904342a37d69e824c71a2c4acf70c6f3da2b42fe58753031777b56
+    catalog_repository: qasmtrans
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id005
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id006
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: qasmtrans-transpiler
+        name: QASMTrans Transpiler
+        version: 0.1.0
+        project: compilation-tools
+        owners:
+        - qasmtrans
+        repository:
+          url: https://github.com/pnnl/qasmtrans
+          revision: 1843c98fa4bac9cf6b88412145b69457e9176124
+        integration:
+          authority: ecosystem
+          maintainers: *id005
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id006
+        visibility: public
+        maturity: alpha
+      spec:
+        component:
+          description: C++ OpenQASM transpiler with target topology and basis-gate mapping.
+        operations:
+        - id: transpile
+          title: Transpile OpenQASM circuit
+          description: Map an OpenQASM 2 circuit to the audited IBM Toronto topology.
+          inputs:
+            circuit:
+              artifact_type: qhpc.quantum-circuit@1
+          outputs:
+            circuit:
+              artifact_type: qhpc.transpiled-circuit@1
+          parameters:
+            mode:
+              type: string
+              title: Target basis-gate family
+              default: ibmq
+              enum:
+              - ibmq
+            backend:
+              type: string
+              title: Target topology
+              default: ibmq_toronto
+              enum:
+              - ibmq_toronto
+          runtime:
+            type: native-bundle
+            reference: qhpc-runtime://native/qasmtrans-1843c98fa4ba-darwin-arm64.zip
+            digest: sha256:16dd5fe10c63bc1a036dc2ba22eb315d9f6bb8afba738ef5b77fed3862b24ad9
+          invocation:
+            entrypoint:
+            - QASMTrans
+            arguments:
+            - -i
+            - '{{ inputs.circuit }}'
+            - -o
+            - '{{ outputs.circuit }}'
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - local-development
+        resources:
+        - id: transpiler-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/pnnl/qasmtrans/tree/1843c98fa4bac9cf6b88412145b69457e9176124
+        documentation:
+          qappswiki: packages/qasmtrans.md
+          url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md
+  - descriptor_digest: sha256:d0fadbabc94027d917ae175c796ca00ed8139057009b3b8eeaf64ebb4d95f7a0
+    catalog_repository: DataSchema
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id007
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: discovered
+      evidence: &id008
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: qsc-hardware-survey
+        name: QSC Hardware Information Survey
+        version: 0.1.0
+        project: data-schema
+        owners:
+        - data-schema
+        repository:
+          url: https://github.com/QSCSoftwareThrust/DataSchema
+          revision: 704c1800614b37f0909cc8e5e15438b1be06b983
+        integration:
+          authority: ecosystem
+          maintainers: *id007
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: discovered
+          evidence: *id008
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          description: Hardware information survey source material and collected data.
+        resources:
+        - id: hardware-survey
+          kind: dataset
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
+        documentation:
+          qappswiki: integrations/qsc-hardware-data.md
+          url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
+  - descriptor_digest: sha256:311198ceb749db5da8198e602804571fb12e362bccd98b5cac7047810ea02d3f
+    catalog_repository: spack-packages
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id009
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: contract-valid
+      evidence: &id010
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: qsc-spack-repository
+        name: QSC Spack Package Repository
+        version: 0.1.0
+        project: software-engineering
+        owners:
+        - software-engineering
+        repository:
+          url: https://github.com/QSCSoftwareThrust/spack-packages
+          revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
+        integration:
+          authority: ecosystem
+          maintainers: *id009
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: contract-valid
+          evidence: *id010
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          description: Spack package recipes for QSC software deployment.
+        resources:
+        - id: spack-repository
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/spack-packages/tree/11edfc3b95af9b4352c1554d6492b48d5977628c
+        documentation:
+          qappswiki: packages/qsc-spack.md
+          url: https://github.com/QSCSoftwareThrust/spack-packages/blob/11edfc3b95af9b4352c1554d6492b48d5977628c/README.md
+  - descriptor_digest: sha256:21d468f956a6808ca704131db6caedf1bbe5a35a6428f86a090fa6fc25081088
+    catalog_repository: AS-popular_quantum_sdk_dashboard
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id011
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: contract-valid
+      evidence: &id012
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: quantum-sdk-ranking
+        name: Quantum SDK Ranking Engine
+        version: 0.1.0
+        project: agentic-software
+        owners:
+        - agentic-software
+        repository:
+          url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard
+          revision: e7568760747752e29397f4fcc800bd475c6011a1
+        integration:
+          authority: ecosystem
+          maintainers: *id011
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: contract-valid
+          evidence: *id012
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          description: Deterministic ranking library and dashboard for quantum SDK metrics.
+        resources:
+        - id: ranking-library
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/tree/e7568760747752e29397f4fcc800bd475c6011a1/src/core
+        documentation:
+          qappswiki: packages/quantum-sdk-ranking.md
+          url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/blob/e7568760747752e29397f4fcc800bd475c6011a1/README.md
+  - descriptor_digest: sha256:88b82f6e4c551ef89239855b75bce03ff705e6faf029980a06fdc1bb851cabca
+    catalog_repository: STABSim
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id013
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id014
+      - docs/evidence/repository-audit-2026-07-11.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: stabsim-simulator
+        name: STABSim Stabilizer Simulator
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - stabsim
+        repository:
+          url: https://github.com/seangarn32/STABSim
+          revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
+        integration:
+          authority: ecosystem
+          maintainers: *id013
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id014
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          description: CPU, GPU, and MPI stabilizer simulator with QASM and Stim parsing.
+        operations:
+        - id: analyze-metrics
+          title: Analyze QASM circuit metrics
+          description: Parse a transpiled QASM circuit and report STABSim structural metrics.
+          inputs:
+            circuit:
+              artifact_type: qhpc.transpiled-circuit@1
+          outputs:
+            metrics:
+              artifact_type: qhpc.circuit-metrics@1
+          parameters:
+            random_seed:
+              type: integer
+              title: Deterministic parser seed
+              default: 42
+              minimum: 0
+          runtime:
+            type: native-bundle
+            reference: qhpc-runtime://native/stabsim-a0d8d2e2a9fd-darwin-arm64.zip
+            digest: sha256:be15c1898b50095536f39cba25d4725673b496cb0e525c693a4ab59997d1c8c5
+          invocation:
+            entrypoint:
+            - nwq_qasm
+            arguments:
+            - --qasm_file
+            - '{{ inputs.circuit }}'
+            - --metrics
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - local-development
+        resources:
+        - id: simulator-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/seangarn32/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
+        documentation:
+          qappswiki: packages/stabsim.md
+          url: https://github.com/seangarn32/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md

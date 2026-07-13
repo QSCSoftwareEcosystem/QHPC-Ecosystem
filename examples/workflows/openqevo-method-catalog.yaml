@@ -1,0 +1,26 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: openqevo-method-catalog
+  name: Inspect OpenQEvo method registry
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Execute the pinned OpenQEvo registry API through a controlled local adapter.
+spec:
+  nodes:
+    - id: list-methods
+      operation:
+        capability: openqevo-library
+        version: 0.1.0
+        operation: list-methods
+      parameters:
+        detailed: true
+  edges: []
+  inputs: {}
+  outputs:
+    methods:
+      artifact_type: qhpc.method-catalog@1
+      from:
+        node: list-methods
+        port: methods

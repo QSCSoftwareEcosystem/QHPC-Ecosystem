@@ -1,0 +1,19 @@
+api_version: qhpc/v1
+kind: Artifact
+metadata:
+  id: artifact-example-circuit
+  created_at: "2026-07-10T12:00:00Z"
+  created_by: example-user
+  labels:
+    purpose: contract-validation
+spec:
+  artifact_type: qhpc.quantum-circuit@1
+  uri: file:///work/runs/example/circuit.qasm
+  checksum:
+    algorithm: sha256
+    value: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  size_bytes: 128
+  produced_by:
+    run_id: run-example
+    task_id: generate
+  source_artifacts: []

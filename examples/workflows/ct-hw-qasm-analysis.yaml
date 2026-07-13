@@ -1,0 +1,52 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: ct-hw-qasm-analysis
+  name: Transpile and analyze an OpenQASM circuit
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Connect pinned QASMTrans and STABSim operations through a typed circuit artifact.
+spec:
+  nodes:
+    - id: transpile
+      operation:
+        capability: qasmtrans-transpiler
+        version: 0.1.0
+        operation: transpile
+      parameters:
+        mode: ibmq
+        backend: ibmq_toronto
+    - id: analyze
+      operation:
+        capability: stabsim-simulator
+        version: 0.1.0
+        operation: analyze-metrics
+      parameters:
+        random_seed: 42
+  edges:
+    - from:
+        node: transpile
+        port: circuit
+        artifact_type: qhpc.transpiled-circuit@1
+      to:
+        node: analyze
+        port: circuit
+        artifact_type: qhpc.transpiled-circuit@1
+  inputs:
+    circuit:
+      artifact_type: qhpc.quantum-circuit@1
+      to:
+        node: transpile
+        port: circuit
+  outputs:
+    transpiled_circuit:
+      artifact_type: qhpc.transpiled-circuit@1
+      from:
+        node: transpile
+        port: circuit
+    metrics:
+      artifact_type: qhpc.circuit-metrics@1
+      from:
+        node: analyze
+        port: metrics

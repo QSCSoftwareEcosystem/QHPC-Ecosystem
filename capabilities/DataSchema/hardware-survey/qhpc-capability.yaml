@@ -1,0 +1,31 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: qsc-hardware-survey
+  name: QSC Hardware Information Survey
+  version: 0.1.0
+  project: data-schema
+  owners: [data-schema]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/DataSchema
+    revision: 704c1800614b37f0909cc8e5e15438b1be06b983
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: discovered
+    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    description: Hardware information survey source material and collected data.
+  resources:
+    - id: hardware-survey
+      kind: dataset
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
+  documentation:
+    qappswiki: integrations/qsc-hardware-data.md
+    url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md

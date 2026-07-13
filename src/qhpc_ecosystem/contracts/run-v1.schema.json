@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/run-v1.schema.json",
+  "title": "QHPC Run and Task Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "Run"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "created_by"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "created_at": {"type": "string", "format": "date-time"},
+        "created_by": {"type": "string", "minLength": 1}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow", "execution_target", "state", "inputs", "tasks", "outputs"],
+      "properties": {
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "version", "digest"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        },
+        "execution_target": {"type": "string", "minLength": 1},
+        "state": {"$ref": "#/$defs/state"},
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "minLength": 1}
+        },
+        "tasks": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/task"}
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "minLength": 1}
+        },
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  },
+  "$defs": {
+    "state": {
+      "enum": ["pending", "queued", "running", "succeeded", "failed", "canceled"]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "state", "attempt", "operation", "runtime_digest"],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1},
+        "state": {"$ref": "#/$defs/state"},
+        "attempt": {"type": "integer", "minimum": 0},
+        "operation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capability", "version", "operation"],
+          "properties": {
+            "capability": {"type": "string", "minLength": 1},
+            "version": {"type": "string", "minLength": 1},
+            "operation": {"type": "string", "minLength": 1}
+          }
+        },
+        "runtime_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"},
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {"type": "string", "minLength": 1},
+            "message": {"type": "string", "minLength": 1},
+            "retryable": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  }
+}

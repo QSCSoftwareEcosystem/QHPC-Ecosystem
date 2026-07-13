@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/artifact-v1.schema.json",
+  "title": "QHPC Artifact Metadata v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "Artifact"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "created_by"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "created_at": {"type": "string", "format": "date-time"},
+        "created_by": {"type": "string", "minLength": 1},
+        "labels": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_type", "uri", "checksum", "size_bytes"],
+      "properties": {
+        "artifact_type": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*@[1-9][0-9]*$"
+        },
+        "uri": {"type": "string", "format": "uri-reference"},
+        "checksum": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "value"],
+          "properties": {
+            "algorithm": {"const": "sha256"},
+            "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          }
+        },
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "produced_by": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run_id", "task_id"],
+          "properties": {
+            "run_id": {"type": "string", "minLength": 1},
+            "task_id": {"type": "string", "minLength": 1}
+          }
+        },
+        "source_artifacts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

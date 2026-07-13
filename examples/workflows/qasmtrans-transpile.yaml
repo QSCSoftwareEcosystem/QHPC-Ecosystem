@@ -1,0 +1,32 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: qasmtrans-transpile
+  name: Transpile an OpenQASM circuit
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Execute the pinned QASMTrans runtime against an uploaded circuit.
+spec:
+  nodes:
+    - id: transpile
+      operation:
+        capability: qasmtrans-transpiler
+        version: 0.1.0
+        operation: transpile
+      parameters:
+        mode: ibmq
+        backend: ibmq_toronto
+  edges: []
+  inputs:
+    circuit:
+      artifact_type: qhpc.quantum-circuit@1
+      to:
+        node: transpile
+        port: circuit
+  outputs:
+    circuit:
+      artifact_type: qhpc.transpiled-circuit@1
+      from:
+        node: transpile
+        port: circuit

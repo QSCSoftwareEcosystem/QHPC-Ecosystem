@@ -1,0 +1,41 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: invalid-cycle
+  name: Invalid cyclic workflow
+  version: 0.1.0
+  owner: hybrid-workflows
+  visibility: internal
+spec:
+  nodes:
+    - id: first
+      operation:
+        capability: example-toolkit
+        version: 0.1.0
+        operation: simulate
+      parameters: {}
+    - id: second
+      operation:
+        capability: example-toolkit
+        version: 0.1.0
+        operation: simulate
+      parameters: {}
+  edges:
+    - from:
+        node: first
+        port: output
+        artifact_type: qhpc.quantum-circuit@1
+      to:
+        node: second
+        port: input
+        artifact_type: qhpc.quantum-circuit@1
+    - from:
+        node: second
+        port: output
+        artifact_type: qhpc.quantum-circuit@1
+      to:
+        node: first
+        port: input
+        artifact_type: qhpc.quantum-circuit@1
+  inputs: {}
+  outputs: {}

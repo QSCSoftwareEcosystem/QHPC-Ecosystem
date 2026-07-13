@@ -1,0 +1,64 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: qasmtrans-transpiler
+  name: QASMTrans Transpiler
+  version: 0.1.0
+  project: compilation-tools
+  owners: [qasmtrans]
+  repository:
+    url: https://github.com/pnnl/qasmtrans
+    revision: 1843c98fa4bac9cf6b88412145b69457e9176124
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  visibility: public
+  maturity: alpha
+spec:
+  component:
+    description: C++ OpenQASM transpiler with target topology and basis-gate mapping.
+  operations:
+    - id: transpile
+      title: Transpile OpenQASM circuit
+      description: Map an OpenQASM 2 circuit to the audited IBM Toronto topology.
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+      outputs:
+        circuit:
+          artifact_type: qhpc.transpiled-circuit@1
+      parameters:
+        mode:
+          type: string
+          title: Target basis-gate family
+          default: ibmq
+          enum: [ibmq]
+        backend:
+          type: string
+          title: Target topology
+          default: ibmq_toronto
+          enum: [ibmq_toronto]
+      runtime:
+        type: native-bundle
+        reference: qhpc-runtime://native/qasmtrans-1843c98fa4ba-darwin-arm64.zip
+        digest: sha256:16dd5fe10c63bc1a036dc2ba22eb315d9f6bb8afba738ef5b77fed3862b24ad9
+      invocation:
+        entrypoint: [QASMTrans]
+        arguments: [-i, "{{ inputs.circuit }}", -o, "{{ outputs.circuit }}"]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [local-development]
+  resources:
+    - id: transpiler-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/pnnl/qasmtrans/tree/1843c98fa4bac9cf6b88412145b69457e9176124
+  documentation:
+    qappswiki: packages/qasmtrans.md
+    url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md

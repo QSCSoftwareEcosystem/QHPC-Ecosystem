@@ -1,0 +1,33 @@
+[project]
+name = "qhpc-ecosystem"
+version = "0.1.0"
+description = "Apptainer-first development environments for the QSC quantum-HPC ecosystem."
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "QSC Software Thrust" }]
+keywords = ["apptainer", "hpc", "quantum-computing", "containers"]
+dependencies = [
+    "jsonschema>=4.19",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+qhpc-ecosystem = "qhpc_ecosystem.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["qhpc_ecosystem*"]
+
+[tool.setuptools.package-data]
+qhpc_ecosystem = ["contracts/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

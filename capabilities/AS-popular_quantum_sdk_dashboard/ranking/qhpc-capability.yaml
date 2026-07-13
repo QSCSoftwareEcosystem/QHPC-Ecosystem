@@ -1,0 +1,31 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: quantum-sdk-ranking
+  name: Quantum SDK Ranking Engine
+  version: 0.1.0
+  project: agentic-software
+  owners: [agentic-software]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard
+    revision: e7568760747752e29397f4fcc800bd475c6011a1
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: contract-valid
+    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    description: Deterministic ranking library and dashboard for quantum SDK metrics.
+  resources:
+    - id: ranking-library
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/tree/e7568760747752e29397f4fcc800bd475c6011a1/src/core
+  documentation:
+    qappswiki: packages/quantum-sdk-ranking.md
+    url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/blob/e7568760747752e29397f4fcc800bd475c6011a1/README.md

@@ -1,0 +1,26 @@
+api_version: qhpc/v1
+kind: ExecutionTarget
+metadata:
+  id: local-development
+  name: Local development runner
+  owners: [software-engineering]
+  visibility: internal
+  status: active
+spec:
+  runner: local
+  container_runtimes: [apptainer, oci]
+  resource_limits:
+    max_cpu: 8
+    max_memory_mb: 16384
+    max_gpu: 1
+    max_walltime_seconds: 3600
+  policies:
+    approved_images_only: true
+    network_access: none
+    allowed_projects:
+      - software-engineering
+      - data-schema
+      - agentic-software
+      - compilation-tools
+      - hybrid-workflows
+      - cross-project

@@ -1,0 +1,16 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.quantum-circuit
+  name: Quantum Circuit
+  version: 1
+  project: data-schema
+  owners: [data-schema]
+  status: active
+spec:
+  description: Quantum circuit represented as an OpenQASM source file.
+  media_type: application/vnd.qsc.qasm
+  representation: file
+  extensions: [qasm]
+  compatibility:
+    accepts_versions: [1]

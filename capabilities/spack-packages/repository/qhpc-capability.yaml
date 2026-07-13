@@ -1,0 +1,31 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: qsc-spack-repository
+  name: QSC Spack Package Repository
+  version: 0.1.0
+  project: software-engineering
+  owners: [software-engineering]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/spack-packages
+    revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: contract-valid
+    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    description: Spack package recipes for QSC software deployment.
+  resources:
+    - id: spack-repository
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/spack-packages/tree/11edfc3b95af9b4352c1554d6492b48d5977628c
+  documentation:
+    qappswiki: packages/qsc-spack.md
+    url: https://github.com/QSCSoftwareThrust/spack-packages/blob/11edfc3b95af9b4352c1554d6492b48d5977628c/README.md

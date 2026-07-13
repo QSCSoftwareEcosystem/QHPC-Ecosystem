@@ -1,0 +1,109 @@
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+
+import pytest
+import yaml
+
+from qhpc_ecosystem import cli
+from qhpc_ecosystem.contract import (
+    CONTRACT_SCHEMAS,
+    ContractError,
+    contract_kinds,
+    load_document,
+    load_schema,
+    validate_contract,
+    validate_contract_data,
+)
+
+
+ROOT = Path(__file__).resolve().parents[1]
+VALID = ROOT / "examples" / "contracts" / "valid"
+INVALID = ROOT / "tests" / "fixtures" / "contracts" / "invalid"
+VALID_EXAMPLES = {
+    "artifact": VALID / "artifact.yaml",
+    "artifact-type": VALID / "artifact-type.yaml",
+    "capability": VALID / "capability.yaml",
+    "execution-target": VALID / "execution-target.yaml",
+    "run": VALID / "run.yaml",
+    "workflow": VALID / "workflow.yaml",
+}
+
+
+def test_every_packaged_schema_is_valid_and_has_an_example() -> None:
+    assert set(contract_kinds()) == set(CONTRACT_SCHEMAS)
+    assert set(VALID_EXAMPLES) == set(CONTRACT_SCHEMAS) - {"registry"}
+
+    for kind in contract_kinds():
+        schema = load_schema(kind)
+        assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+        assert schema["$id"].endswith(CONTRACT_SCHEMAS[kind])
+
+    for kind, example in VALID_EXAMPLES.items():
+        validate_contract(kind, example)
+
+
+def test_mutable_runtime_fixture_is_rejected() -> None:
+    with pytest.raises(ContractError) as error:
+        validate_contract("capability", INVALID / "capability-mutable-runtime.yaml")
+
+    message = str(error.value)
+    assert "OCI references must end with the declared digest" in message
+    assert "mutable ':latest' references are forbidden" in message
+
+
+def test_cyclic_workflow_fixture_is_rejected() -> None:
+    with pytest.raises(ContractError, match="workflow graph must be acyclic"):
+        validate_contract("workflow", INVALID / "workflow-cycle.yaml")
+
+
+def test_workflow_rejects_mismatched_edge_types_and_unknown_nodes() -> None:
+    workflow = copy.deepcopy(load_document(VALID_EXAMPLES["workflow"]))
+    workflow["spec"]["edges"][0]["to"]["artifact_type"] = "qhpc.measurement-results@1"
+    workflow["spec"]["outputs"]["results"]["from"]["node"] = "missing"
+
+    with pytest.raises(ContractError) as error:
+        validate_contract_data("workflow", workflow)
+
+    message = str(error.value)
+    assert "edge artifact types must match exactly" in message
+    assert "references unknown node missing" in message
+
+
+def test_capability_rejects_default_with_wrong_parameter_type() -> None:
+    capability = copy.deepcopy(load_document(VALID_EXAMPLES["capability"]))
+    capability["spec"]["operations"][0]["parameters"]["qubits"]["default"] = "four"
+
+    with pytest.raises(ContractError, match="does not match parameter type"):
+        validate_contract_data("capability", capability)
+
+
+def test_contract_cli_does_not_load_repository_catalog(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "load_catalog",
+        lambda *_: (_ for _ in ()).throw(AssertionError("catalog loaded")),
+    )
+
+    assert cli.main(["contract", "list"]) == 0
+    assert "capability\tcapability-v1.schema.json" in capsys.readouterr().out
+
+    assert (
+        cli.main(["contract", "validate", "workflow", str(VALID_EXAMPLES["workflow"])])
+        == 0
+    )
+    assert "Contract valid: workflow" in capsys.readouterr().out
+
+
+def test_contract_schema_cli_prints_json(capsys) -> None:
+    assert cli.main(["contract", "schema", "artifact-type"]) == 0
+    schema = json.loads(capsys.readouterr().out)
+    assert schema["title"] == "QHPC Artifact Type v1"
+
+
+def test_example_files_remain_yaml_serializable() -> None:
+    for path in VALID_EXAMPLES.values():
+        document = load_document(path)
+        assert yaml.safe_load(yaml.safe_dump(document)) == document

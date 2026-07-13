@@ -1,0 +1,34 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: invalid-runtime
+  name: Invalid mutable runtime
+  version: 0.1.0
+  project: software-engineering
+  owners: [software-engineering]
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: declared
+    validation_status: contract-valid
+  repository:
+    url: https://example.invalid/qsc/invalid-runtime
+    revision: v0.1.0
+  visibility: internal
+  maturity: prototype
+spec:
+  component:
+    description: Invalid fixture with a mutable OCI reference.
+  operations:
+    - id: run
+      title: Run invalid fixture
+      inputs: {}
+      outputs: {}
+      runtime:
+        type: oci
+        reference: registry.internal/qsc/invalid-runtime:latest
+        digest: sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      invocation:
+        entrypoint: [/opt/qhpc/bin/run]
+      execution_targets: [local-development]

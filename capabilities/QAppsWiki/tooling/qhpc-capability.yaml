@@ -1,0 +1,36 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: qappswiki-tooling
+  name: QAppsWiki Tooling and Corpus
+  version: 0.1.0
+  project: cross-project
+  owners: [qappswiki]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/QAppsWiki
+    revision: d5f0248945516a4198f92edd9764a2fe5b676549
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: contract-valid
+    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  visibility: public
+  maturity: alpha
+spec:
+  component:
+    description: Markdown validation, graph construction, provenance, and query tooling.
+    license: MIT
+  resources:
+    - id: qappswiki-cli
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549/tools
+    - id: qappswiki-corpus
+      kind: dataset
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549
+  documentation:
+    qappswiki: docs/qsc-integration.md
+    url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md

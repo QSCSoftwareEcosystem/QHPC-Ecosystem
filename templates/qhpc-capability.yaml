@@ -1,0 +1,50 @@
+# Copy this file into a project release or a QHPC capability overlay.
+# Replace every example value before registry publication.
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: replace-me
+  name: Replace Me
+  version: 0.1.0
+  project: cross-project
+  owners: [replace-me-team]
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: declared
+    validation_status: contract-valid
+    evidence: [tests/integration/replace-me.md]
+  repository:
+    url: https://code.ornl.gov/QSCSoftware/replace-me
+    revision: v0.1.0
+  visibility: internal
+  maturity: prototype
+spec:
+  component:
+    description: Replace with a concise description of the project-owned component.
+  operations:
+    - id: replace-me
+      title: Replace me
+      description: Replace with the supported scientific operation.
+      inputs:
+        input:
+          artifact_type: qhpc.replace-me-input@1
+      outputs:
+        output:
+          artifact_type: qhpc.replace-me-output@1
+      parameters: {}
+      runtime:
+        type: oci
+        reference: registry.internal/qsc/replace-me@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+      invocation:
+        entrypoint: [/opt/qhpc/bin/replace-me]
+        arguments: [--input, "{{ inputs.input }}", --output, "{{ outputs.output }}"]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 600
+      execution_targets: [local-development]
+  documentation:
+    qappswiki: packages/replace-me.md
