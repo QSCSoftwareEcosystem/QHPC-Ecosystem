@@ -1,7 +1,7 @@
 # QHPC Ecosystem Plan
 
 - Status: Active
-- Last updated: 2026-07-11
+- Last updated: 2026-07-20
 - Scope: QSC Software Thrust quantum-HPC software ecosystem
 
 ## Purpose
@@ -49,37 +49,64 @@ user workbench.
    direct path to Slurm, Apptainer, and quantum execution backends.
 10. DOE identity, authorization, auditing, secrets, network, and software supply
     chain requirements are architectural inputs rather than deployment add-ons.
+11. The API is a control-plane process; separately deployable workers lease and
+    execute tasks asynchronously.
+12. Operation adapters define scientific invocation while target runners own
+    local, Slurm, or quantum transport and lifecycle behavior.
+13. Shared developer environments and immutable operation runtimes are distinct
+    container models with different release and security requirements.
+14. Storage topology, staging, controlled binds, RDMA, MPI, GPU, and GPUDirect
+    behavior are execution-target requirements that must be measured in situ.
+15. SE and DS may contribute cross-cutting release and artifact contracts
+    without being represented as artificial executable workflow nodes; AS
+    assistance is optional unless it publishes a meaningful versioned output.
+16. Short approved operations may use site-governed warm workers or pilot
+    allocations, while every attempt records stage-by-stage latency and falls
+    back to ordinary batch execution when policy permits.
 
 ## System Boundaries
 
 ```text
-Software Thrust project repositories
-  SE | DS | AS | CT | HW | OpenQEvo
+Project repositories and ecosystem overlays
                     |
-                    | project-owned capability releases
                     v
-          QHPC Ecosystem Registry
+ Integration and publication plane
+ validate -> build -> attest -> registry snapshot
                     |
-          +---------+----------+
-          |                    |
-          v                    v
-   QHPC Workbench       Workflow API and Engine
-                               |
-                     +---------+----------+
-                     |         |          |
-                     v         v          v
-                   Local   Slurm/HPC   Quantum backend
-
-Supporting layers:
-  QAppsWiki       documentation, package context, interfaces, and provenance
-  DataSchema      shared artifact and metadata contracts
-  QHPC-Ecosystem  repository inventory, integration schemas, CLI, and containers
+                    v
+       Workbench | CLI | automation | approved agents
+                    |
+                    v
+             API control plane
+ identity -> policy -> workflow and run application services
+                    |
+                    v
+             Persistent task leases
+                    |
+                    v
+              Worker processes
+  class selection -> staging -> adapter -> target runner -> collection
+                    |
+       +------------+------------+--------------+
+       |            |            |              |
+       v            v            v              v
+     Local     Warm pilot    Slurm batch   Quantum backend
+                    |
+                    v
+       Target data and communication plane
+ image cache | parallel FS | node scratch | artifact store | RDMA/GPU
 ```
 
-`QHPC-Ecosystem` will remain the integration-contract and packaging project.
-The deployable web application and workflow service should be developed as a
-separate project, provisionally named `QHPC-Workbench`, which consumes the
-QHPC registry instead of becoming authoritative for project software.
+`QHPC-Ecosystem` remains one modular monorepo while it has one primary
+maintainer. The API, worker, workbench, and CLI are separate application or
+deployment units that share versioned domain contracts. A repository split is
+deferred until ownership, deployment cadence, or access controls justify it.
+The Workbench consumes QHPC APIs and registry records and is never authoritative
+for project software.
+
+The complete target design is maintained in `docs/architecture.md`. ADRs 0004
+through 0007 record the API-worker split, adapter-runner boundary, dual
+container plus storage-aware execution, and warm-pilot latency decisions.
 
 ## Project Responsibilities
 
@@ -96,6 +123,11 @@ The ecosystem may also consume scientific implementations from other QSC
 thrusts through an owning Software Thrust project. Such code must enter through
 the same release and capability contracts as Software Thrust components.
 
+These responsibilities do not imply one executable node per project. SE release
+controls and DS artifact contracts apply across the graph. AS may assist users
+through the same API or publish a versioned recommendation operation when its
+output is part of the scientific record.
+
 ## Resource Model
 
 The platform will distinguish the following resources:
@@ -105,14 +137,22 @@ The platform will distinguish the following resources:
 | Repository | Source location, ownership, visibility, maturity, and project metadata |
 | Component | Versioned software release produced by a repository |
 | Operation | Executable capability exposed by a component |
+| Runtime release | Immutable executable environment with digest, source, build, and attestation evidence |
+| Registry snapshot | Immutable set of capability and runtime releases used to resolve a workflow |
 | Artifact type | Versioned contract for a workflow input or output |
 | Artifact | Immutable or versioned data object with a URI, media type, checksum, and provenance |
+| Workspace | User or team scope for workflows, runs, artifacts, and access policy |
 | Workflow | User-authored directed acyclic graph of operation references and connections |
 | Workflow version | Immutable workflow definition with resolved contract versions |
 | Run | Execution of a workflow version with inputs, parameters, identity, and target |
-| Task | Execution state and outputs for one workflow node |
+| Task | Current execution projection for one workflow node |
+| Task attempt | Append-only record of one node attempt, including logs, errors, outputs, and target handle |
 | Execution target | Local, CPU, GPU, Slurm partition, simulator, or quantum backend destination |
-| Environment | Immutable runtime image and dependency metadata |
+| Execution class | Policy-controlled local interactive, warm HPC pilot, batch HPC, or backend dispatch mode |
+| Pilot allocation | Site-approved warm scheduler capacity with limits, health, lifetime, and drain state |
+| Execution event | Append-only run, attempt, or pilot event with source, duration, and occurrence/receipt time |
+| Storage profile | Approved image, input, scratch, output, host-library, and RDMA mappings for a target |
+| Developer environment | Shared toolchain image for repository development, not a production runtime |
 
 One repository may publish multiple operations. A repository may also publish
 only schemas, datasets, documentation, adapters, or other non-executable
@@ -188,6 +228,33 @@ not replace project manifests and must retain the originating repository,
 revision, attribution, curator, review state, evidence, validation result, and
 runtime digest.
 
+## Target Architecture
+
+The target implementation separates the API control plane from worker
+execution. The API validates and persists a run request and returns without
+executing scientific work. Workers lease tasks, stage inputs, invoke a versioned
+operation adapter through a target runner, collect declared outputs, compute
+checksums, and append attempt and provenance records.
+
+Adapters define operation-specific invocation and result interpretation.
+Runners define target-specific prepare, submit, poll, cancel, and collect
+behavior. Storage and communication policy is supplied by an approved execution
+target, not by user-provided shell text or host paths.
+
+For eligible short operations, target policy may select a warm worker inside a
+pre-acquired Slurm pilot allocation. The pilot remains scheduler-accounted,
+capacity-limited, and restricted to allowlisted runtime digests. If suitable
+capacity is unavailable, dispatch falls back to ordinary Slurm batch unless the
+approved request requires interactive service. Append-only task-stage events
+separate API, dispatch, scheduler, image, input, execution, collection, and
+finalization latency.
+
+The local SQLite engine, filesystem artifact store, synchronous runner, Python
+wheel, and Darwin native bundles are MVP implementations. They do not constitute
+the production API-worker split, Linux operation containers, asynchronous Slurm
+runner, warm pilot service, stage latency telemetry, or storage-aware HPC
+target.
+
 ## Implementation Phases
 
 ### Phase 0 - Repository and Container Foundation
@@ -208,6 +275,8 @@ Status: Completed baseline
 Phase 0 is infrastructure, not the completed ecosystem. Its images are shared
 developer environments. Production workflow operations will require immutable,
 component-specific runtime images or validated mappings to approved images.
+Optional host command launchers may make developer environments Distrobox-like,
+but those launchers do not become workflow execution contracts.
 
 ### Phase 1 - Integration Contracts and Readiness
 
@@ -281,7 +350,7 @@ Exit criteria:
 
 ### Phase 3 - Independent Workflow Engine
 
-Status: Completed local engine baseline
+Status: Local engine prototype complete; production separation pending
 
 Deliverables:
 
@@ -296,8 +365,28 @@ Deliverables:
 - [x] Implement a controlled local runner for the first vertical slice.
 - [x] Expose a versioned API used by both CLI and workbench clients.
 
-The engine will own orchestration state, not scientific behavior. A task invokes
-a validated project operation through its runtime contract.
+Production architecture deliverables:
+
+- [ ] Separate the API process from task-executing worker processes.
+- [ ] Replace synchronous execution with persistent asynchronous execution
+      handles and worker heartbeats.
+- [ ] Persist append-only execution events scoped to runs, task attempts, and
+      pilots with correlation IDs, occurrence and receipt timestamps, monotonic
+      stage durations, execution class, source component, and target handle.
+- [ ] Expose asynchronous state and derived API, dispatch, queue, staging,
+      execution, collection, and end-to-end latency through versioned APIs.
+- [ ] Store retries as append-only task attempts rather than rewriting prior
+      execution facts.
+- [ ] Introduce persistence and artifact-store interfaces with schema migration
+      support.
+- [ ] Ingest outputs only from declared task-relative paths and verify payloads
+      during collection.
+- [ ] Enforce workspace ownership, target policy, and authoritative identity in
+      application services.
+
+The orchestration domain owns workflow and execution state, not scientific
+behavior. An adapter invokes a validated project operation through its runtime
+contract, and a target runner owns execution transport.
 
 Exit criteria:
 
@@ -307,9 +396,13 @@ Exit criteria:
 - A run can be exported with the information required to understand and repeat
   it.
 
+The local exit criteria are met. Production exit additionally requires that API
+restart, worker restart, duplicate completion, retry history, and asynchronous
+target recovery preserve all prior attempts and artifacts.
+
 ### Phase 4 - QHPC Workbench MVP
 
-Status: Implemented local workbench baseline
+Status: Local browser baseline implemented; visual composition remains pending
 
 The first screen will be the working application, not a marketing page.
 
@@ -332,6 +425,16 @@ the general product lessons of scientific workflow systems, but it will not
 copy Galaxy source code, schemas, wrappers, API design, visual assets, or page
 layouts.
 
+The current browser can discover registry entries, run published templates,
+publish a one-operation draft, inspect runs and artifacts, and export
+provenance. Arbitrary node placement, typed edge editing, draft persistence,
+workspace ownership, and asynchronous progress updates remain target work.
+
+The target Runs view distinguishes authorization, dispatch, scheduler queue,
+image and input staging, operation execution, output collection, and
+finalization. It displays the selected execution class and warm-pilot fallback
+without combining all delay into scientific wall time.
+
 Exit criteria:
 
 - A user can discover project-owned operations, compose a valid workflow,
@@ -345,25 +448,25 @@ Exit criteria:
 
 Status: In progress; CT-HW workflow verified
 
-The first integrated workflow is provisionally:
+Cross-project integration uses scientific operations where they exist and
+cross-cutting contracts where a project is not an executable tool:
 
 ```text
-DS context and artifact schema
-        |
-        v
-AS method recommendation or workflow assistance
-        |
-        v
-OpenQEvo algorithm selection and execution
-        |
-        v
-CT compilation or IR lowering
-        |
-        v
-HW simulation, QEC, or execution operation
-        |
-        v
-Versioned results and provenance bundle
+DS artifact schemas and validation apply to inputs, edges, and outputs
+SE packaging, CI, runtime, SBOM, and release policy apply to every operation
+AS assistance may produce a draft or a versioned recommendation artifact
+
+Executable scientific path:
+  project-owned input or OpenQEvo output
+                    |
+                    v
+          CT compilation or lowering
+                    |
+                    v
+       HW simulation, analysis, or execution
+                    |
+                    v
+       Versioned artifacts and provenance
 ```
 
 SE provides packaging, CI, runtime validation, and reproducibility practices
@@ -371,18 +474,18 @@ across the entire workflow. The exact operations must be supported by repository
 documentation, tests, or a stable API. The curator will not invent scientific
 behavior or imply project endorsement.
 
-The first verified slice executes OpenQEvo's pinned `list_methods_detail()` API
+One verified slice executes OpenQEvo's pinned `list_methods_detail()` API
 through a digest-checked wheel runtime, persists the method-catalog artifact,
-and exports complete run provenance. The full DS-AS-OpenQEvo-CT-HW scientific
-slice remains pending because DS and AS do not yet publish executable nodes and
-the verified HW operation currently analyzes circuit structure rather than
-executing an incompatible gate basis.
+and exports complete run provenance. This is a registry operation rather than
+a scientific circuit-generation claim.
 
 A second verified slice connects QASMTrans transpilation to STABSim structural
 metrics through `qhpc.transpiled-circuit@1`. Both native runtimes reproduce
 identical bundle digests across isolated builds. Full STABSim execution is not
 claimed because the IBM `SX` basis emitted by QASMTrans is outside the audited
-simulator gate set. DS and AS executable nodes remain pending.
+simulator gate set. DS and SE participate through artifact and release policy;
+AS integration remains optional until repository evidence supports a useful
+versioned recommendation or assistance contract.
 
 QASMTrans currently initializes routing with `std::random_device` and does not
 expose a seed. Run provenance captures the exact output checksum, but repeated
@@ -393,6 +496,8 @@ Exit criteria:
 
 - The workflow uses released contributions from the Software Thrust projects
   rather than substitute implementations.
+- Cross-cutting DS and SE contributions are validated without adding no-op
+  executable nodes.
 - Each node displays project, repository revision, operation version, runtime
   identity, inputs, outputs, and validation status.
 - The workflow can be saved, rerun with new inputs, and exported with complete
@@ -400,14 +505,40 @@ Exit criteria:
 
 ### Phase 6 - HPC and DOE Hardening
 
-Status: Local policy and adapter foundation implemented; target acceptance pending
+Status: Local primitives implemented; worker, storage, and target integration pending
 
 Deliverables:
 
-- [x] Implement a Slurm runner with submission, polling, cancellation, timeout,
-      and failure classification.
+- [x] Implement Slurm submission, polling, cancellation, accounting fallback,
+      and failure-classification primitives.
+- [ ] Integrate an asynchronous Slurm runner with worker leases, persisted job
+      IDs, heartbeats, cancellation, timeout, and output collection.
+- [ ] Define target execution-class policy for local interactive, warm HPC
+      pilot, ordinary batch, and target-specific asynchronous backends.
+- [ ] Implement site-approved warm Slurm pilot allocations for eligible short
+      operations, including capacity accounting, health checks, idle timeout,
+      maximum lifetime, cache prewarming, draining, and ordinary-batch fallback.
+- [ ] Restrict pilot workers to authorized operations, immutable runtime
+      digests, fresh resource-isolated job steps and container processes,
+      per-task workspaces, and the same artifact and audit controls as
+      independently scheduled jobs.
 - [ ] Execute approved workloads with Apptainer on target HPC systems.
+- [ ] Build tool-specific immutable Linux operation images; development images,
+      Python wheels, and Darwin bundles do not satisfy this requirement.
 - [ ] Integrate an approved internal image registry or shared image cache.
+- [ ] Define target storage profiles for image staging, read-only inputs,
+      node-local scratch, result collection, quotas, retention, and purge.
+- [ ] Add controlled bind mappings; workflows cannot provide arbitrary host
+      paths.
+- [ ] Verify host parallel-filesystem access and required RDMA, MPI, UCX,
+      libfabric, GPU, and GPUDirect paths through site-approved libraries and
+      devices.
+- [ ] Benchmark native and container startup, metadata, throughput, scaling, and
+      representative application wall time using shared and node-local image and
+      workspace variants.
+- [ ] Benchmark cold batch, warm pilot, cached and uncached runtime staging, and
+      unavailable-pilot fallback; validate complete stage telemetry and target
+      clock synchronization.
 - [ ] Integrate institutional identity through the approved authentication
       boundary.
 - [x] Implement deployment-neutral role-based authorization rules for
@@ -418,8 +549,10 @@ Deliverables:
       artifacts, or images.
 - [ ] Integrate institutional identity and policy enforcement into the deployed
       API boundary.
-- [x] Enforce execution-target allowlists and resource limits in local and
-      Slurm contracts.
+- [x] Define execution-target allowlists and resource-limit validation
+      primitives.
+- [ ] Enforce target, storage, image, bind, account, and resource policy in the
+      deployed API and worker boundaries.
 - [ ] Enforce target network policy.
 - [ ] Produce required software inventories, checksums, attestations, or SBOMs.
 - [ ] Complete security, operations, backup, recovery, and deployment reviews.
@@ -428,6 +561,13 @@ Exit criteria:
 
 - The same workflow contract runs locally and through Slurm without changing
   scientific operation definitions.
+- Target evidence demonstrates approved native-versus-container performance and
+  preserves the expected parallel-filesystem and RDMA data paths.
+- Eligible short operations use approved warm capacity within measured target
+  thresholds, fall back predictably, and report each latency stage without
+  bypassing scheduler, account, quota, or authorization policy.
+- Images and inputs are staged according to target policy, temporary work uses
+  approved scratch, and only declared outputs enter artifact storage.
 - Authorization and audit tests demonstrate that users cannot publish or run
   capabilities outside their assigned policy.
 - Runtime images and artifacts can be traced to approved, immutable sources.
@@ -454,16 +594,25 @@ Testing will scale with each layer:
 - State-machine tests for retries, cancellation, restart, leases, and duplicate
   completion.
 - Runner contract tests using controlled fake local and Slurm adapters.
+- Dispatch tests for class eligibility, warm capacity, saturation, draining,
+  expiry, worker loss, and ordinary-batch fallback.
+- Telemetry tests for stage ordering variants, correlation, retries,
+  cancellation, failures, missing events, and clock-offset handling.
 - Integration tests using small project-owned reference operations.
 - API authorization and audit tests.
 - Frontend component tests for typed composition and execution states.
 - End-to-end tests for discover, compose, run, inspect, rerun, and export.
 - Target-system acceptance tests for Apptainer and Slurm that remain separate
   from the local unit suite.
+- Native-versus-container tests for startup, metadata operations, sequential and
+  representative application I/O, multi-node scaling, and target-required RDMA
+  or GPUDirect paths.
+- Failure-injection tests for staging, worker restart, Slurm reconciliation,
+  output collection, and cleanup.
 
 ## Current Readiness Gaps
 
-The following issues are known as of 2026-07-11:
+The following issues are known as of 2026-07-20:
 
 - CT does not have a dedicated local checkout in this coordination workspace.
 - SE, AS, and HW are sparsely populated locally and require canonical project
@@ -474,10 +623,20 @@ The following issues are known as of 2026-07-11:
 - OpenQEvo method discovery and the QASMTrans-to-STABSim metrics workflow are
   verified with digest-checked local runtimes. Production container builds and
   target-system signatures remain pending.
+- The API currently executes the controlled local runner synchronously; a
+  separate worker and asynchronous execution-handle model are not implemented.
+- No warm worker or pilot allocation manager, execution-class dispatcher, or
+  persistent stage-by-stage latency telemetry is implemented yet.
+- Task retries update a current task record; append-only attempt history and
+  authoritative contract-shaped API records remain pending.
+- The Workbench runs templates and one-operation drafts but does not yet provide
+  arbitrary visual node-and-edge composition.
+- No target storage profile, node-local staging policy, controlled HPC bind map,
+  or native-versus-container RDMA/I/O acceptance evidence exists yet.
 - The approved identity, deployment, container registry, artifact storage, and
-  network boundaries for a DOE-hosted service remain institutional decisions;
-  required decisions and acceptance tests are recorded in
-  `docs/deployment-readiness.md`.
+  network boundaries, filesystem topology, RDMA policy, and performance
+  thresholds for a DOE-hosted service remain institutional decisions; required
+  decisions and acceptance tests are recorded in `docs/deployment-readiness.md`.
 
 These gaps do not block the implemented local registry, engine, workbench, or
 OpenQEvo slice. They block claiming a complete five-project scientific workflow
@@ -501,7 +660,9 @@ The ecosystem MVP is complete when a user can:
    parameters, artifact metadata, checksums, and provenance.
 
 Slurm execution and production DOE controls are required for the subsequent HPC
-deployment milestone, but not for the local MVP.
+deployment milestone, but not for the local MVP. The local MVP makes no claim of
+native-equivalent container I/O or RDMA performance, warm-pilot responsiveness,
+or production latency telemetry.
 
 ## Plan Maintenance
 

@@ -7,8 +7,10 @@ versioned API, and browser workbench. Scientific source repositories remain
 independent.
 
 The roadmap and remaining deployment dependencies are tracked in
-[PLAN.md](PLAN.md). Integration contracts, curator evidence, and DOE deployment
-readiness are maintained under [docs/](docs/).
+[PLAN.md](PLAN.md). The target control, execution, data, container, and storage
+boundaries are defined in [docs/architecture.md](docs/architecture.md).
+Integration contracts, architecture decisions, curator evidence, and DOE
+deployment readiness are maintained under [docs/](docs/).
 
 The responsibilities are intentionally separate:
 
@@ -16,6 +18,18 @@ The responsibilities are intentionally separate:
 - `QHPC-Ecosystem` defines how those repositories are built and run.
 - `QAppsWiki` describes packages, interfaces, workflows, and provenance.
 - `spack-packages` owns package-level HPC integration as components mature.
+
+The project remains one modular monorepo while it has one primary maintainer.
+The target deployment separates the API control plane, task-executing workers,
+and browser Workbench. The current synchronous local service is a verified MVP
+implementation, not the production process boundary.
+
+For short approved operations, a target may maintain workers inside a warm,
+site-governed Slurm pilot allocation. Policy selects between local interactive,
+warm-pilot, ordinary batch, and backend-specific execution; unavailable warm
+capacity falls back to batch when permitted. Each attempt will expose separate
+authorization, dispatch, scheduler, image, input, execution, collection, and
+finalization latency instead of treating all delay as scientific runtime.
 
 ## Quick start
 
@@ -132,6 +146,30 @@ The recipes provide toolchains rather than embedding source code. This keeps
 builds reusable and lets the same image operate on a local checkout, a GitLab
 worktree, or a batch-job staging directory.
 
+### Container roles
+
+QHPC intentionally distinguishes two container models:
+
+- **Developer environments** provide Distrobox-like `shell` and `run` access,
+  share toolchains by environment class, and bind source at `/workspace`.
+- **Operation runtimes** are tool-specific immutable Linux images used by
+  workers for reproducible local or HPC workflow execution.
+
+The current OpenQEvo wheel and QASMTrans/STABSim Darwin native bundles are local
+runtime evidence, not production containers. Production images must be built,
+verified, and accepted on the target system.
+
+Warm pilots reuse verified immutable runtime caches for eligible short
+operations but remain normal Slurm allocations with approved accounts, quotas,
+resource limits, lifetime, idle timeout, and draining policy. They do not offer
+an unrestricted shell or bypass scheduler and authorization controls.
+
+HPC execution also requires an administrator-owned storage profile. The worker
+must stage or verify the image, expose only controlled input and result paths,
+use approved node-local scratch, and preserve the host parallel-filesystem and
+RDMA path. Rebuilding an image alone does not correct storage placement or bind
+policy. See [docs/deployment-readiness.md](docs/deployment-readiness.md).
+
 ## Catalog governance
 
 `ecosystem.yaml` contains one entry for every row in
@@ -158,7 +196,8 @@ checks with:
 pytest
 ```
 
-The local suite does not claim target-system acceptance. Apptainer image builds,
-Slurm execution, institutional identity, registry policy, storage, and security
-reviews require the target DOE environment. See
+The local suite does not claim target-system acceptance. Tool-specific
+Apptainer builds, asynchronous Slurm execution, institutional identity,
+registry policy, storage and RDMA performance, and security reviews require the
+target DOE environment. See
 [docs/deployment-readiness.md](docs/deployment-readiness.md).
