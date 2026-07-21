@@ -27,7 +27,7 @@ where = ["src"]
 include = ["qhpc_ecosystem*"]
 
 [tool.setuptools.package-data]
-qhpc_ecosystem = ["contracts/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js"]
+qhpc_ecosystem = ["contracts/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js", "workbench/assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
