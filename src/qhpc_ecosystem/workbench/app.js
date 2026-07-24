@@ -1,11 +1,33 @@
 const PROJECTS = {
-  "software-engineering": { code: "SE", name: "Software Engineering", color: "#167c58", description: "Packaging, releases, CI, containers, and reproducible deployment." },
-  "data-schema": { code: "DS", name: "Data Schema", color: "#087a8c", description: "Artifact contracts, metadata, validation, and interoperability." },
-  "agentic-software": { code: "AS", name: "Agentic Software", color: "#a86108", description: "Assistance, recommendations, rankings, and knowledge operations." },
-  "compilation-tools": { code: "CT", name: "Compilation Tools", color: "#784b9b", description: "Circuit transformation, lowering, mapping, and resource analysis." },
-  "hybrid-workflows": { code: "HW", name: "Hybrid Workflows", color: "#b3443b", description: "Simulation, QEC, execution backends, and hybrid orchestration." },
-  "cross-project": { code: "XP", name: "Cross-project", color: "#326d9b", description: "Shared libraries, structured context, and integration resources." },
+  "software-engineering": { code: "SE", name: "Software Engineering", description: "Packaging, releases, CI, containers, and reproducible deployment." },
+  "data-schema": { code: "DS", name: "Data Schema", description: "Artifact contracts, metadata, validation, and interoperability." },
+  "agentic-software": { code: "AS", name: "Agentic Software", description: "Assistance, recommendations, rankings, and knowledge operations." },
+  "compilation-tools": { code: "CT", name: "Compilation Tools", description: "Circuit transformation, lowering, mapping, and resource analysis." },
+  "hybrid-workflows": { code: "HW", name: "Hybrid Workflows", description: "Simulation, QEC, execution backends, and hybrid orchestration." },
+  "cross-project": { code: "XP", name: "Cross-project", description: "Shared libraries, structured context, and integration resources." },
 };
+
+/* Every state carries a class, a glyph, and its own word, so state is never
+   communicated by color alone. Red and green stay semantic; the glyph is the
+   channel that survives deuteranopia and forced-colors mode. */
+const STATE_META = {
+  succeeded: { cls: "green", glyph: "✓", color: "var(--ok)" },
+  verified: { cls: "green", glyph: "✓", color: "var(--ok)" },
+  "production-approved": { cls: "green", glyph: "✓", color: "var(--ok)" },
+  "integration-tested": { cls: "green", glyph: "✓", color: "var(--ok)" },
+  "smoke-tested": { cls: "blue", glyph: "◐", color: "var(--run)" },
+  running: { cls: "blue", glyph: "▶", color: "var(--run)" },
+  queued: { cls: "amber", glyph: "◷", color: "var(--warn)" },
+  pending: { cls: "amber", glyph: "◷", color: "var(--warn)" },
+  discovered: { cls: "amber", glyph: "◷", color: "var(--warn)" },
+  declared: { cls: "amber", glyph: "◷", color: "var(--warn)" },
+  failed: { cls: "red", glyph: "✕", color: "var(--bad)" },
+  canceled: { cls: "red", glyph: "⊘", color: "var(--bad)" },
+};
+
+function stateMeta(status) {
+  return STATE_META[status] || { cls: "", glyph: "·", color: "var(--idle)" };
+}
 
 const VIEW_META = {
   projects: ["ECOSYSTEM / PROJECTS", "Software Thrust projects"],
@@ -33,10 +55,40 @@ async function api(path, options = {}) {
 }
 
 function badgeClass(status) {
-  if (["production-approved", "integration-tested", "succeeded", "verified"].includes(status)) return "green";
-  if (["discovered", "pending", "queued", "declared"].includes(status)) return "amber";
-  if (["failed", "canceled"].includes(status)) return "red";
-  return "";
+  return stateMeta(status).cls;
+}
+
+function badge(status, label = status) {
+  const meta = stateMeta(status);
+  return `<span class="badge ${meta.cls}" data-glyph="${meta.glyph}">${escapeHtml(label)}</span>`;
+}
+
+/* Duration is derived from the started_at / finished_at wall-clock timestamps
+   the engine already persists. ADR 0007 specifies a per-stage event stream
+   measured on a monotonic clock; until that exists this reports coarse
+   task-level elapsed time and says so rather than implying more precision. */
+function elapsedMs(from, to) {
+  if (!from || !to) return null;
+  const start = Date.parse(from);
+  const end = Date.parse(to);
+  return Number.isFinite(start) && Number.isFinite(end) && end >= start ? end - start : null;
+}
+
+function formatDuration(ms) {
+  if (ms === null || ms === undefined) return null;
+  if (ms < 1000) return `${ms} ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${String(Math.round(seconds % 60)).padStart(2, "0")}s`;
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
+}
+
+function formatClock(value) {
+  if (!value) return "—";
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+  return new Date(parsed).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
 }
 
 function showToast(message) {
@@ -47,16 +99,30 @@ function showToast(message) {
   setTimeout(() => toast.remove(), 3500);
 }
 
+/* A bare count hides whether 3 is most of the registry or a sliver of it.
+   Each metric that is genuinely a part of a whole shows its denominator and a
+   proportion meter; the two that are plain totals show neither. */
+function metricTile({ value, total, label, color }) {
+  const share = total ? Math.min(100, Math.round((value / total) * 100)) : null;
+  const of = total ? `<span class="metric-of">/ ${total}</span>` : "";
+  const meter = share === null ? "" :
+    `<div class="meter" role="img" aria-label="${value} of ${total}, ${share} percent"><i style="width:${share}%;--meter-color:${color}"></i></div>`;
+  return `<div class="metric">
+    <div class="metric-value"><strong>${value}</strong>${of}</div>
+    <span class="metric-label">${escapeHtml(label)}</span>${meter}
+  </div>`;
+}
+
 function renderSummary() {
   const operations = state.capabilities.reduce((count, item) => count + item.operations.length, 0);
   const tested = state.capabilities.filter(item => ["smoke-tested", "integration-tested", "production-approved"].includes(item.validation.status)).length;
   const activeRuns = state.runs.filter(run => ["queued", "running"].includes(run.state)).length;
   document.querySelector("#summary-strip").innerHTML = [
-    [state.capabilities.length, "Registered capabilities"],
-    [operations, "Executable operations"],
-    [tested, "Evidence tested"],
-    [activeRuns, "Active runs"],
-  ].map(([value, label]) => `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join("");
+    { value: state.capabilities.length, label: "Registered capabilities" },
+    { value: operations, label: "Executable operations" },
+    { value: tested, total: state.capabilities.length, label: "Evidence tested", color: "var(--ok)" },
+    { value: activeRuns, total: state.runs.length, label: "Active runs", color: "var(--run)" },
+  ].map(metricTile).join("");
 }
 
 function filteredCapabilities() {
@@ -71,16 +137,28 @@ function sectionHeader(title, detail, controls = "") {
   return `<div class="section-header"><div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(detail)}</p></div>${controls}</div>`;
 }
 
+/* Panel color encodes readiness, not project identity. A per-project hue
+   would be decoration: the two-letter code and the name already identify the
+   project, and six arbitrary hues fail contrast and CVD separation. */
+function readiness(capabilities) {
+  if (!capabilities.length) return { state: "pending", label: "no capability" };
+  if (capabilities.every(item => item.validation.evidence.length)) return { state: "succeeded", label: "evidence on file" };
+  if (capabilities.some(item => item.validation.evidence.length)) return { state: "running", label: "partial evidence" };
+  return { state: "queued", label: "awaiting evidence" };
+}
+
 function renderProjects() {
   const panels = Object.entries(PROJECTS).map(([id, project]) => {
     const capabilities = state.capabilities.filter(item => item.project === id);
     const operations = capabilities.reduce((count, item) => count + item.operations.length, 0);
     const evidence = capabilities.filter(item => item.validation.evidence.length).length;
-    return `<article class="project-panel" style="--project-color:${project.color}" data-project="${id}">
-      <header><span class="project-code">${project.code}</span><span class="badge ${capabilities.length ? "green" : "amber"}">${capabilities.length ? "cataloged" : "pending"}</span></header>
+    const level = readiness(capabilities);
+    const meta = stateMeta(level.state);
+    return `<button class="project-panel" style="--readiness:${meta.color}" data-project="${id}">
+      <header><span class="project-code hex" aria-hidden="true">${project.code}</span>${badge(level.state, level.label)}</header>
       <h3>${project.name}</h3><p>${project.description}</p>
       <div class="project-counts"><span><strong>${capabilities.length}</strong>capabilities</span><span><strong>${operations}</strong>operations</span><span><strong>${evidence}</strong>evidence</span></div>
-    </article>`;
+    </button>`;
   }).join("");
   workspace.innerHTML = sectionHeader("Project readiness", "Attribution and curator validation remain separate throughout the registry.") + `<div class="project-grid">${panels}</div>`;
   workspace.querySelectorAll("[data-project]").forEach(panel => panel.addEventListener("click", () => {
@@ -92,20 +170,25 @@ function renderProjects() {
 function renderExplore() {
   const projects = Object.entries(PROJECTS).map(([id, value]) => `<option value="${id}" ${state.projectFilter === id ? "selected" : ""}>${value.code} · ${value.name}</option>`).join("");
   const statuses = [...new Set(state.capabilities.map(item => item.validation.status))].sort().map(status => `<option value="${status}" ${state.statusFilter === status ? "selected" : ""}>${status}</option>`).join("");
-  const rows = filteredCapabilities().map(item => `<tr data-capability="${item.id}">
+  const rows = filteredCapabilities().map(item => `<tr data-capability="${item.id}" tabindex="0">
     <td><span class="cell-title"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.id)}@${escapeHtml(item.version)}</small></span></td>
     <td>${PROJECTS[item.project]?.code || item.project}</td>
     <td>${escapeHtml(item.catalog_repository)}</td>
-    <td><span class="badge ${badgeClass(item.validation.status)}">${escapeHtml(item.validation.status)}</span></td>
-    <td>${item.operations.length}</td><td>${item.resources.length}</td>
-    <td><span class="badge ${badgeClass(item.integration.runtime_status)}">${escapeHtml(item.integration.runtime_status)}</span></td>
+    <td>${badge(item.validation.status)}</td>
+    <td class="numeric">${item.operations.length}</td><td class="numeric">${item.resources.length}</td>
+    <td>${badge(item.integration.runtime_status)}</td>
   </tr>`).join("");
   workspace.innerHTML = sectionHeader("Registry records", `${filteredCapabilities().length} of ${state.capabilities.length} capabilities`) + `
     <div class="toolbar"><select id="project-filter"><option value="all">All projects</option>${projects}</select><select id="status-filter"><option value="all">All validation states</option>${statuses}</select></div>
     <table class="data-table"><thead><tr><th>CAPABILITY</th><th>PROJECT</th><th>REPOSITORY</th><th>VALIDATION</th><th>OPS</th><th>RESOURCES</th><th>RUNTIME</th></tr></thead><tbody>${rows || `<tr><td colspan="7">No registry records match the current filters.</td></tr>`}</tbody></table>`;
   document.querySelector("#project-filter").addEventListener("change", event => { state.projectFilter = event.target.value; renderExplore(); });
   document.querySelector("#status-filter").addEventListener("change", event => { state.statusFilter = event.target.value; renderExplore(); });
-  workspace.querySelectorAll("[data-capability]").forEach(row => row.addEventListener("click", () => openCapability(row.dataset.capability)));
+  workspace.querySelectorAll("[data-capability]").forEach(row => {
+    row.addEventListener("click", () => openCapability(row.dataset.capability));
+    row.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openCapability(row.dataset.capability); }
+    });
+  });
 }
 
 function renderCompose() {
@@ -236,9 +319,28 @@ function renderRuns() {
     workspace.innerHTML = `<div class="empty-state"><div><span class="empty-code">RUN</span><h2>No execution records</h2><p>Runs will appear here after a validated workflow version is submitted to a configured controlled runner.</p></div></div>`;
     return;
   }
-  const rows = state.runs.map(run => `<tr data-run="${run.id}"><td><span class="cell-title"><strong>${escapeHtml(run.workflow_id)}</strong><small>${escapeHtml(run.id)}</small></span></td><td>${escapeHtml(run.workflow_version)}</td><td><span class="badge ${badgeClass(run.state)}">${escapeHtml(run.state)}</span></td><td>${run.tasks.length}</td><td>${escapeHtml(run.execution_target)}</td><td>${escapeHtml(run.created_at)}</td></tr>`).join("");
-  workspace.innerHTML = sectionHeader("Run history", `${state.runs.length} persisted execution records`) + `<table class="data-table run-table"><thead><tr><th>WORKFLOW / RUN</th><th>VERSION</th><th>STATE</th><th>TASKS</th><th>TARGET</th><th>CREATED</th></tr></thead><tbody>${rows}</tbody></table>`;
-  workspace.querySelectorAll("[data-run]").forEach(row => row.addEventListener("click", () => openRun(row.dataset.run)));
+  const rows = state.runs.map(run => {
+    const total = elapsedMs(run.started_at, run.finished_at);
+    const elapsed = total === null
+      ? `<span class="stage-pending">${run.state === "running" ? "in progress" : "—"}</span>`
+      : `<span class="numeric">${formatDuration(total)}</span>`;
+    return `<tr data-run="${run.id}" tabindex="0">
+      <td><span class="cell-title"><strong>${escapeHtml(run.workflow_id)}</strong><small>${escapeHtml(run.id)}</small></span></td>
+      <td class="numeric">${escapeHtml(run.workflow_version)}</td>
+      <td>${badge(run.state)}</td>
+      <td>${elapsed}</td>
+      <td class="numeric">${run.tasks.length}</td>
+      <td>${escapeHtml(run.execution_target)}</td>
+      <td class="numeric">${escapeHtml(formatClock(run.created_at))}</td>
+    </tr>`;
+  }).join("");
+  workspace.innerHTML = sectionHeader("Run history", `${state.runs.length} persisted execution records`) + `<table class="data-table run-table"><thead><tr><th>WORKFLOW / RUN</th><th>VERSION</th><th>STATE</th><th>ELAPSED</th><th>TASKS</th><th>TARGET</th><th>CREATED</th></tr></thead><tbody>${rows}</tbody></table>`;
+  workspace.querySelectorAll("[data-run]").forEach(row => {
+    row.addEventListener("click", () => openRun(row.dataset.run));
+    row.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openRun(row.dataset.run); }
+    });
+  });
 }
 
 function renderArtifacts() {
@@ -277,29 +379,120 @@ function switchView(view) {
   render();
 }
 
-function openInspector(html) {
+let lastFocused = null;
+
+function openInspector(html, kind = "DETAILS") {
+  const inspector = document.querySelector("#inspector");
+  lastFocused = document.activeElement;
+  document.querySelector("#inspector-kind").textContent = kind;
   document.querySelector("#inspector-content").innerHTML = html;
-  document.querySelector("#inspector").classList.add("open");
-  document.querySelector("#inspector").setAttribute("aria-hidden", "false");
+  inspector.classList.add("open");
+  inspector.setAttribute("aria-hidden", "false");
   document.querySelector("#scrim").classList.add("open");
+  inspector.focus();
 }
 
 function closeInspector() {
-  document.querySelector("#inspector").classList.remove("open");
-  document.querySelector("#inspector").setAttribute("aria-hidden", "true");
+  const inspector = document.querySelector("#inspector");
+  if (!inspector.classList.contains("open")) return;
+  inspector.classList.remove("open");
+  inspector.setAttribute("aria-hidden", "true");
   document.querySelector("#scrim").classList.remove("open");
+  // Return focus to whatever opened the panel, so keyboard position is not lost.
+  if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
+  lastFocused = null;
+}
+
+/* Keep Tab inside the panel while it is modal. */
+function trapFocus(event) {
+  const inspector = document.querySelector("#inspector");
+  if (event.key !== "Tab" || !inspector.classList.contains("open")) return;
+  const focusable = inspector.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+}
+
+const THEME_KEY = "qhpc-workbench-theme";
+
+function applyTheme(theme) {
+  const toggle = document.querySelector("#theme-toggle");
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+  else document.documentElement.removeAttribute("data-theme");
+  const dark = theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  toggle.textContent = dark ? "Light theme" : "Dark theme";
+}
+
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark"
+    || (!document.documentElement.hasAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const next = dark ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* storage unavailable */ }
+  applyTheme(next);
 }
 
 function openCapability(id) {
   const item = state.capabilities.find(capability => capability.id === id);
-  openInspector(`<h2>${escapeHtml(item.name)}</h2><p class="description">${escapeHtml(item.description)}</p><p><span class="badge ${badgeClass(item.validation.status)}">${escapeHtml(item.validation.status)}</span></p><dl class="detail-list"><dt>Capability</dt><dd>${escapeHtml(item.id)}@${escapeHtml(item.version)}</dd><dt>Origin project</dt><dd>${escapeHtml(PROJECTS[item.project]?.name || item.project)}</dd><dt>Repository</dt><dd>${escapeHtml(item.repository.url)}</dd><dt>Revision</dt><dd>${escapeHtml(item.repository.revision)}</dd><dt>Authority</dt><dd>${escapeHtml(item.integration.authority)}</dd><dt>Curated by</dt><dd>${escapeHtml(item.integration.maintainers.join(", "))}</dd><dt>Project reviewed</dt><dd>${item.integration.project_reviewed ? "yes" : "no"}</dd><dt>Runtime</dt><dd>${escapeHtml(item.integration.runtime_status)}</dd><dt>Operations</dt><dd>${item.operations.length}</dd><dt>Resources</dt><dd>${item.resources.length}</dd></dl>`);
+  openInspector(`<h2>${escapeHtml(item.name)}</h2><p class="description">${escapeHtml(item.description)}</p><p>${badge(item.validation.status)}</p><dl class="detail-list"><dt>Capability</dt><dd>${escapeHtml(item.id)}@${escapeHtml(item.version)}</dd><dt>Origin project</dt><dd>${escapeHtml(PROJECTS[item.project]?.name || item.project)}</dd><dt>Repository</dt><dd>${escapeHtml(item.repository.url)}</dd><dt>Revision</dt><dd>${escapeHtml(item.repository.revision)}</dd><dt>Authority</dt><dd>${escapeHtml(item.integration.authority)}</dd><dt>Curated by</dt><dd>${escapeHtml(item.integration.maintainers.join(", "))}</dd><dt>Project reviewed</dt><dd>${item.integration.project_reviewed ? "yes" : "no"}</dd><dt>Runtime</dt><dd>${escapeHtml(item.integration.runtime_status)}</dd><dt>Operations</dt><dd>${item.operations.length}</dd><dt>Resources</dt><dd>${item.resources.length}</dd></dl>`, "CAPABILITY RECORD");
 }
 
 function openRun(id) {
   const run = state.runs.find(item => item.id === id);
-  const timeline = run.tasks.map(task => `<div class="timeline-row"><span class="badge ${badgeClass(task.state)}">${escapeHtml(task.state)}</span><span class="timeline-rail"><i class="timeline-dot"></i></span><div><strong>${escapeHtml(task.node_id)}</strong><p class="description">${escapeHtml(task.operation.capability)} / ${escapeHtml(task.operation.operation)} · attempt ${task.attempt}</p></div></div>`).join("");
+  const durations = run.tasks.map(task => elapsedMs(task.started_at, task.finished_at));
+  const longest = Math.max(1, ...durations.filter(value => value !== null));
+
+  const timeline = run.tasks.map((task, index) => {
+    const meta = stateMeta(task.state);
+    const ms = durations[index];
+    const bar = ms === null
+      ? `<p class="stage-pending">${task.started_at ? "running — no end time recorded" : "not started"}</p>`
+      : `<div class="stage-bar">
+           <div class="stage-track"><i class="stage-fill" style="width:${Math.max(2, Math.round((ms / longest) * 100))}%"></i></div>
+           <span class="stage-duration">${formatDuration(ms)}</span>
+         </div>`;
+    const error = task.error
+      ? `<div class="task-error"><strong>${escapeHtml(task.error.code || "error")}</strong>${escapeHtml(task.error.message || "")}</div>`
+      : "";
+    return `<div class="timeline-row" style="--state-color:${meta.color}">
+      ${badge(task.state)}
+      <span class="timeline-rail" aria-hidden="true"><i class="timeline-node hex"></i></span>
+      <div class="timeline-body">
+        <strong>${escapeHtml(task.node_id)}</strong>
+        <p class="description">${escapeHtml(task.operation.capability)} / ${escapeHtml(task.operation.operation)} · attempt ${task.attempt}</p>
+        ${bar}${error}
+      </div>
+    </div>`;
+  }).join("");
+
+  const total = elapsedMs(run.started_at, run.finished_at);
+  const accounted = durations.reduce((sum, value) => sum + (value || 0), 0);
+  const overhead = total === null ? null : Math.max(0, total - accounted);
+  const summary = `<dl class="run-summary">
+    <div><dt>ELAPSED</dt><dd>${formatDuration(total) ?? "—"}</dd></div>
+    <div><dt>IN TASKS</dt><dd>${formatDuration(accounted) ?? "—"}</dd></div>
+    <div><dt>SCHEDULING</dt><dd>${formatDuration(overhead) ?? "—"}</dd></div>
+  </dl>`;
+
   const retry = run.tasks.find(task => task.state === "failed");
-  openInspector(`<h2>${escapeHtml(run.workflow_id)}</h2><p class="description">${escapeHtml(run.id)}</p><p><span class="badge ${badgeClass(run.state)}">${escapeHtml(run.state)}</span></p><div class="run-actions"><button class="button secondary" id="export-run">Export</button>${["queued", "running"].includes(run.state) ? `<button class="button danger" id="cancel-run">Cancel</button>` : ""}${retry ? `<button class="button" id="retry-run" data-node="${escapeHtml(retry.node_id)}">Retry task</button>` : ""}</div><div class="timeline">${timeline}</div>`);
+  openInspector(`<h2>${escapeHtml(run.workflow_id)}</h2>
+    <p class="description">${escapeHtml(run.id)}</p>
+    <p>${badge(run.state)}</p>
+    <div class="run-actions">
+      <button class="button secondary" id="export-run">Export</button>
+      ${["queued", "running"].includes(run.state) ? `<button class="button danger" id="cancel-run">Cancel run</button>` : ""}
+      ${retry ? `<button class="button" id="retry-run" data-node="${escapeHtml(retry.node_id)}">Retry task</button>` : ""}
+    </div>
+    ${summary}
+    <p class="panel-label" style="margin-top:18px">TASK TIMELINE</p>
+    <div class="timeline">${timeline}</div>
+    <dl class="detail-list">
+      <dt>Started</dt><dd>${escapeHtml(formatClock(run.started_at))}</dd>
+      <dt>Finished</dt><dd>${escapeHtml(formatClock(run.finished_at))}</dd>
+      <dt>Target</dt><dd>${escapeHtml(run.execution_target)}</dd>
+      <dt>Submitted by</dt><dd>${escapeHtml(run.created_by)}</dd>
+    </dl>`, "RUN RECORD");
   document.querySelector("#export-run").addEventListener("click", () => exportRun(run.id));
   document.querySelector("#cancel-run")?.addEventListener("click", () => runAction(run.id, "cancel"));
   document.querySelector("#retry-run")?.addEventListener("click", event => retryRun(run.id, event.target.dataset.node));
@@ -357,11 +550,17 @@ async function loadData() {
   }
 }
 
+try { applyTheme(localStorage.getItem(THEME_KEY)); } catch { applyTheme(null); }
+
 document.querySelectorAll(".nav-item").forEach(item => item.addEventListener("click", () => switchView(item.dataset.view)));
 document.querySelector("#refresh-button").addEventListener("click", () => { loadData(); showToast("Registry and run state refreshed"); });
 document.querySelector("#global-search").addEventListener("input", event => { state.query = event.target.value; if (state.view !== "explore") switchView("explore"); else renderExplore(); });
 document.querySelector("#close-inspector").addEventListener("click", closeInspector);
 document.querySelector("#scrim").addEventListener("click", closeInspector);
-document.addEventListener("keydown", event => { if (event.key === "Escape") closeInspector(); });
+document.querySelector("#theme-toggle").addEventListener("click", toggleTheme);
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeInspector();
+  trapFocus(event);
+});
 loadData();
 setInterval(refreshActiveRuns, 2000);

@@ -3,29 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>QHPC Workbench</title>
+  <meta name="color-scheme" content="light dark">
+  <title>QHPC Workbench · Quantum Science Center</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#workspace">Skip to content</a>
+
   <div class="app-shell">
     <aside class="rail" aria-label="Primary navigation">
-      <div class="brand" aria-label="QHPC Workbench">
-        <span class="brand-mark">Q</span>
-        <span class="brand-copy"><strong>QHPC</strong><small>Workbench</small></span>
+      <div class="brand">
+        <img src="/assets/qsc-logo-white.png" alt="Quantum Science Center" width="600" height="200">
+        <span class="brand-product">QHPC Workbench</span>
       </div>
       <nav id="primary-nav">
-        <button class="nav-item active" data-view="projects" title="Projects"><span>PR</span>Projects</button>
-        <button class="nav-item" data-view="explore" title="Explore"><span>EX</span>Explore</button>
-        <button class="nav-item" data-view="compose" title="Compose"><span>CP</span>Compose</button>
-        <button class="nav-item" data-view="runs" title="Runs"><span>RN</span>Runs</button>
-        <button class="nav-item" data-view="artifacts" title="Artifacts"><span>AR</span>Artifacts</button>
-        <button class="nav-item" data-view="environments" title="Environments"><span>EN</span>Environments</button>
+        <button class="nav-item active" data-view="projects"><span class="nav-code" aria-hidden="true">PR</span>Projects</button>
+        <button class="nav-item" data-view="explore"><span class="nav-code" aria-hidden="true">EX</span>Explore</button>
+        <button class="nav-item" data-view="compose"><span class="nav-code" aria-hidden="true">CP</span>Compose</button>
+        <button class="nav-item" data-view="runs"><span class="nav-code" aria-hidden="true">RN</span>Runs</button>
+        <button class="nav-item" data-view="artifacts"><span class="nav-code" aria-hidden="true">AR</span>Artifacts</button>
+        <button class="nav-item" data-view="environments"><span class="nav-code" aria-hidden="true">EN</span>Environments</button>
       </nav>
       <div class="rail-status">
-        <span class="status-dot" id="service-dot"></span>
-        <span><strong id="service-state">Connecting</strong><small>API control plane</small></span>
+        <span class="status-dot hex" id="service-dot" aria-hidden="true"></span>
+        <span><strong id="service-state">Connecting</strong><small>Local service</small></span>
       </div>
+      <button class="theme-toggle" id="theme-toggle" aria-live="polite">Dark theme</button>
     </aside>
 
     <main>
@@ -37,20 +40,20 @@
         <div class="topbar-actions">
           <label class="search-control">
             <span aria-hidden="true">⌕</span>
-            <input id="global-search" type="search" placeholder="Search registry" autocomplete="off">
+            <input id="global-search" type="search" placeholder="Search registry" autocomplete="off" aria-label="Search registry">
           </label>
           <button class="button secondary" id="refresh-button">Refresh</button>
         </div>
       </header>
 
       <section class="summary-strip" id="summary-strip" aria-label="Registry summary"></section>
-      <section class="workspace" id="workspace" aria-live="polite"></section>
+      <section class="workspace" id="workspace" tabindex="-1" aria-live="polite"></section>
     </main>
   </div>
 
-  <aside class="inspector" id="inspector" aria-label="Details" aria-hidden="true">
+  <aside class="inspector" id="inspector" aria-label="Details" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1">
     <header>
-      <p class="eyebrow">REGISTRY RECORD</p>
+      <p class="eyebrow" id="inspector-kind">DETAILS</p>
       <button class="icon-button" id="close-inspector" aria-label="Close details">×</button>
     </header>
     <div id="inspector-content"></div>
