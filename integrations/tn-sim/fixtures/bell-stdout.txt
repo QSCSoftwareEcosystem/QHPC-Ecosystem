@@ -1,0 +1,6 @@
+Backend: CPU
+Simulation method: TN
+
+===============  Measurement (tests=16) ================
+"00" : 9
+"11" : 7

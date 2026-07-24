@@ -26,3 +26,6 @@ Source-backed verification entry points for the current pre-runtime adapters
 are `tools/verify_nwqec.py` and
 `tools/verify_ftprimitivebench_lightstim.py`. They require the corresponding
 pinned project dependencies and do not substitute for production target tests.
+TN-Sim command construction and count parsing are covered by the pinned source
+audit and representative fixtures; its external iTensor binary remains a
+production-runtime build and source-backed acceptance gate.

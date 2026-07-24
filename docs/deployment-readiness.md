@@ -21,14 +21,18 @@ deployment admission. The service filters its registry through this profile
 before discovery and workflow resolution.
 
 In addition to the general production boundaries below, the initial scope has
-three explicit blockers or decisions: TN-Sim's canonical public branch is
-identified but still needs a code/interface audit and operation contract;
-OpenQSE needs a selected set of concrete contracts or repositories because the
-organization is not one executable tool; and ChatQEC's boundary is accepted,
-but its concrete institutional model, identity, egress, retention, and service
-API implementations still need selection and acceptance. Its GitHub working
-source is authenticated and audited at an exact revision. Every selected component has a
-validated pre-runtime scaffold. Source audits,
+two unresolved service or resource decisions. OpenQSE needs a selected set of
+concrete contracts or repositories because the organization is not one
+executable tool. ChatQEC's boundary is accepted, but its concrete institutional
+model, identity, egress, retention, and service API implementations still need
+selection and acceptance. Its GitHub working source is authenticated and
+audited at an exact revision.
+
+TN-Sim's exact public revision, CPU iTensor MPS operation contract, controlled
+CLI adapter, and representative fixtures are now defined. Its external binary
+has not been built or source-executed; reproducible build corrections,
+immutable runtime evidence, and target acceptance remain required. Every
+selected component has a validated pre-runtime scaffold. Source audits,
 interface contracts, adapters, fixtures, and integration tests are completed
 first; each executable operation still requires a pinned descriptor and
 target-accepted immutable Linux runtime before production execution.

@@ -3,12 +3,25 @@
 from __future__ import annotations
 
 import importlib
+import os
+import re
+import subprocess
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 
 class ProjectAdapterError(ValueError):
     """Raised when an integration input violates its operation interface."""
+
+
+_TNSIM_HEADER = re.compile(
+    r"^=+\s+Measurement\s+\(tests=(?P<shots>[0-9]+)\)\s+=+\s*$",
+    re.MULTILINE,
+)
+_TNSIM_COUNT = re.compile(
+    r'^\s*"(?P<state>[01]+)"\s*:\s*(?P<count>[0-9]+)\s*$',
+    re.MULTILINE,
+)
 
 
 def _integer(
@@ -165,4 +178,137 @@ def estimate_lightstim_logical_error(
         "error_bar": float(stats.ler_error_bar()),
         "seconds": float(stats.seconds),
         "decoder": str(stats.decoder),
+    }
+
+
+def _parse_tnsim_counts(stdout: str, expected_shots: int) -> dict[str, int]:
+    header = _TNSIM_HEADER.search(stdout)
+    if header is None:
+        raise ProjectAdapterError(
+            "TN-Sim output lacks the measurement-count header"
+        )
+    reported_shots = int(header.group("shots"))
+    if reported_shots != expected_shots:
+        raise ProjectAdapterError(
+            "TN-Sim reported "
+            f"{reported_shots} shots; expected {expected_shots}"
+        )
+
+    counts: dict[str, int] = {}
+    for match in _TNSIM_COUNT.finditer(stdout, header.end()):
+        state = match.group("state")
+        if state in counts:
+            raise ProjectAdapterError(
+                f"TN-Sim output repeats measurement state {state}"
+            )
+        count = int(match.group("count"))
+        if count < 1:
+            raise ProjectAdapterError(
+                f"TN-Sim output has a non-positive count for state {state}"
+            )
+        counts[state] = count
+
+    if not counts:
+        raise ProjectAdapterError("TN-Sim output contains no measurement counts")
+    counted_shots = sum(counts.values())
+    if counted_shots != expected_shots:
+        raise ProjectAdapterError(
+            "TN-Sim measurement counts sum to "
+            f"{counted_shots}; expected {expected_shots}"
+        )
+    return dict(sorted(counts.items()))
+
+
+def simulate_tnsim_mps(
+    executable_path: str | Path,
+    circuit_path: str | Path,
+    parameters: Mapping[str, Any],
+    *,
+    executor: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, Any]:
+    """Execute the audited NWQ-Sim CPU MPS CLI and normalize shot counts."""
+    executable = Path(executable_path).expanduser().resolve()
+    if not executable.is_file():
+        raise ProjectAdapterError(f"TN-Sim executable not found: {executable}")
+    if not os.access(executable, os.X_OK):
+        raise ProjectAdapterError(
+            f"TN-Sim executable is not executable: {executable}"
+        )
+
+    circuit = Path(circuit_path).expanduser().resolve()
+    if not circuit.is_file():
+        raise ProjectAdapterError(f"input circuit not found: {circuit}")
+    try:
+        circuit_text = circuit.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        raise ProjectAdapterError("input circuit must be UTF-8 text") from error
+    if re.search(r"(?m)^\s*OPENQASM\s+2\.0\s*;", circuit_text) is None:
+        raise ProjectAdapterError("input circuit must declare OPENQASM 2.0")
+
+    allowed_parameters = {
+        "shots",
+        "max_bond_dimension",
+        "singular_value_cutoff",
+        "random_seed",
+    }
+    unknown = sorted(
+        str(name) for name in parameters if name not in allowed_parameters
+    )
+    if unknown:
+        raise ProjectAdapterError(
+            f"unsupported TN-Sim parameters: {', '.join(unknown)}"
+        )
+
+    shots = _integer(parameters, "shots", 1024, 1, 10_000_000)
+    max_bond_dimension = _integer(
+        parameters, "max_bond_dimension", 100, 1, 65_536
+    )
+    singular_value_cutoff = _number(
+        parameters, "singular_value_cutoff", 0.0, 0.0, 1.0
+    )
+    random_seed = _integer(
+        parameters, "random_seed", 42, 0, 2_147_483_647
+    )
+
+    command = [
+        str(executable),
+        "--qasm_file",
+        str(circuit),
+        "--shots",
+        str(shots),
+        "--backend",
+        "CPU",
+        "--sim",
+        "tn",
+        "--max_dim",
+        str(max_bond_dimension),
+        "--sv_cutoff",
+        str(singular_value_cutoff),
+        "--random_seed",
+        str(random_seed),
+    ]
+    try:
+        completed = executor(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        raise ProjectAdapterError(f"TN-Sim execution failed: {error}") from error
+    if completed.returncode != 0:
+        detail = (completed.stderr or "").strip()
+        suffix = f": {detail[-500:]}" if detail else ""
+        raise ProjectAdapterError(
+            f"TN-Sim exited with status {completed.returncode}{suffix}"
+        )
+
+    return {
+        "shots": shots,
+        "counts": _parse_tnsim_counts(completed.stdout or "", shots),
+        "backend": "CPU",
+        "simulation_method": "tn",
+        "max_bond_dimension": max_bond_dimension,
+        "singular_value_cutoff": singular_value_cutoff,
+        "random_seed": random_seed,
     }

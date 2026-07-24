@@ -1,0 +1,56 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.measurement-counts
+  name: Measurement Counts
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Seeded shot counts and tensor-network simulation parameters for computational-basis measurement outcomes.
+  media_type: application/vnd.qsc.measurement-counts+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - shots
+      - counts
+      - backend
+      - simulation_method
+      - max_bond_dimension
+      - singular_value_cutoff
+      - random_seed
+    properties:
+      shots:
+        type: integer
+        minimum: 1
+      counts:
+        type: object
+        minProperties: 1
+        propertyNames:
+          pattern: "^[01]+$"
+        additionalProperties:
+          type: integer
+          minimum: 1
+      backend:
+        type: string
+        enum: [CPU]
+      simulation_method:
+        type: string
+        enum: [tn]
+      max_bond_dimension:
+        type: integer
+        minimum: 1
+      singular_value_cutoff:
+        type: number
+        minimum: 0
+        maximum: 1
+      random_seed:
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+  compatibility:
+    accepts_versions: [1]

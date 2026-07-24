@@ -1,0 +1,53 @@
+api_version: qhpc/v1
+kind: OperationInterface
+metadata:
+  id: tn-sim-mps-simulation
+  name: TN-Sim Matrix Product State Simulation
+  version: 0.1.0
+  component: tn-sim
+  project: hybrid-workflows
+  owners: [tn-sim]
+  source:
+    url: https://github.com/pnnl/NWQ-Sim
+    revision: 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
+  status: contract-valid
+  evidence: [docs/evidence/tn-sim-source-audit-2026-07-24.md]
+spec:
+  operations:
+    - id: simulate-mps
+      title: Simulate an OpenQASM circuit with MPS
+      description: Execute the documented NWQ-Sim CPU tensor-network path with a fixed random seed and return computational-basis measurement counts.
+      behavior: seeded
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: OpenQASM 2.0 source circuit accepted by the NWQ-Sim QASM frontend.
+      outputs:
+        measurements:
+          artifact_type: qhpc.measurement-counts@1
+          description: Seeded shot counts with the effective MPS truncation parameters.
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 1024
+          minimum: 1
+          maximum: 10000000
+        max_bond_dimension:
+          type: integer
+          title: Maximum MPS bond dimension
+          default: 100
+          minimum: 1
+          maximum: 65536
+        singular_value_cutoff:
+          type: number
+          title: Singular value cutoff
+          default: 0.0
+          minimum: 0.0
+          maximum: 1.0
+        random_seed:
+          type: integer
+          title: Sampling random seed
+          default: 42
+          minimum: 0
+          maximum: 2147483647

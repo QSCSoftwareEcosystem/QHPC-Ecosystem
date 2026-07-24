@@ -19,23 +19,26 @@ spec:
   development_environment:
     status: assigned
     class: hpc-build
-  interfaces: []
+  interfaces: [qasm, cli]
   scope:
-    status: pending
-    summary: Audit the public tn_sim branch and select its first versioned operation contract.
+    status: defined
+    summary: Run seeded OpenQASM 2.0 shot simulation through the CPU iTensor MPS path and return structured measurement counts.
   deliverables:
-    source_audit: pending
-    interface_contract: pending
-    adapter: pending
-    fixtures: pending
-    integration_tests: pending
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
     registry_publication: pending
-  contract_refs: []
+  contract_refs: [integrations/tn-sim/interface.yaml]
   evidence:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/tn-sim-source-audit-2026-07-24.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Container work starts only after the source audit and integration contract are complete.
+    reason: Build and accept the exact-revision iTensor runtime after the adapter contract and fixtures stabilize.
   blockers:
-    - Complete a code and interface audit of the verified tn_sim branch and define its first integration contract.
+    - Build the exact revision with pinned iTensor, C++17, and BLAS/LAPACK dependencies in a reproducible Linux runtime.
+    - Correct or overlay the branch's site-specific build assumptions and execute source-backed correctness fixtures.
+    - Keep TAMM CPU and GPU backends deferred until their MPI, accelerator, scaling, and target evidence is accepted.

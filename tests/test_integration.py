@@ -52,10 +52,10 @@ def test_initial_scaffolds_defer_production_containerization() -> None:
     )
 
 
-def test_public_pending_components_have_pinned_interface_contracts() -> None:
+def test_pre_runtime_components_have_pinned_interface_contracts() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
 
-    for component_id in ("nwqec", "ftprimitivebench", "lightstim"):
+    for component_id in ("tn-sim", "nwqec", "ftprimitivebench", "lightstim"):
         scaffold = find_integration_scaffold(scaffolds, component_id).document
         assert scaffold["spec"]["scope"]["status"] == "defined"
         assert scaffold["spec"]["deliverables"]["source_audit"] == "complete"
@@ -85,7 +85,7 @@ def test_chatqec_source_and_service_scope_are_recorded_before_contract_work() ->
     assert scaffold["spec"]["contract_refs"] == []
 
 
-def test_tn_sim_uses_public_upstream_without_a_qsc_mirror() -> None:
+def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
     scaffold = find_integration_scaffold(scaffolds, "tn-sim").document
 
@@ -97,7 +97,18 @@ def test_tn_sim_uses_public_upstream_without_a_qsc_mirror() -> None:
         "catalog_repository": "NWQ-Sim",
     }
     assert scaffold["spec"]["mirror"] == {"status": "not-applicable"}
-    assert scaffold["spec"]["deliverables"]["source_audit"] == "pending"
+    assert scaffold["spec"]["scope"]["status"] == "defined"
+    assert scaffold["spec"]["interfaces"] == ["qasm", "cli"]
+    assert scaffold["spec"]["deliverables"]["source_audit"] == "complete"
+    assert scaffold["spec"]["deliverables"]["interface_contract"] == "complete"
+    assert scaffold["spec"]["deliverables"]["adapter"] == "complete"
+    assert scaffold["spec"]["deliverables"]["fixtures"] == "complete"
+    assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
+    assert scaffold["spec"]["deliverables"]["registry_publication"] == "pending"
+    assert scaffold["spec"]["contract_refs"] == [
+        "integrations/tn-sim/interface.yaml"
+    ]
+    assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
 
 
 def test_draft_cross_project_artifact_types_are_valid() -> None:
@@ -105,6 +116,7 @@ def test_draft_cross_project_artifact_types_are_valid() -> None:
     assert {path.name for path in paths} == {
         "clifford-t-counts-v1.yaml",
         "logical-error-estimate-v1.yaml",
+        "measurement-counts-v1.yaml",
         "stim-circuit-v1.yaml",
     }
     for path in paths:

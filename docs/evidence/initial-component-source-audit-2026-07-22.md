@@ -13,10 +13,10 @@ production runtime verification, or target acceptance.
 - Visibility: public upstream in `pnnl/NWQ-Sim`.
 - Mirror decision: no QSC GitHub mirror is required because the component is
   already publicly available from its canonical upstream branch.
-- Audit boundary: this records source identity only. TN-Sim's supported
-  interfaces, scientific operation boundary, build, runtime, fixtures, and
-  integration tests remain pending and are not inferred from the repository
-  name or the broader NWQ-Sim project.
+- Audit boundary at the time of this record: source identity only. The
+  subsequent exact-tree code/interface audit, CPU iTensor MPS operation
+  boundary, controlled adapter, and remaining runtime gates are recorded in
+  [tn-sim-source-audit-2026-07-24.md](tn-sim-source-audit-2026-07-24.md).
 
 ## NWQEC
 

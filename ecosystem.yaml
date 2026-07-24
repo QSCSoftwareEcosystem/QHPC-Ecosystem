@@ -224,12 +224,12 @@ repositories:
   - slug: NWQ-Sim
     display_name: TN-Sim (NWQ-Sim tn_sim branch)
     source_url: https://github.com/pnnl/NWQ-Sim/tree/tn_sim
-    notes: TN-Sim is maintained as the public tn_sim branch of pnnl/NWQ-Sim; no QSC mirror is required. Branch head 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b was verified on 2026-07-22; its operation contract remains to be audited.
+    notes: TN-Sim is maintained as the public tn_sim branch of pnnl/NWQ-Sim; no QSC mirror is required. Revision 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b is audited for a seeded OpenQASM 2.0 CPU iTensor MPS operation. The production binary, immutable runtime, and target evidence remain pending.
     qsc_project: hybrid-workflows
     package_role: simulator
     capabilities: [tensor-network-simulation]
-    hardware_targets: [unknown]
-    interfaces: []
+    hardware_targets: [local-cpu, hpc]
+    interfaces: [qasm, cli]
     environment: hpc-build
     container_status: planned
     visibility: public

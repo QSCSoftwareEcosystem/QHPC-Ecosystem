@@ -14,6 +14,13 @@ from qhpc_ecosystem.project_adapters import ProjectAdapterError
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _tnsim_executable(tmp_path: Path) -> Path:
+    executable = tmp_path / "nwq_qasm"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
+    return executable
+
+
 def test_nwqec_adapter_normalizes_public_api_output(tmp_path, monkeypatch) -> None:
     circuit_path = tmp_path / "input.qasm"
     circuit_path.write_text("OPENQASM 2.0;\n", encoding="utf-8")
@@ -167,6 +174,113 @@ def test_lightstim_adapter_returns_contract_shaped_statistics(monkeypatch) -> No
     }
     assert calls["pipeline"]["decoder_config"] == ("decoder", "pymatching")
     assert calls["pipeline"]["print_progress"] is False
+
+
+def test_tnsim_adapter_builds_controlled_cpu_mps_command(tmp_path) -> None:
+    executable = _tnsim_executable(tmp_path)
+    circuit = ROOT / "integrations" / "tn-sim" / "fixtures" / "bell.qasm"
+    stdout = (
+        ROOT / "integrations" / "tn-sim" / "fixtures" / "bell-stdout.txt"
+    ).read_text(encoding="utf-8")
+    call = {}
+
+    def executor(command, **options):
+        call["command"] = command
+        call["options"] = options
+        return SimpleNamespace(returncode=0, stdout=stdout, stderr="")
+
+    result = project_adapters.simulate_tnsim_mps(
+        executable,
+        circuit,
+        {
+            "shots": 16,
+            "max_bond_dimension": 256,
+            "singular_value_cutoff": 0.000001,
+            "random_seed": 7,
+        },
+        executor=executor,
+    )
+
+    assert call["command"] == [
+        str(executable.resolve()),
+        "--qasm_file",
+        str(circuit.resolve()),
+        "--shots",
+        "16",
+        "--backend",
+        "CPU",
+        "--sim",
+        "tn",
+        "--max_dim",
+        "256",
+        "--sv_cutoff",
+        "1e-06",
+        "--random_seed",
+        "7",
+    ]
+    assert call["options"] == {
+        "capture_output": True,
+        "text": True,
+        "check": False,
+    }
+    assert result == {
+        "shots": 16,
+        "counts": {"00": 9, "11": 7},
+        "backend": "CPU",
+        "simulation_method": "tn",
+        "max_bond_dimension": 256,
+        "singular_value_cutoff": 0.000001,
+        "random_seed": 7,
+    }
+
+    artifact_type = load_document(
+        ROOT / "artifact-types" / "measurement-counts-v1.yaml"
+    )
+    Draft202012Validator(artifact_type["spec"]["json_schema"]).validate(result)
+
+
+def test_tnsim_adapter_rejects_incomplete_measurement_output(tmp_path) -> None:
+    executable = _tnsim_executable(tmp_path)
+    circuit = ROOT / "integrations" / "tn-sim" / "fixtures" / "bell.qasm"
+
+    def executor(_command, **_options):
+        return SimpleNamespace(
+            returncode=0,
+            stdout=(
+                "===============  Measurement (tests=16) ================\n"
+                '"00" : 8\n'
+                '"11" : 7\n'
+            ),
+            stderr="",
+        )
+
+    with pytest.raises(ProjectAdapterError, match="sum to 15; expected 16"):
+        project_adapters.simulate_tnsim_mps(
+            executable,
+            circuit,
+            {"shots": 16},
+            executor=executor,
+        )
+
+
+def test_tnsim_adapter_rejects_unknown_parameters_without_execution(
+    tmp_path,
+) -> None:
+    executable = _tnsim_executable(tmp_path)
+    circuit = ROOT / "integrations" / "tn-sim" / "fixtures" / "bell.qasm"
+
+    def executor(_command, **_options):
+        raise AssertionError("executor must not be called")
+
+    with pytest.raises(
+        ProjectAdapterError, match="unsupported TN-Sim parameters: backend"
+    ):
+        project_adapters.simulate_tnsim_mps(
+            executable,
+            circuit,
+            {"backend": "TN_TAMM_GPU"},
+            executor=executor,
+        )
 
 
 def test_adapter_outputs_match_draft_json_artifact_types(tmp_path, monkeypatch) -> None:

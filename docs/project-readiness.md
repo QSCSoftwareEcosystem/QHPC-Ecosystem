@@ -1,7 +1,7 @@
 # Software Thrust Integration Readiness
 
 - Status: Curator audit queue
-- Last updated: 2026-07-22
+- Last updated: 2026-07-24
 
 This matrix tracks the evidence required before a repository capability enters
 the QHPC registry. Project review is recorded when available, but an
@@ -16,11 +16,15 @@ evidence-backed ecosystem curator may perform local integration independently.
 | HW | Simulator and QEC repositories are cataloged | STABSim structural metrics | Native metrics runtime verified; simulation compatibility remains separate | Integration-tested locally |
 | OpenQEvo | `OpenQEvo/` is available | Method discovery and time-evolution operation | Build the first curated executable descriptor | First candidate |
 
-Within the initial deployment, NWQEC, FTPrimitiveBench, and LightStim have
-passed the pre-runtime portion of this ladder at exact source revisions:
-runtime-free contracts, controlled adapters, fixtures, and integration tests.
-They are not production-approved or registry-published capabilities until
-their immutable Linux runtimes pass target acceptance.
+Within the initial deployment, TN-Sim, NWQEC, FTPrimitiveBench, and LightStim
+have passed the pre-runtime contract portion of this ladder at exact source
+revisions: runtime-free contracts, controlled adapters, fixtures, and
+integration tests. NWQEC, FTPrimitiveBench, and LightStim were also exercised
+against their pinned source dependencies. TN-Sim's controlled CLI adapter is
+fixture-tested against the audited output format, but its external iTensor
+binary still requires a reproducible build and source-backed execution. None
+is production-approved or registry-published until its immutable Linux runtime
+passes target acceptance.
 
 ## Validation Ladder
 

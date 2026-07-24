@@ -11,7 +11,7 @@ presence alone does not admit a component to this deployment.
 | Component | Deployment role | Source | Integration scaffold | Onboarding status |
 | --- | --- | --- | --- | --- |
 | STABSim | Operation provider | [Repository](https://github.com/seangarn32/STABSim) | [Published](../integrations/stabsim/integration.yaml) | Registry published |
-| TN-Sim | Operation provider | [NWQ-Sim `tn_sim` branch](https://github.com/pnnl/NWQ-Sim/tree/tn_sim) | [Scaffolded](../integrations/tn-sim/integration.yaml) | Cataloged; source audit pending |
+| TN-Sim | Operation provider | [NWQ-Sim `tn_sim` branch](https://github.com/pnnl/NWQ-Sim/tree/tn_sim) | [Interface tested](../integrations/tn-sim/integration.yaml) | Pre-runtime contract complete |
 | NWQEC | Operation provider | [Repository](https://github.com/pnnl/nwqec) | [Interface tested](../integrations/nwqec/integration.yaml) | Pre-runtime integration complete |
 | FTPrimitiveBench | Operation provider | [Repository](https://github.com/ShuwenKan/FTPrimitiveBench) | [Interface tested](../integrations/ftprimitivebench/integration.yaml) | Pre-runtime integration complete |
 | LightStim | Operation provider | [Repository](https://github.com/QuTone/LightStim) | [Interface tested](../integrations/lightstim/integration.yaml) | Pre-runtime integration complete |
@@ -45,18 +45,20 @@ from bypassing a narrowed profile.
 
 The current registry has published records for STABSim, QASMTrans, OpenQEvo,
 and QAppsWiki. The remaining selected components appear in the profile but are
-not exposed as executable capabilities. NWQEC, FTPrimitiveBench, and LightStim
-have exact-revision source audits, runtime-free operation interfaces,
+not exposed as executable capabilities. TN-Sim, NWQEC, FTPrimitiveBench, and
+LightStim have exact-revision source audits, runtime-free operation interfaces,
 controlled adapters, fixtures, and integration tests. The shared Stim artifact
-boundary was also exercised from FTPrimitiveBench into LightStim. These records
-do not contain invocation or runtime details; component-specific production
-containers and target acceptance remain the next executable gate, followed by
-capability publication with immutable runtime digests.
+boundary was also exercised from FTPrimitiveBench into LightStim. TN-Sim's
+adapter fixes the documented CPU iTensor MPS path and parses its count format,
+but the external binary has not yet been built or source-executed. These records
+do not contain capability invocation or runtime details; component-specific
+production containers and target acceptance remain the next executable gate,
+followed by capability publication with immutable runtime digests.
 
 ## Open Decisions
 
-- Complete the TN-Sim source/interface audit and select its first versioned
-  operation contract; its canonical public branch is already identified.
+- Build TN-Sim's pinned CPU iTensor path reproducibly, execute source-backed
+  correctness fixtures, and accept its immutable Linux runtime on the target.
 - Select the specific OpenQSE contracts or repositories QHPC will consume;
   OpenQSE is an integration initiative, not one executable tool image.
 - Implement the accepted ChatQEC boundary in

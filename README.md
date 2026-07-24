@@ -22,6 +22,10 @@ Each selected component has a validated record under [integrations/](integration
 so source review, interface contracts, adapters, fixtures, and integration tests
 can proceed before production container work begins.
 
+TN-Sim's pinned public `tn_sim` branch now has a runtime-free CPU MPS operation
+contract and fixture-tested controlled CLI adapter. Its iTensor binary has not
+yet been built or accepted as a production runtime.
+
 ChatQEC uses the accepted internal-service design summarized in
 [docs/chatqec-service-boundary.md](docs/chatqec-service-boundary.md), with the
 formal decision in
