@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from .contract import ContractError
-from .engine import Runner, WorkflowEngine
+from .engine import WorkflowEngine
 from .registry import registry_entries
 
 
@@ -28,7 +28,6 @@ ARTIFACT_ROUTE = re.compile(r"^/api/v1/artifacts/([^/]+)$")
 class APIContext:
     engine: WorkflowEngine
     registry: dict[str, Any]
-    runner: Runner | None = None
     static_root: Path = Path(__file__).parent / "workbench"
 
 
@@ -111,7 +110,12 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 path = urlparse(self.path).path
                 if path == "/api/v1/health":
                     self._json_response(
-                        HTTPStatus.OK, {"status": "ok", "api": "qhpc/v1"}
+                        HTTPStatus.OK,
+                        {
+                            "status": "ok",
+                            "api": "qhpc/v1",
+                            "execution": "external-worker",
+                        },
                     )
                     return
                 if path == "/api/v1/capabilities":
@@ -185,13 +189,14 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     result = context.engine.submit_run(
                         body["workflow_id"],
                         body["version"],
+                        registry=context.registry,
                         inputs=body.get("inputs", {}),
                         execution_target=body.get(
                             "execution_target", "local-development"
                         ),
                         created_by=body.get("created_by", "workbench-user"),
                     )
-                    self._json_response(HTTPStatus.CREATED, result)
+                    self._json_response(HTTPStatus.ACCEPTED, result)
                     return
                 if path == "/api/v1/artifacts":
                     if "content" not in body:
@@ -212,14 +217,11 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 if action_match:
                     run_id, action = map(unquote, action_match.groups())
                     if action == "execute":
-                        if context.runner is None:
-                            self._error(
-                                HTTPStatus.CONFLICT,
-                                "no controlled runner is configured for this service",
-                            )
-                            return
-                        context.engine.run_until_idle(context.runner)
-                        result = context.engine.get_run(run_id)
+                        self._error(
+                            HTTPStatus.GONE,
+                            "runs are executed asynchronously by worker processes",
+                        )
+                        return
                     elif action == "cancel":
                         result = context.engine.cancel_run(run_id)
                     else:
@@ -232,7 +234,7 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     result = context.engine.retry_task(
                         *map(unquote, retry_match.groups())
                     )
-                    self._json_response(HTTPStatus.OK, result)
+                    self._json_response(HTTPStatus.ACCEPTED, result)
                     return
                 self._error(HTTPStatus.NOT_FOUND, "API route not found")
             except Exception as error:

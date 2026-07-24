@@ -118,7 +118,7 @@ function renderCompose() {
   const runnable = Boolean(selectedWorkflow || selected);
   const canvas = selectedWorkflow ? workflowGraph(selectedWorkflow.definition) : selected ? operationNode(selected.capability, selected.operation) : operations.length ? `<div class="empty-canvas"><div><strong>Select an operation</strong><p>Add registry operations to the draft. Typed ports and parameters are validated again by the API on publication.</p></div></div>` : `<div class="empty-canvas"><div><strong>No executable runtime is published</strong><p>Audited resources are visible in Explore. Composition unlocks when a capability publishes an immutable operation runtime.</p></div></div>`;
   const selection = selectedWorkflow ? workflowDetail(selectedWorkflow.definition) : selected ? operationDetail(selected.capability, selected.operation) : `<dl><dt>Registry</dt><dd>${state.capabilities.length} capabilities loaded</dd><dt>Connection policy</dt><dd>Exact artifact type and major version</dd><dt>Execution</dt><dd>Controlled runner only</dd></dl>`;
-  const actionLabel = selectedWorkflow ? "Run workflow" : "Publish & run";
+  const actionLabel = selectedWorkflow ? "Queue run" : "Publish & queue";
   workspace.innerHTML = sectionHeader("Draft workflow", "Typed composition against the active capability registry", `<button class="button" id="publish-run" ${runnable ? "" : "disabled"}>${actionLabel}</button>`) + `<div class="compose-layout"><aside class="palette"><p class="panel-label">WORKFLOW TEMPLATES · ${state.workflows.length}</p><div class="operation-list">${workflowPalette || `<p class="description">No published workflows.</p>`}</div><p class="panel-label palette-section">OPERATION PALETTE · ${operations.length}</p><div class="operation-list">${palette || `<p class="description">No operations available.</p>`}</div></aside><div class="canvas" id="compose-canvas">${canvas}</div><aside class="compose-inspector"><p class="panel-label">SELECTION</p><div id="selection-detail">${selection}</div></aside></div>`;
   workspace.querySelectorAll("[data-operation]").forEach(button => button.addEventListener("click", () => {
     const [capabilityId, operationId] = button.dataset.operation.split("/");
@@ -190,7 +190,7 @@ async function runDraft() {
   const workflowInputs = Object.fromEntries(Object.entries(operation.inputs).map(([name, port]) => [name, { artifact_type: port.artifact_type, required: port.required ?? true, to: { node: operationId, port: name } }]));
   const workflow = { api_version: "qhpc/v1", kind: "Workflow", metadata: { id: workflowId, name: operation.title, version: "0.1.0", owner: "workbench-user", visibility: "internal" }, spec: { nodes: [{ id: operationId, operation: { capability: capabilityId, version: capability.version, operation: operationId }, parameters: state.parameters }], edges: [], inputs: workflowInputs, outputs } };
   const button = document.querySelector("#publish-run");
-  button.disabled = true; button.textContent = "Submitting";
+  button.disabled = true; button.textContent = "Queueing";
   try {
     const runInputs = {};
     for (const [name, port] of Object.entries(operation.inputs)) {
@@ -201,19 +201,18 @@ async function runDraft() {
       }
     }
     await api("/workflows", { method: "POST", body: JSON.stringify({ workflow, created_by: "workbench-user" }) });
-    const run = await api("/runs", { method: "POST", body: JSON.stringify({ workflow_id: workflowId, version: "0.1.0", inputs: runInputs, execution_target: "local-development", created_by: "workbench-user" }) });
-    await api(`/runs/${run.id}/execute`, { method: "POST", body: "{}" });
-    showToast("Workflow completed through the controlled runner");
+    await api("/runs", { method: "POST", body: JSON.stringify({ workflow_id: workflowId, version: "0.1.0", inputs: runInputs, execution_target: "local-development", created_by: "workbench-user" }) });
+    showToast("Workflow queued for a worker");
     await loadData(); switchView("runs");
   } catch (error) {
-    showToast(error.message); button.disabled = false; button.textContent = "Publish & run";
+    showToast(error.message); button.disabled = false; button.textContent = "Publish & queue";
   }
 }
 
 async function runPublishedWorkflow() {
   const workflow = state.workflows.find(item => `${item.id}/${item.version}` === state.selectedWorkflow);
   const button = document.querySelector("#publish-run");
-  button.disabled = true; button.textContent = "Submitting";
+  button.disabled = true; button.textContent = "Queueing";
   try {
     const runInputs = {};
     for (const [name, definition] of Object.entries(workflow.definition.spec.inputs)) {
@@ -224,12 +223,11 @@ async function runPublishedWorkflow() {
         runInputs[name] = artifact.id;
       }
     }
-    const run = await api("/runs", { method: "POST", body: JSON.stringify({ workflow_id: workflow.id, version: workflow.version, inputs: runInputs, execution_target: "local-development", created_by: "workbench-user" }) });
-    await api(`/runs/${run.id}/execute`, { method: "POST", body: "{}" });
-    showToast("Published workflow completed through the controlled runner");
+    await api("/runs", { method: "POST", body: JSON.stringify({ workflow_id: workflow.id, version: workflow.version, inputs: runInputs, execution_target: "local-development", created_by: "workbench-user" }) });
+    showToast("Run queued for a worker");
     await loadData(); switchView("runs");
   } catch (error) {
-    showToast(error.message); button.disabled = false; button.textContent = "Run workflow";
+    showToast(error.message); button.disabled = false; button.textContent = "Queue run";
   }
 }
 
@@ -321,7 +319,24 @@ async function runAction(runId, action) {
 }
 
 async function retryRun(runId, nodeId) {
-  try { await api(`/runs/${runId}/tasks/${nodeId}/retry`, { method: "POST", body: "{}" }); await api(`/runs/${runId}/execute`, { method: "POST", body: "{}" }); closeInspector(); await loadData(); } catch (error) { showToast(error.message); }
+  try { await api(`/runs/${runId}/tasks/${nodeId}/retry`, { method: "POST", body: "{}" }); showToast("Task requeued for a worker"); closeInspector(); await loadData(); } catch (error) { showToast(error.message); }
+}
+
+let runRefreshPending = false;
+
+async function refreshActiveRuns() {
+  if (runRefreshPending || !state.runs.some(run => ["queued", "running"].includes(run.state))) return;
+  runRefreshPending = true;
+  try {
+    const [runs, artifacts] = await Promise.all([api("/runs"), api("/artifacts")]);
+    state.runs = runs; state.artifacts = artifacts; renderSummary();
+    if (state.view === "runs") renderRuns();
+    if (state.view === "artifacts") renderArtifacts();
+  } catch (error) {
+    document.querySelector("#service-state").textContent = "Unavailable";
+  } finally {
+    runRefreshPending = false;
+  }
 }
 
 async function loadData() {
@@ -349,3 +364,4 @@ document.querySelector("#close-inspector").addEventListener("click", closeInspec
 document.querySelector("#scrim").addEventListener("click", closeInspector);
 document.addEventListener("keydown", event => { if (event.key === "Escape") closeInspector(); });
 loadData();
+setInterval(refreshActiveRuns, 2000);

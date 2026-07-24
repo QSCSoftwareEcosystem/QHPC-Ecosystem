@@ -1,0 +1,37 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.clifford-t-counts
+  name: Clifford and T Gate Counts
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Exact gate counts predicted for a Clifford and T representation without requiring the transformed circuit to be materialized.
+  media_type: application/vnd.qsc.clifford-t-counts+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [counts, total_t_count, source_qubits, rz_error_policy, epsilon]
+    properties:
+      counts:
+        type: object
+        additionalProperties:
+          type: integer
+          minimum: 0
+      total_t_count:
+        type: integer
+        minimum: 0
+      source_qubits:
+        type: integer
+        minimum: 1
+      rz_error_policy:
+        enum: [per-gate, total, relative]
+      epsilon:
+        type: number
+        exclusiveMinimum: 0
+  compatibility:
+    accepts_versions: [1]

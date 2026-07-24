@@ -193,3 +193,27 @@ def test_external_input_artifact_is_typed_persisted_and_exported(
             execution_target="local-development",
             created_by="test-user",
         )
+
+
+def test_run_submission_rechecks_a_stored_workflow_against_active_registry(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    engine.register_workflow(workflow, example_registry(), created_by="test-user")
+    restricted_registry = copy.deepcopy(example_registry())
+    restricted_registry["spec"]["entries"][0]["capability"]["metadata"]["id"] = (
+        "allowed-toolkit"
+    )
+
+    with pytest.raises(ContractError, match="capability not found: example-toolkit"):
+        engine.submit_run(
+            workflow["metadata"]["id"],
+            workflow["metadata"]["version"],
+            registry=restricted_registry,
+            inputs={},
+            execution_target="local-development",
+            created_by="test-user",
+        )
+
+    assert engine.list_runs() == []

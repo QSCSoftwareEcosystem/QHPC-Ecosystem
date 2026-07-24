@@ -12,6 +12,23 @@ boundaries are defined in [docs/architecture.md](docs/architecture.md).
 Integration contracts, architecture decisions, curator evidence, and DOE
 deployment readiness are maintained under [docs/](docs/).
 
+The first deployment uses the explicit allowlist in
+[deployments/initial.yaml](deployments/initial.yaml): STABSim, TN-Sim, NWQEC,
+FTPrimitiveBench, LightStim, QASMTrans, OpenQEvo, OpenQSE, QAppsWiki, and
+ChatQEC. See [docs/initial-deployment.md](docs/initial-deployment.md) for roles,
+onboarding state, and unresolved source or service decisions. The larger
+catalog remains available for future onboarding but is not deployment scope.
+Each selected component has a validated record under [integrations/](integrations/)
+so source review, interface contracts, adapters, fixtures, and integration tests
+can proceed before production container work begins.
+
+ChatQEC uses the accepted internal-service design summarized in
+[docs/chatqec-service-boundary.md](docs/chatqec-service-boundary.md), with the
+formal decision in
+[ADR 0008](docs/adr/0008-chatqec-internal-service-boundary.md). The ecosystem
+works from the `QSCSoftwareThrust/ChatQEC` GitHub repository; GitLab copies are
+secondary mirrors.
+
 The responsibilities are intentionally separate:
 
 - `ProjectManagement/gitlab-mirror` defines where source repositories live.
@@ -21,8 +38,9 @@ The responsibilities are intentionally separate:
 
 The project remains one modular monorepo while it has one primary maintainer.
 The target deployment separates the API control plane, task-executing workers,
-and browser Workbench. The current synchronous local service is a verified MVP
-implementation, not the production process boundary.
+and browser Workbench. The local API and worker now run as separate processes
+over persistent SQLite task leases. This verifies the process boundary, not the
+production PostgreSQL, multi-host worker, or asynchronous target architecture.
 
 For short approved operations, a target may maintain workers inside a warm,
 site-governed Slurm pilot allocation. Policy selects between local interactive,
@@ -50,7 +68,16 @@ qhpc-ecosystem validate
 qhpc-ecosystem sync-manifest --check
 qhpc-ecosystem contract list
 qhpc-ecosystem contract validate capability examples/contracts/valid/capability.yaml
+qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
+qhpc-ecosystem integration validate deployments/initial.yaml
+qhpc-ecosystem integration list deployments/initial.yaml
 ```
+
+Integration scaffolds and operation interfaces deliberately contain no
+executable command or runtime digest. They are the pre-runtime onboarding
+layer. After a component's source, contract, adapter, fixtures, and tests
+stabilize, its tool-specific production image is built and accepted. The
+executable capability is then published with that immutable runtime digest.
 
 Project release checkouts that contain `qhpc-capability.yaml` can be aggregated
 into a deterministic federated registry:
@@ -64,22 +91,34 @@ qhpc-ecosystem registry list registry.yaml
 See [docs/registry.md](docs/registry.md) for publication rules and contributor
 workflow.
 
-Build the verified local OpenQEvo wheel runtime, publish the example workflow,
-and start the workbench:
+Build the verified local OpenQEvo wheel runtime and publish the example
+workflow:
 
 ```bash
 qhpc-ecosystem local-runtime build-wheel ../OpenQEvo \
   --revision 250550a3992bd57c032d4066843c2b03055c4b9d
 qhpc-ecosystem workflow publish examples/workflows/openqevo-method-catalog.yaml \
   --registry examples/registry.yaml
-qhpc-ecosystem serve --registry examples/registry.yaml \
-  --enable-local-adapters
 ```
 
-The service prints its local URL. The workbench provides Projects, Explore,
-Compose, Runs, Artifacts, and Environments views. Its current verified operation
-calls OpenQEvo's real method registry; it does not execute the placeholder
-Trotter implementations.
+Start the control plane and worker in separate terminals:
+
+```bash
+# Terminal 1
+qhpc-ecosystem serve --registry examples/registry.yaml \
+  --deployment-profile deployments/initial.yaml
+
+# Terminal 2
+qhpc-ecosystem worker --registry examples/registry.yaml \
+  --deployment-profile deployments/initial.yaml \
+  --runtime-root .qhpc/runtimes
+```
+
+The API prints the local Workbench URL. The Workbench queues runs and polls
+persistent state while the worker executes admitted tasks. Its current verified
+operation calls OpenQEvo's real method registry; it does not execute the
+placeholder Trotter implementations. See [docs/worker.md](docs/worker.md) for
+the process and admission boundaries.
 
 The verified CT-HW example uses a reproducible native QASMTrans bundle followed
 by STABSim's structural-metrics path:
@@ -157,7 +196,8 @@ QHPC intentionally distinguishes two container models:
 
 The current OpenQEvo wheel and QASMTrans/STABSim Darwin native bundles are local
 runtime evidence, not production containers. Production images must be built,
-verified, and accepted on the target system.
+verified, and accepted on the target system after integration contracts and
+adapters stabilize.
 
 Warm pilots reuse verified immutable runtime caches for eligible short
 operations but remain normal Slurm allocations with approved accounts, quotas,
@@ -177,6 +217,10 @@ policy. See [docs/deployment-readiness.md](docs/deployment-readiness.md).
 still need a source decision. `sync-manifest` updates only the source-owned
 fields (`display_name`, `source_url`, and `notes`) and preserves curated runtime
 metadata.
+
+Deployment admission is separate from catalog inventory. `serve` requires a
+versioned deployment profile and exposes only registry records whose catalog
+repositories are on that profile's non-blocked allowlist.
 
 The catalog reuses QAppsWiki vocabulary for package roles, hardware targets,
 and interfaces. New repositories synchronized from the mirror manifest start

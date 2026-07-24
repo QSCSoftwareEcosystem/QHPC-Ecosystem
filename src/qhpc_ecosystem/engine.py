@@ -73,6 +73,10 @@ class Runner(Protocol):
     def execute(self, request: TaskRequest) -> TaskResult: ...
 
 
+class TaskRejectedError(RuntimeError):
+    """A worker policy rejected a task before scientific execution."""
+
+
 class FunctionRunner:
     """Execute only explicitly registered Python callables, never arbitrary shell."""
 
@@ -92,7 +96,7 @@ class FunctionRunner:
     def execute(self, request: TaskRequest) -> TaskResult:
         key = (request.capability_id, request.operation_id)
         if key not in self._operations:
-            raise RuntimeError(
+            raise TaskRejectedError(
                 f"operation is not allowlisted by local runner: {key[0]}/{key[1]}"
             )
         return self._operations[key](request)
@@ -365,6 +369,7 @@ class WorkflowEngine:
         workflow_id: str,
         version: str,
         *,
+        registry: dict[str, Any] | None = None,
         inputs: dict[str, str],
         execution_target: str,
         created_by: str,
@@ -377,6 +382,8 @@ class WorkflowEngine:
             if not workflow_row:
                 raise KeyError(f"workflow not found: {workflow_id}@{version}")
             definition = json.loads(workflow_row["definition"])
+            if registry is not None:
+                resolve_workflow(definition, registry)
             declared_inputs = definition["spec"]["inputs"]
             unknown = sorted(set(inputs) - set(declared_inputs))
             if unknown:
@@ -706,7 +713,7 @@ class WorkflowEngine:
             failure = {
                 "code": error.__class__.__name__,
                 "message": str(error),
-                "retryable": True,
+                "retryable": not isinstance(error, TaskRejectedError),
             }
             now = _now()
             connection.execute(

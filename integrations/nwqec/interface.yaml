@@ -1,0 +1,44 @@
+api_version: qhpc/v1
+kind: OperationInterface
+metadata:
+  id: nwqec-qec-transpilation
+  name: NWQEC Fault-Tolerant Circuit Analysis
+  version: 0.1.0
+  component: nwqec
+  project: compilation-tools
+  owners: [nwqec]
+  source:
+    url: https://github.com/pnnl/nwqec
+    revision: d93299c2a0fe47fb7758bff02b456acfb3ac4416
+  status: contract-valid
+  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+spec:
+  operations:
+    - id: count-clifford-t
+      title: Count Clifford and T gates
+      description: Parse an OpenQASM 2.0 circuit and return the exact Clifford and T gate counts without materializing the transformed circuit.
+      behavior: deterministic
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: OpenQASM 2.0 source circuit.
+      outputs:
+        counts:
+          artifact_type: qhpc.clifford-t-counts@1
+          description: Structured Clifford and T gate-count report.
+      parameters:
+        keep_ccx:
+          type: boolean
+          title: Preserve CCX gates
+          default: false
+        rz_error_policy:
+          type: string
+          title: RZ synthesis error policy
+          default: total
+          enum: [per-gate, total, relative]
+        epsilon:
+          type: number
+          title: RZ synthesis error tolerance or total budget
+          default: 0.01
+          minimum: 0.000000000001
+          maximum: 0.5

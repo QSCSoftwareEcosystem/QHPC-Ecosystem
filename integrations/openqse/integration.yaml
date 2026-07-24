@@ -1,0 +1,37 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: openqse
+  name: OpenQSE
+  version: 0.1.0
+  project: cross-project
+  role: integration-standard
+  owners: [openqse]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: organization
+    url: https://github.com/openQSE
+  mirror:
+    status: selection-required
+  development_environment:
+    status: not-applicable
+  interfaces: []
+  scope:
+    status: blocked
+    summary: Select the concrete OpenQSE contracts or repositories that QHPC will consume.
+  deliverables:
+    source_audit: blocked
+    interface_contract: blocked
+    adapter: not-applicable
+    fixtures: pending
+    integration_tests: pending
+    registry_publication: pending
+  contract_refs: []
+  evidence: []
+  production_runtime:
+    status: not-applicable
+    reason: OpenQSE is an integration standard; runtime decisions belong to each selected implementation.
+  blockers:
+    - Select concrete OpenQSE contracts or repositories instead of treating the organization as one executable tool.

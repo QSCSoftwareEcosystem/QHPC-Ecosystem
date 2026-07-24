@@ -1,6 +1,6 @@
 # HPC and DOE Deployment Readiness
 
-- Last updated: 2026-07-20
+- Last updated: 2026-07-24
 - Local MVP status: implemented and verified as a vertical-slice prototype
 - Production deployment status: blocked on architecture integration,
   institutional services, target evidence, and review
@@ -9,13 +9,37 @@ The target system design is defined in [architecture.md](architecture.md).
 [ADR 0006](adr/0006-dual-container-storage-aware-execution.md) records the
 dual-container and storage-aware execution decision, and
 [ADR 0007](adr/0007-warm-pilot-and-latency-telemetry.md) records warm-pilot
-execution and latency telemetry.
+execution and latency telemetry. [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
+records the accepted ChatQEC identity, model, data, and API boundary.
+
+## Initial Scope Gates
+
+The first-deployment component boundary is the versioned allowlist in
+[`deployments/initial.yaml`](../deployments/initial.yaml), summarized in
+[initial-deployment.md](initial-deployment.md). A catalog entry does not grant
+deployment admission. The service filters its registry through this profile
+before discovery and workflow resolution.
+
+In addition to the general production boundaries below, the initial scope has
+three explicit blockers or decisions: TN-Sim's canonical public branch is
+identified but still needs a code/interface audit and operation contract;
+OpenQSE needs a selected set of concrete contracts or repositories because the
+organization is not one executable tool; and ChatQEC's boundary is accepted,
+but its concrete institutional model, identity, egress, retention, and service
+API implementations still need selection and acceptance. Its GitHub working
+source is authenticated and audited at an exact revision. Every selected component has a
+validated pre-runtime scaffold. Source audits,
+interface contracts, adapters, fixtures, and integration tests are completed
+first; each executable operation still requires a pinned descriptor and
+target-accepted immutable Linux runtime before production execution.
 
 ## Implemented Local Primitives
 
 - Immutable OCI, Apptainer, reproducible Python-wheel, and native-bundle
   reference contracts.
 - Controlled local runner with an explicit operation allowlist.
+- Separate local API and worker commands connected through transactional task
+  leases, with deployment-registry admission enforced again at the worker.
 - Slurm submission, state classification, accounting fallback, cancellation,
   and controlled Apptainer script-rendering primitives.
 - Default-deny role/action definitions and secret-reference validation.
@@ -25,9 +49,10 @@ execution and latency telemetry.
 - Verified local OpenQEvo and QASMTrans-to-STABSim vertical slices.
 
 These are development foundations. The API does not yet enforce identity or
-authorization, the engine does not use a separate worker, Slurm is not connected
-to task leases, retries are not append-only attempts, and the local artifact
-store is not an approved production storage service.
+authorization, workers do not have durable identity or heartbeats, Slurm is not
+connected to task leases, target handles are not asynchronous or reconciled,
+retries are not append-only attempts, and the local artifact store is not an
+approved production storage service.
 
 ## Required Production Boundaries
 
@@ -46,6 +71,11 @@ store is not an approved production storage service.
 - Central audit forwarding with independently protected retention or anchoring.
 
 ### Runtime Supply Chain
+
+Production containerization is the final executable onboarding gate. It begins
+after the component's source, interface contract, adapter, fixtures, and
+integration tests are stable, avoiding repeated image rebuilds while interfaces
+are still changing.
 
 - Tool-specific immutable Linux operation images rather than shared developer
   environments, Python wheels, or Darwin native bundles.

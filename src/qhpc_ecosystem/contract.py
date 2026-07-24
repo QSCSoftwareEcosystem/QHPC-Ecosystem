@@ -19,7 +19,10 @@ CONTRACT_SCHEMAS = {
     "artifact": "artifact-v1.schema.json",
     "artifact-type": "artifact-type-v1.schema.json",
     "capability": "capability-v1.schema.json",
+    "deployment-profile": "deployment-profile-v1.schema.json",
     "execution-target": "execution-target-v1.schema.json",
+    "integration-scaffold": "integration-scaffold-v1.schema.json",
+    "operation-interface": "operation-interface-v1.schema.json",
     "registry": "registry-v1.schema.json",
     "run": "run-v1.schema.json",
     "workflow": "workflow-v1.schema.json",
@@ -420,9 +423,199 @@ def _validate_registry(document: dict[str, Any]) -> list[ContractIssue]:
     return issues
 
 
+def _validate_deployment_profile(document: dict[str, Any]) -> list[ContractIssue]:
+    components = document["spec"]["components"]
+    issues = _duplicate_issues(
+        (component["id"] for component in components),
+        "/spec/components",
+        "component IDs",
+    )
+    issues.extend(
+        _duplicate_issues(
+            (
+                component["catalog_repository"]
+                for component in components
+                if "catalog_repository" in component
+            ),
+            "/spec/components",
+            "catalog repositories",
+        )
+    )
+    issues.extend(
+        _duplicate_issues(
+            (component["integration_scaffold"] for component in components),
+            "/spec/components",
+            "integration scaffold paths",
+        )
+    )
+    return issues
+
+
+def _validate_integration_scaffold(
+    document: dict[str, Any],
+) -> list[ContractIssue]:
+    issues: list[ContractIssue] = []
+    metadata = document["metadata"]
+    spec = document["spec"]
+    source = spec["source"]
+    mirror = spec["mirror"]
+    environment = spec["development_environment"]
+    scope = spec["scope"]
+    deliverables = spec["deliverables"]
+    runtime = spec["production_runtime"]
+    blockers = spec["blockers"]
+
+    if mirror["status"] in {"inventory-listed", "verified"} and not mirror.get(
+        "url"
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/mirror/url",
+                "is required when the mirror is inventory-listed or verified",
+            )
+        )
+    if mirror["status"] not in {"inventory-listed", "verified"} and mirror.get(
+        "url"
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/mirror/url",
+                "is only allowed for an inventory-listed or verified mirror",
+            )
+        )
+
+    if environment["status"] == "assigned" and not environment.get("class"):
+        issues.append(
+            ContractIssue(
+                "/spec/development_environment/class",
+                "is required when a development environment is assigned",
+            )
+        )
+    if environment["status"] != "assigned" and environment.get("class"):
+        issues.append(
+            ContractIssue(
+                "/spec/development_environment/class",
+                "is only allowed for an assigned development environment",
+            )
+        )
+
+    if runtime["status"] in {"deferred", "verified"} and not runtime.get(
+        "technology"
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/production_runtime/technology",
+                "is required for a deferred or verified production runtime",
+            )
+        )
+    if runtime["status"] == "not-applicable" and runtime.get("technology"):
+        issues.append(
+            ContractIssue(
+                "/spec/production_runtime/technology",
+                "must be omitted when a production runtime is not applicable",
+            )
+        )
+
+    if source["kind"] == "unresolved":
+        if scope["status"] != "blocked":
+            issues.append(
+                ContractIssue(
+                    "/spec/scope/status",
+                    "must be blocked while the source is unresolved",
+                )
+            )
+        if deliverables["source_audit"] != "blocked":
+            issues.append(
+                ContractIssue(
+                    "/spec/deliverables/source_audit",
+                    "must be blocked while the source is unresolved",
+                )
+            )
+
+    if metadata["integration_status"] == "blocked" and not blockers:
+        issues.append(
+            ContractIssue(
+                "/spec/blockers",
+                "must identify at least one blocker for a blocked integration",
+            )
+        )
+    if "blocked" in deliverables.values() and not blockers:
+        issues.append(
+            ContractIssue(
+                "/spec/blockers",
+                "must identify blockers when a deliverable is blocked",
+            )
+        )
+
+    publication = deliverables["registry_publication"]
+    if metadata["integration_status"] == "published" and publication != "complete":
+        issues.append(
+            ContractIssue(
+                "/spec/deliverables/registry_publication",
+                "must be complete for a published integration",
+            )
+        )
+    if publication == "complete":
+        for field in ("source_audit", "interface_contract"):
+            if deliverables[field] != "complete":
+                issues.append(
+                    ContractIssue(
+                        f"/spec/deliverables/{field}",
+                        "must be complete before registry publication",
+                    )
+                )
+    if deliverables["source_audit"] == "complete" and not spec["evidence"]:
+        issues.append(
+            ContractIssue(
+                "/spec/evidence",
+                "is required when the source audit is complete",
+            )
+        )
+    if deliverables["interface_contract"] == "complete" and not spec[
+        "contract_refs"
+    ]:
+        issues.append(
+            ContractIssue(
+                "/spec/contract_refs",
+                "is required when the interface contract is complete",
+            )
+        )
+    return issues
+
+
+def _validate_operation_interface(document: dict[str, Any]) -> list[ContractIssue]:
+    issues: list[ContractIssue] = []
+    metadata = document["metadata"]
+    if metadata["status"] in {"contract-valid", "project-reviewed"} and not metadata[
+        "evidence"
+    ]:
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required for a contract-valid or project-reviewed interface",
+            )
+        )
+    operations = document["spec"]["operations"]
+    issues.extend(
+        _duplicate_issues(
+            (operation["id"] for operation in operations),
+            "/spec/operations",
+            "operation IDs",
+        )
+    )
+    issues.extend(_validate_parameter_defaults(document))
+    return issues
+
+
 def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]:
     if kind == "capability":
         return _validate_capability(document)
+    if kind == "deployment-profile":
+        return _validate_deployment_profile(document)
+    if kind == "integration-scaffold":
+        return _validate_integration_scaffold(document)
+    if kind == "operation-interface":
+        return _validate_operation_interface(document)
     if kind == "workflow":
         return _validate_workflow(document)
     if kind == "run":

@@ -130,6 +130,29 @@ def build_parser() -> argparse.ArgumentParser:
     contract_validate.add_argument("kind", choices=contract_kinds())
     contract_validate.add_argument("document")
 
+    integration_parser = subparsers.add_parser(
+        "integration", help="inspect pre-runtime component integration scaffolds"
+    )
+    integration_commands = integration_parser.add_subparsers(
+        dest="integration_command", required=True
+    )
+    integration_validate = integration_commands.add_parser(
+        "validate", help="validate all scaffolds selected by a deployment profile"
+    )
+    integration_list = integration_commands.add_parser(
+        "list", help="list integration readiness without requiring runtimes"
+    )
+    integration_info = integration_commands.add_parser(
+        "info", help="show one component integration scaffold"
+    )
+    for command in (integration_validate, integration_list, integration_info):
+        command.add_argument("profile", help="deployment profile containing scaffold paths")
+        command.add_argument(
+            "--workspace-root",
+            help="root used to resolve scaffold paths; defaults to the profile's project root",
+        )
+    integration_info.add_argument("component_id")
+
     registry_parser = subparsers.add_parser(
         "registry", help="build and inspect the federated capability registry"
     )
@@ -169,12 +192,37 @@ def build_parser() -> argparse.ArgumentParser:
         "serve", help="serve the QHPC API and workbench"
     )
     serve_parser.add_argument("--registry", required=True)
+    serve_parser.add_argument(
+        "--deployment-profile",
+        required=True,
+        help="explicit component allowlist for this deployment",
+    )
     serve_parser.add_argument("--database", default=".qhpc/workbench.sqlite")
     serve_parser.add_argument("--artifact-root", default=".qhpc/artifacts")
     serve_parser.add_argument("--host", default="127.0.0.1")
     serve_parser.add_argument("--port", type=int, default=8080)
-    serve_parser.add_argument("--runtime-root", default=".qhpc/runtimes")
-    serve_parser.add_argument("--enable-local-adapters", action="store_true")
+
+    worker_parser = subparsers.add_parser(
+        "worker", help="run a separate controlled task worker"
+    )
+    worker_parser.add_argument("--registry", required=True)
+    worker_parser.add_argument(
+        "--deployment-profile",
+        required=True,
+        help="explicit component allowlist for this worker",
+    )
+    worker_parser.add_argument("--database", default=".qhpc/workbench.sqlite")
+    worker_parser.add_argument("--artifact-root", default=".qhpc/artifacts")
+    worker_parser.add_argument("--runtime-root", default=".qhpc/runtimes")
+    worker_parser.add_argument("--poll-interval", type=float, default=1.0)
+    worker_parser.add_argument("--lease-seconds", type=int, default=300)
+    worker_mode = worker_parser.add_mutually_exclusive_group()
+    worker_mode.add_argument(
+        "--once", action="store_true", help="process at most one ready task and exit"
+    )
+    worker_mode.add_argument(
+        "--drain", action="store_true", help="process ready tasks until idle and exit"
+    )
 
     local_runtime = subparsers.add_parser(
         "local-runtime", help="build immutable local development runtimes"
@@ -406,25 +454,177 @@ def _print_registry_entry(entry: dict) -> None:
     print(f"QAppsWiki:          {documentation.get('qappswiki', 'none')}")
 
 
+def _print_integration_scaffolds(scaffolds: Sequence[object]) -> None:
+    columns = (
+        "COMPONENT",
+        "STATUS",
+        "SCOPE",
+        "CONTRACT",
+        "ADAPTER",
+        "TESTS",
+        "RUNTIME",
+    )
+    rows = []
+    for scaffold in scaffolds:
+        document = scaffold.document
+        metadata = document["metadata"]
+        spec = document["spec"]
+        deliverables = spec["deliverables"]
+        rows.append(
+            (
+                metadata["id"],
+                metadata["integration_status"],
+                spec["scope"]["status"],
+                deliverables["interface_contract"],
+                deliverables["adapter"],
+                deliverables["integration_tests"],
+                spec["production_runtime"]["status"],
+            )
+        )
+    widths = [
+        max(len(columns[index]), *(len(row[index]) for row in rows))
+        for index in range(len(columns))
+    ]
+    print("  ".join(value.ljust(widths[index]) for index, value in enumerate(columns)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
+
+
+def _print_integration_scaffold(scaffold: object) -> None:
+    document = scaffold.document
+    metadata = document["metadata"]
+    spec = document["spec"]
+    source = spec["source"]
+    mirror = spec["mirror"]
+    environment = spec["development_environment"]
+    deliverables = spec["deliverables"]
+    runtime_spec = spec["production_runtime"]
+    print(f"Name:                 {metadata['name']}")
+    print(f"Component:            {metadata['id']}")
+    print(f"Integration status:   {metadata['integration_status']}")
+    print(f"Source:               {source.get('url') or 'unresolved'}")
+    print(f"GitLab mirror:        {mirror.get('url') or mirror['status']}")
+    print(f"Mirror status:        {mirror['status']}")
+    print(f"Developer environment:{' ' if environment.get('class') else ''}{environment.get('class') or environment['status']}")
+    print(f"Scope status:         {spec['scope']['status']}")
+    print(f"Scope:                {spec['scope']['summary']}")
+    print(f"Interface contract:   {deliverables['interface_contract']}")
+    print(f"Adapter:              {deliverables['adapter']}")
+    print(f"Fixtures:             {deliverables['fixtures']}")
+    print(f"Integration tests:    {deliverables['integration_tests']}")
+    print(f"Registry publication: {deliverables['registry_publication']}")
+    technology = runtime_spec.get("technology", "none")
+    print(f"Production runtime:   {runtime_spec['status']} ({technology})")
+    print(f"Scaffold:             {scaffold.path}")
+    print(f"Blockers:             {_csv(spec['blockers'])}")
+
+
 def dispatch(args: argparse.Namespace) -> int:
+    if args.subcommand == "integration":
+        from .integration import (
+            find_integration_scaffold,
+            load_integration_scaffolds,
+        )
+
+        profile, scaffolds = load_integration_scaffolds(
+            args.profile, args.workspace_root
+        )
+        if args.integration_command == "validate":
+            metadata = profile["metadata"]
+            print(
+                f"Integration scaffolds valid: {metadata['id']}@{metadata['version']} "
+                f"({len(scaffolds)} components)"
+            )
+            return 0
+        if args.integration_command == "list":
+            _print_integration_scaffolds(scaffolds)
+            return 0
+        if args.integration_command == "info":
+            _print_integration_scaffold(
+                find_integration_scaffold(scaffolds, args.component_id)
+            )
+            return 0
+        raise ContractError(
+            f"unsupported integration command: {args.integration_command}"
+        )
+
     if args.subcommand == "serve":
         from .api import APIContext, serve
+        from .deployment import load_deployment_profile, registry_for_deployment
         from .engine import WorkflowEngine
-        from .local_adapters import build_local_runner
 
-        registry = load_registry(args.registry, load_catalog(args.catalog))
+        catalog = load_catalog(args.catalog)
+        profile = load_deployment_profile(args.deployment_profile, catalog)
+        registry = registry_for_deployment(
+            load_registry(args.registry, catalog), profile
+        )
         engine = WorkflowEngine(args.database, args.artifact_root)
-        runner = (
-            build_local_runner(args.runtime_root)
-            if args.enable_local_adapters
-            else None
+        metadata = profile["metadata"]
+        print(
+            f"Deployment profile: {metadata['id']}@{metadata['version']} "
+            f"({len(profile['spec']['components'])} components, "
+            f"{len(registry_entries(registry))} published capabilities)"
         )
         print(f"QHPC Workbench: http://{args.host}:{args.port}")
         serve(
-            APIContext(engine=engine, registry=registry, runner=runner),
+            APIContext(engine=engine, registry=registry),
             args.host,
             args.port,
         )
+        return 0
+
+    if args.subcommand == "worker":
+        import signal
+        from threading import Event
+
+        from .deployment import load_deployment_profile, registry_for_deployment
+        from .engine import WorkflowEngine
+        from .local_adapters import build_local_runner
+        from .worker import RegistryBoundRunner, Worker
+
+        if args.poll_interval <= 0:
+            raise ContractError("worker poll interval must be greater than zero")
+        if args.lease_seconds <= 0:
+            raise ContractError("worker lease duration must be greater than zero")
+        catalog = load_catalog(args.catalog)
+        profile = load_deployment_profile(args.deployment_profile, catalog)
+        registry = registry_for_deployment(
+            load_registry(args.registry, catalog), profile
+        )
+        engine = WorkflowEngine(args.database, args.artifact_root)
+        runner = RegistryBoundRunner(
+            build_local_runner(args.runtime_root), registry
+        )
+        worker = Worker(
+            engine,
+            runner,
+            poll_interval_seconds=args.poll_interval,
+            lease_seconds=args.lease_seconds,
+        )
+        metadata = profile["metadata"]
+        print(
+            f"QHPC Worker: {metadata['id']}@{metadata['version']} "
+            f"({len(registry_entries(registry))} published capabilities)"
+        )
+        if args.once:
+            processed = int(worker.run_once())
+        elif args.drain:
+            processed = worker.drain()
+        else:
+            stop_event = Event()
+
+            def stop_worker(_signum: int, _frame: object) -> None:
+                stop_event.set()
+
+            signal.signal(signal.SIGINT, stop_worker)
+            signal.signal(signal.SIGTERM, stop_worker)
+            print(
+                f"Worker polling every {args.poll_interval:g}s "
+                f"with {args.lease_seconds}s leases"
+            )
+            processed = worker.run_forever(stop_event)
+        print(f"Worker stopped: {processed} tasks processed")
         return 0
 
     if args.subcommand == "local-runtime":

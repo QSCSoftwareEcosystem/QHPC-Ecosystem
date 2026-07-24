@@ -1,0 +1,55 @@
+api_version: qhpc/v1
+kind: OperationInterface
+metadata:
+  id: ftprimitivebench-primitives
+  name: FTPrimitiveBench Circuit Primitives
+  version: 0.1.0
+  component: ftprimitivebench
+  project: compilation-tools
+  owners: [ftprimitivebench]
+  source:
+    url: https://github.com/ShuwenKan/FTPrimitiveBench
+    revision: ba15eba263ac6d641d225984fa074f4ee25bb462
+  status: contract-valid
+  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+spec:
+  operations:
+    - id: build-memory
+      title: Build a surface-code memory primitive
+      description: Construct a deterministic detector-annotated Stim memory circuit and apply the project-owned uniform depolarizing noise model.
+      behavior: deterministic
+      inputs: {}
+      outputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+          description: Stim circuit with detector and observable annotations.
+      parameters:
+        x_distance:
+          type: integer
+          title: X code distance
+          default: 3
+          minimum: 1
+          maximum: 31
+        z_distance:
+          type: integer
+          title: Z code distance
+          default: 3
+          minimum: 1
+          maximum: 31
+        rounds:
+          type: integer
+          title: Syndrome extraction rounds
+          default: 3
+          minimum: 1
+          maximum: 100
+        measurement_basis:
+          type: string
+          title: Logical measurement basis
+          default: Z
+          enum: [X, Z]
+        physical_error_rate:
+          type: number
+          title: Uniform depolarizing physical error rate
+          default: 0.001
+          minimum: 0
+          maximum: 0.5

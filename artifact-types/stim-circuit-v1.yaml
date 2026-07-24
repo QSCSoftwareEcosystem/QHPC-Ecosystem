@@ -1,0 +1,16 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.stim-circuit
+  name: Detector-Annotated Stim Circuit
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Stim circuit text containing the detectors and logical observables required by a downstream QEC simulation or decoding operation.
+  media_type: application/vnd.qsc.stim
+  representation: file
+  extensions: [stim]
+  compatibility:
+    accepts_versions: [1]

@@ -1,7 +1,7 @@
 # QHPC Target Architecture
 
 - Status: Target design
-- Last updated: 2026-07-20
+- Last updated: 2026-07-22
 - Scope: QHPC ecosystem integration, orchestration, execution, and data paths
 
 ## Architectural Position
@@ -24,6 +24,9 @@ Project repositories and ecosystem overlays
                     v
        Integration and publication plane
   validate -> build -> attest -> registry snapshot
+                    |
+                    v
+          deployment profile allowlist
                     |
                     v
 Workbench | CLI | automation | approved agents
@@ -58,6 +61,14 @@ This plane discovers descriptors from pinned project releases or
 ecosystem-owned overlays, validates attribution and contracts, builds immutable
 runtimes, records evidence, and produces a deterministic registry snapshot.
 Scientific source is not copied into QHPC.
+
+The repository catalog is an inventory, not an admission policy. Each deployed
+service validates a versioned component allowlist and derives a filtered
+registry snapshot before serving discovery or resolving workflows. Components
+without a published registry record remain visible in deployment planning but
+cannot be executed. Run submission re-resolves stored workflow definitions
+against the active filtered registry so earlier workflow records do not bypass
+a profile change.
 
 ### Control Plane
 
@@ -172,6 +183,7 @@ The target domain adds explicit resources around the existing contracts:
 | Resource | Purpose |
 | --- | --- |
 | Registry snapshot | Immutable set of capability and runtime releases used for resolution |
+| Deployment profile | Versioned allowlist that selects registry repositories and non-executable ecosystem resources for one deployment |
 | Runtime release | Digest-pinned executable environment plus build and attestation evidence |
 | Workspace | User or team scope for workflows, runs, artifacts, and access policy |
 | Task attempt | Append-only record of one execution attempt for a workflow node |
@@ -292,8 +304,11 @@ approved.
 
 ## Current Implementation Boundary
 
-The current local API, SQLite engine, synchronous runner, local filesystem
-artifact store, wheel runtime, and Darwin native bundles remain useful MVP
-implementations. They are not the production API/worker split, Linux operation
-containers, asynchronous Slurm runner, warm pilot service, stage latency
-telemetry, or storage-aware target integration described in this document.
+The current local API and worker are separate processes connected through
+transactional SQLite task leases. The API queues work and never invokes an
+operation adapter; the worker applies deployment-registry and local-adapter
+allowlists before using the synchronous runner protocol. This verifies the
+process boundary but is not production PostgreSQL persistence, durable worker
+heartbeats, Linux operation containers, asynchronous Slurm handles and
+reconciliation, a warm pilot service, stage latency telemetry, approved
+artifact storage, or storage-aware target integration.

@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_updated: "2026-07-10"
+catalog_updated: "2026-07-22"
 source_manifest: ../ProjectManagement/gitlab-mirror/repositories.tsv
 
 environments:
@@ -81,8 +81,8 @@ repositories:
 
   - slug: chatqec
     display_name: ChatQEC
-    source_url: https://code.ornl.gov/qsc-as/chatqec
-    notes: Internal GitLab source; access may require ORNL credentials.
+    source_url: https://github.com/QSCSoftwareThrust/ChatQEC
+    notes: GitHub selected as the QHPC working source on 2026-07-24; internal GitLab repositories are secondary mirrors.
     qsc_project: agentic-software
     package_role: workflow
     capabilities: [agentic-query, qec]
@@ -216,6 +216,20 @@ repositories:
     capabilities: [stabilizer-simulation, qec]
     hardware_targets: [local-cpu, hpc, simulator]
     interfaces: [python-api, stim, cli]
+    environment: hpc-build
+    container_status: planned
+    visibility: public
+    canonical_status: canonical
+
+  - slug: NWQ-Sim
+    display_name: TN-Sim (NWQ-Sim tn_sim branch)
+    source_url: https://github.com/pnnl/NWQ-Sim/tree/tn_sim
+    notes: TN-Sim is maintained as the public tn_sim branch of pnnl/NWQ-Sim; no QSC mirror is required. Branch head 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b was verified on 2026-07-22; its operation contract remains to be audited.
+    qsc_project: hybrid-workflows
+    package_role: simulator
+    capabilities: [tensor-network-simulation]
+    hardware_targets: [unknown]
+    interfaces: []
     environment: hpc-build
     container_status: planned
     visibility: public

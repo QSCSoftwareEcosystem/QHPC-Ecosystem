@@ -13,15 +13,21 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "ecosystem.yaml"
 
 
-def test_catalog_covers_mirror_manifest_and_pending_repository() -> None:
+def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
     catalog = load_catalog(CATALOG)
     with catalog.source_manifest.open(encoding="utf-8", newline="") as stream:
         manifest_slugs = {row["slug"] for row in csv.DictReader(stream, delimiter="\t")}
     catalog_slugs = {repository.slug for repository in catalog.repositories}
 
     assert manifest_slugs <= catalog_slugs
-    assert len(catalog.repositories) == len(manifest_slugs) + 1
+    assert catalog_slugs - manifest_slugs == {"HeteQSys", "NWQ-Sim"}
     assert catalog.repository("HeteQSys").container_status == "blocked"
+    assert catalog.repository("NWQ-Sim").source_url == (
+        "https://github.com/pnnl/NWQ-Sim/tree/tn_sim"
+    )
+    assert catalog.repository("chatqec").source_url == (
+        "https://github.com/QSCSoftwareThrust/ChatQEC"
+    )
     assert catalog.repository("ftqc").canonical_status == "ambiguous"
     assert len(catalog.environments) == 5
 

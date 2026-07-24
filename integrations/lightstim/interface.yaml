@@ -1,0 +1,58 @@
+api_version: qhpc/v1
+kind: OperationInterface
+metadata:
+  id: lightstim-simulation
+  name: LightStim Logical Error Estimation
+  version: 0.1.0
+  component: lightstim
+  project: hybrid-workflows
+  owners: [lightstim]
+  source:
+    url: https://github.com/QuTone/LightStim
+    revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+  status: contract-valid
+  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+spec:
+  operations:
+    - id: estimate-logical-error
+      title: Estimate logical error rate
+      description: Sample and decode a detector-annotated Stim circuit through LightStim's documented simulation pipeline.
+      behavior: stochastic
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+          description: Detector-annotated Stim circuit accepted by the selected decoder.
+      outputs:
+        estimate:
+          artifact_type: qhpc.logical-error-estimate@1
+          description: Logical errors, accepted shots, rate, uncertainty, timing, and decoder identity.
+      parameters:
+        decoder:
+          type: string
+          title: Decoder
+          default: pymatching
+          enum: [pymatching]
+        max_shots:
+          type: integer
+          title: Maximum sampled shots
+          default: 1000
+          minimum: 1
+          maximum: 100000000
+        max_errors:
+          type: integer
+          title: Logical-error stopping count
+          default: 100
+          minimum: 1
+          maximum: 1000000
+        batch_size:
+          type: integer
+          title: Shots per sampling batch
+          default: 1000
+          minimum: 1
+          maximum: 1000000
+        num_workers:
+          type: integer
+          title: CPU worker processes
+          default: 1
+          minimum: 1
+          maximum: 256

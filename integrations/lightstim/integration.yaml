@@ -1,0 +1,40 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: lightstim
+  name: LightStim
+  version: 0.1.0
+  project: hybrid-workflows
+  role: operation-provider
+  owners: [lightstim]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/QuTone/LightStim
+    catalog_repository: LightStim
+  mirror:
+    status: inventory-listed
+    url: https://code.ornl.gov/QSCSoftware/LightStim
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [python-api, stim, cli]
+  scope:
+    status: defined
+    summary: Estimate logical error rate from a detector-annotated Stim circuit with the documented PyMatching simulation pipeline.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: pending
+  contract_refs: [integrations/lightstim/interface.yaml]
+  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Build the production image after the simulation boundary and integration tests are fixed.
+  blockers: []

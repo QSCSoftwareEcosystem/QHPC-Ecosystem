@@ -26,7 +26,10 @@ VALID_EXAMPLES = {
     "artifact": VALID / "artifact.yaml",
     "artifact-type": VALID / "artifact-type.yaml",
     "capability": VALID / "capability.yaml",
+    "deployment-profile": ROOT / "deployments" / "initial.yaml",
     "execution-target": VALID / "execution-target.yaml",
+    "integration-scaffold": ROOT / "integrations" / "nwqec" / "integration.yaml",
+    "operation-interface": ROOT / "integrations" / "nwqec" / "interface.yaml",
     "run": VALID / "run.yaml",
     "workflow": VALID / "workflow.yaml",
 }
@@ -78,6 +81,16 @@ def test_capability_rejects_default_with_wrong_parameter_type() -> None:
 
     with pytest.raises(ContractError, match="does not match parameter type"):
         validate_contract_data("capability", capability)
+
+
+def test_operation_interface_rejects_default_with_wrong_parameter_type() -> None:
+    interface = copy.deepcopy(load_document(VALID_EXAMPLES["operation-interface"]))
+    interface["spec"]["operations"][0]["parameters"]["epsilon"]["default"] = (
+        "small"
+    )
+
+    with pytest.raises(ContractError, match="does not match parameter type"):
+        validate_contract_data("operation-interface", interface)
 
 
 def test_contract_cli_does_not_load_repository_catalog(monkeypatch, capsys) -> None:

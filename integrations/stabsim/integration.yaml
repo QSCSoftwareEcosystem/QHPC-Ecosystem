@@ -1,0 +1,40 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: stabsim
+  name: STABSim
+  version: 0.1.0
+  project: hybrid-workflows
+  role: operation-provider
+  owners: [stabsim]
+  visibility: public
+  integration_status: published
+spec:
+  source:
+    kind: repository
+    url: https://github.com/seangarn32/STABSim
+    catalog_repository: STABSim
+  mirror:
+    status: inventory-listed
+    url: https://code.ornl.gov/QSCSoftware/STABSim
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [python-api, stim, cli]
+  scope:
+    status: defined
+    summary: Expose the audited structural QASM metrics operation; full simulation remains outside the current integration scope.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs: [capabilities/STABSim/simulator/qhpc-capability.yaml]
+  evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Build and target acceptance follow completion of the integration-first onboarding pass.
+  blockers: []

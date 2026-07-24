@@ -1,0 +1,40 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: qasmtrans
+  name: QASMTrans
+  version: 0.1.0
+  project: compilation-tools
+  role: operation-provider
+  owners: [qasmtrans]
+  visibility: public
+  integration_status: published
+spec:
+  source:
+    kind: repository
+    url: https://github.com/pnnl/qasmtrans
+    catalog_repository: qasmtrans
+  mirror:
+    status: inventory-listed
+    url: https://code.ornl.gov/QSCSoftware/qasmtrans
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [qasm, cli]
+  scope:
+    status: defined
+    summary: Transpile an uploaded QASM circuit with the audited mode and backend restrictions.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs: [capabilities/qasmtrans/transpiler/qhpc-capability.yaml]
+  evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Replace the verified local native bundle with a target-accepted Linux image after integration scaffolding.
+  blockers: []

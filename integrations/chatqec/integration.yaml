@@ -1,0 +1,46 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: chatqec
+  name: ChatQEC
+  version: 0.2.0
+  project: agentic-software
+  role: assistant-service
+  owners: [chatqec]
+  visibility: internal
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/QSCSoftwareThrust/ChatQEC
+    catalog_repository: chatqec
+  mirror:
+    status: verified
+    url: https://code.ornl.gov/qsc-as/chatqec
+  development_environment:
+    status: assigned
+    class: agentic
+  interfaces: [python-api, cli, streamlit]
+  scope:
+    status: defined
+    summary: Expose authenticated cited text answers over a versioned read-only corpus through a separate internal service, without embedding ChatQEC or its model credentials into the Workbench or QHPC API process.
+  deliverables:
+    source_audit: complete
+    interface_contract: blocked
+    adapter: pending
+    fixtures: pending
+    integration_tests: pending
+    registry_publication: pending
+  contract_refs: []
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/adr/0008-chatqec-internal-service-boundary.md
+    - docs/chatqec-service-boundary.md
+  production_runtime:
+    status: deferred
+    technology: oci
+    reason: Service containerization follows implementation and verification of the accepted service contract and selection of approved deployment services.
+  blockers:
+    - Select and obtain institutional acceptance for the concrete model and embedding endpoints, allowed content and egress, retention settings, and workload identity mechanism.
+    - Implement a versioned internal JSON and SSE service interface with per-conversation isolation and redacted telemetry.
+    - Refresh or retire the stale QSCSoftware/chatqec GitLab copy without overwriting the GitHub working source.

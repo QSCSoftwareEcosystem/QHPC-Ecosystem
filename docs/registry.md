@@ -28,6 +28,12 @@ Use [the contributor template](../templates/qhpc-capability.yaml) as a starting
 point. The examples in `examples/contracts/` validate the contract machinery;
 they are not published project capabilities.
 
+Initial-deployment components begin with a non-executable
+[`IntegrationScaffold`](contracts.md#integration-scaffolds). The scaffold is
+used while source, interfaces, adapters, fixtures, and tests are still being
+resolved. It is not discovered by the registry builder and cannot make a
+component executable.
+
 ## Publication Validation
 
 Registry publication requires all of the following:
@@ -42,9 +48,14 @@ Registry publication requires all of the following:
 - Integration authority, curator identities, project-review state, validation
   maturity, and supporting evidence are explicit.
 - A full commit hash or semantic release tag pins the project revision.
-- Runtime references and digests are immutable.
+- Runtime references and digests for executable operations are immutable.
 - Internal sources do not publish public capabilities.
 - QAppsWiki documentation is linked.
+
+Production container construction is intentionally after contract, adapter,
+fixture, and integration-test stabilization. Resource-only capabilities can be
+published with `runtime_status: not-applicable`; executable operations cannot
+be published with a placeholder runtime.
 
 The generated registry embeds each validated descriptor together with its
 SHA-256 digest, catalog repository slug, curation metadata, and validation

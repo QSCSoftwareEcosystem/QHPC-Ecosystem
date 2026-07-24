@@ -1,0 +1,42 @@
+# Copy this file into integrations/<component>/integration.yaml.
+# Scaffolds intentionally do not contain executable runtime references.
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: replace-me
+  name: Replace Me
+  version: 0.1.0
+  project: cross-project
+  role: operation-provider
+  owners: [replace-me-team]
+  visibility: internal
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://example.invalid/replace-me
+    catalog_repository: replace-me
+  mirror:
+    status: inventory-listed
+    url: https://code.ornl.gov/QSCSoftware/replace-me
+  development_environment:
+    status: assigned
+    class: python-lib
+  interfaces: [python-api]
+  scope:
+    status: pending
+    summary: Audit the source and define the first stable integration boundary.
+  deliverables:
+    source_audit: pending
+    interface_contract: pending
+    adapter: pending
+    fixtures: pending
+    integration_tests: pending
+    registry_publication: pending
+  contract_refs: []
+  evidence: []
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Build the production runtime after contract and adapter validation.
+  blockers: []

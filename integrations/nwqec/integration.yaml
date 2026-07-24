@@ -1,0 +1,41 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: nwqec
+  name: NWQEC
+  version: 0.1.0
+  project: compilation-tools
+  role: operation-provider
+  owners: [nwqec]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/pnnl/nwqec
+    catalog_repository: nwqec
+  mirror:
+    status: inventory-listed
+    url: https://code.ornl.gov/QSCSoftware/nwqec
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [python-api, qasm, cli]
+  scope:
+    status: defined
+    summary: Count exact Clifford and T gates for an OpenQASM 2.0 circuit without materializing the transformed circuit.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: pending
+  contract_refs: [integrations/nwqec/interface.yaml]
+  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Build the production image after the operation contract, adapter, fixtures, and tests stabilize.
+  blockers:
+    - Update NWQEC's deprecated scikit-build-core key or pin the compatible 0.10.x backend for reproducible source builds.

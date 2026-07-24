@@ -1,0 +1,50 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.logical-error-estimate
+  name: Logical Error Estimate
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Statistical logical-error estimate and sampling provenance returned by a QEC simulation and decoding pipeline.
+  media_type: application/vnd.qsc.logical-error-estimate+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - shots
+      - post_selected_shots
+      - errors
+      - logical_error_rate
+      - error_bar
+      - seconds
+      - decoder
+    properties:
+      shots:
+        type: integer
+        minimum: 0
+      post_selected_shots:
+        type: integer
+        minimum: 0
+      errors:
+        type: integer
+        minimum: 0
+      logical_error_rate:
+        type: number
+        minimum: 0
+        maximum: 1
+      error_bar:
+        type: number
+        minimum: 0
+      seconds:
+        type: number
+        minimum: 0
+      decoder:
+        type: string
+        minLength: 1
+  compatibility:
+    accepts_versions: [1]

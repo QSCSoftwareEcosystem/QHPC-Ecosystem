@@ -1,7 +1,7 @@
 # Software Thrust Integration Readiness
 
 - Status: Curator audit queue
-- Last updated: 2026-07-11
+- Last updated: 2026-07-22
 
 This matrix tracks the evidence required before a repository capability enters
 the QHPC registry. Project review is recorded when available, but an
@@ -15,6 +15,12 @@ evidence-backed ecosystem curator may perform local integration independently.
 | CT | Compiler repositories are cataloged | QASMTrans transpilation | Native runtime and workflow verified; resolve FTQC independently | Integration-tested locally |
 | HW | Simulator and QEC repositories are cataloged | STABSim structural metrics | Native metrics runtime verified; simulation compatibility remains separate | Integration-tested locally |
 | OpenQEvo | `OpenQEvo/` is available | Method discovery and time-evolution operation | Build the first curated executable descriptor | First candidate |
+
+Within the initial deployment, NWQEC, FTPrimitiveBench, and LightStim have
+passed the pre-runtime portion of this ladder at exact source revisions:
+runtime-free contracts, controlled adapters, fixtures, and integration tests.
+They are not production-approved or registry-published capabilities until
+their immutable Linux runtimes pass target acceptance.
 
 ## Validation Ladder
 
@@ -33,17 +39,20 @@ evidence-backed ecosystem curator may perform local integration independently.
 
 ## Curator Onboarding Checklist
 
+- [ ] Create or update the component's validated integration scaffold.
 - [ ] Record the originating project and attribution identifiers.
 - [ ] Match a cataloged repository and pin a commit or semantic release.
 - [ ] Select behavior supported by documentation, tests, or a stable API.
 - [ ] Define operation inputs, outputs, parameters, and artifact types.
-- [ ] Identify or build an immutable runtime image.
-- [ ] Confirm local and HPC resource requirements.
+- [ ] Implement the controlled adapter without embedding scientific behavior.
 - [ ] Link upstream tests or add an ecosystem-owned smoke fixture.
+- [ ] Pass local integration tests through the adapter boundary.
 - [ ] Link QAppsWiki documentation and provenance.
 - [ ] Record authority, curators, project review state, and evidence.
 - [ ] Pass capability and registry validation.
 - [ ] Participate in a cross-project workflow when executable.
+- [ ] Confirm local and HPC resource requirements.
+- [ ] Build, verify, and accept the immutable production runtime image.
 
 QHPC must not imply project endorsement when `project_reviewed` is false.
 Integration status follows evidence rather than repository presence or an

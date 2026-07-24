@@ -1,0 +1,99 @@
+api_version: qhpc/v1
+kind: DeploymentProfile
+metadata:
+  id: initial
+  name: QHPC Initial Deployment
+  version: 0.2.0
+  description: Authoritative allowlist for the first QHPC ecosystem deployment.
+spec:
+  selection_mode: allowlist
+  components:
+    - id: stabsim
+      name: STABSim
+      role: operation-provider
+      onboarding_status: registry-published
+      integration_scaffold: integrations/stabsim/integration.yaml
+      catalog_repository: STABSim
+      source:
+        kind: repository
+        url: https://github.com/seangarn32/STABSim
+    - id: tn-sim
+      name: TN-Sim
+      role: operation-provider
+      onboarding_status: cataloged
+      integration_scaffold: integrations/tn-sim/integration.yaml
+      catalog_repository: NWQ-Sim
+      source:
+        kind: repository
+        url: https://github.com/pnnl/NWQ-Sim/tree/tn_sim
+    - id: nwqec
+      name: NWQEC
+      role: operation-provider
+      onboarding_status: cataloged
+      integration_scaffold: integrations/nwqec/integration.yaml
+      catalog_repository: nwqec
+      source:
+        kind: repository
+        url: https://github.com/pnnl/nwqec
+    - id: ftprimitivebench
+      name: FTPrimitiveBench
+      role: operation-provider
+      onboarding_status: cataloged
+      integration_scaffold: integrations/ftprimitivebench/integration.yaml
+      catalog_repository: FTPrimitiveBench
+      source:
+        kind: repository
+        url: https://github.com/ShuwenKan/FTPrimitiveBench
+    - id: lightstim
+      name: LightStim
+      role: operation-provider
+      onboarding_status: cataloged
+      integration_scaffold: integrations/lightstim/integration.yaml
+      catalog_repository: LightStim
+      source:
+        kind: repository
+        url: https://github.com/QuTone/LightStim
+    - id: qasmtrans
+      name: QASMTrans
+      role: operation-provider
+      onboarding_status: registry-published
+      integration_scaffold: integrations/qasmtrans/integration.yaml
+      catalog_repository: qasmtrans
+      source:
+        kind: repository
+        url: https://github.com/pnnl/qasmtrans
+    - id: openqevo
+      name: OpenQEvo
+      role: operation-provider
+      onboarding_status: registry-published
+      integration_scaffold: integrations/openqevo/integration.yaml
+      catalog_repository: OpenQEvo
+      source:
+        kind: repository
+        url: https://github.com/QSCSoftwareThrust/OpenQEvo
+    - id: openqse
+      name: OpenQSE
+      role: integration-standard
+      onboarding_status: onboarding
+      integration_scaffold: integrations/openqse/integration.yaml
+      source:
+        kind: organization
+        url: https://github.com/openQSE
+    - id: qappswiki
+      name: QAppsWiki
+      role: knowledge-resource
+      onboarding_status: registry-published
+      integration_scaffold: integrations/qappswiki/integration.yaml
+      catalog_repository: QAppsWiki
+      source:
+        kind: repository
+        url: https://github.com/QSCSoftwareThrust/QAppsWiki
+    - id: chatqec
+      name: ChatQEC
+      role: assistant-service
+      onboarding_status: cataloged
+      integration_scaffold: integrations/chatqec/integration.yaml
+      catalog_repository: chatqec
+      source:
+        kind: repository
+        url: https://github.com/QSCSoftwareThrust/ChatQEC

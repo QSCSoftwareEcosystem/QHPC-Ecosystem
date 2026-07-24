@@ -23,6 +23,58 @@ qhpc.quantum-circuit@1
 qhpc.compilation-report@1
 ```
 
+## Deployment Profiles
+
+A deployment profile is a versioned, deny-by-default component allowlist. It
+records each selected component's source, ecosystem role, catalog mapping when
+applicable, and onboarding state. Component IDs and catalog repository
+references must be unique.
+
+An unresolved source must be blocked and carry an explicit blocker. A catalog
+mapping is validated against both the repository slug and canonical source URL.
+Before a service starts, its registry is filtered through the profile; catalog
+presence without profile admission cannot make a capability discoverable or
+usable by workflow validation.
+
+## Integration Scaffolds
+
+Every component selected by the initial deployment profile links to a validated
+`IntegrationScaffold`. The scaffold is a pre-runtime onboarding record: it
+tracks canonical source and GitLab mirror information, the reusable developer
+environment, intended interfaces, scope, source audit, interface contract,
+adapter, fixtures, integration tests, registry publication, and blockers.
+
+A scaffold is not an executable capability and contains no invocation command,
+runtime reference, or digest. This allows integration work to proceed without
+inventing a placeholder container or implying that a tool is runnable. The
+delivery order is source audit, interface contract, adapter, fixtures,
+integration tests, production runtime build and target acceptance, and then
+executable capability publication. Resource-only integrations may declare the
+production runtime not applicable.
+
+The deployment profile and all linked scaffolds can be checked together:
+
+```bash
+qhpc-ecosystem integration validate deployments/initial.yaml
+qhpc-ecosystem integration list deployments/initial.yaml
+qhpc-ecosystem integration info deployments/initial.yaml nwqec
+```
+
+## Operation Interfaces
+
+An `OperationInterface` is the runtime-free contract between a source audit and
+an executable capability. It pins one exact source revision and defines each
+operation's deterministic, seeded, or stochastic behavior; typed artifact
+ports; and validated parameters. It contains no entrypoint, command, runtime
+reference, image digest, or execution-target claim.
+
+`contract-valid` interfaces must link evidence and may be exercised by
+controlled adapters before production container work starts. They are not
+discoverable executable registry entries. After the adapter stabilizes, the
+runtime is built and accepted, and the interface is translated into a
+`Capability` that records immutable invocation and runtime identity. Project
+review is represented separately by the `project-reviewed` status.
+
 ## Versions
 
 Components, capabilities, operations, and workflows use semantic versions.
@@ -131,5 +183,7 @@ Validate YAML or JSON documents:
 
 ```bash
 qhpc-ecosystem contract validate capability capability.yaml
+qhpc-ecosystem contract validate integration-scaffold integrations/nwqec/integration.yaml
+qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
 qhpc-ecosystem contract validate workflow workflow.yaml
 ```

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/deployment-profile-v1.schema.json",
+  "title": "QHPC Deployment Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "DeploymentProfile"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+        },
+        "name": {"type": "string", "minLength": 1},
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+        },
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selection_mode", "components"],
+      "properties": {
+        "selection_mode": {"const": "allowlist"},
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/component"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "role",
+        "onboarding_status",
+        "integration_scaffold",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+        },
+        "name": {"type": "string", "minLength": 1},
+        "role": {
+          "enum": [
+            "operation-provider",
+            "knowledge-resource",
+            "assistant-service",
+            "integration-standard"
+          ]
+        },
+        "onboarding_status": {
+          "enum": ["registry-published", "cataloged", "onboarding", "blocked"]
+        },
+        "integration_scaffold": {
+          "type": "string",
+          "pattern": "^integrations/[a-z][a-z0-9._-]*/integration\\.yaml$"
+        },
+        "catalog_repository": {"type": "string", "minLength": 1},
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "url"],
+              "properties": {
+                "kind": {"const": "repository"},
+                "url": {"type": "string", "format": "uri"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "url"],
+              "properties": {
+                "kind": {"const": "organization"},
+                "url": {"type": "string", "format": "uri"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "url"],
+              "properties": {
+                "kind": {"const": "unresolved"},
+                "url": {"type": "null"}
+              }
+            }
+          ]
+        },
+        "blocker": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"onboarding_status": {"const": "blocked"}},
+            "required": ["onboarding_status"]
+          },
+          "then": {"required": ["blocker"]}
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "properties": {"kind": {"const": "unresolved"}},
+                "required": ["kind"]
+              }
+            },
+            "required": ["source"]
+          },
+          "then": {
+            "properties": {"onboarding_status": {"const": "blocked"}}
+          }
+        }
+      ]
+    }
+  }
+}
