@@ -1,0 +1,16 @@
+{
+  "request_id": "req-0001",
+  "correlation_id": "corr-0001",
+  "conversation_id": "conversation-0001",
+  "authorized_subject": "subject-42",
+  "workspace_id": "workspace-qec",
+  "policy_class": "public-qec",
+  "corpus_revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "question": "What is the threshold theorem?",
+  "history": [
+    {
+      "role": "user",
+      "content": "We are discussing fault-tolerant quantum computing."
+    }
+  ]
+}

@@ -1,0 +1,316 @@
+api_version: qhpc/v1
+kind: ServiceInterface
+metadata:
+  id: chatqec-internal-api
+  name: ChatQEC Internal Assistant API
+  version: 1.0.0
+  component: chatqec
+  project: agentic-software
+  owners: [chatqec]
+  source:
+    url: https://github.com/QSCSoftwareThrust/ChatQEC
+    revision: 4c017510511f835001bfe5901a9d59e86cc130cd
+  status: contract-valid
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/adr/0008-chatqec-internal-service-boundary.md
+    - docs/chatqec-service-boundary.md
+spec:
+  transport:
+    protocol: https
+    base_path: /v1
+    encryption_required: true
+    workload_identity_required: true
+    forwarded_browser_credentials: false
+  authorization:
+    action: assistant:ask
+    enforcement_point: qhpc-api
+  policy:
+    conversation_isolation: subject-workspace-conversation
+    corpus_access: read-only
+    payload_logging: prohibited
+    default_retention: none
+    tool_execution: prohibited
+  schemas:
+    ask-request:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      additionalProperties: false
+      required:
+        - request_id
+        - correlation_id
+        - conversation_id
+        - authorized_subject
+        - workspace_id
+        - policy_class
+        - corpus_revision
+        - question
+      properties:
+        request_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        correlation_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        conversation_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        authorized_subject:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        workspace_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        policy_class:
+          type: string
+          pattern: '^[a-z][a-z0-9._-]{0,63}$'
+        corpus_revision:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        question:
+          type: string
+          minLength: 1
+          maxLength: 8000
+        history:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [role, content]
+            properties:
+              role:
+                enum: [user, assistant]
+              content:
+                type: string
+                minLength: 1
+                maxLength: 8000
+    answer-response:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      additionalProperties: false
+      required:
+        - request_id
+        - correlation_id
+        - conversation_id
+        - answer
+        - citations
+        - confidence
+        - provider
+        - model
+        - model_response_id
+        - corpus_revision
+        - usage
+        - latency_ms
+      properties:
+        request_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        correlation_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        conversation_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+        answer:
+          type: string
+          minLength: 1
+          maxLength: 100000
+        citations:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, title, source_uri, source_revision]
+            properties:
+              id:
+                type: string
+                pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+              title:
+                type: string
+                minLength: 1
+                maxLength: 1000
+              source_uri:
+                type: string
+                format: uri
+              source_revision:
+                type: string
+                minLength: 1
+                maxLength: 128
+              locator:
+                type: string
+                minLength: 1
+                maxLength: 500
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 128
+        model:
+          type: string
+          minLength: 1
+          maxLength: 128
+        model_response_id:
+          type: string
+          minLength: 1
+          maxLength: 256
+        corpus_revision:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        usage:
+          type: object
+          additionalProperties: false
+          required: [input_tokens, output_tokens, total_tokens]
+          properties:
+            input_tokens:
+              type: integer
+              minimum: 0
+            output_tokens:
+              type: integer
+              minimum: 0
+            total_tokens:
+              type: integer
+              minimum: 0
+        latency_ms:
+          type: object
+          additionalProperties: false
+          required: [retrieval, rerank, generation, total]
+          properties:
+            retrieval:
+              type: number
+              minimum: 0
+            rerank:
+              type: number
+              minimum: 0
+            generation:
+              type: number
+              minimum: 0
+            total:
+              type: number
+              minimum: 0
+    answer-stream-event:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [request_id, sequence, event, data]
+          properties:
+            request_id:
+              type: string
+              pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+            sequence:
+              type: integer
+              minimum: 0
+            event:
+              const: token
+            data:
+              type: object
+              additionalProperties: false
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  minLength: 1
+                  maxLength: 32000
+        - type: object
+          additionalProperties: false
+          required: [request_id, sequence, event, data]
+          properties:
+            request_id:
+              type: string
+              pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+            sequence:
+              type: integer
+              minimum: 0
+            event:
+              const: citation
+            data:
+              type: object
+              additionalProperties: false
+              required: [citation]
+              properties:
+                citation:
+                  type: object
+                  additionalProperties: false
+                  required: [id, title, source_uri, source_revision]
+                  properties:
+                    id:
+                      type: string
+                      pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+                    title:
+                      type: string
+                      minLength: 1
+                      maxLength: 1000
+                    source_uri:
+                      type: string
+                      format: uri
+                    source_revision:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    locator:
+                      type: string
+                      minLength: 1
+                      maxLength: 500
+        - type: object
+          additionalProperties: false
+          required: [request_id, sequence, event, data]
+          properties:
+            request_id:
+              type: string
+              pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+            sequence:
+              type: integer
+              minimum: 0
+            event:
+              const: final
+            data:
+              type: object
+              additionalProperties: false
+              required: [response]
+              properties:
+                response:
+                  type: object
+        - type: object
+          additionalProperties: false
+          required: [request_id, sequence, event, data]
+          properties:
+            request_id:
+              type: string
+              pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+            sequence:
+              type: integer
+              minimum: 0
+            event:
+              const: error
+            data:
+              type: object
+              additionalProperties: false
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  pattern: '^[a-z][a-z0-9._-]{0,63}$'
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+  endpoints:
+    - id: ask
+      method: POST
+      path: /answers
+      response_mode: json
+      request_schema: ask-request
+      response_schema: answer-response
+      timeout_seconds: 60
+    - id: ask-stream
+      method: POST
+      path: /answers/stream
+      response_mode: sse
+      request_schema: ask-request
+      response_schema: answer-stream-event
+      timeout_seconds: 60

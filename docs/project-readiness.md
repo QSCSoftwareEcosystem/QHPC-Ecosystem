@@ -26,6 +26,13 @@ binary still requires a reproducible build and source-backed execution. None
 is production-approved or registry-published until its immutable Linux runtime
 passes target acceptance.
 
+OpenQSE and QAppsWiki complete the non-executable resource path: their pinned
+capabilities contain documentation or dataset/library resources and no
+operation runtime. ChatQEC completes the pre-runtime service path with a pinned
+source, accepted boundary, machine-valid HTTPS JSON/SSE contract, controlled
+client adapter, fixtures, and integration tests. Its server implementation and
+institutional deployment dependencies remain production gates.
+
 ## Validation Ladder
 
 1. `discovered`: repository and candidate behavior identified.

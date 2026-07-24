@@ -3,7 +3,7 @@ kind: DeploymentProfile
 metadata:
   id: initial
   name: QHPC Initial Deployment
-  version: 0.2.0
+  version: 0.3.0
   description: Authoritative allowlist for the first QHPC ecosystem deployment.
 spec:
   selection_mode: allowlist
@@ -74,11 +74,12 @@ spec:
     - id: openqse
       name: OpenQSE
       role: integration-standard
-      onboarding_status: onboarding
+      onboarding_status: registry-published
       integration_scaffold: integrations/openqse/integration.yaml
+      catalog_repository: openqse-spec
       source:
-        kind: organization
-        url: https://github.com/openQSE
+        kind: repository
+        url: https://github.com/openQSE/openqse-spec
     - id: qappswiki
       name: QAppsWiki
       role: knowledge-resource

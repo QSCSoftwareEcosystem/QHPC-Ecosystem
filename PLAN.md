@@ -40,11 +40,11 @@ following status distinctions:
 | Registry, workflow engine, and control API | Functional locally | Discovery, workflow publication, run submission, state, cancellation, retry, logs, and export are implemented |
 | Local execution and provenance | Functional locally | Separate API and worker processes execute controlled local operations and persist artifacts, checksums, logs, and provenance in SQLite and the filesystem |
 | Browser Workbench | Partially functional | Discovery, templates, one-operation drafts, run polling, artifacts, and export work; arbitrary typed graph composition and durable workspaces remain pending |
-| Initial component onboarding | Partially complete | Four components are registry-published; TN-Sim, NWQEC, FTPrimitiveBench, and LightStim have pre-runtime contracts and adapters; ChatQEC has an accepted boundary; OpenQSE scope and concrete ChatQEC services remain pending |
+| Initial component onboarding | Pre-container scope complete | Five components are registry-published; all ten have source, interface, adapter or not-applicable, fixture, and integration-test closure; executable runtimes and the ChatQEC server remain production gates |
 | HPC execution | Foundations only | Slurm and Apptainer primitives exist, but task leases, asynchronous target handles, storage profiles, production images, and target acceptance are not connected end to end |
 | DOE shared deployment | Not ready | Institutional identity, PostgreSQL, approved artifact storage, secrets, audit forwarding, monitoring, signed runtime supply chain, and security and operations acceptance remain pending |
 
-The automated local suite reported 88 passed tests and one skipped test on
+The automated local suite reported 100 passed tests and one skipped test on
 2026-07-24. Target-system acceptance, performance, RDMA, container, and
 institutional security tests are separate and are not represented by that
 local result.
@@ -240,19 +240,21 @@ FTPrimitiveBench, LightStim, QASMTrans, OpenQEvo, OpenQSE, QAppsWiki, and
 ChatQEC. `ecosystem.yaml` remains broader so future candidates can be audited
 without becoming visible or executable in the deployed service.
 
-STABSim, QASMTrans, OpenQEvo, and QAppsWiki currently have published registry
-records. TN-Sim, NWQEC, FTPrimitiveBench, and LightStim have completed
-pre-runtime contract and adapter integration but still require immutable
-runtimes and executable capability publication. TN-Sim uses the public
-`tn_sim` branch of `pnnl/NWQ-Sim` without a QSC mirror; its CPU iTensor MPS
-adapter is fixture-tested, while the external binary and source-backed
-correctness execution remain runtime gates. ChatQEC has an authenticated
-exact-revision audit of its selected GitHub working source and an accepted
-internal service boundary; the concrete institutional model, egress,
-retention, and identity services still require selection and acceptance.
-OpenQSE is represented as an integration-standard source, not an executable
-operation, until specific contracts or repositories are selected. Detailed
-status and admission rules are maintained in `docs/initial-deployment.md`.
+STABSim, QASMTrans, OpenQEvo, OpenQSE, and QAppsWiki currently have published
+registry records. OpenQSE resolves to a pinned `openQSE/openqse-spec` revision
+and, like QAppsWiki, publishes non-executable resources. TN-Sim, NWQEC,
+FTPrimitiveBench, and LightStim have completed pre-runtime contract and adapter
+integration but still require immutable runtimes and executable capability
+publication. TN-Sim uses the public `tn_sim` branch of `pnnl/NWQ-Sim` without a
+QSC mirror; its CPU iTensor MPS adapter is fixture-tested, while the external
+binary and source-backed correctness execution remain runtime gates.
+
+ChatQEC has an authenticated exact-revision audit, accepted internal service
+boundary, provider-neutral HTTPS JSON/SSE contract, bounded client adapter,
+fixtures, and tests. A conforming server and the concrete institutional model,
+egress, retention, corpus, and identity services still require implementation,
+selection, and acceptance. Detailed status and admission rules are maintained
+in `docs/initial-deployment.md`.
 
 ## Resource Model
 
@@ -442,7 +444,7 @@ Exit criteria:
 
 ### Phase 1A - Initial Component Integration Scaffolding
 
-Status: Four public adapters implemented; three source-executed
+Status: Completed pre-container integration; production runtimes deferred
 
 Integration is deliberately completed before production containerization. A
 scaffold is non-executable and cannot enter a workflow registry as an operation.
@@ -483,12 +485,15 @@ Deliverables:
 - [x] Select `QSCSoftwareThrust/ChatQEC` as the GitHub working source, complete
       its authenticated exact-revision audit, and accept the restrictive
       internal service boundary.
-- [ ] Select institutionally accepted ChatQEC model, embedding, identity,
-      data-egress, and retention services, then implement its versioned service
-      contract and adapter.
-- [ ] Build and accept immutable operation runtimes, then publish executable
-      registry capabilities for TN-Sim, NWQEC, FTPrimitiveBench, and LightStim.
-- [ ] Select concrete OpenQSE contracts or repositories.
+- [x] Define and test the provider-neutral ChatQEC HTTPS JSON/SSE contract,
+      bounded client adapter, provenance checks, and representative fixtures.
+      Institutionally accepted services and the conforming server remain Phase
+      6 deployment gates.
+- [x] Select the concrete `openQSE/openqse-spec` repository at an exact revision
+      and publish its glossary and architecture as non-executable resources.
+- [x] Defer immutable operation-runtime builds and executable publication for
+      TN-Sim, NWQEC, FTPrimitiveBench, and LightStim to the production-runtime
+      work after interface stabilization.
 
 Shared Apptainer developer environments remain available during this phase.
 Tool-specific Linux operation images, image signing, and target acceptance stay
@@ -798,7 +803,7 @@ the shortest route from the current local MVP to a credible shared deployment.
 
 | Order | Delivery milestone | Status | Completion gate |
 | --- | --- | --- | --- |
-| 1 | Close pre-container integration scope | In progress | TN-Sim's operation contract is complete; OpenQSE still needs selected concrete contracts or repositories, and ChatQEC still needs accepted concrete service dependencies and a versioned API contract |
+| 1 | Close pre-container integration scope | Completed | All ten initial components have closed source, interface, adapter or not-applicable, fixture, and test gates; OpenQSE is pinned and ChatQEC has a provider-neutral service contract |
 | 2 | Make execution durable and asynchronous | Pending | Attempts and stage events are append-only; workers have durable identity, heartbeats, target handles, reconciliation, and restart-safe output collection |
 | 3 | Prove one cold Slurm execution slice | Pending | One representative operation moves from an API-created task lease through Slurm and Apptainer to verified artifact collection under an approved target and storage profile |
 | 4 | Add the low-latency HPC path | Pending | Policy selects eligible warm-pilot execution, enforces isolation and capacity, falls back to batch, and reports complete stage-by-stage latency |
@@ -814,7 +819,8 @@ building every initial component image.
 
 Testing will scale with each layer:
 
-- Contract tests for valid and invalid descriptors, workflows, and artifacts.
+- Contract tests for valid and invalid descriptors, service interfaces,
+  workflows, and artifacts.
 - Registry tests for determinism, conflicts, ownership, versions, and drift.
 - State-machine tests for retries, cancellation, restart, leases, and duplicate
   completion.
@@ -839,23 +845,21 @@ Testing will scale with each layer:
 
 The following issues are known as of 2026-07-24:
 
-- The initial deployment allowlist is fixed, but six selected components are
-  not yet registry-published: NWQEC, FTPrimitiveBench, LightStim, ChatQEC,
-  TN-Sim, and OpenQSE.
-- All ten components have validated integration scaffolds. TN-Sim, NWQEC,
-  FTPrimitiveBench, and LightStim now have exact-revision source audits,
-  runtime-free operation interfaces, controlled adapters, fixtures, and
-  integration tests. Their production runtimes and executable registry
-  capabilities intentionally remain pending.
+- The initial deployment allowlist is fixed, but five selected components are
+  not yet registry-published: TN-Sim, NWQEC, FTPrimitiveBench, LightStim, and
+  ChatQEC.
+- All ten components have validated integration scaffolds and completed their
+  pre-container source, interface, adapter or not-applicable, fixture, and
+  integration-test gates. TN-Sim, NWQEC, FTPrimitiveBench, and LightStim still
+  require production runtimes and executable registry capabilities.
 - TN-Sim's canonical source is the public `tn_sim` branch of `pnnl/NWQ-Sim`
   and does not require a QSC mirror. Its CPU iTensor MPS contract and controlled
   CLI adapter are fixture-tested, but the external binary still needs a
   reproducible build, source-backed correctness execution, immutable runtime,
-  and target acceptance. OpenQSE requires selection of concrete integration
-  contracts. ChatQEC's service boundary is accepted, but its concrete model,
-  embedding, egress, retention, identity, and service API implementations need
-  institutional selection and acceptance. Its GitHub working source is
-  authenticated and audited at an exact revision.
+  and target acceptance. OpenQSE is resolved to a pinned non-executable
+  specification resource. ChatQEC's interface and client adapter are complete,
+  but its server plus concrete model, embedding, egress, retention, corpus, and
+  identity services need implementation and institutional acceptance.
 - NWQEC's upstream build metadata uses a deprecated `scikit-build-core` key.
   Reproducible builds currently require the compatible 0.10.x backend or an
   upstream metadata update before production runtime construction.

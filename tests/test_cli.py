@@ -28,7 +28,7 @@ def test_list_and_info_do_not_require_apptainer(monkeypatch, capsys) -> None:
 
 def test_validate_checks_catalog_and_recipes(capsys) -> None:
     assert invoke("validate") == 0
-    assert "19 repositories, 5 environments" in capsys.readouterr().out
+    assert "20 repositories, 5 environments" in capsys.readouterr().out
 
 
 def test_build_explains_docker_only_host(tmp_path: Path, monkeypatch, capsys) -> None:

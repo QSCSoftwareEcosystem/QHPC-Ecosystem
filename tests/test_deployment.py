@@ -67,6 +67,17 @@ def test_initial_deployment_profile_is_the_authoritative_ten_component_allowlist
         "kind": "repository",
         "url": "https://github.com/QSCSoftwareThrust/ChatQEC",
     }
+    openqse = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["name"] == "OpenQSE"
+    )
+    assert openqse["onboarding_status"] == "registry-published"
+    assert openqse["catalog_repository"] == "openqse-spec"
+    assert openqse["source"] == {
+        "kind": "repository",
+        "url": "https://github.com/openQSE/openqse-spec",
+    }
 
 
 def test_deployment_registry_exposes_only_selected_published_capabilities() -> None:
@@ -83,17 +94,19 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
             "LightStim",
             "qasmtrans",
             "OpenQEvo",
+            "openqse-spec",
             "QAppsWiki",
             "chatqec",
         }
     )
     assert {entry["catalog_repository"] for entry in registry_entries(registry)} == {
         "OpenQEvo",
+        "openqse-spec",
         "QAppsWiki",
         "qasmtrans",
         "STABSim",
     }
-    assert registry["metadata"]["entry_count"] == 4
+    assert registry["metadata"]["entry_count"] == 5
     validate_contract_data("registry", registry)
     with pytest.raises(RegistryError, match="capability not found"):
         find_registry_entry(registry, "qsc-hardware-survey")
@@ -156,10 +169,10 @@ def test_serve_applies_the_deployment_profile_before_building_api_context(
     assert {
         entry["catalog_repository"]
         for entry in registry_entries(captured["registry"])
-    } == {"OpenQEvo", "QAppsWiki", "qasmtrans", "STABSim"}
+    } == {"OpenQEvo", "openqse-spec", "QAppsWiki", "qasmtrans", "STABSim"}
     assert captured["host"] == "127.0.0.1"
     assert captured["port"] == 8080
-    assert "Deployment profile: initial@0.2.0" in capsys.readouterr().out
+    assert "Deployment profile: initial@0.3.0" in capsys.readouterr().out
 
 
 def test_worker_command_uses_the_same_deployment_profile(
@@ -188,5 +201,5 @@ def test_worker_command_uses_the_same_deployment_profile(
     )
 
     output = capsys.readouterr().out
-    assert "QHPC Worker: initial@0.2.0 (4 published capabilities)" in output
+    assert "QHPC Worker: initial@0.3.0 (5 published capabilities)" in output
     assert "Worker stopped: 0 tasks processed" in output

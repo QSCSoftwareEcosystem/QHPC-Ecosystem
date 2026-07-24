@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/service-interface-v1.schema.json",
+  "title": "QHPC Service Interface v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "ServiceInterface"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {"$ref": "#/$defs/spec"}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "project": {
+      "enum": [
+        "software-engineering",
+        "data-schema",
+        "agentic-software",
+        "compilation-tools",
+        "hybrid-workflows",
+        "cross-project"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "component",
+        "project",
+        "owners",
+        "source",
+        "status",
+        "evidence"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"$ref": "#/$defs/version"},
+        "component": {"$ref": "#/$defs/identifier"},
+        "project": {"$ref": "#/$defs/project"},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url", "revision"],
+          "properties": {
+            "url": {"type": "string", "format": "uri"},
+            "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+          }
+        },
+        "status": {"enum": ["draft", "contract-valid", "project-reviewed"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri-reference"}
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "base_path",
+        "encryption_required",
+        "workload_identity_required",
+        "forwarded_browser_credentials"
+      ],
+      "properties": {
+        "protocol": {"const": "https"},
+        "base_path": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$"
+        },
+        "encryption_required": {"const": true},
+        "workload_identity_required": {"const": true},
+        "forwarded_browser_credentials": {"const": false}
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "enforcement_point"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*(?::[a-z][a-z0-9_-]*)+$"
+        },
+        "enforcement_point": {"const": "qhpc-api"}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conversation_isolation",
+        "corpus_access",
+        "payload_logging",
+        "default_retention",
+        "tool_execution"
+      ],
+      "properties": {
+        "conversation_isolation": {"const": "subject-workspace-conversation"},
+        "corpus_access": {"const": "read-only"},
+        "payload_logging": {"const": "prohibited"},
+        "default_retention": {"const": "none"},
+        "tool_execution": {"const": "prohibited"}
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "method",
+        "path",
+        "response_mode",
+        "request_schema",
+        "response_schema",
+        "timeout_seconds"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "method": {"enum": ["POST"]},
+        "path": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$"
+        },
+        "response_mode": {"enum": ["json", "sse"]},
+        "request_schema": {"$ref": "#/$defs/identifier"},
+        "response_schema": {"$ref": "#/$defs/identifier"},
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport",
+        "authorization",
+        "policy",
+        "schemas",
+        "endpoints"
+      ],
+      "properties": {
+        "transport": {"$ref": "#/$defs/transport"},
+        "authorization": {"$ref": "#/$defs/authorization"},
+        "policy": {"$ref": "#/$defs/policy"},
+        "schemas": {
+          "type": "object",
+          "minProperties": 2,
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"type": "object"}
+        },
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/endpoint"}
+        }
+      }
+    }
+  }
+}

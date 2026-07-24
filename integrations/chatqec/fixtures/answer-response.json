@@ -1,0 +1,31 @@
+{
+  "request_id": "req-0001",
+  "correlation_id": "corr-0001",
+  "conversation_id": "conversation-0001",
+  "answer": "The threshold theorem gives conditions under which encoded error correction can suppress logical errors as a computation grows.",
+  "citations": [
+    {
+      "id": "citation-1",
+      "title": "Fault-tolerant quantum computation",
+      "source_uri": "https://example.org/qec/threshold-theorem",
+      "source_revision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "locator": "Section 2"
+    }
+  ],
+  "confidence": 0.91,
+  "provider": "approved-site-endpoint",
+  "model": "deployment-selected-model",
+  "model_response_id": "model-response-0001",
+  "corpus_revision": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "usage": {
+    "input_tokens": 128,
+    "output_tokens": 42,
+    "total_tokens": 170
+  },
+  "latency_ms": {
+    "retrieval": 15.2,
+    "rerank": 8.4,
+    "generation": 240.1,
+    "total": 271.5
+  }
+}

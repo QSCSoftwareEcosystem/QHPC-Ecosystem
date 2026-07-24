@@ -146,6 +146,7 @@ def validate_scaffold_references(
     kind_map = {
         "Capability": "capability",
         "OperationInterface": "operation-interface",
+        "ServiceInterface": "service-interface",
     }
     for scaffold in scaffolds:
         spec = scaffold.document["spec"]
@@ -179,14 +180,14 @@ def validate_scaffold_references(
                         )
                         continue
                     validate_contract_data(contract_kind, document)
-                    if (
-                        contract_kind == "operation-interface"
-                        and document["metadata"]["component"] != component_id
-                    ):
+                    if contract_kind in {
+                        "operation-interface",
+                        "service-interface",
+                    } and document["metadata"]["component"] != component_id:
                         issues.append(
                             ContractIssue(
                                 issue_path,
-                                "operation interface component does not match its scaffold",
+                                "interface component does not match its scaffold",
                             )
                         )
                 except ContractError as error:

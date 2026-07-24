@@ -17,9 +17,9 @@ presence alone does not admit a component to this deployment.
 | LightStim | Operation provider | [Repository](https://github.com/QuTone/LightStim) | [Interface tested](../integrations/lightstim/integration.yaml) | Pre-runtime integration complete |
 | QASMTrans | Operation provider | [Repository](https://github.com/pnnl/qasmtrans) | [Published](../integrations/qasmtrans/integration.yaml) | Registry published |
 | OpenQEvo | Operation provider | [Repository](https://github.com/QSCSoftwareThrust/OpenQEvo) | [Published](../integrations/openqevo/integration.yaml) | Registry published |
-| OpenQSE | Integration standard | [GitHub organization](https://github.com/openQSE) | [Scaffolded](../integrations/openqse/integration.yaml) | Onboarding |
+| OpenQSE | Integration standard | [Specification repository](https://github.com/openQSE/openqse-spec) | [Published](../integrations/openqse/integration.yaml) | Registry published |
 | QAppsWiki | Knowledge resource | [Repository](https://github.com/QSCSoftwareThrust/QAppsWiki) | [Published](../integrations/qappswiki/integration.yaml) | Registry published |
-| ChatQEC | Assistant service | [GitHub repository](https://github.com/QSCSoftwareThrust/ChatQEC) | [Source and boundary defined](../integrations/chatqec/integration.yaml) | Service contract pending |
+| ChatQEC | Assistant service | [GitHub repository](https://github.com/QSCSoftwareThrust/ChatQEC) | [Contract tested](../integrations/chatqec/integration.yaml) | Pre-runtime service integration complete |
 
 `Registry published` means a versioned QHPC descriptor is present in the
 current example registry. It does not mean that a production Linux image, DOE
@@ -29,8 +29,9 @@ Every component now has an integration scaffold. For the eight repository-based
 components represented in the GitLab mirror inventory, the scaffold also records
 the expected mirror location and assigned reusable Apptainer developer
 environment. TN-Sim instead uses its public upstream branch directly, with its
-mirror status marked `not-applicable`. `Inventory-listed` does not claim that a
-mirror has been fetched or verified at its target revision.
+mirror status marked `not-applicable`; the selected public OpenQSE
+specification also requires no QSC mirror. `Inventory-listed` does not claim
+that a mirror has been fetched or verified at its target revision.
 
 ## Enforcement
 
@@ -43,35 +44,37 @@ through that service. Stored workflows are re-resolved against the active
 filtered registry when a run is submitted, preventing an older workflow record
 from bypassing a narrowed profile.
 
-The current registry has published records for STABSim, QASMTrans, OpenQEvo,
-and QAppsWiki. The remaining selected components appear in the profile but are
-not exposed as executable capabilities. TN-Sim, NWQEC, FTPrimitiveBench, and
-LightStim have exact-revision source audits, runtime-free operation interfaces,
+The current deployment registry has published records for STABSim, QASMTrans,
+OpenQEvo, OpenQSE, and QAppsWiki. OpenQSE and QAppsWiki expose resources only,
+with no operations or runtime. TN-Sim, NWQEC, FTPrimitiveBench, and LightStim
+have exact-revision source audits, runtime-free operation interfaces,
 controlled adapters, fixtures, and integration tests. The shared Stim artifact
 boundary was also exercised from FTPrimitiveBench into LightStim. TN-Sim's
 adapter fixes the documented CPU iTensor MPS path and parses its count format,
-but the external binary has not yet been built or source-executed. These records
-do not contain capability invocation or runtime details; component-specific
-production containers and target acceptance remain the next executable gate,
-followed by capability publication with immutable runtime digests.
+but the external binary has not yet been built or source-executed.
+
+ChatQEC has a pinned source, accepted service boundary, versioned HTTPS
+JSON/SSE interface, bounded transport-injected client adapter, and contract
+fixtures. It is not registry-published or deployable until a conforming server
+runtime and institutionally approved service dependencies are available. The
+initial pre-container integration scope is therefore closed; production
+container, target, and service acceptance remain the next gates.
 
 ## Open Decisions
 
 - Build TN-Sim's pinned CPU iTensor path reproducibly, execute source-backed
   correctness fixtures, and accept its immutable Linux runtime on the target.
-- Select the specific OpenQSE contracts or repositories QHPC will consume;
-  OpenQSE is an integration initiative, not one executable tool image.
-- Implement the accepted ChatQEC boundary in
-  [ADR 0008](adr/0008-chatqec-internal-service-boundary.md): select the concrete
-  institutionally accepted model, embedding, identity, data-egress, and
-  retention services, then define the versioned API contract.
+- Implement a ChatQEC server conforming to
+  [ADR 0008](adr/0008-chatqec-internal-service-boundary.md) and the versioned
+  service contract, then select and approve the concrete model, embedding,
+  workload identity, data-egress, retention, and corpus services.
 - Update NWQEC's deprecated `scikit-build-core` configuration or pin the
   compatible 0.10.x backend for its reproducible production build.
 - Build and accept component-specific Linux runtimes for every executable
   operation on each deployment target.
 
-Profile version `0.2.0` selects the GitHub ChatQEC working source and records
-the accepted internal service boundary. Further first-deployment scope or
-source changes require another reviewed version change to
+Profile version `0.3.0` resolves OpenQSE to the pinned `openqse-spec` resource
+and records the completed provider-neutral ChatQEC service contract. Further
+first-deployment scope or source changes require another reviewed version to
 `deployments/initial.yaml`; adding a repository to `ecosystem.yaml` is not
 sufficient.

@@ -31,6 +31,7 @@ VALID_EXAMPLES = {
     "integration-scaffold": ROOT / "integrations" / "nwqec" / "integration.yaml",
     "operation-interface": ROOT / "integrations" / "nwqec" / "interface.yaml",
     "run": VALID / "run.yaml",
+    "service-interface": ROOT / "integrations" / "chatqec" / "service.yaml",
     "workflow": VALID / "workflow.yaml",
 }
 
@@ -91,6 +92,19 @@ def test_operation_interface_rejects_default_with_wrong_parameter_type() -> None
 
     with pytest.raises(ContractError, match="does not match parameter type"):
         validate_contract_data("operation-interface", interface)
+
+
+def test_service_interface_rejects_unknown_or_invalid_nested_schemas() -> None:
+    interface = copy.deepcopy(load_document(VALID_EXAMPLES["service-interface"]))
+    interface["spec"]["endpoints"][0]["request_schema"] = "missing"
+    interface["spec"]["schemas"]["answer-response"] = {"type": "unknown"}
+
+    with pytest.raises(ContractError) as error:
+        validate_contract_data("service-interface", interface)
+
+    message = str(error.value)
+    assert "references unknown schema missing" in message
+    assert "is not a valid JSON Schema" in message
 
 
 def test_contract_cli_does_not_load_repository_catalog(monkeypatch, capsys) -> None:

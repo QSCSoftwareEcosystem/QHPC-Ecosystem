@@ -3,7 +3,7 @@ kind: IntegrationScaffold
 metadata:
   id: qappswiki
   name: QAppsWiki
-  version: 0.1.0
+  version: 0.2.0
   project: cross-project
   role: knowledge-resource
   owners: [qappswiki]
@@ -29,7 +29,7 @@ spec:
     interface_contract: complete
     adapter: not-applicable
     fixtures: not-applicable
-    integration_tests: pending
+    integration_tests: complete
     registry_publication: complete
   contract_refs: [capabilities/QAppsWiki/tooling/qhpc-capability.yaml]
   evidence: [docs/evidence/repository-audit-2026-07-11.md]

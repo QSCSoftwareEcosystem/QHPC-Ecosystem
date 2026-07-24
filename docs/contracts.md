@@ -75,6 +75,27 @@ runtime is built and accepted, and the interface is translated into a
 `Capability` that records immutable invocation and runtime identity. Project
 review is represented separately by the `project-reviewed` status.
 
+## Service Interfaces
+
+A `ServiceInterface` is the runtime-free contract for a separately deployed
+internal service. It pins the audited source, requires encrypted transport and
+workload identity, records the QHPC authorization action and policy invariants,
+and defines versioned request, response, and stream-event JSON Schemas.
+
+Each endpoint references a schema declared in the same contract. Semantic
+validation rejects invalid nested JSON Schemas, duplicate endpoint identities,
+duplicate method/path pairs, and unknown schema references. A service
+interface contains no provider credential, workload-identity secret, runtime
+image, or deployment endpoint. Those values remain target-owned deployment
+configuration.
+
+The initial ChatQEC contract terminates user authorization at QHPC, forbids
+forwarded browser credentials and direct tool execution, and exposes fixed
+JSON and SSE answer paths. Its transport-injected client adapter validates
+bounded conversation context, response correlation, corpus provenance, token
+accounting, citations, and stage latency without selecting an institutional
+identity mechanism.
+
 ## Versions
 
 Components, capabilities, operations, and workflows use semantic versions.
@@ -185,5 +206,6 @@ Validate YAML or JSON documents:
 qhpc-ecosystem contract validate capability capability.yaml
 qhpc-ecosystem contract validate integration-scaffold integrations/nwqec/integration.yaml
 qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
+qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
 qhpc-ecosystem contract validate workflow workflow.yaml
 ```

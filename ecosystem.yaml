@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_updated: "2026-07-22"
+catalog_updated: "2026-07-24"
 source_manifest: ../ProjectManagement/gitlab-mirror/repositories.tsv
 
 environments:
@@ -20,6 +20,20 @@ environments:
     description: Spack repository development and HPC package maintenance.
 
 repositories:
+  - slug: openqse-spec
+    display_name: OpenQSE Specification
+    source_url: https://github.com/openQSE/openqse-spec
+    notes: Initial OpenQSE integration selects the pinned glossary and architecture specification as non-executable documentation resources.
+    qsc_project: cross-project
+    package_role: other
+    capabilities: [schema, qhpc]
+    hardware_targets: [local-cpu]
+    interfaces: [markdown-source]
+    environment: schema-docs
+    container_status: ready
+    visibility: public
+    canonical_status: canonical
+
   - slug: OpenQEvo
     display_name: OpenQEvo
     source_url: https://github.com/QSCSoftwareThrust/OpenQEvo

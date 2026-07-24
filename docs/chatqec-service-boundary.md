@@ -5,6 +5,8 @@
 - Working source: [QSCSoftwareThrust/ChatQEC](https://github.com/QSCSoftwareThrust/ChatQEC)
 - Pinned revision: `4c017510511f835001bfe5901a9d59e86cc130cd`
 - Formal decision: [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
+- Service contract: [`integrations/chatqec/service.yaml`](../integrations/chatqec/service.yaml)
+- Client adapter: [`service_adapters.py`](../src/qhpc_ecosystem/service_adapters.py)
 - Source evidence:
   [initial component source audit](evidence/initial-component-source-audit-2026-07-22.md#chatqec)
 
@@ -19,6 +21,12 @@ workflows or execute scientific tools directly.
 This boundary keeps user identity, authorization, workflow execution, and
 durable provenance under QHPC control while allowing the ChatQEC project to
 evolve and deploy independently.
+
+The provider-neutral v1 HTTPS JSON/SSE contract, bounded request builder,
+response validator, SSE parser, fixtures, and integration tests are now
+implemented in QHPC. The adapter requires a deployment-supplied transport that
+applies the approved workload identity; it does not select or carry a provider
+credential. No conforming ChatQEC server or production runtime is claimed yet.
 
 ## Topology
 
@@ -111,7 +119,8 @@ and institutional acceptance for:
 - the allowed information class and egress routes;
 - secrets storage, Qdrant placement, and corpus release storage;
 - retention periods, quotas, budget, and service-level objectives; and
-- the internal JSON and SSE service implementation and its security tests.
+- a server implementation of the versioned JSON/SSE contract and its
+  authorization, isolation, cancellation, timeout, and provider-failure tests.
 
 These inputs configure the accepted boundary; they do not change the boundary
 itself unless a later ADR supersedes [ADR 0008](adr/0008-chatqec-internal-service-boundary.md).

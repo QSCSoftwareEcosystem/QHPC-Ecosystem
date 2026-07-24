@@ -169,3 +169,9 @@ accepted internal boundary. The shorter
 future-facing summary. This was a source and architecture audit only; project
 dependencies, model calls, corpus queries, and the upstream test suite were not
 executed.
+
+The follow-on QHPC integration defines and tests the provider-neutral service
+interface in `integrations/chatqec/service.yaml` and the controlled client
+boundary in `src/qhpc_ecosystem/service_adapters.py`. This does not change the
+source-audit result or claim that the upstream repository implements the HTTP
+server.

@@ -3,35 +3,38 @@ kind: IntegrationScaffold
 metadata:
   id: openqse
   name: OpenQSE
-  version: 0.1.0
+  version: 0.2.0
   project: cross-project
   role: integration-standard
   owners: [openqse]
   visibility: public
-  integration_status: scaffolded
+  integration_status: published
 spec:
   source:
-    kind: organization
-    url: https://github.com/openQSE
+    kind: repository
+    url: https://github.com/openQSE/openqse-spec
+    catalog_repository: openqse-spec
   mirror:
-    status: selection-required
-  development_environment:
     status: not-applicable
-  interfaces: []
+  development_environment:
+    status: assigned
+    class: schema-docs
+  interfaces: [markdown-source]
   scope:
-    status: blocked
-    summary: Select the concrete OpenQSE contracts or repositories that QHPC will consume.
+    status: defined
+    summary: Publish the pinned OpenQSE glossary and architecture specification as non-executable ecosystem documentation resources.
   deliverables:
-    source_audit: blocked
-    interface_contract: blocked
+    source_audit: complete
+    interface_contract: complete
     adapter: not-applicable
-    fixtures: pending
-    integration_tests: pending
-    registry_publication: pending
-  contract_refs: []
-  evidence: []
+    fixtures: not-applicable
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs:
+    - capabilities/openqse-spec/specification/qhpc-capability.yaml
+  evidence:
+    - docs/evidence/openqse-source-audit-2026-07-24.md
   production_runtime:
     status: not-applicable
-    reason: OpenQSE is an integration standard; runtime decisions belong to each selected implementation.
-  blockers:
-    - Select concrete OpenQSE contracts or repositories instead of treating the organization as one executable tool.
+    reason: The selected OpenQSE specification is a documentation resource and exposes no executable operation.
+  blockers: []

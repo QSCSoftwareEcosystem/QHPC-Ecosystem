@@ -1,0 +1,38 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: openqse-specification
+  name: OpenQSE Glossary and Architecture Specification
+  version: 0.1.0
+  project: cross-project
+  owners: [openqse]
+  repository:
+    url: https://github.com/openQSE/openqse-spec
+    revision: c172c716e6566bd0a7502b34896dce7467f5a474
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: contract-valid
+    evidence: [docs/evidence/openqse-source-audit-2026-07-24.md]
+  visibility: public
+  maturity: alpha
+spec:
+  component:
+    description: Versioned OpenQSE terminology, architecture definitions, requirements, and sequence documentation.
+    license: CC-BY-4.0
+  resources:
+    - id: openqse-glossary
+      kind: documentation
+      version: 0.1.0
+      uri: https://github.com/openQSE/openqse-spec/tree/c172c716e6566bd0a7502b34896dce7467f5a474/specification/term
+      description: Shared terminology for quantum and classical integration.
+    - id: openqse-architecture
+      kind: documentation
+      version: 0.1.0
+      uri: https://github.com/openQSE/openqse-spec/tree/c172c716e6566bd0a7502b34896dce7467f5a474/architecture
+      description: Architecture requirements, high-level design, locality, interconnect, and timing definitions.
+  documentation:
+    qappswiki: docs/qsc-integration.md
+    url: https://github.com/openQSE/openqse-spec/blob/c172c716e6566bd0a7502b34896dce7467f5a474/README.md

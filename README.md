@@ -16,22 +16,29 @@ The first deployment uses the explicit allowlist in
 [deployments/initial.yaml](deployments/initial.yaml): STABSim, TN-Sim, NWQEC,
 FTPrimitiveBench, LightStim, QASMTrans, OpenQEvo, OpenQSE, QAppsWiki, and
 ChatQEC. See [docs/initial-deployment.md](docs/initial-deployment.md) for roles,
-onboarding state, and unresolved source or service decisions. The larger
-catalog remains available for future onboarding but is not deployment scope.
-Each selected component has a validated record under [integrations/](integrations/)
-so source review, interface contracts, adapters, fixtures, and integration tests
-can proceed before production container work begins.
+onboarding state, and production gates. The larger catalog remains available
+for future onboarding but is not deployment scope. Each selected component has
+a validated record under [integrations/](integrations/), and the initial
+pre-container source, contract, adapter, fixture, and integration-test scope is
+closed.
 
 TN-Sim's pinned public `tn_sim` branch now has a runtime-free CPU MPS operation
 contract and fixture-tested controlled CLI adapter. Its iTensor binary has not
 yet been built or accepted as a production runtime.
+
+OpenQSE is resolved to the pinned `openQSE/openqse-spec` glossary and
+architecture repository and is published only as non-executable documentation
+resources.
 
 ChatQEC uses the accepted internal-service design summarized in
 [docs/chatqec-service-boundary.md](docs/chatqec-service-boundary.md), with the
 formal decision in
 [ADR 0008](docs/adr/0008-chatqec-internal-service-boundary.md). The ecosystem
 works from the `QSCSoftwareThrust/ChatQEC` GitHub repository; GitLab copies are
-secondary mirrors.
+secondary mirrors. A versioned provider-neutral HTTPS JSON/SSE contract,
+bounded client adapter, fixtures, and tests are implemented. The ChatQEC server
+runtime and concrete DOE-approved model, identity, egress, and retention
+services remain deployment work.
 
 The responsibilities are intentionally separate:
 
@@ -73,15 +80,17 @@ qhpc-ecosystem sync-manifest --check
 qhpc-ecosystem contract list
 qhpc-ecosystem contract validate capability examples/contracts/valid/capability.yaml
 qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
+qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
 qhpc-ecosystem integration validate deployments/initial.yaml
 qhpc-ecosystem integration list deployments/initial.yaml
 ```
 
-Integration scaffolds and operation interfaces deliberately contain no
-executable command or runtime digest. They are the pre-runtime onboarding
-layer. After a component's source, contract, adapter, fixtures, and tests
-stabilize, its tool-specific production image is built and accepted. The
-executable capability is then published with that immutable runtime digest.
+Integration scaffolds and runtime-free operation or service interfaces
+deliberately contain no executable command or runtime digest. They are the
+pre-runtime onboarding layer. After an executable component's source,
+contract, adapter, fixtures, and tests stabilize, its tool-specific production
+image is built and accepted. The executable capability is then published with
+that immutable runtime digest.
 
 Project release checkouts that contain `qhpc-capability.yaml` can be aggregated
 into a deterministic federated registry:

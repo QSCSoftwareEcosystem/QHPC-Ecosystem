@@ -133,6 +133,19 @@ Before this decision can become an executable service contract:
 - add contract, authorization, isolation, cancellation, timeout, and provider
   failure tests.
 
+## Implementation Status
+
+QHPC now carries the provider-neutral v1 service contract, bounded request and
+response adapter, SSE parser, representative fixtures, and client-side
+contract tests. The adapter deliberately requires a deployment-configured
+transport so it cannot select a workload credential or model provider.
+
+The ChatQEC server changes listed above are not implemented by this repository.
+They remain required before the service runtime can be built or accepted. The
+machine-readable contract closes the ecosystem's pre-container interface
+boundary; it does not approve a provider, corpus, identity mechanism, or
+production deployment.
+
 ## Accepted Baseline
 
 The following restrictive choices are the accepted QHPC design baseline. The

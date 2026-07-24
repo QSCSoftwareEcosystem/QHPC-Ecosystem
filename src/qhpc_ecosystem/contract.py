@@ -25,6 +25,7 @@ CONTRACT_SCHEMAS = {
     "operation-interface": "operation-interface-v1.schema.json",
     "registry": "registry-v1.schema.json",
     "run": "run-v1.schema.json",
+    "service-interface": "service-interface-v1.schema.json",
     "workflow": "workflow-v1.schema.json",
 }
 
@@ -607,6 +608,62 @@ def _validate_operation_interface(document: dict[str, Any]) -> list[ContractIssu
     return issues
 
 
+def _validate_service_interface(document: dict[str, Any]) -> list[ContractIssue]:
+    issues: list[ContractIssue] = []
+    metadata = document["metadata"]
+    if metadata["status"] in {"contract-valid", "project-reviewed"} and not metadata[
+        "evidence"
+    ]:
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required for a contract-valid or project-reviewed interface",
+            )
+        )
+
+    schemas = document["spec"]["schemas"]
+    for name, schema in schemas.items():
+        try:
+            Draft202012Validator.check_schema(schema)
+        except SchemaError as error:
+            issues.append(
+                ContractIssue(
+                    f"/spec/schemas/{name}",
+                    f"is not a valid JSON Schema: {error.message}",
+                )
+            )
+
+    endpoints = document["spec"]["endpoints"]
+    issues.extend(
+        _duplicate_issues(
+            (endpoint["id"] for endpoint in endpoints),
+            "/spec/endpoints",
+            "endpoint IDs",
+        )
+    )
+    issues.extend(
+        _duplicate_issues(
+            (
+                f"{endpoint['method']} {endpoint['path']}"
+                for endpoint in endpoints
+            ),
+            "/spec/endpoints",
+            "endpoint method and path pairs",
+        )
+    )
+    for index, endpoint in enumerate(endpoints):
+        for field in ("request_schema", "response_schema"):
+            reference = endpoint[field]
+            if reference not in schemas:
+                issues.append(
+                    ContractIssue(
+                        f"/spec/endpoints/{index}/{field}",
+                        f"references unknown schema {reference}",
+                    )
+                )
+    return issues
+
+
 def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]:
     if kind == "capability":
         return _validate_capability(document)
@@ -616,6 +673,8 @@ def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]
         return _validate_integration_scaffold(document)
     if kind == "operation-interface":
         return _validate_operation_interface(document)
+    if kind == "service-interface":
+        return _validate_service_interface(document)
     if kind == "workflow":
         return _validate_workflow(document)
     if kind == "run":

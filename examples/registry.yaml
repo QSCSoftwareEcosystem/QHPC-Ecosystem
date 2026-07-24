@@ -1,8 +1,8 @@
 api_version: qhpc/v1
 kind: Registry
 metadata:
-  entry_count: 7
-  catalog_digest: sha256:242764768388d1bf1fe658e3edb156323a2152fd3c252ed9794ffa9b73d81e69
+  entry_count: 8
+  catalog_digest: sha256:d2b17173e0d16761d0ef5c6b7bd1f53271d1af26e6eb434b4057d5b9a2f0630d
 spec:
   entries:
   - descriptor_digest: sha256:b94db71f5f6c790216ef7f0a3993ba8f711eaf0f4776bfed3c085dbbd9b56928
@@ -82,8 +82,8 @@ spec:
         documentation:
           qappswiki: packages/openqevo.md
           url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md
-  - descriptor_digest: sha256:a21b6187fe89b93af8568e542af01fd6ff7ed837028bd06dbb25fe4ca597a801
-    catalog_repository: QAppsWiki
+  - descriptor_digest: sha256:f4e7b15949e6628e6ae883a213c95a32947ae994b2ce440676362c035e51cd2d
+    catalog_repository: openqse-spec
     validation:
       contract: valid
       attribution: valid
@@ -95,6 +95,62 @@ spec:
       documentation: linked
       status: contract-valid
       evidence: &id004
+      - docs/evidence/openqse-source-audit-2026-07-24.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: openqse-specification
+        name: OpenQSE Glossary and Architecture Specification
+        version: 0.1.0
+        project: cross-project
+        owners:
+        - openqse
+        repository:
+          url: https://github.com/openQSE/openqse-spec
+          revision: c172c716e6566bd0a7502b34896dce7467f5a474
+        integration:
+          authority: ecosystem
+          maintainers: *id003
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: contract-valid
+          evidence: *id004
+        visibility: public
+        maturity: alpha
+      spec:
+        component:
+          description: Versioned OpenQSE terminology, architecture definitions, requirements, and sequence
+            documentation.
+          license: CC-BY-4.0
+        resources:
+        - id: openqse-glossary
+          kind: documentation
+          version: 0.1.0
+          uri: https://github.com/openQSE/openqse-spec/tree/c172c716e6566bd0a7502b34896dce7467f5a474/specification/term
+          description: Shared terminology for quantum and classical integration.
+        - id: openqse-architecture
+          kind: documentation
+          version: 0.1.0
+          uri: https://github.com/openQSE/openqse-spec/tree/c172c716e6566bd0a7502b34896dce7467f5a474/architecture
+          description: Architecture requirements, high-level design, locality, interconnect, and timing
+            definitions.
+        documentation:
+          qappswiki: docs/qsc-integration.md
+          url: https://github.com/openQSE/openqse-spec/blob/c172c716e6566bd0a7502b34896dce7467f5a474/README.md
+  - descriptor_digest: sha256:a21b6187fe89b93af8568e542af01fd6ff7ed837028bd06dbb25fe4ca597a801
+    catalog_repository: QAppsWiki
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id005
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: contract-valid
+      evidence: &id006
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -111,11 +167,11 @@ spec:
           revision: d5f0248945516a4198f92edd9764a2fe5b676549
         integration:
           authority: ecosystem
-          maintainers: *id003
+          maintainers: *id005
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id004
+          evidence: *id006
         visibility: public
         maturity: alpha
       spec:
@@ -140,13 +196,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id005
+      curated_by: &id007
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id006
+      evidence: &id008
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -163,11 +219,11 @@ spec:
           revision: 1843c98fa4bac9cf6b88412145b69457e9176124
         integration:
           authority: ecosystem
-          maintainers: *id005
+          maintainers: *id007
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id006
+          evidence: *id008
         visibility: public
         maturity: alpha
       spec:
@@ -228,13 +284,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id007
+      curated_by: &id009
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: discovered
-      evidence: &id008
+      evidence: &id010
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -251,11 +307,11 @@ spec:
           revision: 704c1800614b37f0909cc8e5e15438b1be06b983
         integration:
           authority: ecosystem
-          maintainers: *id007
+          maintainers: *id009
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: discovered
-          evidence: *id008
+          evidence: *id010
         visibility: public
         maturity: prototype
       spec:
@@ -275,13 +331,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id009
+      curated_by: &id011
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id010
+      evidence: &id012
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -298,11 +354,11 @@ spec:
           revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
         integration:
           authority: ecosystem
-          maintainers: *id009
+          maintainers: *id011
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id010
+          evidence: *id012
         visibility: public
         maturity: prototype
       spec:
@@ -322,13 +378,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id011
+      curated_by: &id013
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id012
+      evidence: &id014
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -345,11 +401,11 @@ spec:
           revision: e7568760747752e29397f4fcc800bd475c6011a1
         integration:
           authority: ecosystem
-          maintainers: *id011
+          maintainers: *id013
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id012
+          evidence: *id014
         visibility: public
         maturity: prototype
       spec:
@@ -369,13 +425,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id013
+      curated_by: &id015
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id014
+      evidence: &id016
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -392,11 +448,11 @@ spec:
           revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
         integration:
           authority: ecosystem
-          maintainers: *id013
+          maintainers: *id015
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id014
+          evidence: *id016
         visibility: public
         maturity: prototype
       spec:

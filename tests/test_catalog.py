@@ -20,13 +20,20 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
     catalog_slugs = {repository.slug for repository in catalog.repositories}
 
     assert manifest_slugs <= catalog_slugs
-    assert catalog_slugs - manifest_slugs == {"HeteQSys", "NWQ-Sim"}
+    assert catalog_slugs - manifest_slugs == {
+        "HeteQSys",
+        "NWQ-Sim",
+        "openqse-spec",
+    }
     assert catalog.repository("HeteQSys").container_status == "blocked"
     assert catalog.repository("NWQ-Sim").source_url == (
         "https://github.com/pnnl/NWQ-Sim/tree/tn_sim"
     )
     assert catalog.repository("chatqec").source_url == (
         "https://github.com/QSCSoftwareThrust/ChatQEC"
+    )
+    assert catalog.repository("openqse-spec").source_url == (
+        "https://github.com/openQSE/openqse-spec"
     )
     assert catalog.repository("ftqc").canonical_status == "ambiguous"
     assert len(catalog.environments) == 5

@@ -20,13 +20,17 @@ The first-deployment component boundary is the versioned allowlist in
 deployment admission. The service filters its registry through this profile
 before discovery and workflow resolution.
 
-In addition to the general production boundaries below, the initial scope has
-two unresolved service or resource decisions. OpenQSE needs a selected set of
-concrete contracts or repositories because the organization is not one
-executable tool. ChatQEC's boundary is accepted, but its concrete institutional
-model, identity, egress, retention, and service API implementations still need
-selection and acceptance. Its GitHub working source is authenticated and
-audited at an exact revision.
+The initial pre-container integration gate is closed. OpenQSE is resolved to a
+pinned `openqse-spec` revision and published only as glossary and architecture
+resources. QAppsWiki's resource contract is integration-tested. ChatQEC's
+GitHub working source is authenticated and audited at an exact revision, and
+its provider-neutral HTTPS JSON/SSE contract, bounded client adapter, fixtures,
+and tests are complete.
+
+This does not make ChatQEC deployable. A conforming server implementation and
+the concrete institutional model, embedding, identity, egress, retention,
+corpus, secrets, and telemetry services still require implementation,
+selection, security testing, and acceptance.
 
 TN-Sim's exact public revision, CPU iTensor MPS operation contract, controlled
 CLI adapter, and representative fixtures are now defined. Its external binary

@@ -32,7 +32,7 @@ def test_initial_profile_has_an_aligned_scaffold_for_every_component() -> None:
         scaffold.component_id
         for scaffold in scaffolds
         if scaffold.document["metadata"]["integration_status"] == "published"
-    } == {"stabsim", "qasmtrans", "openqevo", "qappswiki"}
+    } == {"stabsim", "qasmtrans", "openqevo", "openqse", "qappswiki"}
 
 
 def test_initial_scaffolds_defer_production_containerization() -> None:
@@ -67,7 +67,7 @@ def test_pre_runtime_components_have_pinned_interface_contracts() -> None:
         assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
 
 
-def test_chatqec_source_and_service_scope_are_recorded_before_contract_work() -> None:
+def test_chatqec_source_and_service_contract_are_complete_before_runtime() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
 
     scaffold = find_integration_scaffold(scaffolds, "chatqec").document
@@ -80,9 +80,49 @@ def test_chatqec_source_and_service_scope_are_recorded_before_contract_work() ->
     )
     assert scaffold["spec"]["scope"]["status"] == "defined"
     assert scaffold["spec"]["deliverables"]["source_audit"] == "complete"
-    assert scaffold["spec"]["deliverables"]["interface_contract"] == "blocked"
-    assert scaffold["spec"]["deliverables"]["adapter"] == "pending"
-    assert scaffold["spec"]["contract_refs"] == []
+    assert scaffold["spec"]["deliverables"]["interface_contract"] == "complete"
+    assert scaffold["spec"]["deliverables"]["adapter"] == "complete"
+    assert scaffold["spec"]["deliverables"]["fixtures"] == "complete"
+    assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
+    assert scaffold["spec"]["deliverables"]["registry_publication"] == "pending"
+    assert scaffold["spec"]["contract_refs"] == [
+        "integrations/chatqec/service.yaml"
+    ]
+
+
+def test_initial_pre_container_integration_scope_is_closed() -> None:
+    _, scaffolds = load_integration_scaffolds(PROFILE)
+
+    for scaffold_record in scaffolds:
+        scaffold = scaffold_record.document
+        deliverables = scaffold["spec"]["deliverables"]
+        assert scaffold["spec"]["scope"]["status"] == "defined"
+        assert deliverables["source_audit"] == "complete"
+        assert deliverables["interface_contract"] == "complete"
+        assert deliverables["adapter"] in {"complete", "not-applicable"}
+        assert deliverables["fixtures"] in {"complete", "not-applicable"}
+        assert deliverables["integration_tests"] == "complete"
+
+
+def test_openqse_and_qappswiki_publish_only_pinned_resources() -> None:
+    _, scaffolds = load_integration_scaffolds(PROFILE)
+
+    for component_id in ("openqse", "qappswiki"):
+        scaffold = find_integration_scaffold(scaffolds, component_id).document
+        capability_path = ROOT / scaffold["spec"]["contract_refs"][0]
+        capability = validate_contract("capability", capability_path)
+        revision = capability["metadata"]["repository"]["revision"]
+
+        assert scaffold["metadata"]["integration_status"] == "published"
+        assert scaffold["spec"]["deliverables"]["adapter"] == "not-applicable"
+        assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
+        assert scaffold["spec"]["production_runtime"]["status"] == "not-applicable"
+        assert not capability["spec"].get("operations")
+        assert capability["spec"]["resources"]
+        assert all(
+            revision in resource["uri"]
+            for resource in capability["spec"]["resources"]
+        )
 
 
 def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
@@ -159,7 +199,7 @@ def test_find_integration_scaffold_rejects_unknown_component() -> None:
 
 def test_integration_cli_validates_lists_and_inspects(capsys) -> None:
     assert cli.main(["integration", "validate", str(PROFILE)]) == 0
-    assert "Integration scaffolds valid: initial@0.2.0 (10 components)" in (
+    assert "Integration scaffolds valid: initial@0.3.0 (10 components)" in (
         capsys.readouterr().out
     )
 
