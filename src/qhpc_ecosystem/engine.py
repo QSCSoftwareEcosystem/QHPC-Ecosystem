@@ -6,7 +6,7 @@ import json
 import re
 import sqlite3
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
@@ -19,6 +19,7 @@ from .workflow import resolve_workflow, topological_nodes
 
 TERMINAL_STATES = {"succeeded", "failed", "canceled"}
 ARTIFACT_TYPE = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*@[1-9][0-9]*$")
+DATABASE_SCHEMA_VERSION = 3
 
 
 def _now() -> str:
@@ -61,12 +62,35 @@ class TaskRequest:
     inputs: dict[str, dict[str, Any]]
     output_types: dict[str, str]
     work_directory: Path
+    project: str = ""
+    attempt_id: str = ""
+    execution_target: str = ""
+    execution_class: str = ""
+    runtime_type: str = ""
+    entrypoint: tuple[str, ...] = ()
+    arguments: tuple[str, ...] = ()
+    resources: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TaskLease:
+    run_id: str
+    node_id: str
+    attempt_id: str
+    attempt_number: int
+    token: str
+    worker_id: str
+    expires_at: str
+    state: str
+    target_handle: str | None = None
+    recovered: bool = False
 
 
 @dataclass(frozen=True)
 class TaskResult:
     outputs: dict[str, ArtifactResult]
     log: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class Runner(Protocol):
@@ -123,6 +147,10 @@ class WorkflowEngine:
             connection.executescript(
                 """
                 PRAGMA journal_mode = WAL;
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS workflow_versions (
                     workflow_id TEXT NOT NULL,
                     version TEXT NOT NULL,
@@ -172,14 +200,16 @@ class WorkflowEngine:
                     id TEXT PRIMARY KEY,
                     run_id TEXT NOT NULL,
                     task_id TEXT,
+                    attempt_id TEXT,
                     port TEXT NOT NULL,
                     artifact_type TEXT NOT NULL,
                     uri TEXT NOT NULL,
                     checksum TEXT NOT NULL,
                     size_bytes INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
-                    UNIQUE (run_id, task_id, port, checksum),
-                    FOREIGN KEY (run_id) REFERENCES runs(id)
+                    UNIQUE (attempt_id, port),
+                    FOREIGN KEY (run_id) REFERENCES runs(id),
+                    FOREIGN KEY (attempt_id) REFERENCES task_attempts(id)
                 );
                 CREATE TABLE IF NOT EXISTS input_artifacts (
                     id TEXT PRIMARY KEY,
@@ -192,10 +222,173 @@ class WorkflowEngine:
                     name TEXT NOT NULL,
                     labels TEXT NOT NULL DEFAULT '{}'
                 );
+                CREATE TABLE IF NOT EXISTS workers (
+                    id TEXT PRIMARY KEY,
+                    kind TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    last_heartbeat_at TEXT NOT NULL,
+                    metadata TEXT NOT NULL DEFAULT '{}'
+                );
+                CREATE TABLE IF NOT EXISTS task_attempts (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    node_id TEXT NOT NULL,
+                    number INTEGER NOT NULL,
+                    state TEXT NOT NULL,
+                    worker_id TEXT,
+                    lease_token TEXT,
+                    lease_expires_at TEXT,
+                    target_handle TEXT,
+                    target_state TEXT,
+                    target_metadata TEXT NOT NULL DEFAULT '{}',
+                    started_at TEXT NOT NULL,
+                    submitted_at TEXT,
+                    finished_at TEXT,
+                    error TEXT,
+                    outputs TEXT NOT NULL DEFAULT '{}',
+                    log TEXT NOT NULL DEFAULT '',
+                    UNIQUE (run_id, node_id, number),
+                    FOREIGN KEY (run_id, node_id)
+                      REFERENCES tasks(run_id, node_id),
+                    FOREIGN KEY (worker_id) REFERENCES workers(id)
+                );
+                CREATE TABLE IF NOT EXISTS execution_events (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id TEXT NOT NULL UNIQUE,
+                    run_id TEXT NOT NULL,
+                    node_id TEXT NOT NULL,
+                    attempt_id TEXT,
+                    correlation_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    execution_class TEXT,
+                    target_handle TEXT,
+                    stage TEXT,
+                    state TEXT,
+                    occurred_at TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    duration_ms INTEGER,
+                    details TEXT NOT NULL DEFAULT '{}',
+                    FOREIGN KEY (run_id, node_id)
+                      REFERENCES tasks(run_id, node_id),
+                    FOREIGN KEY (attempt_id) REFERENCES task_attempts(id)
+                );
                 CREATE INDEX IF NOT EXISTS task_state_index
                   ON tasks(state, run_id, sequence);
+                CREATE INDEX IF NOT EXISTS attempt_reconcile_index
+                  ON task_attempts(state, lease_expires_at, run_id, node_id);
+                CREATE INDEX IF NOT EXISTS execution_event_run_index
+                  ON execution_events(run_id, sequence);
                 """
             )
+            self._migrate(connection)
+
+    @staticmethod
+    def _migrate(connection: sqlite3.Connection) -> None:
+        artifact_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(artifacts)").fetchall()
+        }
+        if "attempt_id" not in artifact_columns:
+            connection.execute("ALTER TABLE artifacts ADD COLUMN attempt_id TEXT")
+        artifact_unique_indexes = [
+            row["name"]
+            for row in connection.execute("PRAGMA index_list(artifacts)").fetchall()
+            if row["origin"] == "u"
+        ]
+        has_legacy_artifact_identity = any(
+            [
+                column["name"]
+                for column in connection.execute(
+                    f"PRAGMA index_info({index_name})"
+                ).fetchall()
+            ]
+            == ["run_id", "task_id", "port", "checksum"]
+            for index_name in artifact_unique_indexes
+        )
+        if has_legacy_artifact_identity:
+            connection.executescript(
+                """
+                CREATE TABLE artifacts_v3 (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    task_id TEXT,
+                    attempt_id TEXT,
+                    port TEXT NOT NULL,
+                    artifact_type TEXT NOT NULL,
+                    uri TEXT NOT NULL,
+                    checksum TEXT NOT NULL,
+                    size_bytes INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE (attempt_id, port),
+                    FOREIGN KEY (run_id) REFERENCES runs(id),
+                    FOREIGN KEY (attempt_id) REFERENCES task_attempts(id)
+                );
+                INSERT INTO artifacts_v3
+                  (id, run_id, task_id, attempt_id, port, artifact_type, uri,
+                   checksum, size_bytes, created_at)
+                SELECT id, run_id, task_id, attempt_id, port, artifact_type,
+                       uri, checksum, size_bytes, created_at
+                FROM artifacts;
+                DROP TABLE artifacts;
+                ALTER TABLE artifacts_v3 RENAME TO artifacts;
+                """
+            )
+        attempt_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(task_attempts)").fetchall()
+        }
+        if "outputs" not in attempt_columns:
+            connection.execute(
+                "ALTER TABLE task_attempts "
+                "ADD COLUMN outputs TEXT NOT NULL DEFAULT '{}'"
+            )
+        event_columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(execution_events)"
+            ).fetchall()
+        }
+        additions = {
+            "correlation_id": "TEXT NOT NULL DEFAULT ''",
+            "source": "TEXT NOT NULL DEFAULT 'workflow-engine'",
+            "execution_class": "TEXT",
+            "target_handle": "TEXT",
+            "recorded_at": "TEXT NOT NULL DEFAULT ''",
+        }
+        for name, declaration in additions.items():
+            if name not in event_columns:
+                connection.execute(
+                    f"ALTER TABLE execution_events ADD COLUMN {name} {declaration}"
+                )
+        connection.execute(
+            """
+            UPDATE execution_events
+            SET correlation_id=CASE
+                  WHEN correlation_id='' THEN COALESCE(attempt_id, run_id)
+                  ELSE correlation_id
+                END,
+                recorded_at=CASE
+                  WHEN recorded_at='' THEN occurred_at
+                  ELSE recorded_at
+                END
+            """
+        )
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO schema_migrations(version, applied_at)
+            VALUES (?, ?)
+            """,
+            (DATABASE_SCHEMA_VERSION, _now()),
+        )
+
+    def schema_version(self) -> int:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT MAX(version) AS version FROM schema_migrations"
+            ).fetchone()
+        return int(row["version"] or 0)
 
     def register_input_artifact(
         self,
@@ -372,6 +565,7 @@ class WorkflowEngine:
         registry: dict[str, Any] | None = None,
         inputs: dict[str, str],
         execution_target: str,
+        execution_class: str | None = None,
         created_by: str,
     ) -> dict[str, Any]:
         with self._connect() as connection:
@@ -426,6 +620,11 @@ class WorkflowEngine:
             )
             resolution = json.loads(workflow_row["resolution"])
             nodes = {node["id"]: node for node in definition["spec"]["nodes"]}
+            default_execution_class = execution_class or (
+                "interactive-local"
+                if execution_target == "local-development"
+                else "batch-hpc"
+            )
             for sequence, node_id in enumerate(topological_nodes(definition)):
                 item = resolution[node_id]
                 operation = item["operation"]
@@ -452,6 +651,10 @@ class WorkflowEngine:
                                 "project": item["project"],
                                 "definition": operation,
                                 "parameters": nodes[node_id]["parameters"],
+                                "execution_target": target,
+                                "execution_class": nodes[node_id].get(
+                                    "execution_class", default_execution_class
+                                ),
                             }
                         ),
                         operation["runtime"]["digest"],
@@ -476,10 +679,35 @@ class WorkflowEngine:
             tasks = connection.execute(
                 "SELECT * FROM tasks WHERE run_id=? ORDER BY sequence", (run_id,)
             ).fetchall()
+            attempts = connection.execute(
+                """
+                SELECT * FROM task_attempts
+                WHERE run_id=?
+                ORDER BY node_id, number
+                """,
+                (run_id,),
+            ).fetchall()
+            events = connection.execute(
+                """
+                SELECT * FROM execution_events
+                WHERE run_id=?
+                ORDER BY sequence
+                """,
+                (run_id,),
+            ).fetchall()
         result = dict(run)
         result["inputs"] = json.loads(result["inputs"])
         result["outputs"] = json.loads(result["outputs"])
-        result["tasks"] = [self._task_row(task) for task in tasks]
+        attempts_by_node: dict[str, list[dict[str, Any]]] = {}
+        for attempt in attempts:
+            decoded = self._attempt_row(attempt)
+            attempts_by_node.setdefault(decoded["node_id"], []).append(decoded)
+        result["tasks"] = []
+        for task in tasks:
+            decoded = self._task_row(task)
+            decoded["attempts"] = attempts_by_node.get(decoded["node_id"], [])
+            result["tasks"].append(decoded)
+        result["events"] = [self._event_row(event) for event in events]
         return result
 
     @staticmethod
@@ -490,17 +718,251 @@ class WorkflowEngine:
         result["error"] = json.loads(result["error"]) if result["error"] else None
         return result
 
-    def _reset_expired_leases(self, connection: sqlite3.Connection) -> None:
-        now = _now()
+    @staticmethod
+    def _attempt_row(row: sqlite3.Row) -> dict[str, Any]:
+        result = dict(row)
+        result["target_metadata"] = json.loads(result["target_metadata"])
+        result["outputs"] = json.loads(result["outputs"])
+        result["error"] = json.loads(result["error"]) if result["error"] else None
+        return result
+
+    @staticmethod
+    def _event_row(row: sqlite3.Row) -> dict[str, Any]:
+        result = dict(row)
+        result["details"] = json.loads(result["details"])
+        return result
+
+    @staticmethod
+    def _append_event(
+        connection: sqlite3.Connection,
+        *,
+        run_id: str,
+        node_id: str,
+        attempt_id: str | None,
+        event_type: str,
+        stage: str | None = None,
+        state: str | None = None,
+        duration_ms: int | None = None,
+        details: dict[str, Any] | None = None,
+        source: str = "workflow-engine",
+        occurred_at: str | None = None,
+    ) -> None:
+        if duration_ms is not None and duration_ms < 0:
+            raise ValueError("event duration cannot be negative")
+        task = connection.execute(
+            "SELECT operation FROM tasks WHERE run_id=? AND node_id=?",
+            (run_id, node_id),
+        ).fetchone()
+        operation = json.loads(task["operation"]) if task else {}
+        target_handle = None
+        if attempt_id:
+            attempt = connection.execute(
+                "SELECT target_handle FROM task_attempts WHERE id=?",
+                (attempt_id,),
+            ).fetchone()
+            target_handle = attempt["target_handle"] if attempt else None
+        recorded_at = _now()
         connection.execute(
             """
-            UPDATE tasks SET state='pending', lease_token=NULL, lease_expires_at=NULL,
-              error=json_object('code','lease-expired','message','task lease expired',
-                                'retryable',json('true'))
-            WHERE state='running' AND lease_expires_at < ?
+            INSERT INTO execution_events
+              (id, run_id, node_id, attempt_id, correlation_id, event_type,
+               source, execution_class, target_handle, stage, state,
+               occurred_at, recorded_at, duration_ms, details)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (now,),
+            (
+                "event-" + uuid.uuid4().hex,
+                run_id,
+                node_id,
+                attempt_id,
+                attempt_id or run_id,
+                event_type,
+                source,
+                operation.get("execution_class"),
+                target_handle,
+                stage,
+                state,
+                occurred_at or recorded_at,
+                recorded_at,
+                duration_ms,
+                _json(details or {}),
+            ),
         )
+
+    def register_worker(
+        self,
+        worker_id: str,
+        *,
+        kind: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", worker_id):
+            raise ValueError("invalid worker ID")
+        if not re.fullmatch(r"[a-z][a-z0-9-]{0,63}", kind):
+            raise ValueError("invalid worker kind")
+        now = _now()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO workers
+                  (id, kind, state, started_at, last_heartbeat_at, metadata)
+                VALUES (?, ?, 'online', ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  kind=excluded.kind,
+                  state='online',
+                  started_at=excluded.started_at,
+                  last_heartbeat_at=excluded.last_heartbeat_at,
+                  metadata=excluded.metadata
+                """,
+                (worker_id, kind, now, now, _json(metadata or {})),
+            )
+            row = connection.execute(
+                "SELECT * FROM workers WHERE id=?", (worker_id,)
+            ).fetchone()
+        return self._worker_row(row)
+
+    def heartbeat_worker(
+        self, worker_id: str, *, state: str = "online"
+    ) -> dict[str, Any]:
+        if state not in {"online", "draining", "offline"}:
+            raise ValueError("invalid worker state")
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE workers SET state=?, last_heartbeat_at=?
+                WHERE id=?
+                """,
+                (state, _now(), worker_id),
+            )
+            if not cursor.rowcount:
+                raise KeyError(f"worker not found: {worker_id}")
+            row = connection.execute(
+                "SELECT * FROM workers WHERE id=?", (worker_id,)
+            ).fetchone()
+        return self._worker_row(row)
+
+    def list_workers(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM workers ORDER BY id").fetchall()
+        return [self._worker_row(row) for row in rows]
+
+    @staticmethod
+    def _worker_row(row: sqlite3.Row) -> dict[str, Any]:
+        result = dict(row)
+        result["metadata"] = json.loads(result["metadata"])
+        return result
+
+    def _reset_expired_leases(self, connection: sqlite3.Connection) -> None:
+        now = _now()
+        expired = connection.execute(
+            """
+            SELECT t.run_id, t.node_id, t.attempt, r.state AS run_state,
+                   a.id AS attempt_id, a.target_handle,
+                   a.state AS attempt_state
+            FROM tasks t JOIN runs r ON r.id=t.run_id
+            LEFT JOIN task_attempts a
+              ON a.run_id=t.run_id AND a.node_id=t.node_id
+             AND a.number=t.attempt
+            WHERE (t.lease_expires_at < ? OR a.lease_expires_at < ?)
+              AND (t.state='running' OR a.state='cancel_requested')
+            """,
+            (now, now),
+        ).fetchall()
+        failure = {
+            "code": "lease-expired",
+            "message": "task lease expired before target submission",
+            "retryable": True,
+        }
+        for row in expired:
+            if row["run_state"] == "canceled" and not row["target_handle"]:
+                if row["attempt_id"]:
+                    connection.execute(
+                        """
+                        UPDATE task_attempts
+                        SET state='canceled', worker_id=NULL, lease_token=NULL,
+                            lease_expires_at=NULL, finished_at=?
+                        WHERE id=?
+                        """,
+                        (now, row["attempt_id"]),
+                    )
+                    self._append_event(
+                        connection,
+                        run_id=row["run_id"],
+                        node_id=row["node_id"],
+                        attempt_id=row["attempt_id"],
+                        event_type="task.canceled",
+                        state="canceled",
+                        details={"reason": "canceled-submission-lease-expired"},
+                    )
+                connection.execute(
+                    """
+                    UPDATE tasks SET lease_token=NULL, lease_expires_at=NULL
+                    WHERE run_id=? AND node_id=?
+                    """,
+                    (row["run_id"], row["node_id"]),
+                )
+                continue
+            if row["attempt_id"] and (
+                row["target_handle"] or row["attempt_state"] == "submitting"
+            ):
+                connection.execute(
+                    """
+                    UPDATE task_attempts
+                    SET worker_id=NULL, lease_token=NULL, lease_expires_at=NULL
+                    WHERE id=?
+                    """,
+                    (row["attempt_id"],),
+                )
+                connection.execute(
+                    """
+                    UPDATE tasks SET lease_token=NULL, lease_expires_at=NULL
+                    WHERE run_id=? AND node_id=?
+                    """,
+                    (row["run_id"], row["node_id"]),
+                )
+                self._append_event(
+                    connection,
+                    run_id=row["run_id"],
+                    node_id=row["node_id"],
+                    attempt_id=row["attempt_id"],
+                    event_type="lease.expired",
+                    state=row["attempt_state"],
+                    details={
+                        "recovery": (
+                            "target-handle-preserved"
+                            if row["target_handle"]
+                            else "submission-intent-preserved"
+                        )
+                    },
+                )
+                continue
+            if row["attempt_id"]:
+                connection.execute(
+                    """
+                    UPDATE task_attempts
+                    SET state='abandoned', worker_id=NULL, lease_token=NULL,
+                        lease_expires_at=NULL, finished_at=?, error=?
+                    WHERE id=?
+                    """,
+                    (now, _json(failure), row["attempt_id"]),
+                )
+                self._append_event(
+                    connection,
+                    run_id=row["run_id"],
+                    node_id=row["node_id"],
+                    attempt_id=row["attempt_id"],
+                    event_type="lease.expired",
+                    state="abandoned",
+                    details={"recovery": "new-attempt-required"},
+                )
+            connection.execute(
+                """
+                UPDATE tasks SET state='pending', lease_token=NULL,
+                    lease_expires_at=NULL, error=?
+                WHERE run_id=? AND node_id=?
+                """,
+                (_json(failure), row["run_id"], row["node_id"]),
+            )
 
     @staticmethod
     def _parents(definition: dict[str, Any], node_id: str) -> set[str]:
@@ -510,19 +972,133 @@ class WorkflowEngine:
             if edge["to"]["node"] == node_id
         }
 
-    def _claim_ready_task(self, lease_seconds: int) -> tuple[str, str, str] | None:
+    @staticmethod
+    def _lease_expiration(lease_seconds: int) -> str:
+        return (
+            (datetime.now(timezone.utc) + timedelta(seconds=lease_seconds))
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
+    def claim_task(
+        self,
+        worker_id: str,
+        *,
+        lease_seconds: int = 300,
+        execution_targets: set[str] | frozenset[str] | None = None,
+        execution_classes: set[str] | frozenset[str] | None = None,
+    ) -> TaskLease | None:
+        if lease_seconds <= 0:
+            raise ValueError("task lease duration must be greater than zero")
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             self._reset_expired_leases(connection)
+            now = _now()
+            recoverable = connection.execute(
+                """
+                SELECT a.*, t.sequence, t.operation,
+                       r.execution_target AS run_target
+                FROM task_attempts a JOIN tasks t
+                  ON t.run_id=a.run_id AND t.node_id=a.node_id
+                JOIN runs r ON r.id=t.run_id
+                WHERE (
+                    (a.target_handle IS NOT NULL AND a.state IN
+                      ('submitted','running','collecting','cancel_requested'))
+                    OR (a.target_handle IS NULL AND a.state='submitting')
+                  )
+                  AND a.lease_token IS NULL
+                ORDER BY
+                  CASE WHEN a.state='cancel_requested' THEN 0 ELSE 1 END,
+                  a.started_at, t.sequence
+                """
+            ).fetchall()
+            recovered = next(
+                (
+                    row
+                    for row in recoverable
+                    if execution_targets is None
+                    or (
+                        json.loads(row["operation"]).get(
+                            "execution_target", row["run_target"]
+                        )
+                        in execution_targets
+                    )
+                    if execution_classes is None
+                    or json.loads(row["operation"]).get(
+                        "execution_class", "interactive-local"
+                    )
+                    in execution_classes
+                ),
+                None,
+            )
+            if recovered:
+                token = uuid.uuid4().hex
+                expires = self._lease_expiration(lease_seconds)
+                connection.execute(
+                    """
+                    UPDATE task_attempts
+                    SET worker_id=?, lease_token=?, lease_expires_at=?
+                    WHERE id=? AND lease_token IS NULL
+                    """,
+                    (worker_id, token, expires, recovered["id"]),
+                )
+                connection.execute(
+                    """
+                    UPDATE tasks SET lease_token=?, lease_expires_at=?
+                    WHERE run_id=? AND node_id=?
+                    """,
+                    (
+                        token,
+                        expires,
+                        recovered["run_id"],
+                        recovered["node_id"],
+                    ),
+                )
+                self._append_event(
+                    connection,
+                    run_id=recovered["run_id"],
+                    node_id=recovered["node_id"],
+                    attempt_id=recovered["id"],
+                    event_type="lease.acquired",
+                    state=recovered["state"],
+                    details={"worker_id": worker_id, "recovered": True},
+                )
+                return TaskLease(
+                    run_id=recovered["run_id"],
+                    node_id=recovered["node_id"],
+                    attempt_id=recovered["id"],
+                    attempt_number=recovered["number"],
+                    token=token,
+                    worker_id=worker_id,
+                    expires_at=expires,
+                    state=recovered["state"],
+                    target_handle=recovered["target_handle"],
+                    recovered=True,
+                )
+
             candidates = connection.execute(
                 """
-                SELECT t.run_id, t.node_id
+                SELECT t.run_id, t.node_id, t.attempt, t.operation,
+                       r.execution_target AS run_target
                 FROM tasks t JOIN runs r ON r.id=t.run_id
                 WHERE t.state='pending' AND r.state IN ('queued','running')
                 ORDER BY r.created_at, t.sequence
                 """
             ).fetchall()
             for candidate in candidates:
+                target = json.loads(candidate["operation"]).get(
+                    "execution_target", candidate["run_target"]
+                )
+                if execution_targets is not None and target not in execution_targets:
+                    continue
+                task_execution_class = json.loads(candidate["operation"]).get(
+                    "execution_class", "interactive-local"
+                )
+                if (
+                    execution_classes is not None
+                    and task_execution_class not in execution_classes
+                ):
+                    continue
                 workflow_row = connection.execute(
                     """
                     SELECT w.definition FROM workflow_versions w JOIN runs r
@@ -544,13 +1120,10 @@ class WorkflowEngine:
                     if any(states[parent] != "succeeded" for parent in parents):
                         continue
                 token = uuid.uuid4().hex
-                expires = (
-                    (datetime.now(timezone.utc) + timedelta(seconds=lease_seconds))
-                    .isoformat()
-                    .replace("+00:00", "Z")
-                )
-                now = _now()
-                connection.execute(
+                expires = self._lease_expiration(lease_seconds)
+                attempt_number = candidate["attempt"] + 1
+                attempt_id = "attempt-" + uuid.uuid4().hex
+                cursor = connection.execute(
                     """
                     UPDATE tasks SET state='running', attempt=attempt+1,
                       lease_token=?, lease_expires_at=?, started_at=COALESCE(started_at, ?),
@@ -559,14 +1132,68 @@ class WorkflowEngine:
                     """,
                     (token, expires, now, candidate["run_id"], candidate["node_id"]),
                 )
+                if not cursor.rowcount:
+                    continue
+                connection.execute(
+                    """
+                    INSERT INTO task_attempts
+                      (id, run_id, node_id, number, state, worker_id,
+                       lease_token, lease_expires_at, started_at)
+                    VALUES (?, ?, ?, ?, 'leased', ?, ?, ?, ?)
+                    """,
+                    (
+                        attempt_id,
+                        candidate["run_id"],
+                        candidate["node_id"],
+                        attempt_number,
+                        worker_id,
+                        token,
+                        expires,
+                        now,
+                    ),
+                )
                 connection.execute(
                     "UPDATE runs SET state='running', started_at=COALESCE(started_at, ?) WHERE id=?",
                     (now, candidate["run_id"]),
                 )
-                return candidate["run_id"], candidate["node_id"], token
+                self._append_event(
+                    connection,
+                    run_id=candidate["run_id"],
+                    node_id=candidate["node_id"],
+                    attempt_id=attempt_id,
+                    event_type="task.leased",
+                    state="leased",
+                    details={"worker_id": worker_id, "recovered": False},
+                )
+                return TaskLease(
+                    run_id=candidate["run_id"],
+                    node_id=candidate["node_id"],
+                    attempt_id=attempt_id,
+                    attempt_number=attempt_number,
+                    token=token,
+                    worker_id=worker_id,
+                    expires_at=expires,
+                    state="leased",
+                )
         return None
 
-    def _task_request(self, run_id: str, node_id: str) -> TaskRequest:
+    def _claim_ready_task(
+        self,
+        lease_seconds: int,
+        worker_id: str = "embedded-local",
+        execution_targets: set[str] | frozenset[str] | None = None,
+        execution_classes: set[str] | frozenset[str] | None = None,
+    ) -> TaskLease | None:
+        return self.claim_task(
+            worker_id,
+            lease_seconds=lease_seconds,
+            execution_targets=execution_targets,
+            execution_classes=execution_classes,
+        )
+
+    def _task_request(
+        self, run_id: str, node_id: str, attempt_id: str = ""
+    ) -> TaskRequest:
         with self._connect() as connection:
             task = connection.execute(
                 "SELECT * FROM tasks WHERE run_id=? AND node_id=?", (run_id, node_id)
@@ -610,24 +1237,367 @@ class WorkflowEngine:
             if "default" in value
         }
         parameters.update(operation["parameters"])
+        target = operation.get("execution_target", run["execution_target"])
         work_directory = self.artifact_root / run_id / node_id
+        if attempt_id:
+            work_directory /= attempt_id
         work_directory.mkdir(parents=True, exist_ok=True)
+        definition = operation["definition"]
+        invocation = definition.get("invocation", {})
         return TaskRequest(
             run_id=run_id,
             node_id=node_id,
             capability_id=operation["capability"],
             capability_version=operation["version"],
             operation_id=operation["operation"],
-            runtime_reference=operation["definition"]["runtime"]["reference"],
-            runtime_digest=operation["definition"]["runtime"]["digest"],
+            runtime_reference=definition["runtime"]["reference"],
+            runtime_digest=definition["runtime"]["digest"],
             parameters=parameters,
             inputs=input_artifacts,
             output_types={
                 name: value["artifact_type"]
-                for name, value in operation["definition"]["outputs"].items()
+                for name, value in definition["outputs"].items()
             },
             work_directory=work_directory,
+            project=operation["project"],
+            attempt_id=attempt_id,
+            execution_target=target,
+            execution_class=operation.get("execution_class", "interactive-local"),
+            runtime_type=definition["runtime"]["type"],
+            entrypoint=tuple(invocation.get("entrypoint", ())),
+            arguments=tuple(invocation.get("arguments", ())),
+            resources=dict(definition.get("resources", {})),
         )
+
+    def task_request(self, lease: TaskLease) -> TaskRequest:
+        self._assert_lease(lease)
+        return self._task_request(
+            lease.run_id, lease.node_id, attempt_id=lease.attempt_id
+        )
+
+    def _assert_lease(
+        self, lease: TaskLease, connection: sqlite3.Connection | None = None
+    ) -> sqlite3.Row:
+        owns_connection = connection is None
+        active_connection = connection or self._connect()
+        try:
+            row = active_connection.execute(
+                """
+                SELECT * FROM task_attempts
+                WHERE id=? AND run_id=? AND node_id=? AND worker_id=?
+                  AND lease_token=?
+                """,
+                (
+                    lease.attempt_id,
+                    lease.run_id,
+                    lease.node_id,
+                    lease.worker_id,
+                    lease.token,
+                ),
+            ).fetchone()
+            if not row:
+                raise RuntimeError("stale or invalid task lease")
+            return row
+        finally:
+            if owns_connection:
+                active_connection.close()
+
+    def renew_lease(self, lease: TaskLease, *, lease_seconds: int) -> TaskLease:
+        if lease_seconds <= 0:
+            raise ValueError("task lease duration must be greater than zero")
+        expires = self._lease_expiration(lease_seconds)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = self._assert_lease(lease, connection)
+            connection.execute(
+                """
+                UPDATE task_attempts SET lease_expires_at=? WHERE id=?
+                """,
+                (expires, lease.attempt_id),
+            )
+            connection.execute(
+                """
+                UPDATE tasks SET lease_expires_at=?
+                WHERE run_id=? AND node_id=? AND lease_token=?
+                """,
+                (expires, lease.run_id, lease.node_id, lease.token),
+            )
+        return TaskLease(
+            run_id=lease.run_id,
+            node_id=lease.node_id,
+            attempt_id=lease.attempt_id,
+            attempt_number=lease.attempt_number,
+            token=lease.token,
+            worker_id=lease.worker_id,
+            expires_at=expires,
+            state=row["state"],
+            target_handle=row["target_handle"],
+            recovered=lease.recovered,
+        )
+
+    def record_stage(
+        self,
+        lease: TaskLease,
+        stage: str,
+        duration_ms: int,
+        *,
+        details: dict[str, Any] | None = None,
+        source: str = "worker",
+    ) -> None:
+        if not re.fullmatch(r"[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*", stage):
+            raise ValueError("invalid execution stage")
+        with self._connect() as connection:
+            self._assert_lease(lease, connection)
+            self._append_event(
+                connection,
+                run_id=lease.run_id,
+                node_id=lease.node_id,
+                attempt_id=lease.attempt_id,
+                event_type="stage.completed",
+                stage=stage,
+                duration_ms=duration_ms,
+                details=details,
+                source=source,
+            )
+
+    def _record_reported_stages(
+        self,
+        connection: sqlite3.Connection,
+        lease: TaskLease,
+        metadata: dict[str, Any],
+    ) -> None:
+        durations = metadata.get("stage_durations_ms", {})
+        if not isinstance(durations, dict):
+            return
+        for stage, duration in sorted(durations.items()):
+            if not isinstance(stage, str) or not re.fullmatch(
+                r"[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*", stage
+            ):
+                continue
+            if isinstance(duration, bool) or not isinstance(duration, int):
+                continue
+            if duration < 0:
+                continue
+            self._append_event(
+                connection,
+                run_id=lease.run_id,
+                node_id=lease.node_id,
+                attempt_id=lease.attempt_id,
+                event_type="stage.completed",
+                stage=stage,
+                duration_ms=duration,
+                details={"reported_by": "target-runner"},
+                source="target-runner",
+            )
+
+    def record_reported_stages(
+        self, lease: TaskLease, metadata: dict[str, Any]
+    ) -> None:
+        with self._connect() as connection:
+            self._assert_lease(lease, connection)
+            self._record_reported_stages(connection, lease, metadata)
+
+    def record_submission(
+        self,
+        lease: TaskLease,
+        *,
+        target_handle: str,
+        target_state: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        if not target_handle or any(character.isspace() for character in target_handle):
+            raise ValueError("invalid target handle")
+        if target_state not in {
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "canceled",
+            "unknown",
+        }:
+            raise ValueError("invalid submitted target state")
+        attempt_state = {
+            "queued": "submitted",
+            "running": "running",
+            "succeeded": "collecting",
+            "failed": "submitted",
+            "canceled": "submitted",
+            "unknown": "submitted",
+        }[target_state]
+        target_metadata = dict(metadata or {})
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = self._assert_lease(lease, connection)
+            if current["state"] == "cancel_requested":
+                attempt_state = "cancel_requested"
+            connection.execute(
+                """
+                UPDATE task_attempts
+                SET state=?, target_handle=?, target_state=?,
+                    target_metadata=?, submitted_at=COALESCE(submitted_at, ?)
+                WHERE id=?
+                """,
+                (
+                    attempt_state,
+                    target_handle,
+                    target_state,
+                    _json(target_metadata),
+                    _now(),
+                    lease.attempt_id,
+                ),
+            )
+            self._append_event(
+                connection,
+                run_id=lease.run_id,
+                node_id=lease.node_id,
+                attempt_id=lease.attempt_id,
+                event_type="target.submitted",
+                state=target_state,
+                details={"target_handle": target_handle},
+                source="target-runner",
+            )
+            self._record_reported_stages(connection, lease, target_metadata)
+        return attempt_state
+
+    def attempt_state(self, lease: TaskLease) -> str:
+        return self._assert_lease(lease)["state"]
+
+    def mark_submitting(self, lease: TaskLease) -> None:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = self._assert_lease(lease, connection)
+            if current["state"] == "cancel_requested":
+                return
+            if current["state"] not in {"leased", "submitting"}:
+                raise RuntimeError(
+                    f"attempt cannot enter submitting from {current['state']}"
+                )
+            connection.execute(
+                "UPDATE task_attempts SET state='submitting' WHERE id=?",
+                (lease.attempt_id,),
+            )
+            if current["state"] != "submitting":
+                self._append_event(
+                    connection,
+                    run_id=lease.run_id,
+                    node_id=lease.node_id,
+                    attempt_id=lease.attempt_id,
+                    event_type="target.submit-intent",
+                    state="submitting",
+                    details={"idempotency_key": lease.attempt_id},
+                )
+
+    def record_target_status(
+        self,
+        lease: TaskLease,
+        *,
+        target_state: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        if target_state not in {
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "canceled",
+            "unknown",
+        }:
+            raise ValueError("invalid target state")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            attempt = self._assert_lease(lease, connection)
+            merged = json.loads(attempt["target_metadata"])
+            merged.update(metadata or {})
+            attempt_state = attempt["state"]
+            if target_state == "queued":
+                attempt_state = "submitted"
+            elif target_state == "running":
+                attempt_state = "running"
+            elif target_state == "succeeded":
+                attempt_state = "collecting"
+            connection.execute(
+                """
+                UPDATE task_attempts
+                SET state=?, target_state=?, target_metadata=?
+                WHERE id=?
+                """,
+                (
+                    attempt_state,
+                    target_state,
+                    _json(merged),
+                    lease.attempt_id,
+                ),
+            )
+            self._append_event(
+                connection,
+                run_id=lease.run_id,
+                node_id=lease.node_id,
+                attempt_id=lease.attempt_id,
+                event_type="target.state",
+                state=target_state,
+                details=metadata,
+                source="target-runner",
+            )
+            self._record_reported_stages(connection, lease, metadata or {})
+
+    def release_lease(self, lease: TaskLease) -> None:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._assert_lease(lease, connection)
+            connection.execute(
+                """
+                UPDATE task_attempts
+                SET worker_id=NULL, lease_token=NULL, lease_expires_at=NULL
+                WHERE id=?
+                """,
+                (lease.attempt_id,),
+            )
+            connection.execute(
+                """
+                UPDATE tasks SET lease_token=NULL, lease_expires_at=NULL
+                WHERE run_id=? AND node_id=? AND lease_token=?
+                """,
+                (lease.run_id, lease.node_id, lease.token),
+            )
+
+    def mark_attempt_canceled(
+        self,
+        lease: TaskLease,
+        *,
+        log: str = "",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._assert_lease(lease, connection)
+            now = _now()
+            connection.execute(
+                """
+                UPDATE task_attempts
+                SET state='canceled', target_state='canceled', finished_at=?,
+                    log=?, worker_id=NULL, lease_token=NULL,
+                    lease_expires_at=NULL
+                WHERE id=?
+                """,
+                (now, log, lease.attempt_id),
+            )
+            connection.execute(
+                """
+                UPDATE tasks SET state='canceled', finished_at=?,
+                    lease_token=NULL, lease_expires_at=NULL
+                WHERE run_id=? AND node_id=?
+                """,
+                (now, lease.run_id, lease.node_id),
+            )
+            self._append_event(
+                connection,
+                run_id=lease.run_id,
+                node_id=lease.node_id,
+                attempt_id=lease.attempt_id,
+                event_type="task.canceled",
+                state="canceled",
+                details=details,
+            )
 
     def _complete(
         self,
@@ -635,6 +1605,7 @@ class WorkflowEngine:
         node_id: str,
         lease_token: str,
         result: TaskResult,
+        attempt_id: str | None = None,
     ) -> None:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -645,6 +1616,15 @@ class WorkflowEngine:
                 return
             if task["state"] != "running" or task["lease_token"] != lease_token:
                 raise RuntimeError("stale or invalid task lease")
+            attempt = connection.execute(
+                """
+                SELECT * FROM task_attempts
+                WHERE run_id=? AND node_id=? AND lease_token=?
+                """,
+                (run_id, node_id, lease_token),
+            ).fetchone()
+            if not attempt or (attempt_id and attempt["id"] != attempt_id):
+                raise RuntimeError("stale or invalid task attempt")
             operation = json.loads(task["operation"])["definition"]
             declared = operation["outputs"]
             missing = sorted(
@@ -672,14 +1652,15 @@ class WorkflowEngine:
                 connection.execute(
                     """
                     INSERT INTO artifacts
-                      (id, run_id, task_id, port, artifact_type, uri, checksum,
-                       size_bytes, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                      (id, run_id, task_id, attempt_id, port, artifact_type,
+                       uri, checksum, size_bytes, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         artifact_id,
                         run_id,
                         node_id,
+                        attempt["id"],
                         port,
                         artifact.artifact_type,
                         artifact.uri,
@@ -697,10 +1678,35 @@ class WorkflowEngine:
                 """,
                 (_now(), _json(output_ids), result.log, run_id, node_id),
             )
+            now = _now()
+            connection.execute(
+                """
+                UPDATE task_attempts
+                SET state='succeeded', target_state=COALESCE(target_state, 'succeeded'),
+                    finished_at=?, outputs=?, log=?, worker_id=NULL,
+                    lease_token=NULL, lease_expires_at=NULL
+                WHERE id=?
+                """,
+                (now, _json(output_ids), result.log, attempt["id"]),
+            )
+            self._append_event(
+                connection,
+                run_id=run_id,
+                node_id=node_id,
+                attempt_id=attempt["id"],
+                event_type="task.succeeded",
+                state="succeeded",
+                details={"outputs": output_ids},
+            )
             self._finish_run_if_terminal(connection, run_id)
 
     def _fail(
-        self, run_id: str, node_id: str, lease_token: str, error: Exception
+        self,
+        run_id: str,
+        node_id: str,
+        lease_token: str,
+        error: Exception,
+        attempt_id: str | None = None,
     ) -> None:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -709,6 +1715,15 @@ class WorkflowEngine:
                 (run_id, node_id),
             ).fetchone()
             if task["state"] != "running" or task["lease_token"] != lease_token:
+                return
+            attempt = connection.execute(
+                """
+                SELECT * FROM task_attempts
+                WHERE run_id=? AND node_id=? AND lease_token=?
+                """,
+                (run_id, node_id, lease_token),
+            ).fetchone()
+            if not attempt or (attempt_id and attempt["id"] != attempt_id):
                 return
             failure = {
                 "code": error.__class__.__name__,
@@ -728,6 +1743,42 @@ class WorkflowEngine:
                 "UPDATE runs SET state='failed', finished_at=? WHERE id=?",
                 (now, run_id),
             )
+            connection.execute(
+                """
+                UPDATE task_attempts
+                SET state='failed', finished_at=?, error=?, worker_id=NULL,
+                    lease_token=NULL, lease_expires_at=NULL
+                WHERE id=?
+                """,
+                (now, _json(failure), attempt["id"]),
+            )
+            self._append_event(
+                connection,
+                run_id=run_id,
+                node_id=node_id,
+                attempt_id=attempt["id"],
+                event_type="task.failed",
+                state="failed",
+                details={"error": failure},
+            )
+
+    def complete_task(self, lease: TaskLease, result: TaskResult) -> None:
+        self._complete(
+            lease.run_id,
+            lease.node_id,
+            lease.token,
+            result,
+            attempt_id=lease.attempt_id,
+        )
+
+    def fail_task(self, lease: TaskLease, error: Exception) -> None:
+        self._fail(
+            lease.run_id,
+            lease.node_id,
+            lease.token,
+            error,
+            attempt_id=lease.attempt_id,
+        )
 
     def _finish_run_if_terminal(
         self, connection: sqlite3.Connection, run_id: str
@@ -761,26 +1812,57 @@ class WorkflowEngine:
             (_now(), _json(outputs), run_id),
         )
 
-    def run_once(self, runner: Runner, *, lease_seconds: int = 300) -> bool:
-        claim = self._claim_ready_task(lease_seconds)
+    def run_once(
+        self,
+        runner: Runner,
+        *,
+        lease_seconds: int = 300,
+        worker_id: str = "embedded-local",
+        execution_targets: set[str] | frozenset[str] | None = None,
+        execution_classes: set[str] | frozenset[str] | None = None,
+    ) -> bool:
+        if not any(worker["id"] == worker_id for worker in self.list_workers()):
+            self.register_worker(worker_id, kind="local")
+        else:
+            self.heartbeat_worker(worker_id)
+        claim = self._claim_ready_task(
+            lease_seconds,
+            worker_id,
+            execution_targets,
+            execution_classes,
+        )
         if not claim:
             return False
-        run_id, node_id, token = claim
         try:
-            result = runner.execute(self._task_request(run_id, node_id))
-            self._complete(run_id, node_id, token, result)
+            result = runner.execute(self.task_request(claim))
+            self.complete_task(claim, result)
         except Exception as error:
-            self._fail(run_id, node_id, token, error)
+            self.fail_task(claim, error)
         return True
 
-    def run_until_idle(self, runner: Runner, *, lease_seconds: int = 300) -> int:
+    def run_until_idle(
+        self,
+        runner: Runner,
+        *,
+        lease_seconds: int = 300,
+        worker_id: str = "embedded-local",
+        execution_targets: set[str] | frozenset[str] | None = None,
+        execution_classes: set[str] | frozenset[str] | None = None,
+    ) -> int:
         completed = 0
-        while self.run_once(runner, lease_seconds=lease_seconds):
+        while self.run_once(
+            runner,
+            lease_seconds=lease_seconds,
+            worker_id=worker_id,
+            execution_targets=execution_targets,
+            execution_classes=execution_classes,
+        ):
             completed += 1
         return completed
 
     def cancel_run(self, run_id: str) -> dict[str, Any]:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             run = connection.execute(
                 "SELECT state FROM runs WHERE id=?", (run_id,)
             ).fetchone()
@@ -789,8 +1871,56 @@ class WorkflowEngine:
             if run["state"] in TERMINAL_STATES:
                 return self.get_run(run_id)
             now = _now()
+            active_attempts = connection.execute(
+                """
+                SELECT * FROM task_attempts
+                WHERE run_id=? AND state IN
+                  ('leased','submitted','running','collecting','cancel_requested')
+                """,
+                (run_id,),
+            ).fetchall()
+            for attempt in active_attempts:
+                target_handle = attempt["target_handle"]
+                connection.execute(
+                    """
+                    UPDATE task_attempts
+                    SET state='cancel_requested'
+                    WHERE id=?
+                    """,
+                    (attempt["id"],),
+                )
+                if target_handle:
+                    connection.execute(
+                        """
+                        UPDATE task_attempts
+                        SET worker_id=NULL, lease_token=NULL, lease_expires_at=NULL
+                        WHERE id=?
+                        """,
+                        (attempt["id"],),
+                    )
+                self._append_event(
+                    connection,
+                    run_id=attempt["run_id"],
+                    node_id=attempt["node_id"],
+                    attempt_id=attempt["id"],
+                    event_type=(
+                        "target.cancel-requested"
+                        if target_handle
+                        else "task.cancel-requested"
+                    ),
+                    state="cancel_requested",
+                    details=(
+                        {"target_handle": target_handle}
+                        if target_handle
+                        else {"reason": "run-canceled-during-task-lease"}
+                    ),
+                )
             connection.execute(
-                "UPDATE tasks SET state='canceled', finished_at=? WHERE run_id=? AND state IN ('pending','running')",
+                """
+                UPDATE tasks SET state='canceled', finished_at=?,
+                    lease_token=NULL, lease_expires_at=NULL
+                WHERE run_id=? AND state IN ('pending','running')
+                """,
                 (now, run_id),
             )
             connection.execute(
@@ -832,6 +1962,22 @@ class WorkflowEngine:
                 """,
                 (run_id, *sorted(descendants)),
             )
+            for descendant in sorted(descendants):
+                task = connection.execute(
+                    """
+                    SELECT attempt FROM tasks WHERE run_id=? AND node_id=?
+                    """,
+                    (run_id, descendant),
+                ).fetchone()
+                self._append_event(
+                    connection,
+                    run_id=run_id,
+                    node_id=descendant,
+                    attempt_id=None,
+                    event_type="task.retry-requested",
+                    state="pending",
+                    details={"completed_attempts": task["attempt"]},
+                )
             connection.execute(
                 "UPDATE runs SET state='queued', finished_at=NULL, outputs='{}' WHERE id=?",
                 (run_id,),
@@ -858,6 +2004,10 @@ class WorkflowEngine:
             "workflow": workflow,
             "run": run,
             "artifacts": [*input_artifacts, *artifacts],
+            "attempts": [
+                attempt for task in run["tasks"] for attempt in task["attempts"]
+            ],
+            "events": run["events"],
         }
         bundle["digest"] = document_digest(bundle)
         return bundle

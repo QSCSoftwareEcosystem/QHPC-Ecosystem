@@ -36,5 +36,6 @@ spec:
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Replace the verified local wheel with a target-accepted Linux image after integration scaffolding.
-  blockers: []
+    reason: Keep the verified local wheel for development until source-distribution rights are explicit, then build and accept a pinned Linux operation image.
+  blockers:
+    - Replace the pyproject license value "TBD" with an approved license and add the corresponding license file before the ecosystem redistributes OpenQEvo in an OCI image.

@@ -20,6 +20,23 @@ class SlurmResources:
     walltime_seconds: int = 600
     gpu: int = 0
     partition: str | None = None
+    account: str | None = None
+    qos: str | None = None
+
+
+@dataclass(frozen=True)
+class ApptainerBind:
+    source: str
+    destination: str
+    read_only: bool
+
+
+@dataclass(frozen=True)
+class NodeLocalStaging:
+    namespace: str
+    stage_image: bool = True
+    stage_read_only_binds: bool = True
+    minimum_free_mb: int | None = None
 
 
 @dataclass(frozen=True)
@@ -67,6 +84,13 @@ def render_apptainer_job(
     arguments: Sequence[str],
     resources: SlurmResources,
     job_name: str,
+    binds: Sequence[ApptainerBind] = (),
+    working_directory: str = "/work",
+    stdout_path: str | None = None,
+    stderr_path: str | None = None,
+    telemetry_path: str | None = None,
+    apptainer_executable: str = "apptainer",
+    node_local: NodeLocalStaging | None = None,
 ) -> str:
     """Render a batch script from validated tokens without accepting shell text."""
     if not entrypoint or any(not token for token in entrypoint):
@@ -87,6 +111,49 @@ def render_apptainer_job(
         r"[A-Za-z0-9_.-]+", resources.partition
     ):
         raise ValueError("invalid Slurm partition")
+    for label, value in (
+        ("account", resources.account),
+        ("QoS", resources.qos),
+    ):
+        if value and not re.fullmatch(r"[A-Za-z0-9_.-]+", value):
+            raise ValueError(f"invalid Slurm {label}")
+    if not (
+        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", apptainer_executable)
+        or (
+            apptainer_executable.startswith("/")
+            and not any(character.isspace() for character in apptainer_executable)
+        )
+    ):
+        raise ValueError("invalid Apptainer executable")
+    if not working_directory.startswith("/") or any(
+        character.isspace() for character in working_directory
+    ):
+        raise ValueError("container working directory must be absolute")
+    for path, label in (
+        (stdout_path, "stdout"),
+        (stderr_path, "stderr"),
+        (telemetry_path, "telemetry"),
+    ):
+        if path is not None and (
+            not path.startswith("/") or "\n" in path or "\r" in path
+        ):
+            raise ValueError(f"{label} path must be absolute")
+    for bind in binds:
+        if not bind.source.startswith("/") or "\n" in bind.source:
+            raise ValueError("Apptainer bind source must be absolute")
+        if (
+            not bind.destination.startswith("/")
+            or any(character.isspace() for character in bind.destination)
+            or ":" in bind.destination
+        ):
+            raise ValueError("Apptainer bind destination must be absolute")
+    if node_local:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}", node_local.namespace):
+            raise ValueError("invalid node-local staging namespace")
+        if node_local.minimum_free_mb is not None and node_local.minimum_free_mb < 1:
+            raise ValueError("node-local minimum free space must be positive")
+        if node_local.stage_image and image.startswith(("file://", "oras://")):
+            raise ValueError("node-local image staging requires an absolute image path")
 
     minutes, seconds = divmod(resources.walltime_seconds, 60)
     hours, minutes = divmod(minutes, 60)
@@ -101,18 +168,117 @@ def render_apptainer_job(
         directives.append(f"#SBATCH --gpus={resources.gpu}")
     if resources.partition:
         directives.append(f"#SBATCH --partition={resources.partition}")
-    command = [
-        "apptainer",
+    if resources.account:
+        directives.append(f"#SBATCH --account={resources.account}")
+    if resources.qos:
+        directives.append(f"#SBATCH --qos={resources.qos}")
+    if stdout_path:
+        directives.append(f"#SBATCH --output={stdout_path}")
+    if stderr_path:
+        directives.append(f"#SBATCH --error={stderr_path}")
+
+    setup = ["", "set -euo pipefail", "umask 077"]
+    image_token = shlex.quote(image)
+    bind_tokens = [
+        shlex.quote(
+            f"{bind.source}:{bind.destination}:{'ro' if bind.read_only else 'rw'}"
+        )
+        for bind in binds
+    ]
+    if node_local:
+        setup.extend(
+            [
+                (
+                    'QHPC_NODE_ROOT="${SLURM_TMPDIR:'
+                    "?SLURM_TMPDIR is required"
+                    f'}}/qhpc-{node_local.namespace}"'
+                ),
+                'mkdir -p -- "$QHPC_NODE_ROOT"',
+            ]
+        )
+        if node_local.minimum_free_mb is not None:
+            setup.extend(
+                [
+                    (
+                        'QHPC_FREE_MB=$(df -Pm -- "$SLURM_TMPDIR" '
+                        "| awk 'NR==2 {print $4}')"
+                    ),
+                    (f'if [ "$QHPC_FREE_MB" -lt {node_local.minimum_free_mb} ]; then'),
+                    '  printf "%s\\n" "insufficient SLURM_TMPDIR space" >&2',
+                    "  exit 74",
+                    "fi",
+                ]
+            )
+        stage_start = "QHPC_STAGE_START=$(date +%s%3N)"
+        if telemetry_path:
+            setup.append(stage_start)
+        if node_local.stage_image:
+            setup.append(f'cp -- {shlex.quote(image)} "$QHPC_NODE_ROOT/runtime.sif"')
+            image_token = '"$QHPC_NODE_ROOT/runtime.sif"'
+        if node_local.stage_read_only_binds:
+            updated_binds: list[str] = []
+            for index, bind in enumerate(binds):
+                if not bind.read_only:
+                    updated_binds.append(bind_tokens[index])
+                    continue
+                local = f"$QHPC_NODE_ROOT/bind-{index}"
+                setup.extend(
+                    [
+                        f'mkdir -p -- "{local}"',
+                        (f'cp -a -- {shlex.quote(bind.source)}/. "{local}/"'),
+                    ]
+                )
+                updated_binds.append(f'"{local}:{bind.destination}:ro"')
+            bind_tokens = updated_binds
+        if telemetry_path:
+            setup.extend(
+                [
+                    "QHPC_STAGE_END=$(date +%s%3N)",
+                    (
+                        "printf '%s\\t%s\\t%s\\n' node-local-stage "
+                        '"$QHPC_STAGE_START" "$QHPC_STAGE_END" >> '
+                        f"{shlex.quote(telemetry_path)}"
+                    ),
+                ]
+            )
+
+    command_tokens = [
+        shlex.quote(apptainer_executable),
         "exec",
         "--containall",
         "--cleanenv",
-        image,
-        *entrypoint,
-        *arguments,
+        "--net",
+        "--network",
+        "none",
+        "--no-home",
+        "--pwd",
+        shlex.quote(working_directory),
     ]
-    return "\n".join(
-        [*directives, "", "set -euo pipefail", "exec " + shlex.join(command), ""]
-    )
+    for bind in bind_tokens:
+        command_tokens.extend(["--bind", bind])
+    command_tokens.extend([image_token, *(shlex.quote(token) for token in entrypoint)])
+    command_tokens.extend(shlex.quote(token) for token in arguments)
+    command = " ".join(command_tokens)
+    if telemetry_path:
+        setup.extend(
+            [
+                "QHPC_STAGE_START=$(date +%s%3N)",
+                "set +e",
+                command,
+                "QHPC_EXIT_CODE=$?",
+                "set -e",
+                "QHPC_STAGE_END=$(date +%s%3N)",
+                (
+                    "printf '%s\\t%s\\t%s\\n' application "
+                    '"$QHPC_STAGE_START" "$QHPC_STAGE_END" >> '
+                    f"{shlex.quote(telemetry_path)}"
+                ),
+                'exit "$QHPC_EXIT_CODE"',
+            ]
+        )
+    else:
+        setup.append("exec " + command)
+    return "\n".join([*directives, *setup, ""])
 
 
 class SlurmClient:
@@ -170,6 +336,36 @@ class SlurmClient:
             raise RuntimeError(history.stderr.strip() or "sacct failed")
         first = next((line for line in history.stdout.splitlines() if line.strip()), "")
         return classify_state(first.split("|", 1)[0])
+
+    def find_by_name(self, job_name: str) -> str | None:
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", job_name):
+            raise ValueError("invalid Slurm job name")
+        queued = self.executor(
+            [self.squeue, "--noheader", "--name", job_name, "--format=%A"]
+        )
+        if queued.returncode:
+            raise RuntimeError(queued.stderr.strip() or "squeue failed")
+        for line in queued.stdout.splitlines():
+            candidate = line.strip()
+            if JOB_ID.fullmatch(candidate):
+                return candidate
+        history = self.executor(
+            [
+                self.sacct,
+                "--noheader",
+                "--parsable2",
+                "--name",
+                job_name,
+                "--format=JobIDRaw,JobName",
+            ]
+        )
+        if history.returncode:
+            raise RuntimeError(history.stderr.strip() or "sacct failed")
+        for line in history.stdout.splitlines():
+            job_id, separator, name = line.strip().partition("|")
+            if separator and name == job_name and JOB_ID.fullmatch(job_id):
+                return job_id
+        return None
 
     def cancel(self, job_id: str) -> None:
         checked = self._job_id(job_id)

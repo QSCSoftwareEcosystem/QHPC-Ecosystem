@@ -27,7 +27,7 @@ def test_apptainer_script_quotes_tokens_and_limits_resources() -> None:
     assert "#SBATCH --time=01:01:01" in script
     assert "#SBATCH --gpus=1" in script
     assert "'/work/input circuit.qasm'" in script
-    assert "--containall --cleanenv" in script
+    assert "--containall --cleanenv --net --network none" in script
 
 
 @pytest.mark.parametrize(

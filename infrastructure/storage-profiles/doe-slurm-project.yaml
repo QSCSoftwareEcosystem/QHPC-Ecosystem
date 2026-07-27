@@ -1,0 +1,28 @@
+api_version: qhpc/v1
+kind: StorageProfile
+metadata:
+  id: doe-slurm-project
+  name: DOE Slurm project storage
+  version: 0.1.0
+  owners: [software-engineering]
+  status: planned
+  evidence: []
+spec:
+  execution_target: doe-slurm-apptainer
+  shared_filesystem: project
+  roots:
+    image_cache: /site-assigned/qhpc/images
+    task_staging: /site-assigned/qhpc/tasks
+  mounts:
+    input: /inputs
+    output: /outputs
+    scratch: /scratch
+  node_local:
+    mode: slurm-tmpdir
+    stage_image: true
+    stage_inputs: true
+  policies:
+    verify_image_digest: true
+    verify_input_checksums: true
+    cleanup: on-success
+    max_task_input_bytes: 10000000

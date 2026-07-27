@@ -30,8 +30,15 @@ VALID_EXAMPLES = {
     "execution-target": VALID / "execution-target.yaml",
     "integration-scaffold": ROOT / "integrations" / "nwqec" / "integration.yaml",
     "operation-interface": ROOT / "integrations" / "nwqec" / "interface.yaml",
+    "operation-runtime": (
+        ROOT / "containers" / "operations" / "qasmtrans" / "runtime.yaml"
+    ),
+    "pilot-profile": (
+        ROOT / "infrastructure/pilot-profiles/doe-short-interactive.yaml"
+    ),
     "run": VALID / "run.yaml",
     "service-interface": ROOT / "integrations" / "chatqec" / "service.yaml",
+    "storage-profile": VALID / "storage-profile.yaml",
     "workflow": VALID / "workflow.yaml",
 }
 
@@ -86,9 +93,7 @@ def test_capability_rejects_default_with_wrong_parameter_type() -> None:
 
 def test_operation_interface_rejects_default_with_wrong_parameter_type() -> None:
     interface = copy.deepcopy(load_document(VALID_EXAMPLES["operation-interface"]))
-    interface["spec"]["operations"][0]["parameters"]["epsilon"]["default"] = (
-        "small"
-    )
+    interface["spec"]["operations"][0]["parameters"]["epsilon"]["default"] = "small"
 
     with pytest.raises(ContractError, match="does not match parameter type"):
         validate_contract_data("operation-interface", interface)
@@ -105,6 +110,35 @@ def test_service_interface_rejects_unknown_or_invalid_nested_schemas() -> None:
     message = str(error.value)
     assert "references unknown schema missing" in message
     assert "is not a valid JSON Schema" in message
+
+
+def test_storage_profile_rejects_unreviewed_or_inert_node_local_staging() -> None:
+    profile = copy.deepcopy(load_document(VALID_EXAMPLES["storage-profile"]))
+    profile["metadata"]["evidence"] = []
+    profile["spec"]["node_local"]["mode"] = "disabled"
+
+    with pytest.raises(ContractError) as error:
+        validate_contract_data("storage-profile", profile)
+
+    message = str(error.value)
+    assert "required for an active storage profile" in message
+    assert "flags require slurm-tmpdir mode" in message
+
+
+def test_planned_slurm_target_cannot_be_activated_without_site_decisions() -> None:
+    target = load_document(
+        ROOT / "infrastructure/execution-targets/doe-slurm-apptainer.yaml"
+    )
+    validate_contract_data("execution-target", target)
+    target["metadata"]["status"] = "active"
+
+    with pytest.raises(ContractError) as error:
+        validate_contract_data("execution-target", target)
+
+    message = str(error.value)
+    assert "scheduler/account" in message
+    assert "resource_limits/max_cpu" in message
+    assert "metadata/evidence" in message
 
 
 def test_contract_cli_does_not_load_repository_catalog(monkeypatch, capsys) -> None:

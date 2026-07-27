@@ -1,0 +1,28 @@
+api_version: qhpc/v1
+kind: ExecutionTarget
+metadata:
+  id: doe-slurm-apptainer
+  name: DOE Slurm and Apptainer target
+  owners: [software-engineering]
+  visibility: controlled
+  status: planned
+  evidence: []
+spec:
+  runner: slurm
+  execution_classes: [interactive-hpc-pilot, batch-hpc]
+  container_runtimes: [apptainer]
+  resource_limits: {}
+  policies:
+    approved_images_only: true
+    network_access: none
+    allowed_projects:
+      - software-engineering
+      - data-schema
+      - agentic-software
+      - compilation-tools
+      - hybrid-workflows
+      - cross-project
+  storage_profile: doe-slurm-project
+  scheduler:
+    system: slurm
+    apptainer_executable: apptainer

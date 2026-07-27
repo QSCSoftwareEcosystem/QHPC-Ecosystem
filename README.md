@@ -20,7 +20,12 @@ onboarding state, and production gates. The larger catalog remains available
 for future onboarding but is not deployment scope. Each selected component has
 a validated record under [integrations/](integrations/), and the initial
 pre-container source, contract, adapter, fixture, and integration-test scope is
-closed.
+closed. STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim now have
+reproducible, digest-recorded, locally smoke-tested operation images; see
+[docs/operation-runtimes.md](docs/operation-runtimes.md) and the status matrix
+in [containers/operations/README.md](containers/operations/README.md).
+STABSim image publication remains blocked until its upstream project supplies
+explicit license terms.
 
 TN-Sim's pinned public `tn_sim` branch now has a runtime-free CPU MPS operation
 contract and fixture-tested controlled CLI adapter. Its iTensor binary has not
@@ -50,15 +55,20 @@ The responsibilities are intentionally separate:
 The project remains one modular monorepo while it has one primary maintainer.
 The target deployment separates the API control plane, task-executing workers,
 and browser Workbench. The local API and worker now run as separate processes
-over persistent SQLite task leases. This verifies the process boundary, not the
-production PostgreSQL, multi-host worker, or asynchronous target architecture.
+over persistent SQLite task leases. Durable worker identities and heartbeats,
+append-only attempts and execution events, asynchronous target handles,
+restart reconciliation, cancellation, and declared-output collection are
+implemented. This verifies the production-shaped lifecycle locally, not the
+PostgreSQL, multi-host, or approved DOE deployment.
 
 For short approved operations, a target may maintain workers inside a warm,
 site-governed Slurm pilot allocation. Policy selects between local interactive,
 warm-pilot, ordinary batch, and backend-specific execution; unavailable warm
-capacity falls back to batch when permitted. Each attempt will expose separate
+capacity falls back to batch when permitted. Each attempt exposes separate
 authorization, dispatch, scheduler, image, input, execution, collection, and
 finalization latency instead of treating all delay as scientific runtime.
+The durable pilot controller and fallback policy are locally tested; launching
+and operating a worker inside a real site allocation remains target work.
 
 ## Quick start
 
@@ -80,6 +90,7 @@ qhpc-ecosystem sync-manifest --check
 qhpc-ecosystem contract list
 qhpc-ecosystem contract validate capability examples/contracts/valid/capability.yaml
 qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
+qhpc-ecosystem contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
 qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
 qhpc-ecosystem integration validate deployments/initial.yaml
 qhpc-ecosystem integration list deployments/initial.yaml
@@ -184,6 +195,32 @@ FTCircuitBench both use `python-lib.sif`; this avoids maintaining one large imag
 per repository. `--image-dir` changes that location. A cataloged local checkout
 is bound at `/workspace`; use `--workspace PATH` to override it.
 
+The shared images above are developer environments. Tool-specific operation
+containers use the separate `operation-runtime` commands:
+
+```bash
+qhpc-ecosystem operation-runtime verify \
+  containers/operations/qasmtrans/runtime.yaml
+qhpc-ecosystem operation-runtime build-oci \
+  containers/operations/qasmtrans/runtime.yaml /path/to/qasmtrans \
+  --context .qhpc/build/qasmtrans --tag qhpc/qasmtrans:1843c98-linux-amd64
+qhpc-ecosystem operation-runtime smoke-oci \
+  containers/operations/qasmtrans/runtime.yaml \
+  --image qhpc/qasmtrans:1843c98-linux-amd64
+```
+
+This local OCI result is not an accepted HPC runtime. Publication by immutable
+registry digest, SIF conversion, supply-chain evidence, target storage policy,
+and Slurm/Apptainer acceptance remain separate gates.
+
+The production-shaped HPC path is documented in
+[docs/hpc-execution.md](docs/hpc-execution.md). It includes the versioned
+execution-target and storage-profile contracts, asynchronous Slurm runner,
+persisted scheduler handles, controlled input and output staging, restart
+reconciliation, and pilot state controller. The included target, storage, and
+pilot YAML files are planned configurations and cannot be activated until an
+administrator supplies and approves site-specific paths and scheduler policy.
+
 ## Environment classes
 
 | Class | Intended use |
@@ -207,10 +244,11 @@ QHPC intentionally distinguishes two container models:
 - **Operation runtimes** are tool-specific immutable Linux images used by
   workers for reproducible local or HPC workflow execution.
 
-The current OpenQEvo wheel and QASMTrans/STABSim Darwin native bundles are local
-runtime evidence, not production containers. Production images must be built,
-verified, and accepted on the target system after integration contracts and
-adapters stabilize.
+The current OpenQEvo wheel and QASMTrans/STABSim Darwin native bundles remain
+local runtime evidence. The five locally verified OCI operation images are
+production-shaped build artifacts, but they are not production releases until
+they are published by immutable registry digest, converted and verified as
+SIFs, supplied with required release evidence, and accepted on the target.
 
 Warm pilots reuse verified immutable runtime caches for eligible short
 operations but remain normal Slurm allocations with approved accounts, quotas,
@@ -253,8 +291,8 @@ checks with:
 pytest
 ```
 
-The local suite does not claim target-system acceptance. Tool-specific
-Apptainer builds, asynchronous Slurm execution, institutional identity,
-registry policy, storage and RDMA performance, and security reviews require the
-target DOE environment. See
+The local suite does not claim target-system acceptance. Accepted Apptainer
+SIFs, live Slurm and pilot execution, institutional identity, registry policy,
+storage and RDMA performance, and security reviews require the target DOE
+environment. See
 [docs/deployment-readiness.md](docs/deployment-readiness.md).

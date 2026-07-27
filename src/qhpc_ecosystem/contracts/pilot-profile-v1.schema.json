@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/pilot-profile-v1.schema.json",
+  "title": "QHPC Warm Pilot Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "PilotProfile"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {"$ref": "#/$defs/spec"}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "execution_target",
+        "owners",
+        "status",
+        "evidence"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"$ref": "#/$defs/version"},
+        "execution_target": {"$ref": "#/$defs/identifier"},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "status": {"enum": ["planned", "active", "maintenance", "disabled"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri-reference"}
+        }
+      }
+    },
+    "scheduler": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "account": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+        },
+        "partition": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+        },
+        "qos": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+        }
+      }
+    },
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "capacity",
+        "max_lifetime_seconds",
+        "idle_timeout_seconds",
+        "drain_before_expiry_seconds",
+        "health_timeout_seconds"
+      ],
+      "properties": {
+        "nodes": {"type": "integer", "minimum": 1},
+        "capacity": {"type": "integer", "minimum": 1},
+        "max_lifetime_seconds": {"type": "integer", "minimum": 60},
+        "idle_timeout_seconds": {"type": "integer", "minimum": 1},
+        "drain_before_expiry_seconds": {"type": "integer", "minimum": 1},
+        "health_timeout_seconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_cpu",
+        "max_memory_mb",
+        "max_gpu",
+        "max_walltime_seconds"
+      ],
+      "properties": {
+        "max_cpu": {"type": "integer", "minimum": 1},
+        "max_memory_mb": {"type": "integer", "minimum": 1},
+        "max_gpu": {"type": "integer", "minimum": 0},
+        "max_walltime_seconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "operation": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]*@[0-9A-Za-z.+-]+/[a-z][a-z0-9._-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scheduler",
+        "allocation",
+        "eligibility",
+        "allowed_operations",
+        "runtime_digests",
+        "cache_prewarm",
+        "fallback"
+      ],
+      "properties": {
+        "scheduler": {"$ref": "#/$defs/scheduler"},
+        "allocation": {"$ref": "#/$defs/allocation"},
+        "eligibility": {"$ref": "#/$defs/eligibility"},
+        "allowed_operations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/operation"}
+        },
+        "runtime_digests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/digest"}
+        },
+        "cache_prewarm": {"type": "boolean"},
+        "fallback": {"enum": ["batch-hpc", "reject"]}
+      }
+    }
+  }
+}

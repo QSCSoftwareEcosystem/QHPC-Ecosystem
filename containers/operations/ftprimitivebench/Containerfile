@@ -1,0 +1,42 @@
+ARG SOURCE_DATE_EPOCH=1778037194
+
+FROM docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49 AS build
+ARG SOURCE_DATE_EPOCH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=0
+WORKDIR /src
+COPY source.tar /tmp/source.tar
+COPY numpy-2.3.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl /wheels/
+COPY stim-1.15.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl /wheels/
+COPY entrypoint.py /tmp/entrypoint.py
+COPY qhpc-build.json /tmp/qhpc-build.json
+RUN tar -xf /tmp/source.tar -C /src \
+    && python -m pip install \
+       --no-index --no-deps --no-compile \
+       --target /runtime-root/opt/qhpc/python /wheels/*.whl \
+    && cp -a /src/src/ft_primitive_bench \
+       /runtime-root/opt/qhpc/python/ft_primitive_bench \
+    && install -D -m 0755 /tmp/entrypoint.py \
+       /runtime-root/opt/qhpc/bin/qhpc-ftprimitivebench-memory \
+    && install -D -m 0644 /tmp/qhpc-build.json \
+       /runtime-root/usr/share/qhpc/ftprimitivebench-build.json \
+    && install -D -m 0644 /src/LICENSE \
+       /runtime-root/usr/share/licenses/ftprimitivebench/LICENSE \
+    && mkdir -p /runtime-root/outputs /runtime-root/work \
+    && find /runtime-root -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+
+FROM docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+LABEL org.opencontainers.image.title="QHPC FTPrimitiveBench memory operation runtime" \
+      org.opencontainers.image.description="Controlled surface-code memory circuit generator" \
+      org.opencontainers.image.source="https://github.com/ShuwenKan/FTPrimitiveBench" \
+      org.opencontainers.image.revision="ba15eba263ac6d641d225984fa074f4ee25bb462" \
+      org.opencontainers.image.licenses="MIT" \
+      org.qscsoftware.capability="ftprimitivebench-primitives" \
+      org.qscsoftware.operation="build-memory"
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=0 \
+    PYTHONPATH=/opt/qhpc/python
+COPY --from=build /runtime-root/ /
+WORKDIR /work
+USER 65532:65532
+ENTRYPOINT ["/opt/qhpc/bin/qhpc-ftprimitivebench-memory"]

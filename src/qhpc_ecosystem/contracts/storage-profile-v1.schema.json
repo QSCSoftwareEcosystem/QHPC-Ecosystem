@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/storage-profile-v1.schema.json",
+  "title": "QHPC Storage Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "StorageProfile"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {"$ref": "#/$defs/spec"}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/[^\\s]*$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "owners", "status", "evidence"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"$ref": "#/$defs/version"},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "status": {"enum": ["planned", "active", "maintenance", "disabled"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri-reference"}
+        }
+      }
+    },
+    "roots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image_cache", "task_staging"],
+      "properties": {
+        "image_cache": {"$ref": "#/$defs/absolutePath"},
+        "task_staging": {"$ref": "#/$defs/absolutePath"}
+      }
+    },
+    "mounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input", "output", "scratch"],
+      "properties": {
+        "input": {"$ref": "#/$defs/absolutePath"},
+        "output": {"$ref": "#/$defs/absolutePath"},
+        "scratch": {"$ref": "#/$defs/absolutePath"}
+      }
+    },
+    "nodeLocal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "stage_image", "stage_inputs"],
+      "properties": {
+        "mode": {"enum": ["disabled", "slurm-tmpdir"]},
+        "stage_image": {"type": "boolean"},
+        "stage_inputs": {"type": "boolean"},
+        "minimum_free_mb": {"type": "integer", "minimum": 1}
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verify_image_digest",
+        "verify_input_checksums",
+        "cleanup",
+        "max_task_input_bytes"
+      ],
+      "properties": {
+        "verify_image_digest": {"const": true},
+        "verify_input_checksums": {"const": true},
+        "cleanup": {
+          "enum": ["on-success", "always", "retain-on-failure"]
+        },
+        "max_task_input_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_target",
+        "shared_filesystem",
+        "roots",
+        "mounts",
+        "node_local",
+        "policies"
+      ],
+      "properties": {
+        "execution_target": {"$ref": "#/$defs/identifier"},
+        "shared_filesystem": {
+          "enum": ["parallel", "project", "scratch"]
+        },
+        "roots": {"$ref": "#/$defs/roots"},
+        "mounts": {"$ref": "#/$defs/mounts"},
+        "node_local": {"$ref": "#/$defs/nodeLocal"},
+        "policies": {"$ref": "#/$defs/policies"}
+      }
+    }
+  }
+}

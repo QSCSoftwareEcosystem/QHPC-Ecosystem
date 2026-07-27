@@ -1,0 +1,29 @@
+api_version: qhpc/v1
+kind: StorageProfile
+metadata:
+  id: test-slurm-storage
+  name: Test Slurm storage profile
+  version: 0.1.0
+  owners: [software-engineering]
+  status: active
+  evidence: [docs/testing.md]
+spec:
+  execution_target: test-slurm
+  shared_filesystem: project
+  roots:
+    image_cache: /project/qhpc/images
+    task_staging: /project/qhpc/tasks
+  mounts:
+    input: /inputs
+    output: /outputs
+    scratch: /scratch
+  node_local:
+    mode: slurm-tmpdir
+    stage_image: true
+    stage_inputs: true
+    minimum_free_mb: 1024
+  policies:
+    verify_image_digest: true
+    verify_input_checksums: true
+    cleanup: on-success
+    max_task_input_bytes: 10000000

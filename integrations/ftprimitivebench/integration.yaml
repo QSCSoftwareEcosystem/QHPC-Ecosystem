@@ -31,10 +31,14 @@ spec:
     fixtures: complete
     integration_tests: complete
     registry_publication: pending
-  contract_refs: [integrations/ftprimitivebench/interface.yaml]
-  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+  contract_refs:
+    - integrations/ftprimitivebench/interface.yaml
+    - containers/operations/ftprimitivebench/runtime.yaml
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/ftprimitivebench-oci-smoke-2026-07-27.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Decide the resource and operation boundary before selecting or building a runtime image.
+    reason: The pinned Linux OCI operation image passes local smoke and reproducibility checks; publication, SIF conversion, supply-chain evidence, and target acceptance remain pending.
   blockers: []

@@ -1,0 +1,30 @@
+api_version: qhpc/v1
+kind: PilotProfile
+metadata:
+  id: doe-short-interactive
+  name: DOE short interactive pilot
+  version: 0.1.0
+  execution_target: doe-slurm-apptainer
+  owners: [software-engineering]
+  status: planned
+  evidence: []
+spec:
+  scheduler: {}
+  allocation:
+    nodes: 1
+    capacity: 1
+    max_lifetime_seconds: 3600
+    idle_timeout_seconds: 600
+    drain_before_expiry_seconds: 300
+    health_timeout_seconds: 60
+  eligibility:
+    max_cpu: 4
+    max_memory_mb: 8192
+    max_gpu: 0
+    max_walltime_seconds: 120
+  allowed_operations:
+    - qasmtrans-transpiler@0.1.0/transpile
+  runtime_digests:
+    - sha256:0000000000000000000000000000000000000000000000000000000000000000
+  cache_prewarm: true
+  fallback: batch-hpc

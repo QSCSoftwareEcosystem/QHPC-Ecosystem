@@ -56,9 +56,7 @@ def validate_scaffold_set(
         else:
             by_id[component_id] = scaffold
 
-    expected_ids = {
-        component["id"] for component in profile["spec"]["components"]
-    }
+    expected_ids = {component["id"] for component in profile["spec"]["components"]}
     missing = sorted(expected_ids - set(by_id))
     if missing:
         issues.append(
@@ -109,7 +107,10 @@ def validate_scaffold_set(
 
         onboarding_status = component["onboarding_status"]
         integration_status = metadata["integration_status"]
-        if onboarding_status == "registry-published" and integration_status != "published":
+        if (
+            onboarding_status == "registry-published"
+            and integration_status != "published"
+        ):
             issues.append(
                 ContractIssue(
                     path,
@@ -133,7 +134,9 @@ def _local_reference(root: Path, reference: str) -> Path | None:
         return None
     path = (root / parsed.path).resolve()
     if not path.is_relative_to(root):
-        raise IntegrationError(f"integration reference escapes the workspace: {reference}")
+        raise IntegrationError(
+            f"integration reference escapes the workspace: {reference}"
+        )
     return path
 
 
@@ -146,6 +149,7 @@ def validate_scaffold_references(
     kind_map = {
         "Capability": "capability",
         "OperationInterface": "operation-interface",
+        "OperationRuntime": "operation-runtime",
         "ServiceInterface": "service-interface",
     }
     for scaffold in scaffolds:
@@ -163,7 +167,9 @@ def validate_scaffold_references(
                     continue
                 if not path.is_file():
                     issues.append(
-                        ContractIssue(issue_path, f"referenced file not found: {reference}")
+                        ContractIssue(
+                            issue_path, f"referenced file not found: {reference}"
+                        )
                     )
                     continue
                 if field == "evidence":
@@ -180,10 +186,15 @@ def validate_scaffold_references(
                         )
                         continue
                     validate_contract_data(contract_kind, document)
-                    if contract_kind in {
-                        "operation-interface",
-                        "service-interface",
-                    } and document["metadata"]["component"] != component_id:
+                    if (
+                        contract_kind
+                        in {
+                            "operation-interface",
+                            "operation-runtime",
+                            "service-interface",
+                        }
+                        and document["metadata"]["component"] != component_id
+                    ):
                         issues.append(
                             ContractIssue(
                                 issue_path,

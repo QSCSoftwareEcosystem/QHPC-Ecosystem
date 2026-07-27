@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -81,11 +82,17 @@ def test_engine_executes_persistent_workflow_and_exports_bundle(tmp_path: Path) 
         "succeeded",
         "succeeded",
     ]
+    assert all(
+        task["attempts"][-1]["outputs"] == task["outputs"]
+        for task in completed["tasks"]
+    )
     assert completed["outputs"]["results"].startswith("artifact-")
 
     bundle = engine.export_run(run["id"])
     assert bundle["workflow"]["digest"] == completed["workflow_digest"]
     assert len(bundle["artifacts"]) == 2
+    attempt_ids = {attempt["id"] for attempt in bundle["attempts"]}
+    assert {artifact["attempt_id"] for artifact in bundle["artifacts"]} == attempt_ids
     assert bundle["digest"].startswith("sha256:")
 
 
@@ -98,6 +105,75 @@ def test_workflow_versions_are_immutable(tmp_path: Path) -> None:
 
     with pytest.raises(ContractError, match="immutable"):
         engine.register_workflow(changed, example_registry(), created_by="test-user")
+
+
+def test_schema_migration_links_attempt_outputs_and_artifacts(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "engine.sqlite"
+    with sqlite3.connect(database) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE artifacts (
+                id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                task_id TEXT,
+                port TEXT NOT NULL,
+                artifact_type TEXT NOT NULL,
+                uri TEXT NOT NULL,
+                checksum TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE (run_id, task_id, port, checksum)
+            );
+            CREATE TABLE task_attempts (
+                id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                node_id TEXT NOT NULL,
+                number INTEGER NOT NULL,
+                state TEXT NOT NULL,
+                worker_id TEXT,
+                lease_token TEXT,
+                lease_expires_at TEXT,
+                target_handle TEXT,
+                target_state TEXT,
+                target_metadata TEXT NOT NULL DEFAULT '{}',
+                started_at TEXT NOT NULL,
+                submitted_at TEXT,
+                finished_at TEXT,
+                error TEXT,
+                log TEXT NOT NULL DEFAULT '',
+                UNIQUE (run_id, node_id, number)
+            );
+            """
+        )
+
+    engine = WorkflowEngine(database, tmp_path / "artifacts")
+
+    assert engine.schema_version() == 3
+    with sqlite3.connect(database) as connection:
+        artifact_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(artifacts)")
+        }
+        attempt_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(task_attempts)")
+        }
+        artifact_indexes = [
+            row[1]
+            for row in connection.execute("PRAGMA index_list(artifacts)")
+            if row[3] == "u"
+        ]
+        unique_columns = [
+            [
+                column[2]
+                for column in connection.execute(f"PRAGMA index_info({index_name})")
+            ]
+            for index_name in artifact_indexes
+        ]
+    assert "attempt_id" in artifact_columns
+    assert "outputs" in attempt_columns
+    assert ["attempt_id", "port"] in unique_columns
+    assert ["run_id", "task_id", "port", "checksum"] not in unique_columns
 
 
 def test_failed_task_can_be_retried_without_repeating_parent(tmp_path: Path) -> None:
@@ -140,6 +216,53 @@ def test_failed_task_can_be_retried_without_repeating_parent(tmp_path: Path) -> 
     assert completed["state"] == "succeeded"
     assert completed["tasks"][0]["attempt"] == 1
     assert completed["tasks"][1]["attempt"] == 2
+    assert [attempt["state"] for attempt in completed["tasks"][1]["attempts"]] == [
+        "failed",
+        "succeeded",
+    ]
+    assert completed["tasks"][1]["attempts"][0]["error"]["message"] == (
+        "temporary failure"
+    )
+    assert any(
+        event["event_type"] == "task.retry-requested" for event in completed["events"]
+    )
+
+
+def test_successful_retry_retains_each_attempt_output(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    engine.register_workflow(workflow, example_registry(), created_by="test-user")
+    run = engine.submit_run(
+        workflow["metadata"]["id"],
+        workflow["metadata"]["version"],
+        inputs={},
+        execution_target="local-development",
+        created_by="test-user",
+    )
+    runner = make_runner()
+    assert engine.run_until_idle(runner) == 2
+
+    engine.retry_task(run["id"], "simulate")
+    assert engine.run_until_idle(runner) == 1
+
+    completed = engine.get_run(run["id"])
+    attempts = completed["tasks"][1]["attempts"]
+    assert [attempt["state"] for attempt in attempts] == [
+        "succeeded",
+        "succeeded",
+    ]
+    assert attempts[0]["outputs"]["results"] != attempts[1]["outputs"]["results"]
+    bundle = engine.export_run(run["id"])
+    result_artifacts = [
+        artifact
+        for artifact in bundle["artifacts"]
+        if artifact.get("port") == "results"
+    ]
+    assert [artifact["attempt_id"] for artifact in result_artifacts] == [
+        attempt["id"] for attempt in attempts
+    ]
 
 
 def test_external_input_artifact_is_typed_persisted_and_exported(

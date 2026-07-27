@@ -25,15 +25,39 @@
           "items": {"type": "string", "minLength": 1}
         },
         "visibility": {"enum": ["internal", "controlled"]},
-        "status": {"enum": ["planned", "active", "maintenance", "disabled"]}
+        "status": {"enum": ["planned", "active", "maintenance", "disabled"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri-reference"}
+        }
       }
     },
     "spec": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["runner", "container_runtimes", "resource_limits", "policies"],
+      "required": [
+        "runner",
+        "execution_classes",
+        "container_runtimes",
+        "resource_limits",
+        "policies"
+      ],
       "properties": {
         "runner": {"enum": ["local", "slurm", "quantum"]},
+        "execution_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "interactive-local",
+              "interactive-hpc-pilot",
+              "batch-hpc",
+              "quantum-backend"
+            ]
+          }
+        },
         "container_runtimes": {
           "type": "array",
           "uniqueItems": true,
@@ -71,8 +95,51 @@
               }
             }
           }
+        },
+        "storage_profile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+        },
+        "scheduler": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["system", "apptainer_executable"],
+          "properties": {
+            "system": {"const": "slurm"},
+            "account": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            },
+            "partition": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            },
+            "qos": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            },
+            "apptainer_executable": {
+              "type": "string",
+              "pattern": "^(?:/[^\\s]*|[A-Za-z0-9][A-Za-z0-9._-]*)$"
+            },
+            "max_active_jobs": {"type": "integer", "minimum": 1}
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"runner": {"const": "slurm"}},
+            "required": ["runner"]
+          },
+          "then": {
+            "required": ["storage_profile", "scheduler"],
+            "properties": {
+              "container_runtimes": {"contains": {"const": "apptainer"}}
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -31,10 +31,14 @@ spec:
     fixtures: complete
     integration_tests: complete
     registry_publication: pending
-  contract_refs: [integrations/lightstim/interface.yaml]
-  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+  contract_refs:
+    - integrations/lightstim/interface.yaml
+    - containers/operations/lightstim/runtime.yaml
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/lightstim-oci-smoke-2026-07-27.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Build the production image after the simulation boundary and integration tests are fixed.
+    reason: The pinned CPU PyMatching OCI operation image passes local smoke and reproducibility checks; publication, SIF conversion, supply-chain evidence, scaling tests, and target acceptance remain pending.
   blockers: []

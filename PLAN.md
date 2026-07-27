@@ -1,7 +1,7 @@
 # QHPC Ecosystem Plan
 
 - Status: Active
-- Last updated: 2026-07-24
+- Last updated: 2026-07-27
 - Scope: QSC Software Thrust quantum-HPC software ecosystem
 
 ## Purpose
@@ -30,7 +30,7 @@ user workbench.
 
 ## Current Delivery Snapshot
 
-As of 2026-07-24, the ecosystem is a working local orchestration MVP. It is not
+As of 2026-07-27, the ecosystem is a working local orchestration MVP. It is not
 yet a shared DOE service or an end-to-end HPC deployment. The plan uses the
 following status distinctions:
 
@@ -38,21 +38,22 @@ following status distinctions:
 | --- | --- | --- |
 | Contracts, catalog, and deployment admission | Functional locally | Versioned schemas, catalog validation, and deny-by-default deployment-profile filtering are implemented |
 | Registry, workflow engine, and control API | Functional locally | Discovery, workflow publication, run submission, state, cancellation, retry, logs, and export are implemented |
-| Local execution and provenance | Functional locally | Separate API and worker processes execute controlled local operations and persist artifacts, checksums, logs, and provenance in SQLite and the filesystem |
+| Local execution and provenance | Functional locally | Separate API and durable worker processes use leases, heartbeats, append-only attempts and events, asynchronous handles, reconciliation, cancellation, declared-output collection, and persisted artifacts and provenance |
 | Browser Workbench | Partially functional | Discovery, templates, one-operation drafts, run polling, artifacts, and export work; arbitrary typed graph composition and durable workspaces remain pending |
-| Initial component onboarding | Pre-container scope complete | Five components are registry-published; all ten have source, interface, adapter or not-applicable, fixture, and integration-test closure; executable runtimes and the ChatQEC server remain production gates |
-| HPC execution | Foundations only | Slurm and Apptainer primitives exist, but task leases, asynchronous target handles, storage profiles, production images, and target acceptance are not connected end to end |
+| Initial component onboarding | Five local OCI runtimes verified | Five components are registry-published; all ten have pre-container closure; STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim have reproducible locally smoke-tested OCI operation images |
+| HPC execution | Local integration complete; site acceptance pending | A versioned execution target, storage profile, asynchronous Slurm runner, durable handles, restart reconciliation, controlled staging, output collection, latency events, and pilot state controller are implemented and simulated end to end; accepted SIFs, a live target, and an in-allocation pilot launcher remain external gates |
 | DOE shared deployment | Not ready | Institutional identity, PostgreSQL, approved artifact storage, secrets, audit forwarding, monitoring, signed runtime supply chain, and security and operations acceptance remain pending |
 
-The automated local suite reported 100 passed tests and one skipped test on
-2026-07-24. Target-system acceptance, performance, RDMA, container, and
-institutional security tests are separate and are not represented by that
-local result.
+The automated local suite reported 126 passed tests and one skipped test on
+2026-07-27. Target-system container acceptance, performance, RDMA, and
+institutional security tests are separate and are not represented by that local
+result.
 
-The active delivery target is a production-shaped shared execution slice: a
-durable asynchronous task lifecycle, one Slurm-backed operation using an
-accepted immutable runtime and storage profile, and correlated stage latency
-evidence from submission through artifact collection.
+The active delivery target is site acceptance of the production-shaped
+execution slice: publish immutable runtime releases, convert and verify them as
+SIFs, activate the planned target and storage profile with site values, launch
+a pilot through approved Slurm policy, and collect correlated native and
+container performance evidence.
 
 ## Design Principles
 
@@ -242,12 +243,17 @@ without becoming visible or executable in the deployed service.
 
 STABSim, QASMTrans, OpenQEvo, OpenQSE, and QAppsWiki currently have published
 registry records. OpenQSE resolves to a pinned `openQSE/openqse-spec` revision
-and, like QAppsWiki, publishes non-executable resources. TN-Sim, NWQEC,
-FTPrimitiveBench, and LightStim have completed pre-runtime contract and adapter
-integration but still require immutable runtimes and executable capability
-publication. TN-Sim uses the public `tn_sim` branch of `pnnl/NWQ-Sim` without a
-QSC mirror; its CPU iTensor MPS adapter is fixture-tested, while the external
-binary and source-backed correctness execution remain runtime gates.
+and, like QAppsWiki, publishes non-executable resources. STABSim, QASMTrans,
+NWQEC, FTPrimitiveBench, and LightStim have reproducible, digest-recorded,
+locally smoke-tested `linux/amd64` OCI operation images. Those images are not
+registry releases or target-accepted SIFs, so NWQEC, FTPrimitiveBench, and
+LightStim still require executable capability publication. TN-Sim uses the
+public `tn_sim` branch of `pnnl/NWQ-Sim` without a QSC mirror; its CPU iTensor
+MPS adapter is fixture-tested, while a corrected reproducible iTensor/BLAS
+build and source-backed correctness execution remain runtime gates. OpenQEvo
+cannot be packaged for distribution until its upstream license is resolved.
+STABSim's local image likewise cannot be published until its upstream project
+supplies explicit license terms.
 
 ChatQEC has an authenticated exact-revision audit, accepted internal service
 boundary, provider-neutral HTTPS JSON/SSE contract, bounded client adapter,
@@ -378,12 +384,14 @@ approved request requires interactive service. Append-only task-stage events
 separate API, dispatch, scheduler, image, input, execution, collection, and
 finalization latency.
 
-The local SQLite engine, filesystem artifact store, separate worker process,
-synchronous local runner protocol, Python wheel, and Darwin native bundles are
-MVP implementations. The API-worker process boundary is implemented locally,
-but this does not constitute production persistence, Linux operation
-containers, asynchronous Slurm execution handles, worker heartbeats, a warm
-pilot service, stage latency telemetry, or a storage-aware HPC target.
+The local SQLite engine and filesystem artifact store remain MVP
+implementations. The API-worker process boundary, durable worker identity and
+heartbeats, append-only attempts and events, asynchronous execution handles,
+Slurm reconciliation, storage-aware staging, and pilot state and dispatch
+policy are implemented locally. Five tool-specific Linux OCI runtimes are also
+locally verified. These results do not constitute production persistence, an
+approved shared artifact store, target-accepted SIFs, a live warm-pilot
+service, or DOE-site performance and security acceptance.
 
 ## Implementation Phases
 
@@ -444,7 +452,7 @@ Exit criteria:
 
 ### Phase 1A - Initial Component Integration Scaffolding
 
-Status: Completed pre-container integration; production runtimes deferred
+Status: Completed pre-container integration; runtime work moved to Phase 6
 
 Integration is deliberately completed before production containerization. A
 scaffold is non-executable and cannot enter a workflow registry as an operation.
@@ -491,13 +499,13 @@ Deliverables:
       6 deployment gates.
 - [x] Select the concrete `openQSE/openqse-spec` repository at an exact revision
       and publish its glossary and architecture as non-executable resources.
-- [x] Defer immutable operation-runtime builds and executable publication for
-      TN-Sim, NWQEC, FTPrimitiveBench, and LightStim to the production-runtime
-      work after interface stabilization.
+- [x] Move immutable operation-runtime builds and executable publication to the
+      production-runtime work after interface stabilization.
 
 Shared Apptainer developer environments remain available during this phase.
-Tool-specific Linux operation images, image signing, and target acceptance stay
-in Phase 6 so interface churn does not force repeated production image work.
+Tool-specific Linux operation images, image signing, and target acceptance are
+tracked in Phase 6 so interface churn does not force repeated production image
+work.
 
 ### Phase 2 - Federated Registry and Contributor Workflow
 
@@ -541,7 +549,7 @@ Exit criteria:
 
 ### Phase 3 - Independent Workflow Engine
 
-Status: Local API-worker process split implemented; production backend pending
+Status: Durable local asynchronous engine implemented; production backend pending
 
 Deliverables:
 
@@ -560,18 +568,20 @@ Production architecture deliverables:
 
 - [x] Separate the API process from task-executing worker processes; the API
       queues runs and a registry-bound worker leases and executes tasks.
-- [ ] Replace synchronous execution with persistent asynchronous execution
+- [x] Replace synchronous execution with persistent asynchronous execution
       handles and worker heartbeats.
-- [ ] Persist append-only execution events scoped to runs, task attempts, and
+- [x] Persist append-only execution events scoped to runs, task attempts, and
       pilots with correlation IDs, occurrence and receipt timestamps, monotonic
       stage durations, execution class, source component, and target handle.
-- [ ] Expose asynchronous state and derived API, dispatch, queue, staging,
+- [x] Expose asynchronous state and derived API, dispatch, queue, staging,
       execution, collection, and end-to-end latency through versioned APIs.
-- [ ] Store retries as append-only task attempts rather than rewriting prior
+- [x] Store retries as append-only task attempts rather than rewriting prior
       execution facts.
-- [ ] Introduce persistence and artifact-store interfaces with schema migration
-      support.
-- [ ] Ingest outputs only from declared task-relative paths and verify payloads
+- [x] Add schema-managed local migrations for workers, attempts, handles, and
+      execution events.
+- [ ] Replace SQLite and the filesystem artifact implementation with
+      production persistence and artifact-store interfaces.
+- [x] Ingest outputs only from declared task-relative paths and verify payloads
       during collection.
 - [ ] Enforce workspace ownership, target policy, and authoritative identity in
       application services.
@@ -588,9 +598,10 @@ Exit criteria:
 - A run can be exported with the information required to understand and repeat
   it.
 
-The local exit criteria are met. Production exit additionally requires that API
-restart, worker restart, duplicate completion, retry history, and asynchronous
-target recovery preserve all prior attempts and artifacts.
+The local exit criteria, including restart, retry-history, duplicate-submit
+recovery, and declared-output collection tests, are met. Production exit
+additionally requires the same guarantees on PostgreSQL and the approved
+artifact service under multi-host failure and concurrency.
 
 ### Phase 4 - QHPC Workbench MVP
 
@@ -698,7 +709,7 @@ Exit criteria:
 
 ### Phase 6 - HPC and DOE Hardening
 
-Status: Local worker boundary implemented; storage and target integration pending
+Status: Local target integration implemented; DOE-site activation pending
 
 Production containerization occurs here, after integration scope, contracts,
 adapters, fixtures, and tests have stabilized. Shared development images remain
@@ -718,24 +729,34 @@ Deliverables:
       health checks, alerting, and operational ownership.
 - [x] Implement Slurm submission, polling, cancellation, accounting fallback,
       and failure-classification primitives.
-- [ ] Integrate an asynchronous Slurm runner with worker leases, persisted job
+- [x] Integrate an asynchronous Slurm runner with worker leases, persisted job
       IDs, heartbeats, cancellation, timeout, and output collection.
-- [ ] Define target execution-class policy for local interactive, warm HPC
+- [x] Define target execution-class policy for local interactive, warm HPC
       pilot, ordinary batch, and target-specific asynchronous backends.
-- [ ] Implement site-approved warm Slurm pilot allocations for eligible short
-      operations, including capacity accounting, health checks, idle timeout,
-      maximum lifetime, cache prewarming, draining, and ordinary-batch fallback.
+- [x] Implement durable pilot allocation, reservation, capacity, eligibility,
+      health, lifetime, drain, termination, and ordinary-batch fallback state
+      and policy.
+- [ ] Connect pilot state to a site-approved Slurm allocation launcher and
+      fresh in-allocation job-step transport.
 - [ ] Restrict pilot workers to authorized operations, immutable runtime
       digests, fresh resource-isolated job steps and container processes,
       per-task workspaces, and the same artifact and audit controls as
       independently scheduled jobs.
 - [ ] Execute approved workloads with Apptainer on target HPC systems.
-- [ ] Build tool-specific immutable Linux operation images; development images,
-      Python wheels, and Darwin bundles do not satisfy this requirement.
+- [x] Define the versioned operation-runtime build contract, deterministic
+      context preparation, constrained OCI smoke runner, offline dependency
+      cache, and pinned `linux/amd64` reference images.
+- [x] Build and locally reproduce the five currently feasible operation images:
+      STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim.
+- [ ] Resolve TN-Sim's reproducible source build, STABSim and OpenQEvo's
+      upstream license terms, and ChatQEC's server boundary before publishing
+      or building the affected production runtimes.
 - [ ] Integrate an approved internal image registry or shared image cache.
-- [ ] Define target storage profiles for image staging, read-only inputs,
+- [x] Define versioned target storage profiles for image staging, read-only inputs,
       node-local scratch, result collection, quotas, retention, and purge.
-- [ ] Add controlled bind mappings; workflows cannot provide arbitrary host
+- [ ] Activate a site-owned storage profile with approved paths, quotas,
+      retention, and purge behavior.
+- [x] Add controlled bind mappings; workflows cannot provide arbitrary host
       paths.
 - [ ] Verify host parallel-filesystem access and required RDMA, MPI, UCX,
       libfabric, GPU, and GPUDirect paths through site-approved libraries and
@@ -758,9 +779,14 @@ Deliverables:
       API boundary.
 - [x] Define execution-target allowlists and resource-limit validation
       primitives.
-- [ ] Enforce target, storage, image, bind, account, and resource policy in the
-      deployed API and worker boundaries.
-- [ ] Enforce target network policy.
+- [x] Enforce target, storage, image, bind, account, runtime, parameter, input,
+      checksum, quota, and resource policy in the local asynchronous runner.
+- [ ] Enforce the accepted target policy in the deployed API and worker
+      boundaries.
+- [x] Render network-disabled OCI smoke and Apptainer execution for runtimes
+      whose contract forbids network access.
+- [ ] Verify and enforce the accepted network policy on each target, including
+      site support for Apptainer network namespaces.
 - [ ] Produce required software inventories, checksums, attestations, or SBOMs.
 - [ ] Complete security, operations, backup, recovery, and deployment reviews.
 
@@ -804,16 +830,18 @@ the shortest route from the current local MVP to a credible shared deployment.
 | Order | Delivery milestone | Status | Completion gate |
 | --- | --- | --- | --- |
 | 1 | Close pre-container integration scope | Completed | All ten initial components have closed source, interface, adapter or not-applicable, fixture, and test gates; OpenQSE is pinned and ChatQEC has a provider-neutral service contract |
-| 2 | Make execution durable and asynchronous | Pending | Attempts and stage events are append-only; workers have durable identity, heartbeats, target handles, reconciliation, and restart-safe output collection |
-| 3 | Prove one cold Slurm execution slice | Pending | One representative operation moves from an API-created task lease through Slurm and Apptainer to verified artifact collection under an approved target and storage profile |
-| 4 | Add the low-latency HPC path | Pending | Policy selects eligible warm-pilot execution, enforces isolation and capacity, falls back to batch, and reports complete stage-by-stage latency |
-| 5 | Publish initial production runtimes | Pending | Stable executable providers in the initial allowlist have immutable Linux images, required supply-chain evidence, target acceptance, and registry capabilities |
+| 2 | Make execution durable and asynchronous | Completed locally | Attempts and stage events are append-only; workers have durable identity, heartbeats, target handles, reconciliation, and restart-safe output collection |
+| 3 | Prove one cold Slurm execution slice | Implemented locally; target pending | A simulated QASMTrans slice runs from an API-created lease through the asynchronous Slurm and Apptainer contract to verified artifact collection; a site-approved target, storage profile, SIF, and evidence remain required |
+| 4 | Add the low-latency HPC path | Controller complete; target pending | Durable pilot capacity and fallback policy are tested locally; an approved Slurm allocation launcher, fresh in-allocation job steps, isolation evidence, and target latency measurements remain required |
+| 5 | Publish initial production runtimes | Five local images complete | STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim have reproducible local OCI evidence; license clearance where required, immutable registry releases, SIF conversion, supply-chain evidence, and target acceptance remain required |
 | 6 | Deploy the shared service and complete the Workbench MVP | Pending | PostgreSQL, approved artifact storage, identity and policy, secrets, audit and monitoring integration, recovery procedures, and arbitrary typed visual composition pass acceptance |
 
-Containerization begins only after milestone 1 stabilizes the remaining
-interfaces. Milestone 3 deliberately accepts one representative runtime first
-so storage, Slurm, security, and performance assumptions are tested before
-building every initial component image.
+Containerization began after milestone 1 stabilized the interfaces. The five
+currently feasible operation images are locally complete. Deployment now
+deliberately requires one target-accepted representative slice before
+additional executable capability publication, so storage, Slurm, security, and
+performance assumptions are measured on the target rather than inferred from
+local OCI execution.
 
 ## Verification Strategy
 
@@ -843,26 +871,26 @@ Testing will scale with each layer:
 
 ## Current Readiness Gaps
 
-The following issues are known as of 2026-07-24:
+The following issues are known as of 2026-07-27:
 
 - The initial deployment allowlist is fixed, but five selected components are
   not yet registry-published: TN-Sim, NWQEC, FTPrimitiveBench, LightStim, and
-  ChatQEC.
+  ChatQEC. A locally smoke-tested OCI image is build evidence, not executable
+  registry admission.
 - All ten components have validated integration scaffolds and completed their
-  pre-container source, interface, adapter or not-applicable, fixture, and
-  integration-test gates. TN-Sim, NWQEC, FTPrimitiveBench, and LightStim still
-  require production runtimes and executable registry capabilities.
-- TN-Sim's canonical source is the public `tn_sim` branch of `pnnl/NWQ-Sim`
-  and does not require a QSC mirror. Its CPU iTensor MPS contract and controlled
-  CLI adapter are fixture-tested, but the external binary still needs a
-  reproducible build, source-backed correctness execution, immutable runtime,
-  and target acceptance. OpenQSE is resolved to a pinned non-executable
-  specification resource. ChatQEC's interface and client adapter are complete,
-  but its server plus concrete model, embedding, egress, retention, corpus, and
-  identity services need implementation and institutional acceptance.
-- NWQEC's upstream build metadata uses a deprecated `scikit-build-core` key.
-  Reproducible builds currently require the compatible 0.10.x backend or an
-  upstream metadata update before production runtime construction.
+  source, interface, adapter or not-applicable, fixture, and integration-test
+  gates. STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim now also
+  have reproducible locally smoke-tested OCI images.
+- TN-Sim's CPU iTensor MPS contract and controlled CLI adapter are
+  fixture-tested, but the pinned iTensor/BLAS source build still needs
+  correction and source-backed correctness execution before packaging.
+  STABSim's audited revision contains no license file, so its verified local
+  image cannot be distributed yet. OpenQEvo's upstream metadata declares its
+  license as `TBD` and provides no license file, so a distributable operation
+  image is blocked on an upstream license decision. ChatQEC's interface and
+  client adapter are complete, but its server plus concrete model, embedding,
+  egress, retention, corpus, and identity services need implementation and
+  institutional acceptance.
 - CT does not have a dedicated local checkout in this coordination workspace.
 - SE, AS, and HW are sparsely populated locally and require canonical project
   content or release locations for capability onboarding.
@@ -870,19 +898,21 @@ The following issues are known as of 2026-07-24:
 - FTQC has an unresolved canonical-source decision between internal GitLab and
   public GitHub locations.
 - OpenQEvo method discovery and the QASMTrans-to-STABSim metrics workflow are
-  verified with digest-checked local runtimes. Production container builds and
-  target-system signatures remain pending.
-- The API and local worker are separate processes, but the worker still uses a
-  synchronous local runner protocol and has no persistent worker identity,
-  heartbeat, asynchronous target handle, or reconciliation loop.
-- No warm worker or pilot allocation manager, execution-class dispatcher, or
-  persistent stage-by-stage latency telemetry is implemented yet.
-- Task retries update a current task record; append-only attempt history and
-  authoritative contract-shaped API records remain pending.
+  verified with digest-checked local runtimes. The five OCI references still
+  require immutable registry publication, SIF conversion, required
+  supply-chain evidence, and target acceptance.
+- Durable local workers, asynchronous Slurm handles, scheduler reconciliation,
+  append-only attempts and events, declared-output collection, storage-policy
+  checks, execution-class dispatch, and pilot state and fallback are
+  implemented and tested. The production PostgreSQL and artifact-store
+  implementations, live Slurm transport, site pilot launcher, and
+  in-allocation step runner remain pending.
 - The Workbench queues templates and one-operation drafts but does not yet
   provide arbitrary visual node-and-edge composition.
-- No target storage profile, node-local staging policy, controlled HPC bind map,
-  or native-versus-container RDMA/I/O acceptance evidence exists yet.
+- Planned target, storage, and pilot profiles plus controlled staging and bind
+  enforcement exist. Site-owned paths, quotas, SIFs, network namespaces,
+  native-versus-container RDMA and I/O evidence, and performance thresholds
+  remain unverified.
 - The approved identity, deployment, container registry, artifact storage, and
   network boundaries, filesystem topology, RDMA policy, and performance
   thresholds for a DOE-hosted service remain institutional decisions; required
@@ -904,7 +934,7 @@ operations through a separate worker, inspect state and artifacts, retry or
 cancel work, and export provenance. OpenQEvo and the
 QASMTrans-to-STABSim structural-metrics path provide verified local slices.
 This milestone does not claim arbitrary visual composition, production Linux
-containers, shared multi-user operation, or HPC target acceptance.
+container acceptance, shared multi-user operation, or HPC target acceptance.
 
 ### Workbench Composition MVP
 
@@ -921,13 +951,16 @@ This milestone is complete when a user can:
 
 ### Shared HPC MVP
 
-Status: Pending
+Status: Local simulated path complete; site acceptance pending
 
 This milestone requires the same scientific operation contract to execute
 locally and through a worker-managed Slurm and Apptainer path. It includes a
 target-owned storage profile, immutable runtime verification, asynchronous job
 reconciliation, declared-output collection, append-only attempts and stage
 events, cancellation and recovery, and measured cold-batch and warm-pilot
+latency. The contracts, runner, reconciliation, storage enforcement, and pilot
+controller are locally implemented and tested; the milestone remains open
+until those paths run on an approved target with accepted SIFs and measured
 latency. It does not imply full DOE production approval.
 
 ### DOE Production Readiness

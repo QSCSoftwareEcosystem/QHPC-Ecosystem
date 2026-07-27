@@ -83,7 +83,15 @@
           }
         },
         "parameters": {"type": "object"},
-        "execution_target": {"$ref": "#/$defs/identifier"}
+        "execution_target": {"$ref": "#/$defs/identifier"},
+        "execution_class": {
+          "enum": [
+            "interactive-local",
+            "interactive-hpc-pilot",
+            "batch-hpc",
+            "quantum-backend"
+          ]
+        }
       }
     },
     "endpoint": {

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import sys
 from pathlib import Path
 from typing import Sequence
@@ -23,6 +24,7 @@ from .contract import (
     load_schema,
     validate_contract,
 )
+from .operation_runtime import OperationRuntimeError
 from .registry import (
     RegistryError,
     build_registry,
@@ -146,7 +148,9 @@ def build_parser() -> argparse.ArgumentParser:
         "info", help="show one component integration scaffold"
     )
     for command in (integration_validate, integration_list, integration_info):
-        command.add_argument("profile", help="deployment profile containing scaffold paths")
+        command.add_argument(
+            "profile", help="deployment profile containing scaffold paths"
+        )
         command.add_argument(
             "--workspace-root",
             help="root used to resolve scaffold paths; defaults to the profile's project root",
@@ -216,6 +220,19 @@ def build_parser() -> argparse.ArgumentParser:
     worker_parser.add_argument("--runtime-root", default=".qhpc/runtimes")
     worker_parser.add_argument("--poll-interval", type=float, default=1.0)
     worker_parser.add_argument("--lease-seconds", type=int, default=300)
+    worker_parser.add_argument("--worker-id")
+    worker_parser.add_argument(
+        "--execution-target",
+        dest="execution_targets",
+        action="append",
+        help="execution target admitted by this local worker; repeat as needed",
+    )
+    worker_parser.add_argument(
+        "--execution-class",
+        dest="execution_classes",
+        action="append",
+        help="execution class admitted by this local worker; repeat as needed",
+    )
     worker_mode = worker_parser.add_mutually_exclusive_group()
     worker_mode.add_argument(
         "--once", action="store_true", help="process at most one ready task and exit"
@@ -223,6 +240,59 @@ def build_parser() -> argparse.ArgumentParser:
     worker_mode.add_argument(
         "--drain", action="store_true", help="process ready tasks until idle and exit"
     )
+
+    target_worker = subparsers.add_parser(
+        "target-worker",
+        help="run a restart-safe asynchronous Slurm/Apptainer worker",
+    )
+    target_worker.add_argument("--registry", required=True)
+    target_worker.add_argument("--deployment-profile", required=True)
+    target_worker.add_argument("--execution-target", required=True)
+    target_worker.add_argument("--storage-profile", required=True)
+    target_worker.add_argument("--runtime-manifest", action="append", required=True)
+    target_worker.add_argument("--database", default=".qhpc/workbench.sqlite")
+    target_worker.add_argument("--artifact-root", default=".qhpc/artifacts")
+    target_worker.add_argument("--poll-interval", type=float, default=1.0)
+    target_worker.add_argument("--lease-seconds", type=int, default=300)
+    target_worker.add_argument("--worker-id")
+    target_worker.add_argument(
+        "--once", action="store_true", help="perform at most one transition and exit"
+    )
+
+    pilot_parser = subparsers.add_parser(
+        "pilot", help="manage durable warm-pilot allocation state"
+    )
+    pilot_commands = pilot_parser.add_subparsers(dest="pilot_command", required=True)
+    pilot_list = pilot_commands.add_parser("list")
+    pilot_request = pilot_commands.add_parser("request")
+    pilot_request.add_argument("profile")
+    pilot_request.add_argument("--created-by", required=True)
+    pilot_submit = pilot_commands.add_parser("submit")
+    pilot_submit.add_argument("pilot_id")
+    pilot_submit.add_argument("scheduler_handle")
+    pilot_ready = pilot_commands.add_parser("ready")
+    pilot_ready.add_argument("pilot_id")
+    pilot_heartbeat = pilot_commands.add_parser("heartbeat")
+    pilot_heartbeat.add_argument("pilot_id")
+    pilot_drain = pilot_commands.add_parser("drain")
+    pilot_drain.add_argument("pilot_id")
+    pilot_drain.add_argument("--reason", required=True)
+    pilot_reconcile = pilot_commands.add_parser("reconcile")
+    pilot_reconcile.add_argument("profile")
+    pilot_terminate = pilot_commands.add_parser("terminate")
+    pilot_terminate.add_argument("pilot_id")
+    pilot_terminate.add_argument("--reason", default="scheduler-confirmed")
+    for command in (
+        pilot_list,
+        pilot_request,
+        pilot_submit,
+        pilot_ready,
+        pilot_heartbeat,
+        pilot_drain,
+        pilot_reconcile,
+        pilot_terminate,
+    ):
+        command.add_argument("--database", default=".qhpc/workbench.sqlite")
 
     local_runtime = subparsers.add_parser(
         "local-runtime", help="build immutable local development runtimes"
@@ -257,6 +327,57 @@ def build_parser() -> argparse.ArgumentParser:
     cpp_build.add_argument("--source-file", action="append", required=True)
     cpp_build.add_argument("--include-directory", action="append", default=[])
     cpp_build.add_argument("--runtime-root", default=".qhpc/runtimes")
+
+    operation_runtime = subparsers.add_parser(
+        "operation-runtime",
+        help="prepare and verify immutable Linux operation containers",
+    )
+    operation_runtime_commands = operation_runtime.add_subparsers(
+        dest="operation_runtime_command", required=True
+    )
+    operation_runtime_verify = operation_runtime_commands.add_parser(
+        "verify", help="verify a runtime contract and its pinned workspace files"
+    )
+    operation_runtime_prepare = operation_runtime_commands.add_parser(
+        "prepare", help="prepare a deterministic OCI build context"
+    )
+    operation_runtime_build = operation_runtime_commands.add_parser(
+        "build-oci", help="prepare and build a local OCI operation image"
+    )
+    operation_runtime_smoke = operation_runtime_commands.add_parser(
+        "smoke-oci", help="run the contracted OCI smoke verification"
+    )
+    operation_runtime_apptainer = operation_runtime_commands.add_parser(
+        "apptainer-command",
+        help="render an Apptainer build command for an immutable OCI release",
+    )
+    for command in (
+        operation_runtime_verify,
+        operation_runtime_prepare,
+        operation_runtime_build,
+        operation_runtime_smoke,
+        operation_runtime_apptainer,
+    ):
+        command.add_argument("manifest")
+        command.add_argument(
+            "--workspace-root",
+            help="root used to resolve runtime recipe, context, and fixture paths",
+        )
+    for command in (operation_runtime_prepare, operation_runtime_build):
+        command.add_argument("source", help="checkout containing the pinned revision")
+        command.add_argument(
+            "--dependency-cache",
+            help="directory containing checksum-pinned external build archives",
+        )
+    operation_runtime_prepare.add_argument("--output", required=True)
+    operation_runtime_build.add_argument("--context", required=True)
+    operation_runtime_build.add_argument("--tag", required=True)
+    operation_runtime_build.add_argument("--builder", choices=("docker", "podman"))
+    operation_runtime_smoke.add_argument("--image", required=True)
+    operation_runtime_smoke.add_argument("--builder", choices=("docker", "podman"))
+    operation_runtime_apptainer.add_argument("--oci-reference", required=True)
+    operation_runtime_apptainer.add_argument("--output", required=True)
+    operation_runtime_apptainer.add_argument("--fakeroot", action="store_true")
 
     artifact_parser = subparsers.add_parser(
         "artifact", help="register and inspect workflow artifacts"
@@ -506,7 +627,9 @@ def _print_integration_scaffold(scaffold: object) -> None:
     print(f"Source:               {source.get('url') or 'unresolved'}")
     print(f"GitLab mirror:        {mirror.get('url') or mirror['status']}")
     print(f"Mirror status:        {mirror['status']}")
-    print(f"Developer environment:{' ' if environment.get('class') else ''}{environment.get('class') or environment['status']}")
+    print(
+        f"Developer environment:{' ' if environment.get('class') else ''}{environment.get('class') or environment['status']}"
+    )
     print(f"Scope status:         {spec['scope']['status']}")
     print(f"Scope:                {spec['scope']['summary']}")
     print(f"Interface contract:   {deliverables['interface_contract']}")
@@ -593,14 +716,15 @@ def dispatch(args: argparse.Namespace) -> int:
             load_registry(args.registry, catalog), profile
         )
         engine = WorkflowEngine(args.database, args.artifact_root)
-        runner = RegistryBoundRunner(
-            build_local_runner(args.runtime_root), registry
-        )
+        runner = RegistryBoundRunner(build_local_runner(args.runtime_root), registry)
         worker = Worker(
             engine,
             runner,
             poll_interval_seconds=args.poll_interval,
             lease_seconds=args.lease_seconds,
+            worker_id=args.worker_id,
+            execution_targets=args.execution_targets or ("local-development",),
+            execution_classes=args.execution_classes or ("interactive-local",),
         )
         metadata = profile["metadata"]
         print(
@@ -609,8 +733,10 @@ def dispatch(args: argparse.Namespace) -> int:
         )
         if args.once:
             processed = int(worker.run_once())
+            engine.heartbeat_worker(worker.worker_id, state="offline")
         elif args.drain:
             processed = worker.drain()
+            engine.heartbeat_worker(worker.worker_id, state="offline")
         else:
             stop_event = Event()
 
@@ -625,6 +751,91 @@ def dispatch(args: argparse.Namespace) -> int:
             )
             processed = worker.run_forever(stop_event)
         print(f"Worker stopped: {processed} tasks processed")
+        return 0
+
+    if args.subcommand == "target-worker":
+        import signal
+        from threading import Event
+
+        from .deployment import load_deployment_profile, registry_for_deployment
+        from .engine import WorkflowEngine
+        from .operation_runtime import load_operation_runtime
+        from .slurm_runner import (
+            SlurmApptainerRunner,
+            load_execution_target,
+            load_storage_profile,
+        )
+        from .worker import AsyncWorker, RegistryBoundAsyncRunner
+
+        if args.poll_interval <= 0:
+            raise ContractError("worker poll interval must be greater than zero")
+        if args.lease_seconds <= 0:
+            raise ContractError("worker lease duration must be greater than zero")
+        catalog = load_catalog(args.catalog)
+        profile = load_deployment_profile(args.deployment_profile, catalog)
+        registry = registry_for_deployment(
+            load_registry(args.registry, catalog), profile
+        )
+        target = load_execution_target(args.execution_target)
+        storage = load_storage_profile(args.storage_profile)
+        runtimes = [load_operation_runtime(path) for path in args.runtime_manifest]
+        engine = WorkflowEngine(args.database, args.artifact_root)
+        runner = RegistryBoundAsyncRunner(
+            SlurmApptainerRunner(target, storage, runtimes), registry
+        )
+        worker = AsyncWorker(
+            engine,
+            runner,
+            poll_interval_seconds=args.poll_interval,
+            lease_seconds=args.lease_seconds,
+            worker_id=args.worker_id,
+        )
+        metadata = target["metadata"]
+        print(
+            f"QHPC Target Worker: {metadata['id']} ({len(runtimes)} accepted runtimes)"
+        )
+        if args.once:
+            transitions = int(worker.run_once())
+            engine.heartbeat_worker(worker.worker_id, state="offline")
+        else:
+            stop_event = Event()
+
+            def stop_target_worker(_signum: int, _frame: object) -> None:
+                stop_event.set()
+
+            signal.signal(signal.SIGINT, stop_target_worker)
+            signal.signal(signal.SIGTERM, stop_target_worker)
+            print(
+                f"Target worker polling every {args.poll_interval:g}s "
+                f"with {args.lease_seconds}s leases"
+            )
+            transitions = worker.run_forever(stop_event)
+        print(f"Target worker stopped: {transitions} transitions processed")
+        return 0
+
+    if args.subcommand == "pilot":
+        from .pilot import PilotStore
+
+        store = PilotStore(args.database)
+        if args.pilot_command == "list":
+            result = store.list_allocations()
+        elif args.pilot_command == "request":
+            profile = validate_contract("pilot-profile", args.profile)
+            result = store.request_allocation(profile, created_by=args.created_by)
+        elif args.pilot_command == "submit":
+            result = store.assign_scheduler_handle(args.pilot_id, args.scheduler_handle)
+        elif args.pilot_command == "ready":
+            result = store.mark_ready(args.pilot_id)
+        elif args.pilot_command == "heartbeat":
+            result = store.heartbeat(args.pilot_id)
+        elif args.pilot_command == "drain":
+            result = store.drain(args.pilot_id, reason=args.reason)
+        elif args.pilot_command == "reconcile":
+            profile = validate_contract("pilot-profile", args.profile)
+            result = store.reconcile(profile)
+        else:
+            result = store.mark_terminated(args.pilot_id, reason=args.reason)
+        print(json.dumps(result, indent=2, sort_keys=True))
         return 0
 
     if args.subcommand == "local-runtime":
@@ -664,6 +875,85 @@ def dispatch(args: argparse.Namespace) -> int:
         print(f"Reference: {runtime_artifact.reference}")
         print(f"Digest: {runtime_artifact.digest}")
         return 0
+
+    if args.subcommand == "operation-runtime":
+        from .operation_runtime import (
+            apptainer_build_command,
+            build_oci_image,
+            load_operation_runtime,
+            prepare_build_context,
+            smoke_oci_image,
+            verify_runtime_definition,
+        )
+
+        if args.operation_runtime_command == "verify":
+            document = verify_runtime_definition(args.manifest, args.workspace_root)
+            metadata = document["metadata"]
+            print(
+                f"Operation runtime valid: {metadata['id']}@{metadata['version']} "
+                f"({metadata['status']})"
+            )
+            return 0
+        if args.operation_runtime_command == "prepare":
+            context = prepare_build_context(
+                args.manifest,
+                args.source,
+                args.output,
+                workspace_root=args.workspace_root,
+                dependency_cache=args.dependency_cache,
+            )
+            print(f"Build context prepared: {context.path}")
+            print(f"Platform: {context.platform}")
+            print(f"Source revision: {context.source_revision}")
+            print(f"Source archive: {context.source_archive_digest}")
+            return 0
+        if args.operation_runtime_command == "build-oci":
+            context = prepare_build_context(
+                args.manifest,
+                args.source,
+                args.context,
+                workspace_root=args.workspace_root,
+                dependency_cache=args.dependency_cache,
+            )
+            image = build_oci_image(
+                load_operation_runtime(args.manifest),
+                context.path,
+                args.tag,
+                builder=args.builder,
+            )
+            print(f"OCI image built: {image.reference}")
+            print(f"Local image ID: {image.local_id}")
+            return 0
+        if args.operation_runtime_command == "smoke-oci":
+            result = smoke_oci_image(
+                args.manifest,
+                args.image,
+                workspace_root=args.workspace_root,
+                builder=args.builder,
+            )
+            print(
+                f"OCI smoke verification passed: {result.image} "
+                f"({result.duration_ms} ms)"
+            )
+            for output in result.outputs:
+                print(
+                    f"Output: {output.container_path} "
+                    f"({output.size} bytes, {output.digest})"
+                )
+            return 0
+        if args.operation_runtime_command == "apptainer-command":
+            verify_runtime_definition(args.manifest, args.workspace_root)
+            command = apptainer_build_command(
+                args.oci_reference,
+                args.output,
+                executable=args.runtime or "apptainer",
+                fakeroot=args.fakeroot,
+            )
+            print(shlex.join(command))
+            return 0
+        raise OperationRuntimeError(
+            f"unsupported operation-runtime command: {args.operation_runtime_command}"
+        )
 
     if args.subcommand == "artifact":
         from .engine import WorkflowEngine
@@ -897,7 +1187,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return dispatch(args)
-    except (CatalogError, ContractError, RegistryError) as exc:
+    except (
+        CatalogError,
+        ContractError,
+        OperationRuntimeError,
+        RegistryError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

@@ -31,10 +31,15 @@ spec:
     fixtures: complete
     integration_tests: complete
     registry_publication: complete
-  contract_refs: [capabilities/STABSim/simulator/qhpc-capability.yaml]
-  evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  contract_refs:
+    - capabilities/STABSim/simulator/qhpc-capability.yaml
+    - containers/operations/stabsim/runtime.yaml
+  evidence:
+    - docs/evidence/repository-audit-2026-07-11.md
+    - docs/evidence/stabsim-oci-smoke-2026-07-27.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Build and target acceptance follow completion of the integration-first onboarding pass.
-  blockers: []
+    reason: The pinned Linux OCI image passes local smoke verification; an explicit upstream license, publication, SIF conversion, supply-chain evidence, and target acceptance remain pending.
+  blockers:
+    - The audited source revision contains no license file; do not distribute the operation image until the project supplies explicit terms.

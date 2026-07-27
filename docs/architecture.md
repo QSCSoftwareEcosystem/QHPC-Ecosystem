@@ -1,7 +1,7 @@
 # QHPC Target Architecture
 
-- Status: Target design
-- Last updated: 2026-07-22
+- Status: Target design with local execution-plane implementation
+- Last updated: 2026-07-27
 - Scope: QHPC ecosystem integration, orchestration, execution, and data paths
 
 ## Architectural Position
@@ -11,10 +11,11 @@ repositories remain authoritative for scientific behavior. QHPC publishes
 attributed capability releases, resolves typed workflows, coordinates approved
 execution targets, and records artifacts and provenance.
 
-The local implementation is a verified vertical-slice prototype. The target
-deployment is a modular monolith with separately deployable API, worker, and
-workbench applications. This keeps one repository and one domain model while
-preventing scientific execution from occurring in an HTTP request process.
+The local implementation includes a verified vertical slice and a simulated
+production-shaped Slurm/Apptainer execution path. The target deployment is a
+modular monolith with separately deployable API, worker, and workbench
+applications. This keeps one repository and one domain model while preventing
+scientific execution from occurring in an HTTP request process.
 
 ## System Planes
 
@@ -160,6 +161,10 @@ execution, ingest outputs from declared relative paths, compute checksums, and
 publish immutable artifact records. An adapter cannot publish an arbitrary host
 URI as a trusted output.
 
+The implemented worker lifecycle, planned execution-target, storage, and pilot
+profiles, and site activation procedure are documented in
+[hpc-execution.md](hpc-execution.md).
+
 ## Deployment Units
 
 The project remains one monorepo while it has one primary maintainer. Logical
@@ -228,6 +233,11 @@ QHPC has two intentionally different container uses:
 Developer environments may later export convenience launchers to the host.
 They are never substituted for an approved operation runtime. Production jobs
 do not pull or build an image during execution.
+
+The versioned `OperationRuntime` contract records build-ready, local OCI smoke,
+and target-accepted states without treating them as equivalent. Its reference
+implementation and OCI-to-Apptainer flow are documented in
+[operation-runtimes.md](operation-runtimes.md).
 
 The image contains application user-space dependencies. Kernel drivers,
 parallel-filesystem clients, RDMA devices, site MPI, UCX, libfabric, GPU

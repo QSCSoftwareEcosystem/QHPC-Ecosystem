@@ -1,6 +1,6 @@
 # HPC and DOE Deployment Readiness
 
-- Last updated: 2026-07-24
+- Last updated: 2026-07-27
 - Local MVP status: implemented and verified as a vertical-slice prototype
 - Production deployment status: blocked on architecture integration,
   institutional services, target evidence, and review
@@ -11,6 +11,9 @@ dual-container and storage-aware execution decision, and
 [ADR 0007](adr/0007-warm-pilot-and-latency-telemetry.md) records warm-pilot
 execution and latency telemetry. [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
 records the accepted ChatQEC identity, model, data, and API boundary.
+The implemented local lifecycle and the activation procedure for the planned
+target, storage, and pilot profiles are described in
+[hpc-execution.md](hpc-execution.md).
 
 ## Initial Scope Gates
 
@@ -41,26 +44,57 @@ interface contracts, adapters, fixtures, and integration tests are completed
 first; each executable operation still requires a pinned descriptor and
 target-accepted immutable Linux runtime before production execution.
 
+Production-shaped containerization is locally complete for STABSim, QASMTrans,
+NWQEC, FTPrimitiveBench, and LightStim. Their exact source revisions, source
+archives, recipes, context wrappers, dependencies, smoke boundaries, and base
+images are digest-pinned in `OperationRuntime` contracts. Each constrained
+`linux/amd64` image passed a local network-disabled, read-only OCI smoke test
+and reproduced the same image manifest in a second no-cache build. This is
+local OCI evidence only; registry publication, SIF conversion, SBOM,
+signature, attestation, site storage activation, and target acceptance remain
+open.
+
+TN-Sim still needs a corrected reproducible iTensor/BLAS source build and
+source-backed correctness evidence. STABSim's local image cannot be published
+until its upstream project supplies explicit license terms. OpenQEvo packaging
+is blocked because the audited source declares its license as `TBD` and
+provides no license file. ChatQEC remains a separately governed service rather
+than an operation image.
+
 ## Implemented Local Primitives
 
 - Immutable OCI, Apptainer, reproducible Python-wheel, and native-bundle
   reference contracts.
+- Versioned operation-runtime build contracts, deterministic context
+  preparation, exact offline dependency archives, constrained local OCI smoke
+  verification, and immutable OCI-to-Apptainer command rendering.
+- Reproducible locally smoke-tested operation images for STABSim, QASMTrans,
+  NWQEC, FTPrimitiveBench, and LightStim.
 - Controlled local runner with an explicit operation allowlist.
 - Separate local API and worker commands connected through transactional task
   leases, with deployment-registry admission enforced again at the worker.
+- Durable worker identity and heartbeats, append-only task attempts and
+  execution events, persisted asynchronous handles, restart reconciliation,
+  cancellation, and declared-output collection.
 - Slurm submission, state classification, accounting fallback, cancellation,
-  and controlled Apptainer script-rendering primitives.
+  scheduler-handle recovery, controlled staging, storage-policy validation,
+  output collection, and controlled network-disabled Apptainer rendering.
+- Versioned planned execution-target, storage-profile, and pilot-profile
+  contracts plus an asynchronous Slurm runner exercised end to end with
+  simulated scheduler and Apptainer transports.
+- Durable pilot allocation and reservation state, capacity and eligibility
+  policy, health, drain and expiry transitions, and batch fallback.
 - Default-deny role/action definitions and secret-reference validation.
 - Append-only SHA-256 chained audit records for future deployment integration.
-- Persistent local workflow, run, task, artifact, checksum, log, retry,
-  cancellation, lease, and export behavior.
+- Persistent local workflow, run, task, attempt, event, worker, artifact,
+  checksum, log, retry, cancellation, lease, and export behavior.
 - Verified local OpenQEvo and QASMTrans-to-STABSim vertical slices.
 
-These are development foundations. The API does not yet enforce identity or
-authorization, workers do not have durable identity or heartbeats, Slurm is not
-connected to task leases, target handles are not asynchronous or reconciled,
-retries are not append-only attempts, and the local artifact store is not an
-approved production storage service.
+These are development foundations. The API does not yet enforce authoritative
+institutional identity or workspace ownership; SQLite and the filesystem
+artifact store are not approved production services; and the Slurm,
+Apptainer, storage, and pilot paths have not run on a DOE target. The planned
+profiles contain no claim of administrator approval.
 
 ## Required Production Boundaries
 
@@ -82,8 +116,10 @@ approved production storage service.
 
 Production containerization is the final executable onboarding gate. It begins
 after the component's source, interface contract, adapter, fixtures, and
-integration tests are stable, avoiding repeated image rebuilds while interfaces
-are still changing.
+integration tests are stable. The local runtime matrix, immutable identifiers,
+and evidence links are documented in
+[operation-runtimes.md](operation-runtimes.md) and
+[`containers/operations/README.md`](../containers/operations/README.md).
 
 - Tool-specific immutable Linux operation images rather than shared developer
   environments, Python wheels, or Darwin native bundles.
@@ -93,6 +129,8 @@ are still changing.
   result, attestation, retention, and revocation policy as required.
 - Images built or pulled before job execution; target jobs do not build or pull
   mutable images.
+- A target-accepted SIF and its digest for each admitted runtime; local Docker
+  image IDs are never used as release identities.
 
 ### Storage And RDMA
 
@@ -143,7 +181,7 @@ The following cannot be selected or certified from this development workspace:
 4. Artifact metadata and payload stores, encryption, quotas, retention, purge,
    backup, and recovery.
 5. Target Slurm clusters, partitions, accounts, QoS, modules, launch policy,
-   and worker placement.
+   worker placement, and permitted Apptainer network namespaces.
 6. Warm-pilot accounts, partitions or reservations, resource ceilings, idle
    timeout, maximum lifetime, operating cost, capacity owner, and service SLOs.
 7. Parallel-filesystem topology, node-local storage, image-staging mechanism,
@@ -152,7 +190,8 @@ The following cannot be selected or certified from this development workspace:
    compatibility policy.
 9. Native-versus-container performance thresholds and representative workload
    profiles.
-10. Allowed egress, proxy, repository, package-index, and quantum-backend routes.
+10. Allowed egress, proxy, repository, package-index, and quantum-backend
+    routes, including enforcement for runtimes that require no network.
 11. Secrets provider and workload identity mechanism.
 12. Central audit sink, retention period, access controls, and incident process.
 13. SBOM, vulnerability, attestation, export-control, and release gates.

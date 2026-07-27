@@ -8,6 +8,7 @@ metadata:
   status: active
 spec:
   runner: local
+  execution_classes: [interactive-local]
   container_runtimes: [apptainer, oci]
   resource_limits:
     max_cpu: 8

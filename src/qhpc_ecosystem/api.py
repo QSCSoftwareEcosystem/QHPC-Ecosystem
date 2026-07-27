@@ -130,6 +130,9 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 if path == "/api/v1/workflows":
                     self._json_response(HTTPStatus.OK, context.engine.list_workflows())
                     return
+                if path == "/api/v1/workers":
+                    self._json_response(HTTPStatus.OK, context.engine.list_workers())
+                    return
                 workflow_match = WORKFLOW_ROUTE.fullmatch(path)
                 if workflow_match:
                     self._json_response(
@@ -194,6 +197,7 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         execution_target=body.get(
                             "execution_target", "local-development"
                         ),
+                        execution_class=body.get("execution_class"),
                         created_by=body.get("created_by", "workbench-user"),
                     )
                     self._json_response(HTTPStatus.ACCEPTED, result)

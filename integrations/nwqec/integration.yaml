@@ -31,11 +31,14 @@ spec:
     fixtures: complete
     integration_tests: complete
     registry_publication: pending
-  contract_refs: [integrations/nwqec/interface.yaml]
-  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+  contract_refs:
+    - integrations/nwqec/interface.yaml
+    - containers/operations/nwqec/runtime.yaml
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/nwqec-oci-smoke-2026-07-27.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Build the production image after the operation contract, adapter, fixtures, and tests stabilize.
-  blockers:
-    - Update NWQEC's deprecated scikit-build-core key or pin the compatible 0.10.x backend for reproducible source builds.
+    reason: The pinned C++ CLI OCI operation image passes local smoke and reproducibility checks; publication, SIF conversion, supply-chain evidence, broader synthesis tests, and target acceptance remain pending.
+  blockers: []

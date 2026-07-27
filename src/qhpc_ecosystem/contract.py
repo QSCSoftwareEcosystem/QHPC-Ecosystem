@@ -7,7 +7,7 @@ from hashlib import sha256
 from collections import Counter, deque
 from dataclasses import dataclass
 from importlib.resources import files
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 import yaml
@@ -23,9 +23,12 @@ CONTRACT_SCHEMAS = {
     "execution-target": "execution-target-v1.schema.json",
     "integration-scaffold": "integration-scaffold-v1.schema.json",
     "operation-interface": "operation-interface-v1.schema.json",
+    "operation-runtime": "operation-runtime-v1.schema.json",
+    "pilot-profile": "pilot-profile-v1.schema.json",
     "registry": "registry-v1.schema.json",
     "run": "run-v1.schema.json",
     "service-interface": "service-interface-v1.schema.json",
+    "storage-profile": "storage-profile-v1.schema.json",
     "workflow": "workflow-v1.schema.json",
 }
 
@@ -364,6 +367,44 @@ def _validate_run(document: dict[str, Any]) -> list[ContractIssue]:
     )
 
 
+def _validate_execution_target(document: dict[str, Any]) -> list[ContractIssue]:
+    metadata = document["metadata"]
+    spec = document["spec"]
+    if spec["runner"] != "slurm" or metadata["status"] != "active":
+        return []
+    issues: list[ContractIssue] = []
+    scheduler = spec["scheduler"]
+    if "account" not in scheduler:
+        issues.append(
+            ContractIssue(
+                "/spec/scheduler/account",
+                "is required before a Slurm target can be active",
+            )
+        )
+    required_limits = {
+        "max_cpu",
+        "max_memory_mb",
+        "max_gpu",
+        "max_walltime_seconds",
+    }
+    missing_limits = sorted(required_limits - set(spec["resource_limits"]))
+    for field in missing_limits:
+        issues.append(
+            ContractIssue(
+                f"/spec/resource_limits/{field}",
+                "is required before a Slurm target can be active",
+            )
+        )
+    if not metadata.get("evidence"):
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required before a Slurm target can be active",
+            )
+        )
+    return issues
+
+
 def _validate_registry(document: dict[str, Any]) -> list[ContractIssue]:
     issues: list[ContractIssue] = []
     entries = document["spec"]["entries"]
@@ -466,18 +507,14 @@ def _validate_integration_scaffold(
     runtime = spec["production_runtime"]
     blockers = spec["blockers"]
 
-    if mirror["status"] in {"inventory-listed", "verified"} and not mirror.get(
-        "url"
-    ):
+    if mirror["status"] in {"inventory-listed", "verified"} and not mirror.get("url"):
         issues.append(
             ContractIssue(
                 "/spec/mirror/url",
                 "is required when the mirror is inventory-listed or verified",
             )
         )
-    if mirror["status"] not in {"inventory-listed", "verified"} and mirror.get(
-        "url"
-    ):
+    if mirror["status"] not in {"inventory-listed", "verified"} and mirror.get("url"):
         issues.append(
             ContractIssue(
                 "/spec/mirror/url",
@@ -500,9 +537,7 @@ def _validate_integration_scaffold(
             )
         )
 
-    if runtime["status"] in {"deferred", "verified"} and not runtime.get(
-        "technology"
-    ):
+    if runtime["status"] in {"deferred", "verified"} and not runtime.get("technology"):
         issues.append(
             ContractIssue(
                 "/spec/production_runtime/technology",
@@ -572,9 +607,7 @@ def _validate_integration_scaffold(
                 "is required when the source audit is complete",
             )
         )
-    if deliverables["interface_contract"] == "complete" and not spec[
-        "contract_refs"
-    ]:
+    if deliverables["interface_contract"] == "complete" and not spec["contract_refs"]:
         issues.append(
             ContractIssue(
                 "/spec/contract_refs",
@@ -587,9 +620,10 @@ def _validate_integration_scaffold(
 def _validate_operation_interface(document: dict[str, Any]) -> list[ContractIssue]:
     issues: list[ContractIssue] = []
     metadata = document["metadata"]
-    if metadata["status"] in {"contract-valid", "project-reviewed"} and not metadata[
-        "evidence"
-    ]:
+    if (
+        metadata["status"] in {"contract-valid", "project-reviewed"}
+        and not metadata["evidence"]
+    ):
         issues.append(
             ContractIssue(
                 "/metadata/evidence",
@@ -608,12 +642,342 @@ def _validate_operation_interface(document: dict[str, Any]) -> list[ContractIssu
     return issues
 
 
+def _validate_operation_runtime(document: dict[str, Any]) -> list[ContractIssue]:
+    issues: list[ContractIssue] = []
+    metadata = document["metadata"]
+    build = document["spec"]["build"]
+    execution = document["spec"]["execution"]
+    release = document["spec"]["release"]
+
+    for name in ("builder", "runtime_base"):
+        image = build[name]
+        reference = image["reference"]
+        digest = image["digest"]
+        path = f"/spec/build/{name}/reference"
+        if not reference.endswith("@" + digest):
+            issues.append(
+                ContractIssue(path, "base image reference must end with its digest")
+            )
+        if ":latest" in reference:
+            issues.append(
+                ContractIssue(path, "mutable ':latest' references are forbidden")
+            )
+
+    file_paths = [
+        ("/spec/build/recipe/path", build["recipe"]["path"]),
+        *[
+            (f"/spec/build/context_files/{index}/source", item["source"])
+            for index, item in enumerate(build["context_files"])
+        ],
+    ]
+    verification = document["spec"]["verification"]
+    if "fixture" in verification:
+        file_paths.append(
+            (
+                "/spec/verification/fixture/path",
+                verification["fixture"]["path"],
+            )
+        )
+    for path, value in file_paths:
+        candidate = Path(value)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            issues.append(
+                ContractIssue(path, "must be a workspace-relative path without '..'")
+            )
+
+    destinations = [item["destination"] for item in build["context_files"]]
+    dependency_names = [
+        item["filename"] for item in build.get("dependency_archives", [])
+    ]
+    issues.extend(
+        _duplicate_issues(
+            destinations,
+            "/spec/build/context_files",
+            "context destinations",
+        )
+    )
+    for index, destination in enumerate(destinations):
+        generated_names = {
+            "Containerfile",
+            "qhpc-build.json",
+            build["source_archive"]["filename"],
+            *dependency_names,
+        }
+        if destination in generated_names:
+            issues.append(
+                ContractIssue(
+                    f"/spec/build/context_files/{index}/destination",
+                    "conflicts with a generated build-context file",
+                )
+            )
+    issues.extend(
+        _duplicate_issues(
+            dependency_names,
+            "/spec/build/dependency_archives",
+            "dependency archive filenames",
+        )
+    )
+    generated_names = {
+        "Containerfile",
+        "qhpc-build.json",
+        build["source_archive"]["filename"],
+    }
+    for index, filename in enumerate(dependency_names):
+        if filename in generated_names:
+            issues.append(
+                ContractIssue(
+                    f"/spec/build/dependency_archives/{index}/filename",
+                    "conflicts with a generated build-context file",
+                )
+            )
+        if Path(filename).name != filename:
+            issues.append(
+                ContractIssue(
+                    f"/spec/build/dependency_archives/{index}/filename",
+                    "must be a top-level build-context filename",
+                )
+            )
+
+    mounts = execution["mounts"]
+    issues.extend(
+        _duplicate_issues(
+            (mount["name"] for mount in mounts),
+            "/spec/execution/mounts",
+            "mount names",
+        )
+    )
+    issues.extend(
+        _duplicate_issues(
+            (mount["path"] for mount in mounts),
+            "/spec/execution/mounts",
+            "mount paths",
+        )
+    )
+    issues.extend(
+        _duplicate_issues(
+            (mount["kind"] for mount in mounts),
+            "/spec/execution/mounts",
+            "mount kinds",
+        )
+    )
+    for index, mount in enumerate(mounts):
+        expected_mode = "ro" if mount["kind"] == "input" else "rw"
+        if mount["mode"] != expected_mode:
+            issues.append(
+                ContractIssue(
+                    f"/spec/execution/mounts/{index}/mode",
+                    f"{mount['kind']} mounts must be {expected_mode}",
+                )
+            )
+
+    container_paths = [
+        ("/spec/execution/entrypoint/0", execution["entrypoint"][0]),
+        ("/spec/execution/working_directory", execution["working_directory"]),
+    ]
+    if "fixture" in verification:
+        container_paths.append(
+            (
+                "/spec/verification/fixture/mount_path",
+                verification["fixture"]["mount_path"],
+            )
+        )
+    container_paths.extend(
+        (f"/spec/execution/mounts/{index}/path", mount["path"])
+        for index, mount in enumerate(mounts)
+    )
+    for direction, ports in execution["ports"].items():
+        container_paths.extend(
+            (
+                f"/spec/execution/ports/{direction}/{name}",
+                value,
+            )
+            for name, value in ports.items()
+        )
+    container_paths.extend(
+        (f"/spec/verification/expected_outputs/{index}/path", output["path"])
+        for index, output in enumerate(
+            document["spec"]["verification"]["expected_outputs"]
+        )
+    )
+    for path, value in container_paths:
+        candidate = PurePosixPath(value)
+        if not candidate.is_absolute() or ".." in candidate.parts:
+            issues.append(
+                ContractIssue(path, "must be an absolute normalized container path")
+            )
+
+    mounts_by_kind = {mount["kind"]: mount for mount in mounts}
+    mounted_files = [
+        *[
+            (
+                f"/spec/verification/expected_outputs/{index}/path",
+                output["path"],
+                "output",
+            )
+            for index, output in enumerate(verification["expected_outputs"])
+        ],
+    ]
+    if "fixture" in verification:
+        mounted_files.append(
+            (
+                "/spec/verification/fixture/mount_path",
+                verification["fixture"]["mount_path"],
+                "input",
+            )
+        )
+    mounted_files.extend(
+        (
+            f"/spec/execution/ports/{direction}/{name}",
+            value,
+            "input" if direction == "inputs" else "output",
+        )
+        for direction, ports in execution["ports"].items()
+        for name, value in ports.items()
+    )
+    for path, value, kind in mounted_files:
+        mount = mounts_by_kind.get(kind)
+        if mount is None:
+            issues.append(ContractIssue(path, f"requires a declared {kind} mount"))
+            continue
+        if ".." in PurePosixPath(value).parts:
+            continue
+        try:
+            relative = PurePosixPath(value).relative_to(PurePosixPath(mount["path"]))
+        except ValueError:
+            relative = None
+        if relative is None or not relative.parts:
+            issues.append(
+                ContractIssue(path, f"must name a file inside the {kind} mount")
+            )
+
+    if execution["ports"]["inputs"] and "fixture" not in verification:
+        issues.append(
+            ContractIssue(
+                "/spec/verification/fixture",
+                "is required when the runtime declares input ports",
+            )
+        )
+
+    for direction, ports in execution["ports"].items():
+        values = list(ports.values())
+        issues.extend(
+            _duplicate_issues(
+                values,
+                f"/spec/execution/ports/{direction}",
+                f"{direction} port paths",
+            )
+        )
+    dynamic_arguments = [
+        binding["argument"]
+        for binding in execution["parameters"].values()
+        if "argument" in binding
+    ]
+    issues.extend(
+        _duplicate_issues(
+            dynamic_arguments,
+            "/spec/execution/parameters",
+            "parameter arguments",
+        )
+    )
+
+    status = metadata["status"]
+    release_status = release["status"]
+    if status == "build-ready" and release_status != "unpublished":
+        issues.append(
+            ContractIssue(
+                "/spec/release/status",
+                "must be unpublished while the runtime is only build-ready",
+            )
+        )
+    if status in {"oci-smoke-tested", "target-accepted"} and not metadata["evidence"]:
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required after an OCI smoke test or target acceptance",
+            )
+        )
+    if status == "target-accepted" and release_status != "target-accepted":
+        issues.append(
+            ContractIssue(
+                "/spec/release/status",
+                "must be target-accepted when metadata status is target-accepted",
+            )
+        )
+    if release_status == "target-accepted" and status != "target-accepted":
+        issues.append(
+            ContractIssue(
+                "/metadata/status",
+                "must be target-accepted when the release is target-accepted",
+            )
+        )
+
+    if release_status in {"published", "target-accepted"}:
+        for field in ("oci_reference", "oci_digest"):
+            if field not in release:
+                issues.append(
+                    ContractIssue(
+                        f"/spec/release/{field}",
+                        "is required for a published runtime",
+                    )
+                )
+        if "oci_reference" in release and "oci_digest" in release:
+            if not release["oci_reference"].endswith("@" + release["oci_digest"]):
+                issues.append(
+                    ContractIssue(
+                        "/spec/release/oci_reference",
+                        "must end with the declared OCI digest",
+                    )
+                )
+
+    if release_status == "target-accepted":
+        for field in (
+            "apptainer_reference",
+            "apptainer_digest",
+            "sbom",
+            "signature",
+            "attestation",
+        ):
+            if field not in release:
+                issues.append(
+                    ContractIssue(
+                        f"/spec/release/{field}",
+                        "is required for a target-accepted runtime",
+                    )
+                )
+        reference = release.get("apptainer_reference")
+        if reference and not (
+            reference.startswith("/")
+            or reference.startswith("file://")
+            or reference.startswith("oras://")
+        ):
+            issues.append(
+                ContractIssue(
+                    "/spec/release/apptainer_reference",
+                    "must be an absolute path, file:// URI, or oras:// URI",
+                )
+            )
+        if (
+            reference
+            and reference.startswith("oras://")
+            and "apptainer_digest" in release
+            and not reference.endswith("@" + release["apptainer_digest"])
+        ):
+            issues.append(
+                ContractIssue(
+                    "/spec/release/apptainer_reference",
+                    "ORAS references must end with the declared Apptainer digest",
+                )
+            )
+    return issues
+
+
 def _validate_service_interface(document: dict[str, Any]) -> list[ContractIssue]:
     issues: list[ContractIssue] = []
     metadata = document["metadata"]
-    if metadata["status"] in {"contract-valid", "project-reviewed"} and not metadata[
-        "evidence"
-    ]:
+    if (
+        metadata["status"] in {"contract-valid", "project-reviewed"}
+        and not metadata["evidence"]
+    ):
         issues.append(
             ContractIssue(
                 "/metadata/evidence",
@@ -643,10 +1007,7 @@ def _validate_service_interface(document: dict[str, Any]) -> list[ContractIssue]
     )
     issues.extend(
         _duplicate_issues(
-            (
-                f"{endpoint['method']} {endpoint['path']}"
-                for endpoint in endpoints
-            ),
+            (f"{endpoint['method']} {endpoint['path']}" for endpoint in endpoints),
             "/spec/endpoints",
             "endpoint method and path pairs",
         )
@@ -664,17 +1025,96 @@ def _validate_service_interface(document: dict[str, Any]) -> list[ContractIssue]
     return issues
 
 
+def _validate_storage_profile(document: dict[str, Any]) -> list[ContractIssue]:
+    issues: list[ContractIssue] = []
+    metadata = document["metadata"]
+    spec = document["spec"]
+    roots = spec["roots"]
+    mounts = spec["mounts"]
+    node_local = spec["node_local"]
+    if metadata["status"] == "active" and not metadata["evidence"]:
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required for an active storage profile",
+            )
+        )
+    values = [*roots.values(), *mounts.values()]
+    if len(values) != len(set(values)):
+        issues.append(
+            ContractIssue(
+                "/spec",
+                "storage roots and container mount paths must be distinct",
+            )
+        )
+    if node_local["mode"] == "disabled" and (
+        node_local["stage_image"] or node_local["stage_inputs"]
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/node_local",
+                "node-local staging flags require slurm-tmpdir mode",
+            )
+        )
+    return issues
+
+
+def _validate_pilot_profile(document: dict[str, Any]) -> list[ContractIssue]:
+    metadata = document["metadata"]
+    spec = document["spec"]
+    allocation = spec["allocation"]
+    issues: list[ContractIssue] = []
+    if allocation["idle_timeout_seconds"] >= allocation["max_lifetime_seconds"]:
+        issues.append(
+            ContractIssue(
+                "/spec/allocation/idle_timeout_seconds",
+                "must be less than the maximum pilot lifetime",
+            )
+        )
+    if allocation["drain_before_expiry_seconds"] >= allocation["max_lifetime_seconds"]:
+        issues.append(
+            ContractIssue(
+                "/spec/allocation/drain_before_expiry_seconds",
+                "must be less than the maximum pilot lifetime",
+            )
+        )
+    if metadata["status"] == "active":
+        if not metadata["evidence"]:
+            issues.append(
+                ContractIssue(
+                    "/metadata/evidence",
+                    "is required before a pilot profile can be active",
+                )
+            )
+        if "account" not in spec["scheduler"]:
+            issues.append(
+                ContractIssue(
+                    "/spec/scheduler/account",
+                    "is required before a pilot profile can be active",
+                )
+            )
+    return issues
+
+
 def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]:
     if kind == "capability":
         return _validate_capability(document)
     if kind == "deployment-profile":
         return _validate_deployment_profile(document)
+    if kind == "execution-target":
+        return _validate_execution_target(document)
     if kind == "integration-scaffold":
         return _validate_integration_scaffold(document)
     if kind == "operation-interface":
         return _validate_operation_interface(document)
+    if kind == "operation-runtime":
+        return _validate_operation_runtime(document)
+    if kind == "pilot-profile":
+        return _validate_pilot_profile(document)
     if kind == "service-interface":
         return _validate_service_interface(document)
+    if kind == "storage-profile":
+        return _validate_storage_profile(document)
     if kind == "workflow":
         return _validate_workflow(document)
     if kind == "run":

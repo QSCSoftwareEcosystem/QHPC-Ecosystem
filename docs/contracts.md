@@ -75,6 +75,47 @@ runtime is built and accepted, and the interface is translated into a
 `Capability` that records immutable invocation and runtime identity. Project
 review is represented separately by the `project-reviewed` status.
 
+## Operation Runtimes
+
+An `OperationRuntime` pins the build and execution boundary for one operation
+on one Linux architecture. It records the exact project revision and Git
+archive digest, recipe and context-file digests, digest-pinned builder and
+runtime bases, exact offline dependency archives, logical mounts, fixed
+entrypoint, network and root-filesystem policy, and release state. An input
+fixture is required for operations with an input port and omitted for
+controlled no-input generators. Every runtime still requires at least one
+declared output mount and a smoke assertion for its declared output.
+
+Runtime states distinguish `build-ready`, local `oci-smoke-tested`, and
+`target-accepted` evidence. A local image ID cannot populate the release
+record. Published releases require an immutable OCI registry reference and
+digest; target acceptance additionally requires an immutable Apptainer
+reference and digest plus SBOM, signature, and attestation references. See
+[operation-runtimes.md](operation-runtimes.md) for the build and acceptance
+flow.
+
+## Execution, Storage, And Pilot Profiles
+
+An `ExecutionTarget` is an administrator-owned target policy. It identifies
+the runner, accepted runtime formats, execution classes, scheduler policy,
+resource ceilings, network mode, and associated storage profile. A workflow
+selects a logical target and execution class; it cannot supply an account,
+partition, executable, host path, or container command.
+
+A `StorageProfile` owns image-cache and task-staging roots, logical container
+mounts, optional node-local staging, checksum enforcement, input-byte limits,
+and cleanup policy. Logical input, output, and scratch mounts are translated
+only through this profile. Arbitrary user host binds are invalid.
+
+A `PilotProfile` constrains a warm Slurm allocation by target, scheduler
+accounting, capacity, lifetime, idle and health timeouts, operation allowlist,
+runtime digest allowlist, resource eligibility, cache policy, and batch
+fallback. A profile describes policy and does not itself prove that an
+allocation exists or is site-approved. Planned profiles cannot be activated
+while they contain placeholder paths, scheduler values, digests, or missing
+evidence. See [hpc-execution.md](hpc-execution.md) for the implemented lifecycle
+and site activation boundary.
+
 ## Service Interfaces
 
 A `ServiceInterface` is the runtime-free contract for a separately deployed
@@ -206,6 +247,7 @@ Validate YAML or JSON documents:
 qhpc-ecosystem contract validate capability capability.yaml
 qhpc-ecosystem contract validate integration-scaffold integrations/nwqec/integration.yaml
 qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
+qhpc-ecosystem contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
 qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
 qhpc-ecosystem contract validate workflow workflow.yaml
 ```

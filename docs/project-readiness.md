@@ -1,7 +1,7 @@
 # Software Thrust Integration Readiness
 
 - Status: Curator audit queue
-- Last updated: 2026-07-24
+- Last updated: 2026-07-27
 
 This matrix tracks the evidence required before a repository capability enters
 the QHPC registry. Project review is recorded when available, but an
@@ -12,19 +12,21 @@ evidence-backed ecosystem curator may perform local integration independently.
 | SE | `spack-packages/` is available; `SoftEng/` is sparse | Packaging and release resources | Audit package definitions and stage a resource descriptor | Source available |
 | DS | `DataSchema/` is available | Artifact types and metadata validators | Publish versioned schema resources | Source available |
 | AS | Supporting repositories are cataloged; `AgenticSoftware/` is sparse | Recommendation or workflow assistance | Select an operation with tests and a stable entry point | Audit required |
-| CT | Compiler repositories are cataloged | QASMTrans transpilation | Native runtime and workflow verified; resolve FTQC independently | Integration-tested locally |
-| HW | Simulator and QEC repositories are cataloged | STABSim structural metrics | Native metrics runtime verified; simulation compatibility remains separate | Integration-tested locally |
-| OpenQEvo | `OpenQEvo/` is available | Method discovery and time-evolution operation | Build the first curated executable descriptor | First candidate |
+| CT | Compiler repositories are cataloged | QASMTrans transpilation | Native workflow and reproducible OCI runtime verified; resolve FTQC independently | OCI smoke-tested locally |
+| HW | Simulator and QEC repositories are cataloged | STABSim structural metrics | Native workflow and reproducible OCI runtime verified; obtain explicit license terms before image publication | OCI smoke-tested; publication license-blocked |
+| OpenQEvo | `OpenQEvo/` is available | Method discovery and time-evolution operation | Resolve upstream licensing before redistributable container packaging | Registry published; OCI license-blocked |
 
 Within the initial deployment, TN-Sim, NWQEC, FTPrimitiveBench, and LightStim
 have passed the pre-runtime contract portion of this ladder at exact source
 revisions: runtime-free contracts, controlled adapters, fixtures, and
 integration tests. NWQEC, FTPrimitiveBench, and LightStim were also exercised
-against their pinned source dependencies. TN-Sim's controlled CLI adapter is
+against their pinned source dependencies and now have reproducible locally
+smoke-tested OCI operation images. TN-Sim's controlled CLI adapter is
 fixture-tested against the audited output format, but its external iTensor
-binary still requires a reproducible build and source-backed execution. None
-is production-approved or registry-published until its immutable Linux runtime
-passes target acceptance.
+binary still requires a corrected reproducible build and source-backed
+execution. None is production-approved, and those without an existing
+capability remain non-executable in the registry until immutable releases pass
+target acceptance.
 
 OpenQSE and QAppsWiki complete the non-executable resource path: their pinned
 capabilities contain documentation or dataset/library resources and no

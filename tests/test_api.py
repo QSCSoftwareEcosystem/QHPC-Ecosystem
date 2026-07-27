@@ -49,6 +49,9 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
             "execution": "external-worker",
             "status": "ok",
         }
+        status, workers = request_json(base, "/api/v1/workers")
+        assert status == 200
+        assert workers == []
 
         with urlopen(base + "/", timeout=3) as response:
             assert response.status == 200
@@ -111,9 +114,7 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
 
 
 def test_workbench_queues_runs_and_polls_asynchronous_state() -> None:
-    script = (ROOT / "src/qhpc_ecosystem/workbench/app.js").read_text(
-        encoding="utf-8"
-    )
+    script = (ROOT / "src/qhpc_ecosystem/workbench/app.js").read_text(encoding="utf-8")
 
     assert "/execute" not in script
     assert "setInterval(refreshActiveRuns, 2000)" in script

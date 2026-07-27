@@ -1,0 +1,160 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: lightstim-estimate-logical-error-linux-amd64
+  name: LightStim logical-error Linux runtime
+  version: 0.1.0
+  component: lightstim
+  capability: lightstim-simulation
+  operation: estimate-logical-error
+  project: hybrid-workflows
+  owners: [qhpc-ecosystem]
+  source:
+    url: https://github.com/QuTone/LightStim
+    revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/lightstim/Containerfile
+      digest: sha256:0203651b2ebc400ad0c41a4f7ce005cfa79d0b90f3f1ad80cd3e91023a3854c9
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:9310d79639685697937dd971113030e33cbe2846a5918287c31c67b7f06ea8ac
+      source_date_epoch: 1784655175
+    context_files:
+      - source: containers/operations/lightstim/entrypoint.py
+        destination: entrypoint.py
+        digest: sha256:5d84810862d17782f464ee99c38d102b83ee39737d3ca85aa82b6935e2c94a24
+        mode: "0755"
+    dependency_archives:
+      - filename: contourpy-1.3.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/contourpy/1.3.3/
+        digest: sha256:4d00e655fcef08aba35ec9610536bfe90267d7ab5ba944f7032549c55a146da1
+      - filename: cycler-0.12.1-py3-none-any.whl
+        url: https://pypi.org/project/cycler/0.12.1/
+        digest: sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30
+      - filename: fonttools-4.63.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/fonttools/4.63.0/
+        digest: sha256:58dc6bb86a78d782f00f9190ca02c119cf5bbe2807536e361e18d42019f877d8
+      - filename: kiwisolver-1.5.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/kiwisolver/1.5.0/
+        digest: sha256:bb5136fb5352d3f422df33f0c879a1b0c204004324150cc3b5e3c4f310c9049f
+      - filename: matplotlib-3.11.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/matplotlib/3.11.1/
+        digest: sha256:ba8f811b8ddfac493734d6af0b2dff96919d0c28ca0d641858dab4262777c6ea
+      - filename: networkx-3.6.1-py3-none-any.whl
+        url: https://pypi.org/project/networkx/3.6.1/
+        digest: sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762
+      - filename: numpy-2.3.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/numpy/2.3.2/
+        digest: sha256:8145dd6d10df13c559d1e4314df29695613575183fa2e2d11fac4c208c8a1f73
+      - filename: packaging-26.2-py3-none-any.whl
+        url: https://pypi.org/project/packaging/26.2/
+        digest: sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e
+      - filename: pandas-2.3.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/pandas/2.3.1/
+        digest: sha256:7dcb79bf373a47d2a40cf7232928eb7540155abbc460925c2c96d2d30b006eb4
+      - filename: pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/pillow/12.3.0/
+        digest: sha256:78cb2c6865a35ab8ff8b75fd122f6033b92a62c82801110e48ddd6c936a45d91
+      - filename: pymatching-2.3.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/pymatching/2.3.1/
+        digest: sha256:b90cf168645adb78c9f81dd60c9e97e2aae005386b5795b54c8b4055d1492b1b
+      - filename: pyparsing-3.3.2-py3-none-any.whl
+        url: https://pypi.org/project/pyparsing/3.3.2/
+        digest: sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d
+      - filename: python_dateutil-2.9.0.post0-py2.py3-none-any.whl
+        url: https://pypi.org/project/python-dateutil/2.9.0.post0/
+        digest: sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
+      - filename: pytz-2026.3.post1-py2.py3-none-any.whl
+        url: https://pypi.org/project/pytz/2026.3.post1/
+        digest: sha256:dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815
+      - filename: scipy-1.18.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/scipy/1.18.0/
+        digest: sha256:1f55797419e16e7f30cf88ffb3113ce0467f00cfe3f70d5c281730b21769bfc2
+      - filename: sinter-1.15.0-py3-none-any.whl
+        url: https://pypi.org/project/sinter/1.15.0/
+        digest: sha256:6bec05cc643e301192c2acaca9ede464576572635c5e25a592e48294b7e53bed
+      - filename: six-1.17.0-py2.py3-none-any.whl
+        url: https://pypi.org/project/six/1.17.0/
+        digest: sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274
+      - filename: stim-1.15.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/stim/1.15.0/
+        digest: sha256:fdd9e5ab85ba2fb113b8834422518f6e46a4aea2e0f6f7305cfc2ad0fcd07086
+      - filename: tzdata-2026.3-py2.py3-none-any.whl
+        url: https://pypi.org/project/tzdata/2026.3/
+        digest: sha256:dc096730c87af6cab1b171c9d532be840741ff5d459015e7f6947bd7d7e54931
+    builder:
+      reference: docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+      digest: sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+    runtime_base:
+      reference: docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+      digest: sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-lightstim-estimate]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: estimate-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.stim
+      outputs:
+        estimate: /outputs/estimate.json
+    parameters:
+      decoder:
+        argument: --decoder
+        type: string
+      max_shots:
+        argument: --max-shots
+        type: integer
+      max_errors:
+        argument: --max-errors
+        type: integer
+      batch_size:
+        argument: --batch-size
+        type: integer
+      num_workers:
+        argument: --num-workers
+        type: integer
+  verification:
+    fixture:
+      path: containers/operations/lightstim/fixtures/repetition.stim
+      digest: sha256:d7807f0925b26f5fd845b7dd71ce922ed5b97ed001650d52624260b77bd2f824
+      mount_path: /inputs/circuit.stim
+    arguments:
+      - --decoder
+      - pymatching
+      - --max-shots
+      - "100"
+      - --max-errors
+      - "20"
+      - --batch-size
+      - "25"
+      - --num-workers
+      - "1"
+    expected_outputs:
+      - path: /outputs/estimate.json
+        nonempty: true
+        text_contains: ['"decoder": "pymatching"', '"shots":']
+    timeout_seconds: 120
+  release:
+    status: unpublished

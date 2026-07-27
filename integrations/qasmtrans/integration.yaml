@@ -31,10 +31,14 @@ spec:
     fixtures: complete
     integration_tests: complete
     registry_publication: complete
-  contract_refs: [capabilities/qasmtrans/transpiler/qhpc-capability.yaml]
-  evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  contract_refs:
+    - capabilities/qasmtrans/transpiler/qhpc-capability.yaml
+    - containers/operations/qasmtrans/runtime.yaml
+  evidence:
+    - docs/evidence/repository-audit-2026-07-11.md
+    - docs/evidence/qasmtrans-oci-smoke-2026-07-27.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: Replace the verified local native bundle with a target-accepted Linux image after integration scaffolding.
+    reason: The pinned Linux OCI image passes local smoke verification; publication, SIF conversion, supply-chain evidence, and target acceptance remain pending.
   blockers: []
