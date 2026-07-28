@@ -10,7 +10,9 @@ The target system design is defined in [architecture.md](architecture.md).
 dual-container and storage-aware execution decision, and
 [ADR 0007](adr/0007-warm-pilot-and-latency-telemetry.md) records warm-pilot
 execution and latency telemetry. [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
-records the accepted ChatQEC identity, model, data, and API boundary.
+records the accepted ChatQEC identity, model, data, and API boundary, and
+[ADR 0009](adr/0009-development-slurm-test-cluster.md) limits the contributed
+Docker Compose Slurm cluster to development scheduler testing.
 The implemented local lifecycle and the activation procedure for the planned
 target, storage, and pilot profiles are described in
 [hpc-execution.md](hpc-execution.md).
@@ -82,6 +84,10 @@ than an operation image.
 - Versioned planned execution-target, storage-profile, and pilot-profile
   contracts plus an asynchronous Slurm runner exercised end to end with
   simulated scheduler and Apptainer transports.
+- A revision-pinned, development-only Docker Compose Slurm provider and
+  tokenized CLI transport for real `sbatch`, `squeue`, `sacct`, and `scancel`
+  smoke testing without exposing the contributed REST service. Completion and
+  cancellation passed against two live local workers on 2026-07-27.
 - Durable pilot allocation and reservation state, capacity and eligibility
   policy, health, drain and expiry transitions, and batch fallback.
 - Default-deny role/action definitions and secret-reference validation.
@@ -95,6 +101,13 @@ institutional identity or workspace ownership; SQLite and the filesystem
 artifact store are not approved production services; and the Slurm,
 Apptainer, storage, and pilot paths have not run on a DOE target. The planned
 profiles contain no claim of administrator approval.
+
+The Docker Compose Slurm provider passed its local scheduler lifecycle smoke,
+but it is not target acceptance. It does not run the
+approved operation SIFs or model facility storage, networking, identity,
+hardware, queueing, or performance, and its external source build has
+development-only credentials. QHPC uses a tracked compatibility build and an
+explicit local public CA instead of the source's global TLS-verification bypass.
 
 ## Required Production Boundaries
 

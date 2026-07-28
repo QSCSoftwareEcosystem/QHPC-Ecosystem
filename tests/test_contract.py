@@ -38,6 +38,13 @@ VALID_EXAMPLES = {
     ),
     "run": VALID / "run.yaml",
     "service-interface": ROOT / "integrations" / "chatqec" / "service.yaml",
+    "slurm-test-cluster": (
+        ROOT
+        / "infrastructure"
+        / "test-clusters"
+        / "slurm-docker-cluster"
+        / "cluster.yaml"
+    ),
     "storage-profile": VALID / "storage-profile.yaml",
     "workflow": VALID / "workflow.yaml",
 }

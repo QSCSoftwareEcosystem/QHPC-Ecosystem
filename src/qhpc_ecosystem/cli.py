@@ -34,6 +34,7 @@ from .registry import (
     registry_entries,
     write_registry,
 )
+from .slurm_test_cluster import SlurmTestClusterError
 from . import runtime
 from .sync import read_manifest, synchronize
 
@@ -257,6 +258,57 @@ def build_parser() -> argparse.ArgumentParser:
     target_worker.add_argument("--worker-id")
     target_worker.add_argument(
         "--once", action="store_true", help="perform at most one transition and exit"
+    )
+
+    slurm_test_cluster = subparsers.add_parser(
+        "slurm-test-cluster",
+        help="manage the pinned development-only Slurm Docker cluster",
+    )
+    slurm_test_cluster_commands = slurm_test_cluster.add_subparsers(
+        dest="slurm_test_cluster_command", required=True
+    )
+    slurm_test_prepare = slurm_test_cluster_commands.add_parser(
+        "prepare", help="clone and verify the pinned cluster source"
+    )
+    slurm_test_start = slurm_test_cluster_commands.add_parser(
+        "start", help="build and start the core Slurm services"
+    )
+    slurm_test_status = slurm_test_cluster_commands.add_parser(
+        "status", help="inspect Compose, controller, and worker state"
+    )
+    slurm_test_smoke = slurm_test_cluster_commands.add_parser(
+        "smoke", help="verify real Slurm completion, accounting, and cancellation"
+    )
+    slurm_test_stop = slurm_test_cluster_commands.add_parser(
+        "stop", help="stop the test cluster without deleting its named volumes"
+    )
+    for command in (
+        slurm_test_prepare,
+        slurm_test_start,
+        slurm_test_status,
+        slurm_test_smoke,
+        slurm_test_stop,
+    ):
+        command.add_argument("manifest")
+        command.add_argument(
+            "--checkout",
+            help="test-cluster source checkout; defaults to revision-pinned .qhpc state",
+        )
+    slurm_test_prepare.add_argument(
+        "--build-ca",
+        help="approved public CA PEM for intercepted development build traffic",
+    )
+    slurm_test_start.add_argument("--timeout", type=int)
+    slurm_test_smoke.add_argument("--timeout", type=int)
+    slurm_test_smoke.add_argument(
+        "--skip-cancel",
+        action="store_true",
+        help="skip the second job used to verify scancel and accounting",
+    )
+    slurm_test_smoke.add_argument(
+        "--keep-artifacts",
+        action="store_true",
+        help="retain generated scripts and Slurm output in the shared directory",
     )
 
     pilot_parser = subparsers.add_parser(
@@ -696,6 +748,71 @@ def dispatch(args: argparse.Namespace) -> int:
             args.port,
         )
         return 0
+
+    if args.subcommand == "slurm-test-cluster":
+        from .slurm_test_cluster import SlurmDockerCluster
+
+        cluster = SlurmDockerCluster.from_manifest(args.manifest, args.checkout)
+        if args.slurm_test_cluster_command == "prepare":
+            checkout = cluster.prepare(args.build_ca)
+            source = cluster.source
+            print(f"Slurm test cluster prepared: {checkout}")
+            print(f"Source: {source['repository']}")
+            print(f"Revision: {source['revision']}")
+            return 0
+        if args.slurm_test_cluster_command == "start":
+            status = cluster.start(args.timeout)
+            print(f"Slurm test cluster ready: {str(status.ready).lower()}")
+            if status.nodes.stdout.strip():
+                print(status.nodes.stdout.strip())
+            return 0
+        if args.slurm_test_cluster_command == "status":
+            status = cluster.status()
+            print(f"Ready: {str(status.ready).lower()}")
+            print("Compose:")
+            print(
+                status.compose.stdout.strip()
+                or status.compose.stderr.strip()
+                or "not running"
+            )
+            print("Controller:")
+            print(
+                status.controller.stdout.strip()
+                or status.controller.stderr.strip()
+                or "not responding"
+            )
+            print("Nodes:")
+            print(
+                status.nodes.stdout.strip()
+                or status.nodes.stderr.strip()
+                or "not responding"
+            )
+            return 0 if status.ready else 1
+        if args.slurm_test_cluster_command == "smoke":
+            result = cluster.smoke(
+                timeout_seconds=args.timeout,
+                verify_cancellation=not args.skip_cancel,
+                keep_artifacts=args.keep_artifacts,
+            )
+            print(
+                f"Slurm completion verified: {result.completed_job_id} "
+                f"({result.completed_state})"
+            )
+            if result.canceled_job_id:
+                print(
+                    f"Slurm cancellation verified: {result.canceled_job_id} "
+                    f"({result.canceled_state})"
+                )
+            print(f"Duration: {result.duration_ms} ms")
+            return 0
+        if args.slurm_test_cluster_command == "stop":
+            cluster.stop()
+            print("Slurm test cluster stopped")
+            return 0
+        raise ContractError(
+            "unsupported Slurm test-cluster command: "
+            + args.slurm_test_cluster_command
+        )
 
     if args.subcommand == "worker":
         import signal
@@ -1192,6 +1309,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ContractError,
         OperationRuntimeError,
         RegistryError,
+        SlurmTestClusterError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

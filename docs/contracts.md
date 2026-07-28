@@ -116,6 +116,13 @@ while they contain placeholder paths, scheduler values, digests, or missing
 evidence. See [hpc-execution.md](hpc-execution.md) for the implemented lifecycle
 and site activation boundary.
 
+A `SlurmTestCluster` pins an external Docker Compose source revision and defines
+the controller, worker, shared-path, service, and readiness boundary used for
+development scheduler testing. Its schema fixes the scope to
+`development-only` and `production_evidence: false`; it cannot be used as an
+execution target or activate a DOE profile. The current provider and operating
+procedure are documented in [hpc-execution.md](hpc-execution.md).
+
 ## Service Interfaces
 
 A `ServiceInterface` is the runtime-free contract for a separately deployed
@@ -249,5 +256,6 @@ qhpc-ecosystem contract validate integration-scaffold integrations/nwqec/integra
 qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
 qhpc-ecosystem contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
 qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
+qhpc-ecosystem contract validate slurm-test-cluster infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
 qhpc-ecosystem contract validate workflow workflow.yaml
 ```

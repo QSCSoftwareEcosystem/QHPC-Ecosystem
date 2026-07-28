@@ -47,6 +47,59 @@ activation until required scheduler account, partition, resource limits,
 storage roots, immutable runtime digests, and evidence are supplied. Placeholder
 paths and all-zero digests must never be activated.
 
+## Development Slurm Cluster
+
+Thomas Naughton's
+[`slurm-docker-cluster`](https://github.com/naughtont3/slurm-docker-cluster)
+fork is integrated as an optional local scheduler test provider. QHPC pins the
+fork's `tjn-main` branch at revision
+`8c8065cbebb475a512a66cabff9aceda5f2c57b0` in:
+
+```text
+infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+```
+
+The source is cloned on demand under ignored `.qhpc/` state. It is not vendored
+into this repository:
+
+```bash
+qhpc-ecosystem slurm-test-cluster prepare \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml \
+  --build-ca /approved/path/development-build-ca.pem
+qhpc-ecosystem slurm-test-cluster start \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+qhpc-ecosystem slurm-test-cluster smoke \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+qhpc-ecosystem slurm-test-cluster status \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+qhpc-ecosystem slurm-test-cluster stop \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+```
+
+The harness starts MariaDB, `slurmdbd`, `slurmctld`, and workers `c1` and `c2`.
+It deliberately does not start `slurmrestd` or expose its host port. The smoke
+test submits through the shared `/mnt` path, waits through `squeue` and `sacct`,
+checks worker output, then submits and cancels a second job through `scancel`.
+The QHPC override also persists `/var/lib/slurmd`; `stop` preserves that named
+volume, and the recorded restart test confirms scheduler job IDs continue
+across full Compose replacement.
+
+The public build CA is optional on networks that do not intercept TLS. QHPC
+rejects CA inputs containing a private key, never commits the local CA, and
+uses a tracked compatibility Dockerfile instead of the source's insecure,
+obsolete build steps.
+
+This is scheduler-contract evidence only. The cluster uses development
+credentials and requires an isolated development host and non-sensitive test
+data. It does not provide Apptainer, SIF
+distribution, facility identity, parallel filesystems, MPI, RDMA, GPU,
+GPUDirect, representative queue behavior, or representative performance. See
+[ADR 0009](adr/0009-development-slurm-test-cluster.md).
+
+The first live verification passed on 2026-07-27; the exact source, build,
+image, node, completion, accounting, and cancellation record is in
+[the scheduler smoke evidence](evidence/slurm-docker-cluster-smoke-2026-07-27.md).
+
 ## Site Activation
 
 A site owner must:

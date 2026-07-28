@@ -59,7 +59,10 @@ def test_slurm_client_submits_polls_history_and_cancels(tmp_path: Path) -> None:
 
     script = tmp_path / "job.sh"
     script.write_text("#!/bin/sh\n", encoding="utf-8")
-    client = SlurmClient(executor=execute)
+    client = SlurmClient(
+        executor=execute,
+        script_path_mapper=lambda path: f"/shared/{path.name}",
+    )
 
     assert client.submit(script) == "12345"
     assert client.status("12345") == "succeeded"
@@ -70,6 +73,7 @@ def test_slurm_client_submits_polls_history_and_cancels(tmp_path: Path) -> None:
         "sacct",
         "scancel",
     ]
+    assert commands[0][-1] == "/shared/job.sh"
 
 
 def test_slurm_rejects_untrusted_identifiers() -> None:

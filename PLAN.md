@@ -41,10 +41,10 @@ following status distinctions:
 | Local execution and provenance | Functional locally | Separate API and durable worker processes use leases, heartbeats, append-only attempts and events, asynchronous handles, reconciliation, cancellation, declared-output collection, and persisted artifacts and provenance |
 | Browser Workbench | Partially functional | Discovery, templates, one-operation drafts, run polling, artifacts, and export work; arbitrary typed graph composition and durable workspaces remain pending |
 | Initial component onboarding | Five local OCI runtimes verified | Five components are registry-published; all ten have pre-container closure; STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim have reproducible locally smoke-tested OCI operation images |
-| HPC execution | Local integration complete; site acceptance pending | A versioned execution target, storage profile, asynchronous Slurm runner, durable handles, restart reconciliation, controlled staging, output collection, latency events, and pilot state controller are implemented and simulated end to end; accepted SIFs, a live target, and an in-allocation pilot launcher remain external gates |
+| HPC execution | Local integration complete; site acceptance pending | A versioned execution target, storage profile, asynchronous Slurm runner, durable handles, restart reconciliation, controlled staging, output collection, latency events, and pilot state controller are implemented and simulated end to end; a contributed revision-pinned Docker Compose cluster passed development-only real Slurm completion, accounting, and cancellation tests; accepted SIFs, a live site target, and an in-allocation pilot launcher remain external gates |
 | DOE shared deployment | Not ready | Institutional identity, PostgreSQL, approved artifact storage, secrets, audit forwarding, monitoring, signed runtime supply chain, and security and operations acceptance remain pending |
 
-The automated local suite reported 126 passed tests and one skipped test on
+The automated local suite reported 132 passed tests and one skipped test on
 2026-07-27. Target-system container acceptance, performance, RDMA, and
 institutional security tests are separate and are not represented by that local
 result.
@@ -729,6 +729,11 @@ Deliverables:
       health checks, alerting, and operational ownership.
 - [x] Implement Slurm submission, polling, cancellation, accounting fallback,
       and failure-classification primitives.
+- [x] Integrate Thomas Naughton's revision-pinned Docker Compose Slurm cluster
+      as a development-only provider for real scheduler lifecycle smoke tests;
+      exclude its REST service and production-evidence claims. The first live
+      completion, accounting, cancellation, and controller-restart continuity
+      tests passed on 2026-07-27.
 - [x] Integrate an asynchronous Slurm runner with worker leases, persisted job
       IDs, heartbeats, cancellation, timeout, and output collection.
 - [x] Define target execution-class policy for local interactive, warm HPC
@@ -831,7 +836,7 @@ the shortest route from the current local MVP to a credible shared deployment.
 | --- | --- | --- | --- |
 | 1 | Close pre-container integration scope | Completed | All ten initial components have closed source, interface, adapter or not-applicable, fixture, and test gates; OpenQSE is pinned and ChatQEC has a provider-neutral service contract |
 | 2 | Make execution durable and asynchronous | Completed locally | Attempts and stage events are append-only; workers have durable identity, heartbeats, target handles, reconciliation, and restart-safe output collection |
-| 3 | Prove one cold Slurm execution slice | Implemented locally; target pending | A simulated QASMTrans slice runs from an API-created lease through the asynchronous Slurm and Apptainer contract to verified artifact collection; a site-approved target, storage profile, SIF, and evidence remain required |
+| 3 | Prove one cold Slurm execution slice | Implemented locally; target pending | A simulated QASMTrans slice runs from an API-created lease through the asynchronous Slurm and Apptainer contract to verified artifact collection, and a pinned Docker Compose provider passed real local Slurm completion, accounting, and cancellation; a site-approved target, storage profile, SIF, and evidence remain required |
 | 4 | Add the low-latency HPC path | Controller complete; target pending | Durable pilot capacity and fallback policy are tested locally; an approved Slurm allocation launcher, fresh in-allocation job steps, isolation evidence, and target latency measurements remain required |
 | 5 | Publish initial production runtimes | Five local images complete | STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim have reproducible local OCI evidence; license clearance where required, immutable registry releases, SIF conversion, supply-chain evidence, and target acceptance remain required |
 | 6 | Deploy the shared service and complete the Workbench MVP | Pending | PostgreSQL, approved artifact storage, identity and policy, secrets, audit and monitoring integration, recovery procedures, and arbitrary typed visual composition pass acceptance |
@@ -853,6 +858,8 @@ Testing will scale with each layer:
 - State-machine tests for retries, cancellation, restart, leases, and duplicate
   completion.
 - Runner contract tests using controlled fake local and Slurm adapters.
+- Development scheduler tests using the pinned Docker Compose Slurm provider
+  for real submission, queue, accounting, completion, and cancellation behavior.
 - Dispatch tests for class eligibility, warm capacity, saturation, draining,
   expiry, worker loss, and ordinary-batch fallback.
 - Telemetry tests for stage ordering variants, correlation, retries,
@@ -905,8 +912,9 @@ The following issues are known as of 2026-07-27:
   append-only attempts and events, declared-output collection, storage-policy
   checks, execution-class dispatch, and pilot state and fallback are
   implemented and tested. The production PostgreSQL and artifact-store
-  implementations, live Slurm transport, site pilot launcher, and
-  in-allocation step runner remain pending.
+  implementations, site Slurm transport, site pilot launcher, and in-allocation
+  step runner remain pending. The contributed Docker Compose provider covers
+  only local scheduler CLI behavior and is not a site transport.
 - The Workbench queues templates and one-operation drafts but does not yet
   provide arbitrary visual node-and-edge composition.
 - Planned target, storage, and pilot profiles plus controlled staging and bind

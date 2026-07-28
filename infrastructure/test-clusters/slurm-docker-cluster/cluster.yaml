@@ -1,0 +1,63 @@
+api_version: qhpc/v1
+kind: SlurmTestCluster
+metadata:
+  id: thomas-slurm-docker
+  name: Thomas Naughton Slurm Docker development cluster
+  owners:
+    - QSC Software Thrust
+  contributors:
+    - Thomas Naughton
+  status: validated
+  evidence:
+    - ../../../docs/adr/0009-development-slurm-test-cluster.md
+    - ../../../docs/hpc-execution.md
+    - ../../../docs/evidence/slurm-docker-cluster-smoke-2026-07-27.md
+spec:
+  scheduler: slurm
+  scope: development-only
+  production_evidence: false
+  source:
+    repository: https://github.com/naughtont3/slurm-docker-cluster.git
+    branch: tjn-main
+    revision: 8c8065cbebb475a512a66cabff9aceda5f2c57b0
+    license: MIT
+  compatibility:
+    build_ca_destination: qhpc-build-ca.pem
+    files:
+      - source: Dockerfile.qhpc
+        destination: Dockerfile.qhpc
+  compose:
+    project_name: qhpc-slurm-test
+    compose_file: docker-compose.yml
+    overrides:
+      - compose.qhpc.yaml
+    services:
+      - mysql
+      - slurmdbd
+      - slurmctld
+      - c1
+      - c2
+    controller_service: slurmctld
+    worker_services:
+      - c1
+      - c2
+    cluster_name: linux
+    partition: normal
+    shared_directory:
+      host: shared-dir
+      container: /mnt
+    readiness_timeout_seconds: 300
+    poll_interval_seconds: 2
+  security:
+    start_rest_api: false
+    default_credentials: true
+    isolated_test_data_only: true
+  limitations:
+    - Scheduler lifecycle testing only; this cluster is not a DOE deployment target.
+    - The selected source uses development database credentials and must not receive sensitive data.
+    - The upstream Dockerfile is not used; the tracked QHPC compatibility Dockerfile is required.
+    - Intercepting development networks require an explicitly supplied approved public CA certificate.
+    - The compatibility build remains a development image and is not a signed runtime release.
+    - The source Compose file uses fixed container names, so only one instance may run per Docker host.
+    - Apptainer, parallel filesystems, MPI, RDMA, GPU, GPUDirect, and facility identity are not modeled.
+    - Queue latency and performance measurements are not representative of an HPC facility.

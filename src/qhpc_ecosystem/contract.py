@@ -28,6 +28,7 @@ CONTRACT_SCHEMAS = {
     "registry": "registry-v1.schema.json",
     "run": "run-v1.schema.json",
     "service-interface": "service-interface-v1.schema.json",
+    "slurm-test-cluster": "slurm-test-cluster-v1.schema.json",
     "storage-profile": "storage-profile-v1.schema.json",
     "workflow": "workflow-v1.schema.json",
 }
@@ -1096,6 +1097,83 @@ def _validate_pilot_profile(document: dict[str, Any]) -> list[ContractIssue]:
     return issues
 
 
+def _validate_slurm_test_cluster(
+    document: dict[str, Any],
+) -> list[ContractIssue]:
+    metadata = document["metadata"]
+    spec = document["spec"]
+    compose = spec["compose"]
+    services = set(compose["services"])
+    issues: list[ContractIssue] = []
+    if compose["controller_service"] not in services:
+        issues.append(
+            ContractIssue(
+                "/spec/compose/controller_service",
+                "must be included in the started services",
+            )
+        )
+    for index, service in enumerate(compose["worker_services"]):
+        if service not in services:
+            issues.append(
+                ContractIssue(
+                    f"/spec/compose/worker_services/{index}",
+                    "must be included in the started services",
+                )
+            )
+    if not spec["security"]["start_rest_api"] and "slurmrestd" in services:
+        issues.append(
+            ContractIssue(
+                "/spec/compose/services",
+                "cannot include slurmrestd while REST startup is disabled",
+            )
+        )
+    relative_paths = [
+        ("/spec/compose/compose_file", compose["compose_file"]),
+        (
+            "/spec/compose/shared_directory/host",
+            compose["shared_directory"]["host"],
+        ),
+        *[
+            (f"/spec/compose/overrides/{index}", value)
+            for index, value in enumerate(compose["overrides"])
+        ],
+        *[
+            (f"/spec/compatibility/files/{index}/source", item["source"])
+            for index, item in enumerate(spec["compatibility"]["files"])
+        ],
+        *[
+            (f"/spec/compatibility/files/{index}/destination", item["destination"])
+            for index, item in enumerate(spec["compatibility"]["files"])
+        ],
+        (
+            "/spec/compatibility/build_ca_destination",
+            spec["compatibility"]["build_ca_destination"],
+        ),
+    ]
+    for path, value in relative_paths:
+        parsed = PurePosixPath(value)
+        if parsed.is_absolute() or ".." in parsed.parts:
+            issues.append(ContractIssue(path, "must be a safe relative path"))
+    issues.extend(
+        _duplicate_issues(
+            (
+                item["destination"]
+                for item in spec["compatibility"]["files"]
+            ),
+            "/spec/compatibility/files",
+            "compatibility destinations",
+        )
+    )
+    if metadata["status"] == "validated" and not metadata["evidence"]:
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required before a test cluster can be validated",
+            )
+        )
+    return issues
+
+
 def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]:
     if kind == "capability":
         return _validate_capability(document)
@@ -1113,6 +1191,8 @@ def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]
         return _validate_pilot_profile(document)
     if kind == "service-interface":
         return _validate_service_interface(document)
+    if kind == "slurm-test-cluster":
+        return _validate_slurm_test_cluster(document)
     if kind == "storage-profile":
         return _validate_storage_profile(document)
     if kind == "workflow":

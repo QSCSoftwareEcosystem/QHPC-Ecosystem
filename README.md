@@ -221,6 +221,23 @@ reconciliation, and pilot state controller. The included target, storage, and
 pilot YAML files are planned configurations and cannot be activated until an
 administrator supplies and approves site-specific paths and scheduler policy.
 
+For scheduler development, the repository includes a contract and CLI harness
+for Thomas Naughton's revision-pinned Slurm Docker cluster. It exercises real
+Slurm submission, polling, accounting, and cancellation while remaining
+explicitly separate from Apptainer, storage-performance, and DOE acceptance:
+
+```bash
+qhpc-ecosystem slurm-test-cluster prepare \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml \
+  --build-ca /approved/path/development-build-ca.pem
+qhpc-ecosystem slurm-test-cluster start \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+qhpc-ecosystem slurm-test-cluster smoke \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+```
+
+Omit `--build-ca` on development networks that do not intercept TLS.
+
 ## Environment classes
 
 | Class | Intended use |

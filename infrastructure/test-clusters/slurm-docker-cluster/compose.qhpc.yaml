@@ -1,0 +1,22 @@
+services:
+  slurmdbd:
+    build:
+      context: .
+      dockerfile: Dockerfile.qhpc
+      secrets:
+        - qhpc_build_ca
+  slurmctld:
+    pull_policy: never
+    volumes:
+      - qhpc_slurm_state:/var/lib/slurmd
+  c1:
+    pull_policy: never
+  c2:
+    pull_policy: never
+
+secrets:
+  qhpc_build_ca:
+    file: ./qhpc-build-ca.pem
+
+volumes:
+  qhpc_slurm_state:

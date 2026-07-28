@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/slurm-test-cluster-v1.schema.json",
+  "title": "QHPC Slurm Test Cluster v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "SlurmTestCluster"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "owners", "contributors", "status", "evidence"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+        },
+        "name": {"type": "string", "minLength": 1},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "contributors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "status": {"enum": ["planned", "validated", "disabled"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri-reference"}
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scheduler",
+        "scope",
+        "production_evidence",
+        "source",
+        "compatibility",
+        "compose",
+        "security",
+        "limitations"
+      ],
+      "properties": {
+        "scheduler": {"const": "slurm"},
+        "scope": {"const": "development-only"},
+        "production_evidence": {"const": false},
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "branch", "revision", "license"],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://"
+            },
+            "branch": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "license": {"type": "string", "minLength": 1}
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["files", "build_ca_destination"],
+          "properties": {
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["source", "destination"],
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+                  },
+                  "destination": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+                  }
+                }
+              }
+            },
+            "build_ca_destination": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            }
+          }
+        },
+        "compose": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "project_name",
+            "compose_file",
+            "overrides",
+            "services",
+            "controller_service",
+            "worker_services",
+            "cluster_name",
+            "partition",
+            "shared_directory",
+            "readiness_timeout_seconds",
+            "poll_interval_seconds"
+          ],
+          "properties": {
+            "project_name": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            "compose_file": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "overrides": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+              }
+            },
+            "services": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              }
+            },
+            "controller_service": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "worker_services": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+              }
+            },
+            "cluster_name": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "partition": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "shared_directory": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["host", "container"],
+              "properties": {
+                "host": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+                },
+                "container": {
+                  "type": "string",
+                  "pattern": "^/(?:[A-Za-z0-9._-]+/?)+$"
+                }
+              }
+            },
+            "readiness_timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1800
+            },
+            "poll_interval_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 30
+            }
+          }
+        },
+        "security": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start_rest_api",
+            "default_credentials",
+            "isolated_test_data_only"
+          ],
+          "properties": {
+            "start_rest_api": {"const": false},
+            "default_credentials": {"const": true},
+            "isolated_test_data_only": {"const": true}
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

@@ -47,6 +47,7 @@ class CommandResult:
 
 
 Executor = Callable[[Sequence[str]], CommandResult]
+ScriptPathMapper = Callable[[Path], str]
 
 
 def _execute(command: Sequence[str]) -> CommandResult:
@@ -290,12 +291,14 @@ class SlurmClient:
         sacct: str = "sacct",
         scancel: str = "scancel",
         executor: Executor = _execute,
+        script_path_mapper: ScriptPathMapper = str,
     ) -> None:
         self.sbatch = sbatch
         self.squeue = squeue
         self.sacct = sacct
         self.scancel = scancel
         self.executor = executor
+        self.script_path_mapper = script_path_mapper
 
     @staticmethod
     def _job_id(value: str) -> str:
@@ -307,7 +310,10 @@ class SlurmClient:
         path = Path(script).expanduser().resolve()
         if not path.is_file():
             raise FileNotFoundError(f"Slurm script not found: {path}")
-        result = self.executor([self.sbatch, "--parsable", str(path)])
+        scheduler_path = self.script_path_mapper(path)
+        if not scheduler_path or "\x00" in scheduler_path:
+            raise ValueError("invalid scheduler script path")
+        result = self.executor([self.sbatch, "--parsable", scheduler_path])
         if result.returncode:
             raise RuntimeError(result.stderr.strip() or "sbatch failed")
         job_id = result.stdout.strip().split(";", 1)[0]
