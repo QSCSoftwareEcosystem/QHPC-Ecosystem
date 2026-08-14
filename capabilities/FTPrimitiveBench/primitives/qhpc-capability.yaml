@@ -1,0 +1,95 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: ftprimitivebench-primitives
+  name: FTPrimitiveBench Circuit Primitives
+  version: 0.1.0
+  project: compilation-tools
+  owners: [ftprimitivebench]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench
+    revision: ba15eba263ac6d641d225984fa074f4ee25bb462
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/initial-component-source-audit-2026-07-22.md
+      - docs/evidence/ftprimitivebench-oci-smoke-2026-07-27.md
+  visibility: public
+  maturity: alpha
+spec:
+  component:
+    name: FTPrimitiveBench
+    description: Python library for constructing and benchmarking fault-tolerant computation primitives under hardware-motivated noise models.
+  guidance:
+    use_when:
+      - Build a detector-annotated surface-code memory circuit for downstream logical-error estimation.
+    quick_start:
+      - Open Compose and choose the QEC memory estimation workflow or add Build a surface-code memory primitive.
+      - Review code distances, syndrome rounds, measurement basis, and physical error rate before running.
+    example_workflows:
+      - qec-memory-estimation
+      - showcase-qec-distance-study
+    limitations:
+      - EQO currently exposes the surface-code memory builder rather than every primitive, noise model, and visualization in FTPrimitiveBench.
+      - The executable operation is admitted only on the development Slurm Docker target.
+  operations:
+    - id: build-memory
+      title: Build a surface-code memory primitive
+      description: Construct a detector-annotated Stim memory circuit with uniform depolarizing noise.
+      inputs: {}
+      outputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      parameters:
+        x_distance:
+          type: integer
+          title: X code distance
+          default: 3
+          minimum: 1
+          maximum: 31
+        z_distance:
+          type: integer
+          title: Z code distance
+          default: 3
+          minimum: 1
+          maximum: 31
+        rounds:
+          type: integer
+          title: Syndrome extraction rounds
+          default: 3
+          minimum: 1
+          maximum: 100
+        measurement_basis:
+          type: string
+          title: Logical measurement basis
+          default: Z
+          enum: [X, Z]
+        physical_error_rate:
+          type: number
+          title: Physical error rate
+          default: 0.001
+          minimum: 0
+          maximum: 0.5
+      runtime:
+        type: oci
+        reference: docker://qhpc/ftprimitivebench@sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+        digest: sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-ftprimitivebench-memory]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [development-slurm-docker]
+  resources:
+    - id: ftprimitivebench-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/tree/ba15eba263ac6d641d225984fa074f4ee25bb462
+  documentation:
+    qappswiki: packages/ftprimitivebench.md
+    url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md

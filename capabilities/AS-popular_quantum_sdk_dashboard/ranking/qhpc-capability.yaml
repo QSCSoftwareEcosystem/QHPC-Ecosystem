@@ -20,7 +20,17 @@ metadata:
   maturity: prototype
 spec:
   component:
-    description: Deterministic ranking library and dashboard for quantum SDK metrics.
+    name: Quantum SDK Popularity Rankings Dashboard
+    description: Interactive application that ranks quantum SDKs and frameworks using weighted GitHub popularity, activity, and community metrics.
+  guidance:
+    use_when:
+      - Compare quantum SDKs using the metrics and deterministic ranking logic published by the project.
+    quick_start:
+      - Open the source documentation from this tool record to review the supported metrics and ranking method.
+      - Use the published ranking-library resource in a project-owned development environment.
+    example_workflows: []
+    limitations:
+      - EQO-QSC currently publishes this component as a library resource and does not expose an executable operation.
   resources:
     - id: ranking-library
       kind: library

@@ -1,0 +1,96 @@
+api_version: qhpc/v1
+kind: HpcAcceptanceProfile
+metadata:
+  id: initial
+  name: Initial ecosystem HPC acceptance
+  version: 0.3.0
+  owners:
+    - qhpc-ecosystem
+  status: planned
+  evidence:
+    - docs/hpc-execution.md
+    - docs/deployment-readiness.md
+spec:
+  deployment_profile: deployments/initial.yaml
+  scheduler_fixture: infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+  target:
+    execution_target: infrastructure/execution-targets/doe-slurm-apptainer.yaml
+    storage_profile: infrastructure/storage-profiles/doe-slurm-project.yaml
+  requirements:
+    scheduler: slurm
+    container_runtime: apptainer
+    network: none
+    immutable_images: true
+    supply_chain_evidence: true
+    stage_telemetry: true
+  cases:
+    - component: stabsim
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/stabsim/integration.yaml
+      runtime: containers/operations/stabsim/runtime.yaml
+    - component: tn-sim
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/tn-sim/integration.yaml
+      rationale: Reproducible iTensor and BLAS runtime remains pending.
+    - component: nwqec
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/nwqec/integration.yaml
+      runtime: containers/operations/nwqec/runtime.yaml
+    - component: ftprimitivebench
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/ftprimitivebench/integration.yaml
+      runtime: containers/operations/ftprimitivebench/runtime.yaml
+    - component: lightstim
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/lightstim/integration.yaml
+      runtime: containers/operations/lightstim/runtime.yaml
+    - component: qasmtrans
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/qasmtrans/integration.yaml
+      runtime: containers/operations/qasmtrans/runtime.yaml
+    - component: ftqc
+      classification: batch-operation
+      acceptance: required
+      integration: integrations/ftqc/integration.yaml
+      rationale: Reproducible LLVM/MLIR 22 runtime and target acceptance remain pending.
+    - component: openqevo
+      classification: library-resource
+      acceptance: not-applicable
+      integration: integrations/openqevo/integration.yaml
+      rationale: Current deployment publishes library discovery resources, not an executable operation.
+    - component: openqse
+      classification: integration-standard
+      acceptance: not-applicable
+      integration: integrations/openqse/integration.yaml
+      rationale: OpenQSE publishes specification resources and has no executable operation.
+    - component: qappswiki
+      classification: knowledge-resource
+      acceptance: not-applicable
+      integration: integrations/qappswiki/integration.yaml
+      rationale: QAppsWiki is a knowledge resource and is not submitted as a Slurm job.
+    - component: chatqec
+      classification: service
+      acceptance: not-applicable
+      integration: integrations/chatqec/integration.yaml
+      rationale: ChatQEC is an authenticated internal service with a separate deployment boundary.
+    - component: exachem-qflow
+      classification: library-resource
+      acceptance: not-applicable
+      integration: integrations/exachem-qflow/integration.yaml
+      rationale: The incubation record publishes task-set and checkpoint resources but no executable operation.
+    - component: iris-qiris
+      classification: library-resource
+      acceptance: not-applicable
+      integration: integrations/iris-qiris/integration.yaml
+      rationale: The incubation record publishes the proposed orchestration boundary but no executable operation.
+    - component: nwqsim-qflow
+      classification: library-resource
+      acceptance: not-applicable
+      integration: integrations/nwqsim-qflow/integration.yaml
+      rationale: The incubation record publishes plugin contracts and evidence but no executable operation.

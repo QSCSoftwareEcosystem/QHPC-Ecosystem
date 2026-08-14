@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import secrets
 import shlex
 import sys
 from pathlib import Path
@@ -17,6 +19,7 @@ from .catalog import (
     default_catalog_path,
     load_catalog,
 )
+from .chatqec_service import ChatQECServiceError
 from .contract import (
     CONTRACT_SCHEMAS,
     ContractError,
@@ -34,6 +37,8 @@ from .registry import (
     registry_entries,
     write_registry,
 )
+from .repository_updates import RepositoryUpdateError, RepositoryUpdateManager
+from .service_adapters import ServiceAdapterError
 from .slurm_test_cluster import SlurmTestClusterError
 from . import runtime
 from .sync import read_manifest, synchronize
@@ -103,7 +108,7 @@ def _image_dir(value: str | None) -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="qhpc-ecosystem",
+        prog="eqo",
         description="Discover and enter QSC quantum-HPC development environments.",
     )
     parser.add_argument(
@@ -188,10 +193,66 @@ def build_parser() -> argparse.ArgumentParser:
     registry_info.add_argument("registry")
     registry_info.add_argument("capability")
     registry_info.add_argument("--version")
+    registry_info.add_argument(
+        "--operation",
+        help="show detailed purpose, ports, parameters, runtime, and targets for one operation",
+    )
+    registry_info.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="print the selected capability or operation record as JSON",
+    )
     registry_hash = registry_subparsers.add_parser(
         "digest", help="print the deterministic registry digest"
     )
     registry_hash.add_argument("registry")
+
+    updates_parser = subparsers.add_parser(
+        "updates",
+        help="check and prepare exact-revision repository updates",
+    )
+    updates_commands = updates_parser.add_subparsers(
+        dest="updates_command",
+        required=True,
+    )
+    updates_list = updates_commands.add_parser(
+        "list",
+        help="show current and prepared repository revisions",
+    )
+    updates_check = updates_commands.add_parser(
+        "check",
+        help="check tracked upstream refs for newer commits",
+    )
+    updates_stage = updates_commands.add_parser(
+        "stage",
+        help="prepare one exact detached candidate checkout",
+    )
+    updates_discard = updates_commands.add_parser(
+        "discard",
+        help="release one prepared candidate selection",
+    )
+    for command in (
+        updates_list,
+        updates_check,
+        updates_stage,
+        updates_discard,
+    ):
+        command.add_argument("--registry", default="examples/registry.yaml")
+        command.add_argument(
+            "--deployment-profile",
+            default="deployments/initial.yaml",
+        )
+        command.add_argument("--workspace-root", default=".")
+        command.add_argument("--state-root", default=".qhpc/updates")
+        command.add_argument("--json", action="store_true")
+    updates_check.add_argument("component", nargs="*")
+    updates_stage.add_argument("component")
+    updates_stage.add_argument(
+        "--revision",
+        help="expected latest full commit hash; defaults to a fresh remote check",
+    )
+    updates_discard.add_argument("component")
 
     serve_parser = subparsers.add_parser(
         "serve", help="serve the QHPC API and workbench"
@@ -204,8 +265,153 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve_parser.add_argument("--database", default=".qhpc/workbench.sqlite")
     serve_parser.add_argument("--artifact-root", default=".qhpc/artifacts")
+    serve_parser.add_argument(
+        "--workflow",
+        action="append",
+        default=[],
+        help="validated workflow to publish before serving; repeat as needed",
+    )
     serve_parser.add_argument("--host", default="127.0.0.1")
     serve_parser.add_argument("--port", type=int, default=8080)
+    serve_parser.add_argument(
+        "--worker-stale-after",
+        type=float,
+        default=15.0,
+        help="seconds without a heartbeat before a worker is unavailable",
+    )
+    serve_parser.add_argument(
+        "--chatqec-service-url",
+        help="server-side ChatQEC origin; requires QHPC_CHATQEC_IDENTITY_TOKEN",
+    )
+    serve_parser.add_argument(
+        "--enable-repository-updates",
+        action="store_true",
+        help="enable controlled repository check and staging API routes",
+    )
+    serve_parser.add_argument(
+        "--qappswiki-graph",
+        help=(
+            "compiled QAppsWiki graph.json; defaults to "
+            "<catalog local_path>/wiki-out/graph.json"
+        ),
+    )
+    serve_parser.add_argument("--workspace-root", default=".")
+    serve_parser.add_argument("--update-state-root", default=".qhpc/updates")
+
+    dev_parser = subparsers.add_parser(
+        "dev", help="run the supervised local Workbench and worker stack"
+    )
+    dev_commands = dev_parser.add_subparsers(dest="dev_command", required=True)
+    dev_up = dev_commands.add_parser(
+        "up", help="start and supervise the API, local worker, and virtual Slurm worker"
+    )
+    dev_up.add_argument("--registry", default="examples/registry.yaml")
+    dev_up.add_argument("--deployment-profile", default="deployments/initial.yaml")
+    dev_up.add_argument(
+        "--slurm-test-cluster",
+        default="infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml",
+    )
+    dev_up.add_argument("--slurm-test-checkout")
+    dev_up.add_argument("--database", default=".qhpc/live/workbench.sqlite")
+    dev_up.add_argument("--artifact-root", default=".qhpc/live/artifacts")
+    dev_up.add_argument("--runtime-root", default=".qhpc/runtimes")
+    dev_up.add_argument("--update-state-root", default=".qhpc/live/updates")
+    dev_up.add_argument(
+        "--chatqec-service-interface",
+        default="integrations/chatqec/service.yaml",
+    )
+    dev_up.add_argument(
+        "--chatqec-source-checkout",
+        help="ChatQEC source checkout; defaults to revision-pinned .qhpc state",
+    )
+    dev_up.add_argument(
+        "--workflow",
+        action="append",
+        default=[
+            "examples/workflows/openqevo-method-catalog.yaml",
+            "examples/workflows/openqevo-trotter-synthesis.yaml",
+            "examples/workflows/ct-hw-qasm-analysis.yaml",
+            "examples/workflows/qec-memory-estimation.yaml",
+            "examples/workflows/nwqec-counts.yaml",
+        ],
+    )
+    dev_up.add_argument("--host", default="127.0.0.1")
+    dev_up.add_argument("--port", type=int, default=8080)
+    dev_up.add_argument(
+        "--api-port",
+        type=int,
+        help="internal control API port (defaults to Workbench port plus one)",
+    )
+    dev_up.add_argument(
+        "--chatqec-port",
+        type=int,
+        help="loopback ChatQEC port (defaults to control API port plus one)",
+    )
+    dev_up.add_argument("--poll-interval", type=float, default=0.5)
+    dev_up.add_argument("--lease-seconds", type=int, default=300)
+    dev_up.add_argument("--worker-stale-after", type=float, default=15.0)
+    dev_up.add_argument("--restart-delay", type=float, default=1.0)
+    dev_up.add_argument("--cluster-timeout", type=int, default=300)
+    dev_up.add_argument(
+        "--no-cluster-start",
+        action="store_true",
+        help="require the virtual Slurm cluster to be running already",
+    )
+    dev_up.add_argument(
+        "--no-django-workbench",
+        action="store_true",
+        help="serve the legacy static Workbench directly from the control API",
+    )
+    dev_up.add_argument(
+        "--no-local-worker",
+        action="store_true",
+        help="do not start the local-development worker",
+    )
+    dev_up.add_argument(
+        "--no-target-worker",
+        action="store_true",
+        help="do not start the virtual-Slurm worker",
+    )
+    dev_up.add_argument(
+        "--no-chatqec",
+        action="store_true",
+        help="do not prepare or start the local ChatQEC development service",
+    )
+    dev_up.add_argument(
+        "--no-repository-updates",
+        action="store_true",
+        help="disable repository check and staging in the local Workbench",
+    )
+    dev_up.add_argument(
+        "--stop-cluster-on-exit",
+        action="store_true",
+        help="stop the virtual Slurm fixture when the supervisor exits",
+    )
+
+    chatqec_service = subparsers.add_parser(
+        "chatqec-service",
+        help="prepare or serve the pinned local ChatQEC development service",
+    )
+    chatqec_commands = chatqec_service.add_subparsers(
+        dest="chatqec_service_command",
+        required=True,
+    )
+    chatqec_prepare = chatqec_commands.add_parser(
+        "prepare",
+        help="clone and verify the exact ChatQEC source revision",
+    )
+    chatqec_serve = chatqec_commands.add_parser(
+        "serve",
+        help="serve cited canonical answers on a loopback interface",
+    )
+    for command in (chatqec_prepare, chatqec_serve):
+        command.add_argument("interface")
+        command.add_argument(
+            "--checkout",
+            help="source checkout; defaults to revision-pinned .qhpc state",
+        )
+    chatqec_serve.add_argument("--host", default="127.0.0.1")
+    chatqec_serve.add_argument("--port", type=int, default=8096)
 
     worker_parser = subparsers.add_parser(
         "worker", help="run a separate controlled task worker"
@@ -248,9 +454,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     target_worker.add_argument("--registry", required=True)
     target_worker.add_argument("--deployment-profile", required=True)
-    target_worker.add_argument("--execution-target", required=True)
-    target_worker.add_argument("--storage-profile", required=True)
-    target_worker.add_argument("--runtime-manifest", action="append", required=True)
+    target_worker.add_argument("--execution-target")
+    target_worker.add_argument("--storage-profile")
+    target_worker.add_argument("--runtime-manifest", action="append")
+    target_worker.add_argument(
+        "--slurm-test-cluster",
+        help="use the development Docker Slurm cluster and its OCI image bindings",
+    )
+    target_worker.add_argument(
+        "--slurm-test-checkout",
+        help="source checkout for --slurm-test-cluster",
+    )
     target_worker.add_argument("--database", default=".qhpc/workbench.sqlite")
     target_worker.add_argument("--artifact-root", default=".qhpc/artifacts")
     target_worker.add_argument("--poll-interval", type=float, default=1.0)
@@ -279,6 +493,10 @@ def build_parser() -> argparse.ArgumentParser:
     slurm_test_smoke = slurm_test_cluster_commands.add_parser(
         "smoke", help="verify real Slurm completion, accounting, and cancellation"
     )
+    slurm_test_ecosystem_smoke = slurm_test_cluster_commands.add_parser(
+        "ecosystem-smoke",
+        help="run all five container-ready operations through the virtual cluster",
+    )
     slurm_test_stop = slurm_test_cluster_commands.add_parser(
         "stop", help="stop the test cluster without deleting its named volumes"
     )
@@ -287,6 +505,7 @@ def build_parser() -> argparse.ArgumentParser:
         slurm_test_start,
         slurm_test_status,
         slurm_test_smoke,
+        slurm_test_ecosystem_smoke,
         slurm_test_stop,
     ):
         command.add_argument("manifest")
@@ -310,6 +529,35 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="retain generated scripts and Slurm output in the shared directory",
     )
+    slurm_test_ecosystem_smoke.add_argument("--registry", required=True)
+    slurm_test_ecosystem_smoke.add_argument(
+        "--deployment-profile", required=True
+    )
+    slurm_test_ecosystem_smoke.add_argument(
+        "--state-root", default=".qhpc/virtual-slurm-smoke"
+    )
+    slurm_test_ecosystem_smoke.add_argument("--timeout", type=int, default=300)
+
+    hpc_acceptance = subparsers.add_parser(
+        "hpc-acceptance",
+        help="inspect or enforce initial-package HPC acceptance readiness",
+    )
+    hpc_acceptance_commands = hpc_acceptance.add_subparsers(
+        dest="hpc_acceptance_command", required=True
+    )
+    hpc_acceptance_status = hpc_acceptance_commands.add_parser(
+        "status", help="report every component's current HPC acceptance stage"
+    )
+    hpc_acceptance_gate = hpc_acceptance_commands.add_parser(
+        "gate", help="fail until all required package runtimes are target-ready"
+    )
+    for command in (hpc_acceptance_status, hpc_acceptance_gate):
+        command.add_argument("profile")
+        command.add_argument(
+            "--workspace-root",
+            help="root used to resolve deployment, integration, runtime, and target paths",
+        )
+        command.add_argument("--json", action="store_true", dest="as_json")
 
     pilot_parser = subparsers.add_parser(
         "pilot", help="manage durable warm-pilot allocation state"
@@ -572,7 +820,7 @@ def _require_image(catalog: Catalog, repository: Repository, image_dir: Path) ->
     image = runtime.image_path(environment, image_dir)
     if not image.is_file():
         raise CatalogError(
-            f"environment image not found: {image}. Run 'qhpc-ecosystem build {repository.slug}' first."
+            f"environment image not found: {image}. Run 'eqo build {repository.slug}' first."
         )
     return image
 
@@ -602,13 +850,128 @@ def _print_registry(registry: dict) -> None:
         print("  ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
 
 
-def _print_registry_entry(entry: dict) -> None:
+def _guidance_for(capability: dict) -> dict:
+    guidance = capability["spec"].get("guidance", {})
+    operations = capability["spec"].get("operations", [])
+    if guidance:
+        return guidance
+    quick_start = (
+        ["Add a published operation to a validated workflow and provide its declared inputs."]
+        if operations
+        else [
+            "Review the published resources and documentation; this capability does not expose an executable operation."
+        ]
+    )
+    return {
+        "use_when": [capability["spec"]["component"]["description"]],
+        "quick_start": quick_start,
+        "example_workflows": [],
+        "limitations": [],
+    }
+
+
+def _print_guidance(guidance: dict) -> None:
+    print("Use when:")
+    for item in guidance.get("use_when", []):
+        print(f"  - {item}")
+    print("Quick start:")
+    for index, item in enumerate(guidance.get("quick_start", []), start=1):
+        print(f"  {index}. {item}")
+    print(
+        f"Example workflows:  "
+        f"{_csv(guidance.get('example_workflows', []))}"
+    )
+    limitations = guidance.get("limitations", [])
+    if limitations:
+        print("Limitations:")
+        for item in limitations:
+            print(f"  - {item}")
+
+
+def _print_operation(operation: dict) -> None:
+    print(f"Operation:          {operation['title']}")
+    print(f"Operation ID:       {operation['id']}")
+    print(f"Purpose:            {operation.get('description', 'No description published.')}")
+    print(f"Runtime:            {operation['runtime']['type']}")
+    print(f"Execution targets:  {_csv(operation['execution_targets'])}")
+    print("Inputs:")
+    if operation["inputs"]:
+        for name, definition in operation["inputs"].items():
+            detail = definition.get("description")
+            suffix = f" — {detail}" if detail else ""
+            print(f"  - {name}: {definition['artifact_type']}{suffix}")
+    else:
+        print("  - none")
+    print("Outputs:")
+    if operation["outputs"]:
+        for name, definition in operation["outputs"].items():
+            detail = definition.get("description")
+            suffix = f" — {detail}" if detail else ""
+            print(f"  - {name}: {definition['artifact_type']}{suffix}")
+    else:
+        print("  - none")
+    print("Parameters:")
+    if operation.get("parameters"):
+        for name, definition in operation["parameters"].items():
+            details = [definition["type"]]
+            if "default" in definition:
+                details.append(
+                    "default=" + json.dumps(definition["default"], sort_keys=True)
+                )
+            if "enum" in definition:
+                details.append(
+                    "choices=" + ",".join(str(value) for value in definition["enum"])
+                )
+            print(
+                f"  - {definition.get('title', name)} ({name}): "
+                f"{'; '.join(details)}"
+            )
+            if definition.get("description"):
+                print(f"    {definition['description']}")
+    else:
+        print("  - none")
+
+
+def _registry_info_json(entry: dict, operation_id: str | None) -> dict:
+    if operation_id is None:
+        return entry
+    capability = entry["capability"]
+    operation = next(
+        (
+            item
+            for item in capability["spec"].get("operations", [])
+            if item["id"] == operation_id
+        ),
+        None,
+    )
+    if operation is None:
+        raise RegistryError(
+            f"operation not found: {capability['metadata']['id']}/{operation_id}"
+        )
+    return {
+        "capability": {
+            "id": capability["metadata"]["id"],
+            "name": capability["metadata"]["name"],
+            "component_name": capability["spec"]["component"].get(
+                "name", capability["metadata"]["name"]
+            ),
+            "version": capability["metadata"]["version"],
+            "description": capability["spec"]["component"]["description"],
+            "guidance": _guidance_for(capability),
+        },
+        "operation": operation,
+    }
+
+
+def _print_registry_entry(entry: dict, operation_id: str | None = None) -> None:
     capability = entry["capability"]
     metadata = capability["metadata"]
+    component = capability["spec"]["component"]
     operations = capability["spec"].get("operations", [])
     resources = capability["spec"].get("resources", [])
     documentation = capability["spec"].get("documentation", {})
-    print(f"Name:               {metadata['name']}")
+    print(f"Tool:               {component.get('name', metadata['name'])}")
+    print(f"Capability name:    {metadata['name']}")
     print(f"Capability:         {metadata['id']}")
     print(f"Version:            {metadata['version']}")
     print(f"Project:            {metadata['project']}")
@@ -618,13 +981,57 @@ def _print_registry_entry(entry: dict) -> None:
     print(f"Curated by:         {_csv(integration['maintainers'])}")
     print(f"Project reviewed:   {str(integration['project_reviewed']).lower()}")
     print(f"Validation status:  {integration['validation_status']}")
-    print(f"Repository:         {metadata['repository']['url']}")
-    print(f"Revision:           {metadata['repository']['revision']}")
+    repository = metadata["repository"]
+    canonical_repository = repository.get("canonical_url", repository["url"])
+    print(f"Repository:         {canonical_repository}")
+    if canonical_repository != repository["url"]:
+        print(f"Release source:     {repository['url']}")
+    print(f"Revision:           {repository['revision']}")
     print(f"Catalog repository: {entry['catalog_repository']}")
     print(f"Descriptor digest:  {entry['descriptor_digest']}")
-    print(f"Operations:         {_csv([item['id'] for item in operations])}")
+    print(f"Purpose:            {component['description']}")
+    _print_guidance(_guidance_for(capability))
+    if operation_id is not None:
+        operation = next(
+            (item for item in operations if item["id"] == operation_id),
+            None,
+        )
+        if operation is None:
+            raise RegistryError(
+                f"operation not found: {metadata['id']}/{operation_id}"
+            )
+        print("")
+        _print_operation(operation)
+    else:
+        print(f"Operations:         {_csv([item['id'] for item in operations])}")
+        for operation in operations:
+            description = operation.get("description", "No description published.")
+            print(f"  - {operation['id']}: {operation['title']} — {description}")
     print(f"Resources:          {_csv([item['id'] for item in resources])}")
     print(f"QAppsWiki:          {documentation.get('qappswiki', 'none')}")
+
+
+def _print_repository_updates(result: dict) -> None:
+    columns = ("COMPONENT", "CURRENT", "LATEST", "STATUS", "ACTIVATION")
+    rows = []
+    for item in result["items"]:
+        rows.append(
+            (
+                item["component_id"],
+                item["current_revision"][:12],
+                (item.get("latest_revision") or "-")[:12],
+                item["status"],
+                item["activation"],
+            )
+        )
+    widths = [
+        max(len(columns[index]), *(len(row[index]) for row in rows))
+        for index in range(len(columns))
+    ]
+    print("  ".join(value.ljust(widths[index]) for index, value in enumerate(columns)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
 
 
 def _print_integration_scaffolds(scaffolds: Sequence[object]) -> None:
@@ -724,10 +1131,111 @@ def dispatch(args: argparse.Namespace) -> int:
             f"unsupported integration command: {args.integration_command}"
         )
 
+    if args.subcommand == "chatqec-service":
+        from .chatqec_service import (
+            CanonicalChatQEC,
+            ChatQECSource,
+            serve as serve_chatqec,
+        )
+
+        source = ChatQECSource.from_contract(args.interface, args.checkout)
+        if args.chatqec_service_command == "prepare":
+            checkout = source.prepare()
+            print(f"ChatQEC source prepared: {checkout}")
+            print(f"Source: {source.repository}")
+            print(f"Revision: {source.revision}")
+            return 0
+        if args.chatqec_service_command == "serve":
+            source.verify()
+            identity_token = os.environ.get("QHPC_CHATQEC_IDENTITY_TOKEN", "")
+            if len(identity_token) < 32:
+                raise ChatQECServiceError(
+                    "QHPC_CHATQEC_IDENTITY_TOKEN must contain at least 32 characters"
+                )
+            responder = CanonicalChatQEC(
+                source.checkout,
+                source_url=source.repository,
+                source_revision=source.revision,
+            )
+            print(
+                f"ChatQEC development service: http://{args.host}:{args.port} "
+                f"({len(responder.pages)} canonical pages)"
+            )
+            try:
+                serve_chatqec(
+                    responder,
+                    identity_token,
+                    host=args.host,
+                    port=args.port,
+                )
+            except KeyboardInterrupt:
+                pass
+            return 0
+        raise ChatQECServiceError(
+            f"unsupported ChatQEC service command: {args.chatqec_service_command}"
+        )
+
+    if args.subcommand == "updates":
+        from .deployment import load_deployment_profile, registry_for_deployment
+
+        catalog = load_catalog(args.catalog)
+        profile = load_deployment_profile(args.deployment_profile, catalog)
+        registry = registry_for_deployment(
+            load_registry(args.registry, catalog),
+            profile,
+        )
+        manager = RepositoryUpdateManager(
+            registry,
+            profile,
+            workspace_root=args.workspace_root,
+            state_root=args.state_root,
+        )
+        if args.updates_command == "list":
+            result = manager.list()
+        elif args.updates_command == "check":
+            result = manager.check(args.component)
+        elif args.updates_command == "stage":
+            item = manager.stage(args.component, args.revision)
+            result = {
+                "enabled": True,
+                "generated_at": item["staged_at"],
+                "items": [item],
+            }
+        elif args.updates_command == "discard":
+            item = manager.discard(args.component)
+            result = {
+                "enabled": True,
+                "generated_at": item.get("checked_at"),
+                "items": [item],
+            }
+        else:
+            raise RepositoryUpdateError(
+                f"unsupported repository update command: {args.updates_command}"
+            )
+        if args.json:
+            json.dump(result, sys.stdout, indent=2, sort_keys=True)
+            print()
+        else:
+            _print_repository_updates(result)
+            for item in result["items"]:
+                if item.get("checkout"):
+                    print(
+                        f"\nPrepared checkout: {item['checkout']}\n"
+                        f"Next action: {item['next_action']}"
+                    )
+        return (
+            1
+            if args.updates_command == "check"
+            and any(item["status"] == "error" for item in result["items"])
+            else 0
+        )
+
     if args.subcommand == "serve":
+        from .assistant import ChatQECGateway
         from .api import APIContext, serve
         from .deployment import load_deployment_profile, registry_for_deployment
         from .engine import WorkflowEngine
+        from .knowledge import QAppsWikiKnowledge
 
         catalog = load_catalog(args.catalog)
         profile = load_deployment_profile(args.deployment_profile, catalog)
@@ -735,6 +1243,77 @@ def dispatch(args: argparse.Namespace) -> int:
             load_registry(args.registry, catalog), profile
         )
         engine = WorkflowEngine(args.database, args.artifact_root)
+        if args.worker_stale_after <= 0:
+            raise ContractError("worker stale threshold must be greater than zero")
+        chatqec = None
+        if args.chatqec_service_url:
+            identity_token = os.environ.get("QHPC_CHATQEC_IDENTITY_TOKEN", "")
+            if len(identity_token) < 32:
+                raise ContractError(
+                    "QHPC_CHATQEC_IDENTITY_TOKEN must contain at least 32 "
+                    "characters when --chatqec-service-url is set"
+                )
+            chatqec = ChatQECGateway(
+                args.chatqec_service_url,
+                identity_token,
+            )
+        repository_updates = None
+        if args.enable_repository_updates:
+            repository_updates = RepositoryUpdateManager(
+                registry,
+                profile,
+                workspace_root=args.workspace_root,
+                state_root=args.update_state_root,
+            )
+        knowledge = None
+        qappswiki_repository = catalog.repository("QAppsWiki")
+        knowledge_path = (
+            Path(args.qappswiki_graph).expanduser().resolve()
+            if args.qappswiki_graph
+            else (
+                qappswiki_repository.local_path / "wiki-out" / "graph.json"
+                if qappswiki_repository.local_path is not None
+                else None
+            )
+        )
+        if knowledge_path is not None and knowledge_path.is_file():
+            qappswiki_revision = next(
+                (
+                    entry["capability"]["metadata"]["repository"]["revision"]
+                    for entry in registry_entries(registry)
+                    if entry["catalog_repository"] == "QAppsWiki"
+                ),
+                None,
+            )
+            knowledge = QAppsWikiKnowledge(
+                knowledge_path,
+                source_revision=qappswiki_revision,
+                overlay_paths=sorted(
+                    Path(args.workspace_root)
+                    .expanduser()
+                    .resolve()
+                    .glob("integrations/*/knowledge-overlay.json")
+                ),
+            )
+            knowledge_summary = knowledge.summary()
+            print(
+                "QAppsWiki knowledge: "
+                f"{knowledge_summary['stats']['content_nodes']} content nodes "
+                f"from {knowledge_path} "
+                f"({knowledge_summary['overlays']['nodes']} registry overlay nodes)"
+            )
+        else:
+            print(
+                "QAppsWiki knowledge: unavailable "
+                f"(build the graph at {knowledge_path})"
+            )
+        for workflow_path in args.workflow:
+            workflow = validate_contract("workflow", workflow_path)
+            engine.register_workflow(
+                workflow,
+                registry,
+                created_by="qhpc-ecosystem",
+            )
         metadata = profile["metadata"]
         print(
             f"Deployment profile: {metadata['id']}@{metadata['version']} "
@@ -743,10 +1322,162 @@ def dispatch(args: argparse.Namespace) -> int:
         )
         print(f"QHPC Workbench: http://{args.host}:{args.port}")
         serve(
-            APIContext(engine=engine, registry=registry),
+            APIContext(
+                engine=engine,
+                registry=registry,
+                worker_stale_after_seconds=args.worker_stale_after,
+                chatqec=chatqec,
+                repository_updates=repository_updates,
+                knowledge=knowledge,
+            ),
             args.host,
             args.port,
         )
+        return 0
+
+    if args.subcommand == "dev":
+        import signal
+        from threading import Event
+
+        from .dev_stack import (
+            DevStackConfig,
+            DevStackSupervisor,
+            build_service_specs,
+        )
+        from .chatqec_service import ChatQECSource
+        from .slurm_test_cluster import SlurmDockerCluster
+
+        if args.dev_command != "up":
+            raise ContractError(f"unsupported dev command: {args.dev_command}")
+        if args.poll_interval <= 0:
+            raise ContractError("worker poll interval must be greater than zero")
+        if args.lease_seconds <= 0:
+            raise ContractError("worker lease duration must be greater than zero")
+        if args.worker_stale_after <= 0:
+            raise ContractError("worker stale threshold must be greater than zero")
+        if args.restart_delay <= 0:
+            raise ContractError("service restart delay must be greater than zero")
+        if args.cluster_timeout <= 0:
+            raise ContractError("cluster readiness timeout must be greater than zero")
+
+        cluster = SlurmDockerCluster.from_manifest(
+            args.slurm_test_cluster,
+            args.slurm_test_checkout,
+        )
+        cluster.prepare()
+        status = cluster.status()
+        if not status.ready:
+            if args.no_cluster_start:
+                raise ContractError(
+                    "development Slurm cluster is not ready and automatic start "
+                    "is disabled"
+                )
+            status = cluster.start(args.cluster_timeout)
+        if not status.ready:
+            raise ContractError("development Slurm cluster did not become ready")
+        cluster.verify_runtime_images()
+
+        api_port = (
+            args.port
+            if args.no_django_workbench
+            else (args.api_port if args.api_port is not None else args.port + 1)
+        )
+        if api_port == args.port and not args.no_django_workbench:
+            raise ContractError("Workbench and control API ports must be different")
+        chatqec_port = (
+            args.chatqec_port
+            if args.chatqec_port is not None
+            else api_port + 1
+        )
+        reserved_ports = {api_port}
+        if not args.no_django_workbench:
+            reserved_ports.add(args.port)
+        if not args.no_chatqec and chatqec_port in reserved_ports:
+            raise ContractError(
+                "ChatQEC, Workbench, and control API ports must be different"
+            )
+        chatqec_source_root = ""
+        chatqec_identity_token = ""
+        if not args.no_chatqec:
+            chatqec_source = ChatQECSource.from_contract(
+                args.chatqec_service_interface,
+                args.chatqec_source_checkout,
+            )
+            chatqec_source_root = str(chatqec_source.prepare())
+            chatqec_identity_token = secrets.token_urlsafe(32)
+        config = DevStackConfig(
+            catalog=args.catalog,
+            registry=args.registry,
+            deployment_profile=args.deployment_profile,
+            cluster_manifest=args.slurm_test_cluster,
+            database=args.database,
+            artifact_root=args.artifact_root,
+            runtime_root=args.runtime_root,
+            update_state_root=args.update_state_root,
+            workspace_root=str(Path.cwd()),
+            workflows=tuple(dict.fromkeys(args.workflow)),
+            host=args.host,
+            port=args.port,
+            api_port=api_port,
+            chatqec_service_interface=args.chatqec_service_interface,
+            chatqec_source_root=chatqec_source_root,
+            chatqec_port=chatqec_port,
+            chatqec_identity_token=chatqec_identity_token,
+            poll_interval_seconds=args.poll_interval,
+            lease_seconds=args.lease_seconds,
+            worker_stale_after_seconds=args.worker_stale_after,
+            start_local_worker=not args.no_local_worker,
+            start_target_worker=not args.no_target_worker,
+            start_workbench=not args.no_django_workbench,
+            start_chatqec=not args.no_chatqec,
+            start_repository_updates=not args.no_repository_updates,
+        )
+        supervisor = DevStackSupervisor(
+            build_service_specs(config),
+            restart_delay_seconds=args.restart_delay,
+        )
+        stop_event = Event()
+
+        def stop_stack(_signum: int, _frame: object) -> None:
+            stop_event.set()
+
+        signal.signal(signal.SIGINT, stop_stack)
+        signal.signal(signal.SIGTERM, stop_stack)
+        try:
+            supervisor.start_api()
+            supervisor.wait_for_api(
+                f"http://{args.host}:{api_port}/api/v1/health",
+                timeout_seconds=15,
+            )
+            supervisor.start_services()
+            if not args.no_chatqec:
+                supervisor.wait_for_service(
+                    "chatqec",
+                    f"http://127.0.0.1:{chatqec_port}/v1/health",
+                    timeout_seconds=15,
+                )
+            if not args.no_django_workbench:
+                supervisor.wait_for_service(
+                    "workbench",
+                    f"http://{args.host}:{args.port}/health",
+                    timeout_seconds=15,
+                )
+            expected_workers = set()
+            if not args.no_local_worker:
+                expected_workers.add("dev-local-worker")
+            if not args.no_target_worker:
+                expected_workers.add("dev-virtual-slurm-worker")
+            supervisor.wait_for_workers(
+                f"http://{args.host}:{api_port}/api/v1/workers",
+                expected_workers,
+                timeout_seconds=15,
+            )
+            print(f"QHPC development stack ready: http://{args.host}:{args.port}")
+            supervisor.run(stop_event)
+        finally:
+            supervisor.stop()
+            if args.stop_cluster_on_exit:
+                cluster.stop()
         return 0
 
     if args.subcommand == "slurm-test-cluster":
@@ -805,6 +1536,44 @@ def dispatch(args: argparse.Namespace) -> int:
                 )
             print(f"Duration: {result.duration_ms} ms")
             return 0
+        if args.slurm_test_cluster_command == "ecosystem-smoke":
+            from .deployment import (
+                load_deployment_profile,
+                registry_for_deployment,
+            )
+            from .virtual_cluster_smoke import run_virtual_cluster_smoke
+
+            catalog = load_catalog(args.catalog)
+            profile = load_deployment_profile(
+                args.deployment_profile,
+                catalog,
+            )
+            registry = registry_for_deployment(
+                load_registry(args.registry, catalog),
+                profile,
+            )
+            results = run_virtual_cluster_smoke(
+                cluster,
+                registry,
+                args.state_root,
+                timeout_seconds=args.timeout,
+            )
+            for result in results:
+                stages = ", ".join(
+                    f"{name}={duration}ms"
+                    for name, duration in sorted(
+                        result.stage_durations_ms.items()
+                    )
+                )
+                print(
+                    f"Workflow verified: {result.workflow_id} "
+                    f"({result.run_id}, {result.duration_ms} ms, "
+                    f"{len(result.artifact_ids)} artifacts)"
+                )
+                if stages:
+                    print(f"Stages: {stages}")
+            print(f"Virtual ecosystem smoke passed: {len(results)} workflows")
+            return 0
         if args.slurm_test_cluster_command == "stop":
             cluster.stop()
             print("Slurm test cluster stopped")
@@ -812,6 +1581,64 @@ def dispatch(args: argparse.Namespace) -> int:
         raise ContractError(
             "unsupported Slurm test-cluster command: "
             + args.slurm_test_cluster_command
+        )
+
+    if args.subcommand == "hpc-acceptance":
+        from .hpc_acceptance import inspect_hpc_acceptance
+
+        report = inspect_hpc_acceptance(
+            args.profile,
+            workspace_root=args.workspace_root,
+        )
+        if args.as_json:
+            json.dump(report.as_dict(), sys.stdout, indent=2, sort_keys=True)
+            print()
+        else:
+            print(
+                f"HPC acceptance: {report.profile_id}@{report.profile_version} "
+                f"({report.profile_status})"
+            )
+            print("COMPONENT\tCLASSIFICATION\tSTATUS\tRUNTIME")
+            for case in report.cases:
+                print(
+                    f"{case.component_id}\t{case.classification}\t{case.status}\t"
+                    f"{case.runtime_id or '-'}"
+                )
+            counts: dict[str, int] = {}
+            for case in report.batch_cases:
+                counts[case.status] = counts.get(case.status, 0) + 1
+            rendered_counts = ", ".join(
+                f"{status}={count}" for status, count in sorted(counts.items())
+            )
+            print(
+                f"Batch operations: {len(report.batch_cases)}"
+                + (f" ({rendered_counts})" if rendered_counts else "")
+            )
+            print(
+                f"Scheduler fixture: {report.scheduler_fixture_id} "
+                f"({report.scheduler_fixture_status})"
+            )
+            print(
+                f"Target: {report.execution_target_id} "
+                f"({report.execution_target_status})"
+            )
+            print(
+                f"Storage: {report.storage_profile_id} "
+                f"({report.storage_profile_status})"
+            )
+            for blocker in report.blockers:
+                print(f"Pending: {blocker}")
+            for case in report.batch_cases:
+                for blocker in case.blockers:
+                    print(f"Pending {case.component_id}: {blocker}")
+            print(f"Ready: {str(report.ready).lower()}")
+        if args.hpc_acceptance_command == "status":
+            return 0
+        if args.hpc_acceptance_command == "gate":
+            return 0 if report.ready else 1
+        raise ContractError(
+            "unsupported HPC acceptance command: "
+            + args.hpc_acceptance_command
         )
 
     if args.subcommand == "worker":
@@ -879,6 +1706,7 @@ def dispatch(args: argparse.Namespace) -> int:
         from .operation_runtime import load_operation_runtime
         from .slurm_runner import (
             SlurmApptainerRunner,
+            SlurmDockerClusterRunner,
             load_execution_target,
             load_storage_profile,
         )
@@ -893,12 +1721,58 @@ def dispatch(args: argparse.Namespace) -> int:
         registry = registry_for_deployment(
             load_registry(args.registry, catalog), profile
         )
-        target = load_execution_target(args.execution_target)
-        storage = load_storage_profile(args.storage_profile)
-        runtimes = [load_operation_runtime(path) for path in args.runtime_manifest]
+        if args.slurm_test_cluster:
+            if args.execution_target or args.storage_profile or args.runtime_manifest:
+                raise ContractError(
+                    "--slurm-test-cluster supplies its execution target, storage "
+                    "profile, and runtime manifests"
+                )
+            from .slurm_test_cluster import SlurmDockerCluster
+
+            cluster = SlurmDockerCluster.from_manifest(
+                args.slurm_test_cluster,
+                args.slurm_test_checkout,
+            )
+            status = cluster.status()
+            if not status.ready:
+                raise ContractError(
+                    "development Slurm cluster is not ready; start it with "
+                    "'slurm-test-cluster start'"
+                )
+            cluster.verify_runtime_images()
+            target = cluster.development_execution_target()
+            storage = cluster.development_storage_profile()
+            runtimes = list(cluster.development_runtimes())
+            delegate = SlurmDockerClusterRunner(
+                target,
+                storage,
+                runtimes,
+                cluster.runtime_images,
+                host_shared_root=cluster.shared_host_directory,
+                scheduler_shared_root=str(cluster.shared_container_directory),
+                client=cluster.slurm_client,
+                scheduler_path_mapper=cluster.map_shared_path,
+            )
+        else:
+            if not (
+                args.execution_target
+                and args.storage_profile
+                and args.runtime_manifest
+            ):
+                raise ContractError(
+                    "target-worker requires --execution-target, --storage-profile, "
+                    "and at least one --runtime-manifest unless "
+                    "--slurm-test-cluster is used"
+                )
+            target = load_execution_target(args.execution_target)
+            storage = load_storage_profile(args.storage_profile)
+            runtimes = [
+                load_operation_runtime(path) for path in args.runtime_manifest
+            ]
+            delegate = SlurmApptainerRunner(target, storage, runtimes)
         engine = WorkflowEngine(args.database, args.artifact_root)
         runner = RegistryBoundAsyncRunner(
-            SlurmApptainerRunner(target, storage, runtimes), registry
+            delegate, registry
         )
         worker = AsyncWorker(
             engine,
@@ -1220,9 +2094,17 @@ def dispatch(args: argparse.Namespace) -> int:
             return 0
         if args.registry_command == "info":
             registry = load_registry(args.registry)
-            _print_registry_entry(
-                find_registry_entry(registry, args.capability, args.version)
-            )
+            entry = find_registry_entry(registry, args.capability, args.version)
+            if args.as_json:
+                print(
+                    json.dumps(
+                        _registry_info_json(entry, args.operation),
+                        indent=2,
+                        sort_keys=True,
+                    )
+                )
+            else:
+                _print_registry_entry(entry, args.operation)
             return 0
         if args.registry_command == "digest":
             print(registry_digest(load_registry(args.registry)))
@@ -1306,9 +2188,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return dispatch(args)
     except (
         CatalogError,
+        ChatQECServiceError,
         ContractError,
         OperationRuntimeError,
         RegistryError,
+        RepositoryUpdateError,
+        ServiceAdapterError,
         SlurmTestClusterError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)

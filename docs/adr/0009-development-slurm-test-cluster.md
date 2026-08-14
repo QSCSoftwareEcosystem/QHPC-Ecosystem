@@ -36,7 +36,9 @@ The QHPC test harness:
    commands;
 6. persists controller state in a dedicated named volume so scheduler handles
    survive Compose replacement; and
-7. records this result as scheduler-integration evidence only.
+7. replaces the source's global container names and image tag with QHPC-scoped
+   identities so unrelated Compose projects can coexist; and
+8. records this result as scheduler-integration evidence only.
 
 The selected source Dockerfile has an amd64-only `gosu` binary, an obsolete
 unpinned Python package installation, and a global TLS-verification bypass.
@@ -50,6 +52,8 @@ network requires one. The external source remains pinned and unmodified.
 
 - QHPC can test real Slurm command behavior and shared-path mapping without
   waiting for a DOE allocation.
+- The QHPC fixture can coexist with other Slurm Compose projects without
+  claiming or replacing their containers or compatibility image.
 - Failures in scheduler submission, polling, accounting, cancellation, and
   restart recovery can be reproduced locally.
 - The first local build compiles Slurm from source and is intentionally not part

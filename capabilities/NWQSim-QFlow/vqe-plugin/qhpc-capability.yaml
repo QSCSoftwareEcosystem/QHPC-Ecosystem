@@ -1,0 +1,65 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: nwqsim-qflow-vqe-plugin
+  name: NWQSim QFlow VQE Plugin Contract
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [nwqsim-qflow]
+  repository:
+    url: https://github.com/pnnl/nwq-sim
+    revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    name: NWQSim
+    description: Quantum circuit simulation environment for classical multi-node, multi-CPU, and GPU HPC systems, including ideal state-vector and noise-aware density-matrix simulation.
+    license: MIT
+  guidance:
+    use_when:
+      - Review the single-task solver plugin boundary beneath QIRIS for formed active-space Hamiltonians.
+      - Compare NWQSim plugin energies and returned parameter or amplitude mappings against native QFlow evidence.
+    quick_start:
+      - Open Compose and choose H6 QFlow chemistry cycle to compare the three saved native and NWQSim plugin energies.
+      - Read the H6 validation procedure and evidence summary for the three cycle-1 task comparisons.
+      - Inspect qflow-taskset-result@1 for the identity, energy, convergence, and amplitude mapping returned to QFlow.
+      - Use this record for integration design only; it intentionally has no Run action while the plugin is an uncommitted development patch.
+    example_workflows: []
+    limitations:
+      - EQO currently represents only the proposed QFlow VQE plugin boundary, not the complete NWQSim simulation environment.
+      - The QFlow VQE plugin and adapter are uncommitted changes in the qiris-qflow checkout, not part of the pinned public NWQSim revision.
+      - The saved H6 energy comparison does not prove native amplitude-update equivalence or live QIRIS orchestration.
+      - This main-branch plugin record is distinct from the separately admitted NWQ-Sim tn_sim tensor-network capability.
+  resources:
+    - id: qflow-taskset-result
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/qflow-taskset-result-v1.yaml
+      description: Typed aggregate containing per-task solver results and complete-cycle identity.
+    - id: h6-validation-procedure
+      kind: documentation
+      version: 0.1.0
+      uri: integrations/qiris-qflow/h6-validation-workflow.md
+      description: Non-executable H6 validation workflow and current pass/fail gates.
+    - id: qflow-qiris-architecture
+      kind: documentation
+      version: 0.1.0
+      uri: integrations/qiris-qflow/architecture.md
+      description: EQO-QSC ownership, artifact flow, and promotion gates for the integration.
+    - id: nwqsim-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/pnnl/nwq-sim/tree/b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+      description: Pinned public NWQSim base revision audited for this incubation record.
+  documentation:
+    qappswiki: packages/nwqsim-qflow.md
+    url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md

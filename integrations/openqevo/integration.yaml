@@ -23,7 +23,7 @@ spec:
   interfaces: [python-api, registry, adapter, json-context, qasm]
   scope:
     status: defined
-    summary: Publish library resources and expose audited method-registry discovery without claiming placeholder scientific execution.
+    summary: Publish library resources, expose attributed method context, and provide a bounded local OpenQASM synthesis bridge without claiming production HPC acceptance.
   deliverables:
     source_audit: complete
     interface_contract: complete
@@ -32,10 +32,13 @@ spec:
     integration_tests: complete
     registry_publication: complete
   contract_refs: [capabilities/OpenQEvo/library/qhpc-capability.yaml]
-  evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  evidence:
+    - docs/evidence/repository-audit-2026-07-11.md
+    - docs/evidence/openqevo-synthesis-smoke-2026-07-29.md
   production_runtime:
     status: deferred
     technology: apptainer
     reason: Keep the verified local wheel for development until source-distribution rights are explicit, then build and accept a pinned Linux operation image.
   blockers:
     - Replace the pyproject license value "TBD" with an approved license and add the corresponding license file before the ecosystem redistributes OpenQEvo in an OCI image.
+    - Replace the ecosystem-owned Qiskit circuit bridge with a project-reviewed OpenQEvo circuit-returning API and an immutable adapter dependency set before production use.

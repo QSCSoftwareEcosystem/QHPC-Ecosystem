@@ -12,11 +12,11 @@
 - Revision: `8c8065cbebb475a512a66cabff9aceda5f2c57b0`
 - Source license: MIT
 - Provider manifest SHA-256:
-  `254d59cd9ea31614d2266dec61e994cbdb908c9ef80d8ea1a1e7f8bede7def80`
+  `49b0c8f07ce8c83747188c2f6d0d0548ee8122deed9a3c1fdb36881639a5ac02`
 - QHPC compatibility Dockerfile SHA-256:
   `7d9dab3fd0af85b66692051a5e77aebe4dd4da58eb252ad2a9f0b67dfe882ce8`
 - QHPC Compose override SHA-256:
-  `6e6756d82f6ba22caa5965fa1a0f92baf6689e1e54daa6ac91b1c81d44779cb4`
+  `694dbb7870ae19f1b2643e9658376371dac38deb9c28080e1795d3b68b2cf1a2`
 
 The external source checkout was clean at the pinned revision. QHPC copied its
 tracked compatibility Dockerfile into ignored test state. The compatibility
@@ -72,6 +72,29 @@ The first persistent-state smoke used job IDs `1` and `2`; after restart, the
 next completion and cancellation smoke used IDs `3` and `4`. Both runs passed,
 in 2906 ms and 3208 ms respectively. This verifies that controller job state is
 preserved across local cluster replacement.
+
+## Isolation Regression
+
+On 2026-07-28, an unrelated active `qiris-slurm` Compose project exposed the
+source stack's global container-name and image-tag collision. The QHPC override
+was updated to use `qhpc-slurm-test-*` container names and
+`qhpc/slurm-docker-cluster:25.05.0-qhpc`, while retaining the source service
+hostnames required by Slurm.
+
+The merged Compose configuration was inspected before activation. The isolated
+QHPC fixture then started alongside the existing stack with ready nodes
+`c[1-2]|idle|0/16/0/16`. The compatibility image was:
+
+```text
+sha256:7053a82f2d3fa1c6813317d972452a4269e55ff9087eb24a928861e424577dc9
+linux/arm64
+464774986 bytes
+```
+
+Completion job `5` reached `succeeded`; cancellation job `6` reached
+`canceled`; the smoke completed in 3075 ms. QHPC then stopped its own Compose
+project and left no QHPC containers running. The pre-existing `qiris-slurm`
+controller, database, REST service, and two workers remained healthy.
 
 ## Boundary
 

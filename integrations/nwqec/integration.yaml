@@ -8,7 +8,7 @@ metadata:
   role: operation-provider
   owners: [nwqec]
   visibility: public
-  integration_status: scaffolded
+  integration_status: published
 spec:
   source:
     kind: repository
@@ -30,8 +30,9 @@ spec:
     adapter: complete
     fixtures: complete
     integration_tests: complete
-    registry_publication: pending
+    registry_publication: complete
   contract_refs:
+    - capabilities/nwqec/qec-transpilation/qhpc-capability.yaml
     - integrations/nwqec/interface.yaml
     - containers/operations/nwqec/runtime.yaml
   evidence:

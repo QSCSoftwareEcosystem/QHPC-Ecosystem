@@ -1,0 +1,82 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: nwqec-qec-transpilation
+  name: NWQEC Fault-Tolerant Circuit Analysis
+  version: 0.1.0
+  project: compilation-tools
+  owners: [nwqec]
+  repository:
+    url: https://github.com/pnnl/nwqec
+    revision: d93299c2a0fe47fb7758bff02b456acfb3ac4416
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/initial-component-source-audit-2026-07-22.md
+      - docs/evidence/nwqec-oci-smoke-2026-07-27.md
+  visibility: public
+  maturity: alpha
+spec:
+  component:
+    name: NWQEC
+    description: C++ and Python toolkit for fault-tolerant quantum circuit transpilation, including Clifford+T synthesis and counting, Pauli-based circuits, and Clifford reduction.
+  guidance:
+    use_when:
+      - Count Clifford and T gates in an OpenQASM 2.0 circuit for fault-tolerant resource analysis.
+    quick_start:
+      - Open Compose and choose the NWQEC counts workflow or add Count Clifford and T gates.
+      - Upload an OpenQASM 2.0 circuit, review the CCX and RZ synthesis settings, and run the workflow.
+    example_workflows:
+      - nwqec-counts
+      - showcase-evolution-readiness
+    limitations:
+      - The operation performs gate analysis only and is admitted on the development Slurm Docker target.
+  operations:
+    - id: count-clifford-t
+      title: Count Clifford and T gates
+      description: Parse an OpenQASM 2.0 circuit and return exact Clifford and T gate counts.
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+      outputs:
+        counts:
+          artifact_type: qhpc.clifford-t-counts@1
+      parameters:
+        keep_ccx:
+          type: boolean
+          title: Preserve CCX gates
+          default: false
+        rz_error_policy:
+          type: string
+          title: RZ synthesis error policy
+          default: total
+          enum: [per-gate, total, relative]
+        epsilon:
+          type: number
+          title: RZ synthesis error tolerance
+          default: 0.01
+          minimum: 0.000000000001
+          maximum: 0.5
+      runtime:
+        type: oci
+        reference: docker://qhpc/nwqec@sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+        digest: sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-nwqec-counts]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [development-slurm-docker]
+  resources:
+    - id: nwqec-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/pnnl/nwqec/tree/d93299c2a0fe47fb7758bff02b456acfb3ac4416
+  documentation:
+    qappswiki: packages/nwqec.md
+    url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md

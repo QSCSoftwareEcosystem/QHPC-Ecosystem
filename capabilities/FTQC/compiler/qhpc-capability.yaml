@@ -1,0 +1,61 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: ftqc-compiler
+  name: FTQC Fault-Tolerant Compiler
+  version: 0.1.0
+  project: compilation-tools
+  owners: [ftqc]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/FTQC
+    revision: 947fd0a067f15a9f9d6e7418742080cf34cfb51a
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
+  visibility: internal
+  maturity: pre-alpha
+spec:
+  component:
+    name: FTQC
+    description: C++ and LLVM/MLIR compiler project for fault-tolerant quantum operations, resource estimation, and QASM 3, Stim, QIR, and IQM lowerings.
+  guidance:
+    use_when:
+      - Review or integrate against the pinned FTQC MLIR compiler and controlled QASM importer interface.
+      - Inspect the source-supported candidate for a one-logical-qubit execution on an ORNL IQM system and the evidence required to verify it.
+    quick_start:
+      - Open the FTQC Tool Record and read the IQM one-logical-qubit hardware demonstration candidate, including its evidence gaps.
+      - Open Compose and choose One logical qubit on IQM to inspect the complete OpenQASM-to-logical-result pipeline and its hardware evidence gates.
+      - Open Compose and choose H6 QFlow chemistry cycle to inspect where optional FTQC circuit lowering would attach after a QIRIS-selected backend emits OpenQASM.
+      - Inspect the published compiler-interface resource and pinned source revision from this record.
+      - Use the interface contract for integration work while the executable runtime remains pending.
+    example_workflows: []
+    limitations:
+      - EQO currently publishes source, interface, and hardware-evidence resources rather than the full compiler as an executable capability.
+      - EQO-QSC does not publish an executable FTQC operation until a reproducible LLVM and MLIR runtime is accepted.
+      - The one-logical-qubit IQM run is developer-reported and source-supported, but the repository does not preserve a job receipt, exact QPU identity, raw counts, corrected logical histogram, or acceptance comparison; it is not verified hardware evidence.
+      - The repository names the live 20-qubit backend Crystal/default while the public ORNL announcement names Pathfinder; EQO-QSC does not assert that they are the same device without developer confirmation.
+      - The validated H6 QFlow evidence does not emit an OpenQASM circuit, so its FTQC branch is an explicit future extension rather than a completed handoff.
+  resources:
+    - id: ftqc-iqm-logical-qubit-candidate
+      kind: documentation
+      version: 0.1.0
+      uri: docs/evidence/ftqc-iqm-logical-qubit-candidate-2026-07-29.md
+      description: Developer-reported and source-supported one-logical-qubit ORNL IQM demonstration candidate, with the exact promotion evidence still required.
+    - id: ftqc-compiler-interface
+      kind: adapter
+      version: 0.1.0
+      uri: integrations/ftqc/interface.yaml
+      description: Controlled OpenQASM-to-FTQC-MLIR contract; it does not publish the IQM hardware submission path as an executable operation.
+    - id: ftqc-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/FTQC/tree/947fd0a067f15a9f9d6e7418742080cf34cfb51a
+      description: Pinned source containing the IQM JSON lowering, 20-qubit topology snapshot, routing/submission path, and one-logical-qubit fixtures.
+  documentation:
+    qappswiki: packages/ftqc.md
+    url: https://github.com/QSCSoftwareThrust/FTQC/blob/947fd0a067f15a9f9d6e7418742080cf34cfb51a/README.md

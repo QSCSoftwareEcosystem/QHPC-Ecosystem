@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/hpc-acceptance-v1.schema.json",
+  "title": "QHPC HPC Acceptance Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "HpcAcceptanceProfile"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {"$ref": "#/$defs/spec"}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s]+\\.ya?ml$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "owners",
+        "status",
+        "evidence"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"$ref": "#/$defs/version"},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "status": {"enum": ["planned", "active", "accepted"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri-reference"}
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_target", "storage_profile"],
+      "properties": {
+        "execution_target": {"$ref": "#/$defs/path"},
+        "storage_profile": {"$ref": "#/$defs/path"}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "classification",
+        "acceptance",
+        "integration"
+      ],
+      "properties": {
+        "component": {"$ref": "#/$defs/identifier"},
+        "classification": {
+          "enum": [
+            "batch-operation",
+            "service",
+            "integration-standard",
+            "knowledge-resource",
+            "library-resource"
+          ]
+        },
+        "acceptance": {"enum": ["required", "not-applicable"]},
+        "integration": {"$ref": "#/$defs/path"},
+        "runtime": {"$ref": "#/$defs/path"},
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment_profile",
+        "scheduler_fixture",
+        "target",
+        "requirements",
+        "cases"
+      ],
+      "properties": {
+        "deployment_profile": {"$ref": "#/$defs/path"},
+        "scheduler_fixture": {"$ref": "#/$defs/path"},
+        "target": {"$ref": "#/$defs/target"},
+        "requirements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheduler",
+            "container_runtime",
+            "network",
+            "immutable_images",
+            "supply_chain_evidence",
+            "stage_telemetry"
+          ],
+          "properties": {
+            "scheduler": {"const": "slurm"},
+            "container_runtime": {"const": "apptainer"},
+            "network": {"const": "none"},
+            "immutable_images": {"const": true},
+            "supply_chain_evidence": {"const": true},
+            "stage_telemetry": {"const": true}
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/case"}
+        }
+      }
+    }
+  }
+}

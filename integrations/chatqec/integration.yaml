@@ -8,7 +8,7 @@ metadata:
   role: assistant-service
   owners: [chatqec]
   visibility: internal
-  integration_status: scaffolded
+  integration_status: published
 spec:
   source:
     kind: repository
@@ -30,17 +30,20 @@ spec:
     adapter: complete
     fixtures: complete
     integration_tests: complete
-    registry_publication: pending
+    registry_publication: complete
   contract_refs:
+    - capabilities/ChatQEC/service/qhpc-capability.yaml
     - integrations/chatqec/service.yaml
   evidence:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
     - docs/adr/0008-chatqec-internal-service-boundary.md
     - docs/chatqec-service-boundary.md
+    - docs/chatqec-api-handoff.md
+    - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
   production_runtime:
     status: deferred
     technology: oci
-    reason: Service containerization follows implementation and verification of the accepted service contract and selection of approved deployment services.
+    reason: Service containerization follows implementation and acceptance of the model-backed production service and selection of approved deployment dependencies.
   blockers:
     - Select and obtain institutional acceptance for the concrete model and embedding endpoints, allowed content and egress, retention settings, and workload identity mechanism.
     - Refresh or retire the stale QSCSoftware/chatqec GitLab copy without overwriting the GitHub working source.

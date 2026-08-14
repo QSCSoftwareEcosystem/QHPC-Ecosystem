@@ -1,6 +1,6 @@
 # HPC and DOE Deployment Readiness
 
-- Last updated: 2026-07-27
+- Last updated: 2026-07-29
 - Local MVP status: implemented and verified as a vertical-slice prototype
 - Production deployment status: blocked on architecture integration,
   institutional services, target evidence, and review
@@ -30,12 +30,18 @@ pinned `openqse-spec` revision and published only as glossary and architecture
 resources. QAppsWiki's resource contract is integration-tested. ChatQEC's
 GitHub working source is authenticated and audited at an exact revision, and
 its provider-neutral HTTPS JSON/SSE contract, bounded client adapter, fixtures,
-and tests are complete.
+and tests are complete. A loopback-only service and QHPC gateway now expose
+cited extractive answers from all 60 exact-revision canonical pages through
+the same contract and supervised local lifecycle. The local verification is
+recorded in
+[ChatQEC service smoke evidence](evidence/chatqec-local-service-smoke-2026-07-28.md).
 
-This does not make ChatQEC deployable. A conforming server implementation and
-the concrete institutional model, embedding, identity, egress, retention,
-corpus, secrets, and telemetry services still require implementation,
-selection, security testing, and acceptance.
+This does not make ChatQEC production-deployable. The local service deliberately
+uses no generative model, Qdrant service, open-web fallback, or scientific tool
+execution. A production model-backed server and the concrete institutional
+model, embedding, identity, egress, retention, corpus, secrets, and telemetry
+services still require implementation, selection, security testing, and
+acceptance.
 
 TN-Sim's exact public revision, CPU iTensor MPS operation contract, controlled
 CLI adapter, and representative fixtures are now defined. Its external binary
@@ -45,6 +51,18 @@ selected component has a validated pre-runtime scaffold. Source audits,
 interface contracts, adapters, fixtures, and integration tests are completed
 first; each executable operation still requires a pinned descriptor and
 target-accepted immutable Linux runtime before production execution.
+
+FTQC's private QSC working mirror matches all seven branches in its
+authoritative internal GitLab upstream. Its admitted revision has a typed QASM
+import contract, FTQC MLIR artifact contract, controlled adapter, fixtures, and
+standalone source smoke evidence. The admitted source also contains an ORNL IQM
+submission path, a saved 20-qubit topology snapshot, and one-logical-qubit
+Steane fixtures. Developers report that this path ran one logical qubit on the
+ORNL IQM system, but the job receipt, exact device identity, counts, corrected
+logical histogram, and acceptance comparison are not preserved; the Workbench
+therefore labels it a hardware demonstration candidate rather than verified
+evidence. The full LLVM/MLIR 22 runtime, license clearance, immutable release,
+and target acceptance remain required.
 
 Production-shaped containerization is locally complete for STABSim, QASMTrans,
 NWQEC, FTPrimitiveBench, and LightStim. Their exact source revisions, source
@@ -56,8 +74,17 @@ local OCI evidence only; registry publication, SIF conversion, SBOM,
 signature, attestation, site storage activation, and target acceptance remain
 open.
 
+The machine-readable initial HPC acceptance profile covers all fourteen
+deployment components. It reports five OCI-verified batch runtimes, TN-Sim and
+FTQC as runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, ChatQEC, plus the
+three non-executable QFlow/QIRIS incubation records as outside the Slurm batch
+gate in their current roles. Its gate remains closed
+while the target and storage profiles are planned and no runtime is
+target-accepted.
+
 TN-Sim still needs a corrected reproducible iTensor/BLAS source build and
-source-backed correctness evidence. STABSim's local image cannot be published
+source-backed correctness evidence. FTQC still needs license clearance and a
+reproducible full LLVM/MLIR 22 build. STABSim's local image cannot be published
 until its upstream project supplies explicit license terms. OpenQEvo packaging
 is blocked because the audited source declares its license as `TBD` and
 provides no license file. ChatQEC remains a separately governed service rather
@@ -72,6 +99,8 @@ than an operation image.
   verification, and immutable OCI-to-Apptainer command rendering.
 - Reproducible locally smoke-tested operation images for STABSim, QASMTrans,
   NWQEC, FTPrimitiveBench, and LightStim.
+- A deployment-aligned HPC acceptance profile and CLI status/gate checks that
+  reject component, role, integration, or runtime drift.
 - Controlled local runner with an explicit operation allowlist.
 - Separate local API and worker commands connected through transactional task
   leases, with deployment-registry admission enforced again at the worker.
@@ -83,7 +112,9 @@ than an operation image.
   output collection, and controlled network-disabled Apptainer rendering.
 - Versioned planned execution-target, storage-profile, and pilot-profile
   contracts plus an asynchronous Slurm runner exercised end to end with
-  simulated scheduler and Apptainer transports.
+  simulated scheduler and Apptainer transports. All five current operation
+  runtime contracts pass runner admission, staging, job-rendering, polling,
+  collection, and cleanup conformance tests.
 - A revision-pinned, development-only Docker Compose Slurm provider and
   tokenized CLI transport for real `sbatch`, `squeue`, `sacct`, and `scancel`
   smoke testing without exposing the contributed REST service. Completion and
@@ -94,6 +125,13 @@ than an operation image.
 - Append-only SHA-256 chained audit records for future deployment integration.
 - Persistent local workflow, run, task, attempt, event, worker, artifact,
   checksum, log, retry, cancellation, lease, and export behavior.
+- Separately deployable Django Workbench with CSRF-protected fixed-origin API
+  proxy, revisioned workflow drafts, typed React Flow composition, immutable
+  publication, run submission, and checksum-verified artifact retrieval.
+- A separately supervised, workload-authenticated ChatQEC development service
+  over the pinned canonical corpus, with a server-side QHPC gateway, strict
+  browser request allowlist, cited answers or explicit refusal, and no tool
+  execution or retained conversation state.
 - Verified local OpenQEvo and QASMTrans-to-STABSim vertical slices.
 
 These are development foundations. The API does not yet enforce authoritative

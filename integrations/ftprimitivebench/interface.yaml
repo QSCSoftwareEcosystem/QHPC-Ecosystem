@@ -8,7 +8,7 @@ metadata:
   project: compilation-tools
   owners: [ftprimitivebench]
   source:
-    url: https://github.com/ShuwenKan/FTPrimitiveBench
+    url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench
     revision: ba15eba263ac6d641d225984fa074f4ee25bb462
   status: contract-valid
   evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]

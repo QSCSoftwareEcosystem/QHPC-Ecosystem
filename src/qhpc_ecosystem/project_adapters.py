@@ -22,6 +22,11 @@ _TNSIM_COUNT = re.compile(
     r'^\s*"(?P<state>[01]+)"\s*:\s*(?P<count>[0-9]+)\s*$',
     re.MULTILINE,
 )
+_FTQC_QASM_HEADER = re.compile(
+    r"^\s*OPENQASM\s+(?:2(?:\.0)?|3(?:\.0)?)\s*;",
+    re.IGNORECASE | re.MULTILINE,
+)
+_FTQC_FUNCTION_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def _integer(
@@ -312,3 +317,84 @@ def simulate_tnsim_mps(
         "singular_value_cutoff": singular_value_cutoff,
         "random_seed": random_seed,
     }
+
+
+def import_ftqc_qasm(
+    executable_path: str | Path,
+    circuit_path: str | Path,
+    parameters: Mapping[str, Any],
+    *,
+    executor: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> str:
+    """Run FTQC's standalone QASM importer through a constrained CLI boundary."""
+    executable = Path(executable_path).expanduser().resolve()
+    if not executable.is_file():
+        raise ProjectAdapterError(f"FTQC importer not found: {executable}")
+    if not os.access(executable, os.X_OK):
+        raise ProjectAdapterError(f"FTQC importer is not executable: {executable}")
+
+    circuit = Path(circuit_path).expanduser().resolve()
+    if not circuit.is_file():
+        raise ProjectAdapterError(f"input circuit not found: {circuit}")
+    try:
+        circuit_text = circuit.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        raise ProjectAdapterError("input circuit must be UTF-8 text") from error
+    if _FTQC_QASM_HEADER.search(circuit_text) is None:
+        raise ProjectAdapterError(
+            "input circuit must declare OPENQASM 2.0 or 3.0"
+        )
+
+    allowed_parameters = {"ecc", "distance", "function_name"}
+    unknown = sorted(
+        str(name) for name in parameters if name not in allowed_parameters
+    )
+    if unknown:
+        raise ProjectAdapterError(
+            f"unsupported FTQC parameters: {', '.join(unknown)}"
+        )
+
+    ecc = parameters.get("ecc", "steane")
+    if ecc not in {"steane", "surface", "color_code"}:
+        raise ProjectAdapterError(
+            "ecc must be steane, surface, or color_code"
+        )
+    distance = _integer(parameters, "distance", 3, 1, 31)
+    function_name = parameters.get("function_name", "circuit")
+    if (
+        not isinstance(function_name, str)
+        or _FTQC_FUNCTION_NAME.fullmatch(function_name) is None
+    ):
+        raise ProjectAdapterError(
+            "function_name must be an MLIR-compatible identifier"
+        )
+
+    command = [
+        str(executable),
+        f"--ecc={ecc}",
+        f"--distance={distance}",
+        f"--func-name={function_name}",
+        str(circuit),
+    ]
+    try:
+        completed = executor(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        raise ProjectAdapterError(f"FTQC import failed: {error}") from error
+    if completed.returncode != 0:
+        detail = (completed.stderr or "").strip()
+        suffix = f": {detail[-500:]}" if detail else ""
+        raise ProjectAdapterError(
+            f"FTQC importer exited with status {completed.returncode}{suffix}"
+        )
+
+    output = (completed.stdout or "").strip()
+    if "ftqc." not in output or re.search(r"(?m)^\s*func\.func\s+@", output) is None:
+        raise ProjectAdapterError(
+            "FTQC importer output lacks an FTQC MLIR function"
+        )
+    return output + "\n"

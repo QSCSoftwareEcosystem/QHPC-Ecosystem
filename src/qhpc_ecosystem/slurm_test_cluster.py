@@ -8,10 +8,11 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Callable, Sequence
+from typing import Any, Callable, Sequence
 from uuid import uuid4
 
-from .contract import validate_contract
+from .contract import validate_contract, validate_contract_data
+from .operation_runtime import load_operation_runtime
 from .slurm import CommandResult, SlurmClient
 
 
@@ -210,6 +211,165 @@ class SlurmDockerCluster:
         return self.document["spec"]["compatibility"]
 
     @property
+    def workspace_root(self) -> Path:
+        for candidate in self.manifest_path.parents:
+            if (candidate / "pyproject.toml").is_file() and (
+                candidate / "src/qhpc_ecosystem"
+            ).is_dir():
+                return candidate
+        raise SlurmTestClusterError(
+            f"cannot locate QHPC workspace above {self.manifest_path}"
+        )
+
+    @property
+    def runtime_images(self) -> tuple[dict[str, str], ...]:
+        return tuple(self.document["spec"].get("runtime_images", ()))
+
+    def development_runtimes(self) -> tuple[dict[str, Any], ...]:
+        runtimes: list[dict[str, Any]] = []
+        for image in self.runtime_images:
+            manifest = _safe_relative_path(
+                self.workspace_root,
+                image["runtime_manifest"],
+                "operation runtime manifest",
+            )
+            runtime = load_operation_runtime(manifest)
+            if runtime["metadata"]["id"] != image["runtime_id"]:
+                raise SlurmTestClusterError(
+                    "operation runtime ID does not match the test-cluster image "
+                    f"binding: {image['runtime_id']}"
+                )
+            if runtime["metadata"]["status"] != "oci-smoke-tested":
+                raise SlurmTestClusterError(
+                    "development Slurm runtime must have OCI smoke evidence: "
+                    f"{image['runtime_id']}"
+                )
+            runtimes.append(runtime)
+        return tuple(runtimes)
+
+    def verify_runtime_images(self) -> None:
+        for image in self.runtime_images:
+            result = self.runner(
+                [
+                    "docker",
+                    "image",
+                    "inspect",
+                    "--format",
+                    "{{.Id}}",
+                    image["local_reference"],
+                ]
+            )
+            actual = result.stdout.strip()
+            if result.returncode:
+                detail = result.stderr.strip() or "image not found"
+                raise SlurmTestClusterError(
+                    f"development OCI image is unavailable "
+                    f"({image['local_reference']}): {detail}"
+                )
+            if actual != image["digest"]:
+                raise SlurmTestClusterError(
+                    "development OCI image digest mismatch for "
+                    f"{image['local_reference']}: expected {image['digest']}, "
+                    f"found {actual or 'missing'}"
+                )
+
+    def development_execution_target(self) -> dict[str, Any]:
+        target = {
+            "api_version": "qhpc/v1",
+            "kind": "ExecutionTarget",
+            "metadata": {
+                "id": "development-slurm-docker",
+                "name": "QHPC virtual Slurm development target",
+                "owners": ["software-engineering"],
+                "visibility": "internal",
+                "status": "active",
+                "evidence": [
+                    "infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml"
+                ],
+            },
+            "spec": {
+                "runner": "slurm",
+                "execution_classes": ["batch-hpc"],
+                "container_runtimes": ["apptainer", "oci"],
+                "resource_limits": {
+                    "max_cpu": 4,
+                    "max_memory_mb": 8192,
+                    "max_gpu": 0,
+                    "max_walltime_seconds": 600,
+                },
+                "policies": {
+                    "approved_images_only": True,
+                    "network_access": "none",
+                    "allowed_projects": [
+                        "software-engineering",
+                        "data-schema",
+                        "agentic-software",
+                        "compilation-tools",
+                        "hybrid-workflows",
+                        "cross-project",
+                    ],
+                },
+                "storage_profile": "development-slurm-docker-storage",
+                "scheduler": {
+                    "system": "slurm",
+                    "account": "development",
+                    "partition": self.compose["partition"],
+                    "apptainer_executable": "/usr/local/bin/qhpc-oci-shim",
+                    "max_active_jobs": 4,
+                },
+            },
+        }
+        validate_contract_data("execution-target", target)
+        return target
+
+    def development_storage_profile(self) -> dict[str, Any]:
+        root = self.shared_host_directory / "qhpc"
+        image_cache = root / "images"
+        task_staging = root / "tasks"
+        image_cache.mkdir(parents=True, exist_ok=True)
+        task_staging.mkdir(parents=True, exist_ok=True)
+        profile = {
+            "api_version": "qhpc/v1",
+            "kind": "StorageProfile",
+            "metadata": {
+                "id": "development-slurm-docker-storage",
+                "name": "QHPC virtual Slurm shared storage",
+                "version": "0.1.0",
+                "owners": ["software-engineering"],
+                "status": "active",
+                "evidence": [
+                    "infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml"
+                ],
+            },
+            "spec": {
+                "execution_target": "development-slurm-docker",
+                "shared_filesystem": "project",
+                "roots": {
+                    "image_cache": str(image_cache.resolve()),
+                    "task_staging": str(task_staging.resolve()),
+                },
+                "mounts": {
+                    "input": "/inputs",
+                    "output": "/outputs",
+                    "scratch": "/scratch",
+                },
+                "node_local": {
+                    "mode": "disabled",
+                    "stage_image": False,
+                    "stage_inputs": False,
+                },
+                "policies": {
+                    "verify_image_digest": True,
+                    "verify_input_checksums": True,
+                    "cleanup": "on-success",
+                    "max_task_input_bytes": 10_000_000,
+                },
+            },
+        }
+        validate_contract_data("storage-profile", profile)
+        return profile
+
+    @property
     def shared_host_directory(self) -> Path:
         return _safe_relative_path(
             self.checkout,
@@ -258,6 +418,13 @@ class SlurmDockerCluster:
             self.compose["controller_service"],
             str(self.shared_container_directory),
             runner=self.runner,
+        )
+
+    @property
+    def slurm_client(self) -> SlurmClient:
+        return SlurmClient(
+            executor=self.slurm_executor,
+            script_path_mapper=self.map_shared_path,
         )
 
     def _checked(self, command: Sequence[str], action: str) -> CommandResult:
@@ -645,10 +812,7 @@ class SlurmDockerCluster:
             encoding="utf-8",
         )
 
-        client = SlurmClient(
-            executor=self.slurm_executor,
-            script_path_mapper=self.map_shared_path,
-        )
+        client = self.slurm_client
         started = self.clock()
         completed_job_id: str | None = None
         canceled_job_id: str | None = None

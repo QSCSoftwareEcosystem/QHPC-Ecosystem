@@ -1,0 +1,101 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.qflow-cycle-checkpoint
+  name: QFlow Cycle Checkpoint
+  version: 1
+  project: hybrid-workflows
+  owners: [exachem-qflow, qhpc-ecosystem]
+  status: draft
+spec:
+  description: Proposed cycle-boundary checkpoint that records the QFlow-owned amplitude state, task-set acceptance, and restart provenance before the next cycle is formed.
+  media_type: application/vnd.qsc.qflow-cycle-checkpoint+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - schema
+      - workflow
+      - checkpoint_id
+      - phase
+      - amplitude_state
+      - task_set
+      - provenance
+    properties:
+      schema:
+        const: qflow.qiris.cycle_checkpoint.v1
+      workflow:
+        type: object
+        additionalProperties: false
+        required: [name, run_id, cycle_id]
+        properties:
+          name:
+            const: qflow
+          run_id:
+            type: string
+            minLength: 1
+          cycle_id:
+            type: integer
+            minimum: 1
+      checkpoint_id:
+        type: string
+        minLength: 1
+      phase:
+        enum: [before_cycle, after_cycle]
+      amplitude_state:
+        type: object
+        additionalProperties: false
+        required:
+          - snapshot_id
+          - t1_reference
+          - t2_reference
+          - update_applied
+        properties:
+          snapshot_id:
+            type: string
+            minLength: 1
+          t1_reference:
+            type: [string, "null"]
+          t2_reference:
+            type: [string, "null"]
+          update_applied:
+            type: boolean
+          source_result_digest:
+            type: [string, "null"]
+            pattern: "^sha256:[0-9a-f]{64}$"
+      task_set:
+        type: object
+        additionalProperties: false
+        required: [task_set_id, request_digest, result_digest, acceptance]
+        properties:
+          task_set_id:
+            type: string
+            minLength: 1
+          request_digest:
+            type: string
+            pattern: "^sha256:[0-9a-f]{64}$"
+          result_digest:
+            type: [string, "null"]
+            pattern: "^sha256:[0-9a-f]{64}$"
+          acceptance:
+            enum: [pending, accepted, rejected]
+      provenance:
+        type: object
+        additionalProperties: false
+        required: [producer, created_at, source_revisions]
+        properties:
+          producer:
+            const: qflow
+          created_at:
+            type: string
+            minLength: 1
+          source_revisions:
+            type: object
+            minProperties: 1
+            additionalProperties:
+              type: string
+              minLength: 1
+  compatibility:
+    accepts_versions: [1]

@@ -1,12 +1,18 @@
 # ChatQEC Service Boundary
 
 - Status: Accepted design baseline
+- Local implementation: Functional canonical-corpus development service
 - Accepted: 2026-07-24
 - Working source: [QSCSoftwareThrust/ChatQEC](https://github.com/QSCSoftwareThrust/ChatQEC)
 - Pinned revision: `4c017510511f835001bfe5901a9d59e86cc130cd`
 - Formal decision: [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
 - Service contract: [`integrations/chatqec/service.yaml`](../integrations/chatqec/service.yaml)
 - Client adapter: [`service_adapters.py`](../src/qhpc_ecosystem/service_adapters.py)
+- Development service: [`chatqec_service.py`](../src/qhpc_ecosystem/chatqec_service.py)
+- QHPC gateway: [`assistant.py`](../src/qhpc_ecosystem/assistant.py)
+- Workbench API handoff: [ChatQEC Workbench API Handoff](chatqec-api-handoff.md)
+- Local smoke evidence:
+  [2026-07-28 ChatQEC service smoke](evidence/chatqec-local-service-smoke-2026-07-28.md)
 - Source evidence:
   [initial component source audit](evidence/initial-component-source-audit-2026-07-22.md#chatqec)
 
@@ -26,7 +32,17 @@ The provider-neutral v1 HTTPS JSON/SSE contract, bounded request builder,
 response validator, SSE parser, fixtures, and integration tests are now
 implemented in QHPC. The adapter requires a deployment-supplied transport that
 applies the approved workload identity; it does not select or carry a provider
-credential. No conforming ChatQEC server or production runtime is claimed yet.
+credential.
+
+QHPC also implements a conforming loopback-only development server over the
+exact-revision canonical Markdown corpus owned by ChatQEC. It returns
+deterministic extractive answers or an explicit refusal, validates the same
+request and response contracts, attaches immutable source citations, accepts
+only a server-supplied bearer workload identity, disables tool execution, and
+retains no conversation state. `eqo dev up` prepares the pinned
+source and supervises this process independently from the QHPC API. This makes
+the local Workbench assistant functional without claiming that a generative
+model, Qdrant deployment, or production identity service has been approved.
 
 ## Topology
 
@@ -53,6 +69,12 @@ read-only Qdrant corpus   one approved model endpoint
 
 The browser does not call ChatQEC, Qdrant, or a model provider directly.
 Provider credentials never enter the browser or workflow definition.
+
+For local development, the lower two dependencies in this topology are
+replaced by a read-only lexical/extractive pass over ChatQEC's pinned canonical
+pages. Plain HTTP is allowed only on the loopback hop between the local QHPC
+API and local development service. A non-loopback service origin still
+requires HTTPS.
 
 ## Initial Allowed Scope
 
@@ -119,8 +141,9 @@ and institutional acceptance for:
 - the allowed information class and egress routes;
 - secrets storage, Qdrant placement, and corpus release storage;
 - retention periods, quotas, budget, and service-level objectives; and
-- a server implementation of the versioned JSON/SSE contract and its
-  authorization, isolation, cancellation, timeout, and provider-failure tests.
+- a production model-backed server implementation with authorization,
+  isolation, cancellation, timeout, provider-failure, load, and security
+  acceptance tests.
 
 These inputs configure the accepted boundary; they do not change the boundary
 itself unless a later ADR supersedes [ADR 0008](adr/0008-chatqec-internal-service-boundary.md).

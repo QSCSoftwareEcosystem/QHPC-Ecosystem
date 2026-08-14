@@ -193,6 +193,11 @@ def _normalize_chatqec_request(request: Mapping[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def validate_chatqec_request(request: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate and normalize a request at a ChatQEC service boundary."""
+    return _normalize_chatqec_request(request)
+
+
 def _validate_citation(value: Any, name: str) -> dict[str, Any]:
     citation = _object_fields(
         value,

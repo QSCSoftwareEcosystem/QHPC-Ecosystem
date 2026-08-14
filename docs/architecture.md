@@ -1,7 +1,7 @@
 # QHPC Target Architecture
 
 - Status: Target design with local execution-plane implementation
-- Last updated: 2026-07-27
+- Last updated: 2026-07-28
 - Scope: QHPC ecosystem integration, orchestration, execution, and data paths
 
 ## Architectural Position
@@ -78,12 +78,39 @@ workflow versions, creates runs, and exposes state. It does not execute tasks or
 import project libraries. CLI, Workbench, automation, and approved agents use
 the same application services and versioned contracts.
 
+### Workbench Plane
+
+The separately deployable Django Workbench owns browser routing, signed-cookie
+sessions for local development, CSRF enforcement, static assets, and a
+fixed-origin proxy to the control API. It does not import the workflow engine,
+open the orchestration database, or execute project code. Production
+authorization remains an API responsibility.
+
+The Compose view embeds a TypeScript React Flow client. Canvas nodes are
+projections of deployment-admitted registry operations and named handles are
+declared artifact ports. The browser performs immediate type, cycle,
+single-input, and required-input checks, but only server validation can publish
+a workflow. Draft layout is persisted separately from the canonical workflow,
+so moving a node or changing zoom does not alter the workflow digest.
+
+The prior static Workbench remains an explicit local fallback. It is not the
+default supervised service and does not define a second workflow engine.
+
 ### Execution Plane
 
 Workers claim persistent task leases and invoke a target runner. A runner owns
 transport and lifecycle operations such as submit, poll, cancel, and collect.
 Local, Slurm, and quantum runners implement the same lifecycle without changing
 the scientific operation definition.
+
+Each worker registers its admitted execution targets, execution classes, and
+runtime digests and maintains an independent heartbeat while scientific work is
+running. The API treats stale, draining, and offline workers as unavailable.
+Interactive submission is admitted only when every workflow node has a healthy
+compatible worker; explicit offline batch queueing remains available to
+authorized automation. Local development uses a foreground supervisor to start
+and restart separate API and worker processes. A shared deployment uses an
+approved service manager rather than embedding workers in the API.
 
 The development database may use SQLite. Production persistence must support
 multiple API and worker processes, transactional task claims, schema migrations,
@@ -160,6 +187,11 @@ Workers materialize inputs into a controlled task workspace, verify them before
 execution, ingest outputs from declared relative paths, compute checksums, and
 publish immutable artifact records. An adapter cannot publish an arbitrary host
 URI as a trusted output.
+
+The local content API resolves stored file URIs, requires the resolved path to
+remain under the configured artifact root, and verifies size and SHA-256 before
+serving bytes. Executable or otherwise unsafe media is returned as an
+attachment; the Django proxy does not gain filesystem access.
 
 The implemented worker lifecycle, planned execution-target, storage, and pilot
 profiles, and site activation procedure are documented in
@@ -242,6 +274,32 @@ implementation and OCI-to-Apptainer flow are documented in
 The image contains application user-space dependencies. Kernel drivers,
 parallel-filesystem clients, RDMA devices, site MPI, UCX, libfabric, GPU
 libraries, and storage policy remain controlled by the execution target.
+
+## Development Validation Fixture
+
+The pinned lightweight Docker Compose Slurm cluster is validation
+infrastructure below the execution plane. It is not a capability, workflow,
+operation runtime, deployment component, or production target. It verifies
+real scheduler submission, polling, accounting, cancellation, shared-path
+mapping, and controller-state continuity.
+
+Scientific HPC acceptance remains a separate gate. Each initial executable
+project must publish an immutable OCI release, convert and verify an accepted
+SIF, and execute through the normal worker on an Apptainer-capable Slurm
+target. The Docker fixture does not contain Apptainer and cannot provide that
+evidence.
+
+`infrastructure/hpc-acceptance/initial.yaml` connects that gate to the
+authoritative fourteen-component deployment profile. It classifies each component,
+references the current runtime where applicable, and names the target and
+storage contracts. The runner keeps host storage paths separate from
+scheduler-visible paths through an injected mapper, so transport-specific path
+translation does not alter operation contracts.
+
+The external OpenQSE QFw Slurm stack is reference material only. Its
+multi-node, communication, and synthetic-resource patterns may inform future
+test cases, but QHPC does not clone, build, run, package, or depend on that
+stack.
 
 ## Storage-Aware HPC Execution
 

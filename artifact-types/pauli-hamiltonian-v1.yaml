@@ -1,0 +1,39 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.pauli-hamiltonian
+  name: Pauli Hamiltonian
+  version: 1
+  project: cross-project
+  owners: [openqevo, qhpc-ecosystem]
+  status: draft
+spec:
+  description: A finite real-weighted sum of Pauli strings with Qiskit-compatible qubit ordering.
+  media_type: application/vnd.qsc.pauli-hamiltonian+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [qubits, terms]
+    properties:
+      qubits:
+        type: integer
+        minimum: 1
+        maximum: 32
+      terms:
+        type: array
+        minItems: 1
+        maxItems: 256
+        items:
+          type: object
+          additionalProperties: false
+          required: [pauli, coefficient]
+          properties:
+            pauli:
+              type: string
+              pattern: "^[IXYZ]+$"
+            coefficient:
+              type: number
+  compatibility:
+    accepts_versions: [1]

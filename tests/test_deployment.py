@@ -29,7 +29,7 @@ PROFILE = ROOT / "deployments" / "initial.yaml"
 REGISTRY = ROOT / "examples" / "registry.yaml"
 
 
-def test_initial_deployment_profile_is_the_authoritative_ten_component_allowlist() -> None:
+def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -> None:
     profile = load_deployment_profile(PROFILE, load_catalog(CATALOG))
 
     assert tuple(
@@ -41,18 +41,48 @@ def test_initial_deployment_profile_is_the_authoritative_ten_component_allowlist
         "FTPrimitiveBench",
         "LightStim",
         "QASMTrans",
+        "FTQC",
         "OpenQEvo",
         "OpenQSE",
         "QAppsWiki",
         "ChatQEC",
+        "ExaChem QFlow",
+        "QIRIS Runtime (IRIS/QIR-EE)",
+        "NWQSim QFlow VQE Plugin",
     )
     assert profile["spec"]["selection_mode"] == "allowlist"
+    assert profile["metadata"]["version"] == "0.7.0"
+    stabsim = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["name"] == "STABSim"
+    )
+    assert stabsim["source"]["url"] == (
+        "https://github.com/QSCSoftwareThrust/STABSim"
+    )
+    lightstim = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["name"] == "LightStim"
+    )
+    assert lightstim["source"]["url"] == (
+        "https://github.com/QSCSoftwareThrust/LightStim"
+    )
+    ftqc = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["name"] == "FTQC"
+    )
+    assert ftqc["source"] == {
+        "kind": "repository",
+        "url": "https://github.com/QSCSoftwareThrust/FTQC",
+    }
     tn_sim = next(
         component
         for component in profile["spec"]["components"]
         if component["name"] == "TN-Sim"
     )
-    assert tn_sim["onboarding_status"] == "cataloged"
+    assert tn_sim["onboarding_status"] == "registry-published"
     assert tn_sim["catalog_repository"] == "NWQ-Sim"
     assert tn_sim["source"] == {
         "kind": "repository",
@@ -67,6 +97,27 @@ def test_initial_deployment_profile_is_the_authoritative_ten_component_allowlist
         "kind": "repository",
         "url": "https://github.com/QSCSoftwareThrust/ChatQEC",
     }
+    exachem = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["id"] == "exachem-qflow"
+    )
+    assert exachem["onboarding_status"] == "onboarding"
+    assert exachem["source"]["url"] == "https://github.com/ExaChem/exachem"
+    qiris = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["id"] == "iris-qiris"
+    )
+    assert qiris["onboarding_status"] == "onboarding"
+    assert qiris["source"]["url"] == "https://github.com/ORNL/iris"
+    nwqsim_qflow = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["id"] == "nwqsim-qflow"
+    )
+    assert nwqsim_qflow["onboarding_status"] == "onboarding"
+    assert nwqsim_qflow["source"]["url"] == "https://github.com/pnnl/nwq-sim"
     openqse = next(
         component
         for component in profile["spec"]["components"]
@@ -93,20 +144,33 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
             "FTPrimitiveBench",
             "LightStim",
             "qasmtrans",
+            "ftqc",
             "OpenQEvo",
             "openqse-spec",
             "QAppsWiki",
             "chatqec",
+            "ExaChem",
+            "IRIS-QIRIS",
+            "NWQSim-QFlow",
         }
     )
     assert {entry["catalog_repository"] for entry in registry_entries(registry)} == {
+        "STABSim",
+        "NWQ-Sim",
+        "nwqec",
+        "FTPrimitiveBench",
+        "LightStim",
+        "qasmtrans",
+        "ftqc",
         "OpenQEvo",
         "openqse-spec",
         "QAppsWiki",
-        "qasmtrans",
-        "STABSim",
+        "chatqec",
+        "ExaChem",
+        "IRIS-QIRIS",
+        "NWQSim-QFlow",
     }
-    assert registry["metadata"]["entry_count"] == 5
+    assert registry["metadata"]["entry_count"] == 14
     validate_contract_data("registry", registry)
     with pytest.raises(RegistryError, match="capability not found"):
         find_registry_entry(registry, "qsc-hardware-survey")
@@ -169,10 +233,25 @@ def test_serve_applies_the_deployment_profile_before_building_api_context(
     assert {
         entry["catalog_repository"]
         for entry in registry_entries(captured["registry"])
-    } == {"OpenQEvo", "openqse-spec", "QAppsWiki", "qasmtrans", "STABSim"}
+    } == {
+        "STABSim",
+        "NWQ-Sim",
+        "nwqec",
+        "FTPrimitiveBench",
+        "LightStim",
+        "qasmtrans",
+        "ftqc",
+        "OpenQEvo",
+        "openqse-spec",
+        "QAppsWiki",
+        "chatqec",
+        "ExaChem",
+        "IRIS-QIRIS",
+        "NWQSim-QFlow",
+    }
     assert captured["host"] == "127.0.0.1"
     assert captured["port"] == 8080
-    assert "Deployment profile: initial@0.3.0" in capsys.readouterr().out
+    assert "Deployment profile: initial@0.7.0" in capsys.readouterr().out
 
 
 def test_worker_command_uses_the_same_deployment_profile(
@@ -201,5 +280,5 @@ def test_worker_command_uses_the_same_deployment_profile(
     )
 
     output = capsys.readouterr().out
-    assert "QHPC Worker: initial@0.3.0 (5 published capabilities)" in output
+    assert "QHPC Worker: initial@0.7.0 (14 published capabilities)" in output
     assert "Worker stopped: 0 tasks processed" in output

@@ -1,0 +1,64 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: iris-qiris-runtime
+  name: QIRIS Runtime Boundary (IRIS/QIR-EE)
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [iris-qiris]
+  repository:
+    url: https://github.com/ORNL/iris
+    revision: ff57e620a92fcf62eff3568d9c6eeaaf078f0340
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: contract-valid
+    evidence:
+      - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    name: IRIS
+    description: Portable runtime system that discovers and orchestrates data movement and tasks across heterogeneous programming systems and devices.
+    license: BSD-3-Clause
+  guidance:
+    use_when:
+      - Design heterogeneous scheduling for independent active-space tasks that share one QFlow amplitude snapshot.
+      - Review how QIRIS should preserve task identity, collect complete-cycle results, and invoke backend plugins.
+    quick_start:
+      - Open Compose and choose H6 QFlow chemistry cycle to inspect QIRIS's proposed task-set scheduling role and the saved contract replay.
+      - Read the architecture resource and confirm that QFlow, not QIRIS, owns cycle advancement and amplitude updates.
+      - Inspect qflow-taskset@1 and qflow-taskset-result@1 as the proposed orchestration boundary.
+      - Treat IRIS/QIR-EE as the admitted runtime substrate; a high-level QIRIS VQE service is not yet published or runnable here.
+    example_workflows: []
+    limitations:
+      - The pinned IRIS source provides QIR execution infrastructure; this record does not claim that it already implements the proposed high-level QFlow task-set service.
+      - QIR generation, expectation-result conversion, scheduler admission, and live QFlow result application remain unresolved.
+      - No executable operation is published until the orchestration adapter and immutable runtime pass end-to-end target acceptance.
+  resources:
+    - id: qflow-taskset
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/qflow-taskset-v1.yaml
+      description: Proposed complete-cycle request consumed by the QIRIS boundary.
+    - id: qflow-taskset-result
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/qflow-taskset-result-v1.yaml
+      description: Proposed complete-cycle response returned to QFlow.
+    - id: qflow-qiris-architecture
+      kind: documentation
+      version: 0.1.0
+      uri: integrations/qiris-qflow/architecture.md
+      description: EQO-QSC ownership, artifact flow, and promotion gates for the integration.
+    - id: iris-source
+      kind: library
+      version: 3.0.1
+      uri: https://github.com/ORNL/iris/tree/ff57e620a92fcf62eff3568d9c6eeaaf078f0340
+      description: Pinned public IRIS/QIR-EE source; it is not represented as an already-complete QIRIS VQE service.
+  documentation:
+    qappswiki: packages/iris-qiris.md
+    url: https://github.com/ORNL/iris/blob/ff57e620a92fcf62eff3568d9c6eeaaf078f0340/README.md

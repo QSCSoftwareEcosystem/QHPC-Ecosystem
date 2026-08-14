@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from threading import Event
+from threading import Event, Thread
 from time import perf_counter
 from typing import Any, Iterable, Protocol
 
@@ -46,6 +46,16 @@ class TargetExecutionError(RuntimeError):
     """An admitted external target reported a terminal execution failure."""
 
 
+def _heartbeat_loop(
+    engine: WorkflowEngine,
+    worker_id: str,
+    stop_event: Event,
+    interval_seconds: float,
+) -> None:
+    while not stop_event.wait(interval_seconds):
+        engine.heartbeat_worker(worker_id)
+
+
 class _RegistryAdmission:
     """Validate operation and runtime identity against one registry snapshot."""
 
@@ -60,6 +70,9 @@ class _RegistryAdmission:
                 self._operations[
                     (metadata["id"], metadata["version"], operation["id"])
                 ] = (runtime["reference"], runtime["digest"])
+        self.runtime_digests = frozenset(
+            digest for _reference, digest in self._operations.values()
+        )
 
     def _admit(self, request: TaskRequest) -> None:
         key = (
@@ -155,7 +168,14 @@ class Worker:
         self.engine.register_worker(
             self.worker_id,
             kind="local",
-            metadata={"execution": "synchronous"},
+            metadata={
+                "execution": "synchronous",
+                "execution_targets": sorted(self.execution_targets),
+                "execution_classes": sorted(self.execution_classes),
+                "runtime_digests": sorted(
+                    getattr(self.runner, "runtime_digests", ())
+                ),
+            },
         )
 
     def run_once(self) -> bool:
@@ -179,6 +199,18 @@ class Worker:
 
     def run_forever(self, stop_event: Event) -> int:
         processed = 0
+        heartbeat_stop = Event()
+        heartbeat = Thread(
+            target=_heartbeat_loop,
+            args=(
+                self.engine,
+                self.worker_id,
+                heartbeat_stop,
+                min(5.0, self.poll_interval_seconds),
+            ),
+            daemon=True,
+        )
+        heartbeat.start()
         try:
             while not stop_event.is_set():
                 if self.run_once():
@@ -186,6 +218,8 @@ class Worker:
                 else:
                     stop_event.wait(self.poll_interval_seconds)
         finally:
+            heartbeat_stop.set()
+            heartbeat.join()
             self.engine.heartbeat_worker(self.worker_id, state="offline")
         return processed
 
@@ -228,7 +262,14 @@ class AsyncWorker:
         self.engine.register_worker(
             self.worker_id,
             kind="target",
-            metadata={"execution": "asynchronous"},
+            metadata={
+                "execution": "asynchronous",
+                "execution_targets": sorted(self.execution_targets or ()),
+                "execution_classes": sorted(self.execution_classes or ()),
+                "runtime_digests": sorted(
+                    getattr(self.runner, "runtime_digests", ())
+                ),
+            },
         )
 
     @staticmethod
@@ -371,11 +412,25 @@ class AsyncWorker:
 
     def run_forever(self, stop_event: Event) -> int:
         transitions = 0
+        heartbeat_stop = Event()
+        heartbeat = Thread(
+            target=_heartbeat_loop,
+            args=(
+                self.engine,
+                self.worker_id,
+                heartbeat_stop,
+                min(5.0, self.poll_interval_seconds),
+            ),
+            daemon=True,
+        )
+        heartbeat.start()
         try:
             while not stop_event.is_set():
                 if self.run_once():
                     transitions += 1
                 stop_event.wait(self.poll_interval_seconds)
         finally:
+            heartbeat_stop.set()
+            heartbeat.join()
             self.engine.heartbeat_worker(self.worker_id, state="offline")
         return transitions

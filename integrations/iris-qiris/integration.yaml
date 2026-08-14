@@ -1,0 +1,47 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: iris-qiris
+  name: QIRIS Runtime (IRIS/QIR-EE)
+  version: 0.1.0
+  project: hybrid-workflows
+  role: operation-provider
+  owners: [iris-qiris]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/ORNL/iris
+    catalog_repository: IRIS-QIRIS
+  mirror:
+    status: not-applicable
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [qir, adapter, cli]
+  scope:
+    status: defined
+    summary: Define a complete-cycle QFlow task-set orchestration boundary over the pinned IRIS/QIR-EE runtime without claiming that a high-level QIRIS VQE service already exists.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: pending
+    fixtures: complete
+    integration_tests: pending
+    registry_publication: complete
+  contract_refs:
+    - capabilities/IRIS-QIRIS/runtime/qhpc-capability.yaml
+    - artifact-types/qflow-taskset-v1.yaml
+    - artifact-types/qflow-taskset-result-v1.yaml
+  evidence:
+    - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+    - integrations/qiris-qflow/h6-validation-workflow.md
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Publish no operation until QIR generation, backend dispatch, result conversion, and scheduler admission are implemented and accepted end to end.
+  blockers:
+    - Implement and project-review the high-level QFlow task-set adapter over IRIS/QIR-EE.
+    - Define and test QIR generation and expectation-result conversion for formed-Hamiltonian tasks.
+    - Demonstrate scheduler admission, retry and failure semantics, and complete-cycle aggregation on a QHPC target.

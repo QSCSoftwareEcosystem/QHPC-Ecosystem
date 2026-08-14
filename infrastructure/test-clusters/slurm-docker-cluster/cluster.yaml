@@ -26,6 +26,34 @@ spec:
     files:
       - source: Dockerfile.qhpc
         destination: Dockerfile.qhpc
+      - source: qhpc-oci-shim.py
+        destination: qhpc-oci-shim.py
+  runtime_images:
+    - runtime_id: qasmtrans-transpile-linux-amd64
+      runtime_manifest: containers/operations/qasmtrans/runtime.yaml
+      registry_reference: docker://qhpc/qasmtrans@sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
+      local_reference: qhpc/qasmtrans:1843c98-linux-amd64
+      digest: sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
+    - runtime_id: stabsim-analyze-metrics-linux-amd64
+      runtime_manifest: containers/operations/stabsim/runtime.yaml
+      registry_reference: docker://qhpc/stabsim@sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
+      local_reference: qhpc/stabsim:a0d8d2e-linux-amd64
+      digest: sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
+    - runtime_id: nwqec-count-clifford-t-linux-amd64
+      runtime_manifest: containers/operations/nwqec/runtime.yaml
+      registry_reference: docker://qhpc/nwqec@sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+      local_reference: qhpc/nwqec:d93299c-linux-amd64
+      digest: sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+    - runtime_id: ftprimitivebench-build-memory-linux-amd64
+      runtime_manifest: containers/operations/ftprimitivebench/runtime.yaml
+      registry_reference: docker://qhpc/ftprimitivebench@sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+      local_reference: qhpc/ftprimitivebench:ba15eba-linux-amd64
+      digest: sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+    - runtime_id: lightstim-estimate-logical-error-linux-amd64
+      runtime_manifest: containers/operations/lightstim/runtime.yaml
+      registry_reference: docker://qhpc/lightstim@sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+      local_reference: qhpc/lightstim:b08d4c2-linux-amd64
+      digest: sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
   compose:
     project_name: qhpc-slurm-test
     compose_file: docker-compose.yml
@@ -58,6 +86,7 @@ spec:
     - The upstream Dockerfile is not used; the tracked QHPC compatibility Dockerfile is required.
     - Intercepting development networks require an explicitly supplied approved public CA certificate.
     - The compatibility build remains a development image and is not a signed runtime release.
-    - The source Compose file uses fixed container names, so only one instance may run per Docker host.
+    - The QHPC override replaces the source's global container and image names so unrelated Compose stacks can coexist; one QHPC fixture instance may run per Docker host.
+    - Development operation jobs use a constrained OCI shim over the host Docker socket; possession of that socket is host-equivalent authority, so the fixture accepts isolated test data only and is never a multi-user target.
     - Apptainer, parallel filesystems, MPI, RDMA, GPU, GPUDirect, and facility identity are not modeled.
     - Queue latency and performance measurements are not representative of an HPC facility.

@@ -48,21 +48,21 @@ containerization blockers, is in
 QASMTrans is the smallest reference operation runtime:
 
 ```bash
-qhpc-ecosystem operation-runtime verify \
+eqo operation-runtime verify \
   containers/operations/qasmtrans/runtime.yaml
 
-qhpc-ecosystem operation-runtime prepare \
+eqo operation-runtime prepare \
   containers/operations/qasmtrans/runtime.yaml \
   /path/to/qasmtrans \
   --output .qhpc/build/qasmtrans
 
-qhpc-ecosystem operation-runtime build-oci \
+eqo operation-runtime build-oci \
   containers/operations/qasmtrans/runtime.yaml \
   /path/to/qasmtrans \
   --context .qhpc/build/qasmtrans-build \
   --tag qhpc/qasmtrans:1843c98-linux-amd64
 
-qhpc-ecosystem operation-runtime smoke-oci \
+eqo operation-runtime smoke-oci \
   containers/operations/qasmtrans/runtime.yaml \
   --image qhpc/qasmtrans:1843c98-linux-amd64
 ```
@@ -81,7 +81,7 @@ source URL and SHA-256 digest. The acquisition step populates a controlled
 cache, and context preparation copies only matching files:
 
 ```bash
-qhpc-ecosystem operation-runtime build-oci \
+eqo operation-runtime build-oci \
   containers/operations/ftprimitivebench/runtime.yaml \
   /path/to/FTPrimitiveBench \
   --dependency-cache /approved/wheel-cache \
@@ -99,7 +99,7 @@ After the OCI image is published, render the target build command from an
 immutable registry reference:
 
 ```bash
-qhpc-ecosystem operation-runtime apptainer-command \
+eqo operation-runtime apptainer-command \
   containers/operations/qasmtrans/runtime.yaml \
   --oci-reference docker://registry.example/qhpc/qasmtrans@sha256:... \
   --output /approved/image-cache/qasmtrans.sif

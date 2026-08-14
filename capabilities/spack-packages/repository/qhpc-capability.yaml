@@ -20,7 +20,17 @@ metadata:
   maturity: prototype
 spec:
   component:
-    description: Spack package recipes for QSC software deployment.
+    name: QSC Spack Repository
+    description: Spack package repository for developing, packaging, and deploying Quantum Science Center software on HPC systems.
+  guidance:
+    use_when:
+      - Build or maintain QSC software environments using the published Spack package repository.
+    quick_start:
+      - Open the repository documentation and pinned source resource from this record.
+      - Add the project-owned repository to a compatible Spack environment outside the EQO-QSC workflow runner.
+    example_workflows: []
+    limitations:
+      - This record publishes package recipes and does not expose an executable EQO-QSC operation.
   resources:
     - id: spack-repository
       kind: library

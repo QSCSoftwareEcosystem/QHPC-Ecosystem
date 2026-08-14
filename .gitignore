@@ -3,6 +3,16 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .venv/
+.DS_Store
+.agents/
+.codex/
+.impeccable/
+graphify-out/
+PLAN.md
+node_modules/
+coverage/
+playwright-report/
+test-results/
 .qhpc/
 dist/
 build/

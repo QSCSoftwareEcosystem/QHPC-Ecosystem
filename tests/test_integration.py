@@ -27,12 +27,33 @@ def test_initial_profile_has_an_aligned_scaffold_for_every_component() -> None:
     assert tuple(scaffold.component_id for scaffold in scaffolds) == tuple(
         component["id"] for component in profile["spec"]["components"]
     )
-    assert len(scaffolds) == 10
+    assert len(scaffolds) == 14
     assert {
         scaffold.component_id
         for scaffold in scaffolds
         if scaffold.document["metadata"]["integration_status"] == "published"
-    } == {"stabsim", "qasmtrans", "openqevo", "openqse", "qappswiki"}
+    } == {
+        "stabsim",
+        "tn-sim",
+        "nwqec",
+        "ftprimitivebench",
+        "lightstim",
+        "qasmtrans",
+        "ftqc",
+        "openqevo",
+        "openqse",
+        "qappswiki",
+        "chatqec",
+    }
+    assert {
+        scaffold.component_id
+        for scaffold in scaffolds
+        if scaffold.document["metadata"]["integration_status"] == "scaffolded"
+    } == {
+        "exachem-qflow",
+        "iris-qiris",
+        "nwqsim-qflow",
+    }
 
 
 def test_initial_scaffolds_defer_production_containerization() -> None:
@@ -55,7 +76,13 @@ def test_initial_scaffolds_defer_production_containerization() -> None:
 def test_pre_runtime_components_have_pinned_interface_contracts() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
 
-    for component_id in ("tn-sim", "nwqec", "ftprimitivebench", "lightstim"):
+    for component_id in (
+        "tn-sim",
+        "nwqec",
+        "ftprimitivebench",
+        "lightstim",
+        "ftqc",
+    ):
         scaffold = find_integration_scaffold(scaffolds, component_id).document
         assert scaffold["spec"]["scope"]["status"] == "defined"
         assert scaffold["spec"]["deliverables"]["source_audit"] == "complete"
@@ -63,7 +90,7 @@ def test_pre_runtime_components_have_pinned_interface_contracts() -> None:
         assert scaffold["spec"]["deliverables"]["adapter"] == "complete"
         assert scaffold["spec"]["deliverables"]["fixtures"] == "complete"
         assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
-        assert scaffold["spec"]["deliverables"]["registry_publication"] == "pending"
+        assert scaffold["spec"]["deliverables"]["registry_publication"] == "complete"
         assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
 
 
@@ -84,8 +111,9 @@ def test_chatqec_source_and_service_contract_are_complete_before_runtime() -> No
     assert scaffold["spec"]["deliverables"]["adapter"] == "complete"
     assert scaffold["spec"]["deliverables"]["fixtures"] == "complete"
     assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
-    assert scaffold["spec"]["deliverables"]["registry_publication"] == "pending"
+    assert scaffold["spec"]["deliverables"]["registry_publication"] == "complete"
     assert scaffold["spec"]["contract_refs"] == [
+        "capabilities/ChatQEC/service/qhpc-capability.yaml",
         "integrations/chatqec/service.yaml"
     ]
 
@@ -95,6 +123,8 @@ def test_initial_pre_container_integration_scope_is_closed() -> None:
 
     for scaffold_record in scaffolds:
         scaffold = scaffold_record.document
+        if scaffold["metadata"]["integration_status"] != "published":
+            continue
         deliverables = scaffold["spec"]["deliverables"]
         assert scaffold["spec"]["scope"]["status"] == "defined"
         assert deliverables["source_audit"] == "complete"
@@ -104,25 +134,68 @@ def test_initial_pre_container_integration_scope_is_closed() -> None:
         assert deliverables["integration_tests"] == "complete"
 
 
+def test_qflow_qiris_incubation_is_visible_but_not_executable() -> None:
+    _, scaffolds = load_integration_scaffolds(PROFILE)
+
+    for component_id in ("exachem-qflow", "iris-qiris", "nwqsim-qflow"):
+        scaffold = find_integration_scaffold(scaffolds, component_id).document
+        capability = validate_contract(
+            "capability",
+            ROOT / scaffold["spec"]["contract_refs"][0],
+        )
+        assert scaffold["metadata"]["integration_status"] == "scaffolded"
+        assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
+        assert scaffold["spec"]["deliverables"]["adapter"] == "pending"
+        assert not capability["spec"].get("operations")
+        assert capability["metadata"]["maturity"] == "prototype"
+        assert capability["spec"]["guidance"]["example_workflows"] == []
+
+
 def test_openqse_and_qappswiki_publish_only_pinned_resources() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
 
-    for component_id in ("openqse", "qappswiki"):
-        scaffold = find_integration_scaffold(scaffolds, component_id).document
-        capability_path = ROOT / scaffold["spec"]["contract_refs"][0]
-        capability = validate_contract("capability", capability_path)
-        revision = capability["metadata"]["repository"]["revision"]
+    openqse = find_integration_scaffold(scaffolds, "openqse").document
+    openqse_capability = validate_contract(
+        "capability",
+        ROOT / openqse["spec"]["contract_refs"][0],
+    )
+    openqse_revision = openqse_capability["metadata"]["repository"]["revision"]
 
-        assert scaffold["metadata"]["integration_status"] == "published"
-        assert scaffold["spec"]["deliverables"]["adapter"] == "not-applicable"
-        assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
-        assert scaffold["spec"]["production_runtime"]["status"] == "not-applicable"
-        assert not capability["spec"].get("operations")
-        assert capability["spec"]["resources"]
-        assert all(
-            revision in resource["uri"]
-            for resource in capability["spec"]["resources"]
-        )
+    assert openqse["metadata"]["integration_status"] == "published"
+    assert openqse["spec"]["deliverables"]["adapter"] == "not-applicable"
+    assert openqse["spec"]["deliverables"]["integration_tests"] == "complete"
+    assert openqse["spec"]["production_runtime"]["status"] == "not-applicable"
+    assert not openqse_capability["spec"].get("operations")
+    assert all(
+        openqse_revision in resource["uri"]
+        for resource in openqse_capability["spec"]["resources"]
+    )
+
+    qappswiki = find_integration_scaffold(scaffolds, "qappswiki").document
+    qappswiki_capability = validate_contract(
+        "capability",
+        ROOT / qappswiki["spec"]["contract_refs"][0],
+    )
+    qappswiki_revision = qappswiki_capability["metadata"]["repository"][
+        "revision"
+    ]
+    resources = {
+        resource["id"]: resource
+        for resource in qappswiki_capability["spec"]["resources"]
+    }
+
+    assert qappswiki["metadata"]["integration_status"] == "published"
+    assert qappswiki["spec"]["deliverables"]["adapter"] == "complete"
+    assert qappswiki["spec"]["deliverables"]["integration_tests"] == "complete"
+    assert qappswiki["spec"]["production_runtime"]["status"] == "not-applicable"
+    assert not qappswiki_capability["spec"].get("operations")
+    assert resources["qappswiki-knowledge-adapter"]["uri"] == (
+        "integrations/qappswiki/knowledge-interface.md"
+    )
+    assert all(
+        qappswiki_revision in resources[resource_id]["uri"]
+        for resource_id in ("qappswiki-cli", "qappswiki-corpus")
+    )
 
 
 def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
@@ -130,7 +203,7 @@ def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
     scaffold = find_integration_scaffold(scaffolds, "tn-sim").document
 
     assert scaffold["metadata"]["visibility"] == "public"
-    assert scaffold["metadata"]["integration_status"] == "scaffolded"
+    assert scaffold["metadata"]["integration_status"] == "published"
     assert scaffold["spec"]["source"] == {
         "kind": "repository",
         "url": "https://github.com/pnnl/NWQ-Sim/tree/tn_sim",
@@ -144,19 +217,85 @@ def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
     assert scaffold["spec"]["deliverables"]["adapter"] == "complete"
     assert scaffold["spec"]["deliverables"]["fixtures"] == "complete"
     assert scaffold["spec"]["deliverables"]["integration_tests"] == "complete"
-    assert scaffold["spec"]["deliverables"]["registry_publication"] == "pending"
+    assert scaffold["spec"]["deliverables"]["registry_publication"] == "complete"
     assert scaffold["spec"]["contract_refs"] == [
+        "capabilities/NWQ-Sim/tn-sim/qhpc-capability.yaml",
         "integrations/tn-sim/interface.yaml"
     ]
     assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
+
+
+def test_ftqc_uses_synchronized_private_github_mirror_and_pins_interface() -> None:
+    _, scaffolds = load_integration_scaffolds(PROFILE)
+    scaffold = find_integration_scaffold(scaffolds, "ftqc").document
+    capability = validate_contract(
+        "capability",
+        ROOT / scaffold["spec"]["contract_refs"][0],
+    )
+
+    assert scaffold["metadata"]["visibility"] == "internal"
+    assert scaffold["metadata"]["integration_status"] == "published"
+    assert scaffold["spec"]["source"] == {
+        "kind": "repository",
+        "url": "https://github.com/QSCSoftwareThrust/FTQC",
+        "catalog_repository": "ftqc",
+    }
+    assert scaffold["spec"]["mirror"] == {
+        "status": "verified",
+        "url": "https://code.ornl.gov/qsc-ct/ftqc",
+    }
+    assert scaffold["spec"]["interfaces"] == ["qasm", "mlir", "qir", "cli"]
+    assert scaffold["spec"]["contract_refs"] == [
+        "capabilities/FTQC/compiler/qhpc-capability.yaml",
+        "integrations/ftqc/interface.yaml",
+        "artifact-types/ftqc-mlir-v1.yaml",
+    ]
+    assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
+    resources = {
+        resource["id"]: resource
+        for resource in capability["spec"]["resources"]
+    }
+    assert resources["ftqc-iqm-logical-qubit-candidate"] == {
+        "id": "ftqc-iqm-logical-qubit-candidate",
+        "kind": "documentation",
+        "version": "0.1.0",
+        "uri": (
+            "docs/evidence/"
+            "ftqc-iqm-logical-qubit-candidate-2026-07-29.md"
+        ),
+        "description": (
+            "Developer-reported and source-supported one-logical-qubit ORNL "
+            "IQM demonstration candidate, with the exact promotion evidence "
+            "still required."
+        ),
+    }
+    assert capability["metadata"]["integration"]["evidence"] == [
+        "docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md"
+    ]
+    assert not capability["spec"].get("operations")
+    assert any(
+        "One logical qubit on IQM" in step
+        for step in capability["spec"]["guidance"]["quick_start"]
+    )
+    assert any(
+        "not verified hardware evidence" in limitation
+        for limitation in capability["spec"]["guidance"]["limitations"]
+    )
 
 
 def test_draft_cross_project_artifact_types_are_valid() -> None:
     paths = sorted((ROOT / "artifact-types").glob("*.yaml"))
     assert {path.name for path in paths} == {
         "clifford-t-counts-v1.yaml",
+        "evolution-method-context-v1.yaml",
+        "evolution-synthesis-report-v1.yaml",
+        "ftqc-mlir-v1.yaml",
         "logical-error-estimate-v1.yaml",
         "measurement-counts-v1.yaml",
+        "pauli-hamiltonian-v1.yaml",
+        "qflow-cycle-checkpoint-v1.yaml",
+        "qflow-taskset-result-v1.yaml",
+        "qflow-taskset-v1.yaml",
         "stim-circuit-v1.yaml",
     }
     for path in paths:
@@ -199,7 +338,7 @@ def test_find_integration_scaffold_rejects_unknown_component() -> None:
 
 def test_integration_cli_validates_lists_and_inspects(capsys) -> None:
     assert cli.main(["integration", "validate", str(PROFILE)]) == 0
-    assert "Integration scaffolds valid: initial@0.3.0 (10 components)" in (
+    assert "Integration scaffolds valid: initial@0.7.0 (14 components)" in (
         capsys.readouterr().out
     )
 
@@ -211,5 +350,5 @@ def test_integration_cli_validates_lists_and_inspects(capsys) -> None:
 
     assert cli.main(["integration", "info", str(PROFILE), "chatqec"]) == 0
     output = capsys.readouterr().out
-    assert "Integration status:   scaffolded" in output
+    assert "Integration status:   published" in output
     assert "Production runtime:   deferred (oci)" in output

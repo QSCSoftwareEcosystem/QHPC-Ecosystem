@@ -2,7 +2,7 @@ api_version: qhpc/v1
 kind: Capability
 metadata:
   id: example-toolkit
-  name: Example Quantum Toolkit
+  name: Example Quantum Operations
   version: 0.1.0
   project: hybrid-workflows
   owners: [hybrid-workflows]
@@ -20,8 +20,18 @@ metadata:
   maturity: prototype
 spec:
   component:
+    name: Example Quantum Toolkit
     description: Illustrative operations used to validate the QHPC contracts.
     license: BSD-3-Clause
+  guidance:
+    use_when:
+      - Use this fixture to verify capability and workflow contract behavior.
+    quick_start:
+      - Add the generate operation to a test workflow.
+      - Connect its circuit output to the simulate operation.
+    example_workflows: []
+    limitations:
+      - This is a contract fixture, not a deployable scientific tool.
   operations:
     - id: generate
       title: Generate example circuit

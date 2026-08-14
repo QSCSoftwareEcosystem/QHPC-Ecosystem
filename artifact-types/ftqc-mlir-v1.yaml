@@ -1,0 +1,16 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.ftqc-mlir
+  name: FTQC MLIR Program
+  version: 1
+  project: compilation-tools
+  owners: [ftqc]
+  status: draft
+spec:
+  description: MLIR text using the FTQC dialect and pinned compiler semantics.
+  media_type: application/vnd.qsc.ftqc-mlir
+  representation: file
+  extensions: [mlir]
+  compatibility:
+    accepts_versions: [1]

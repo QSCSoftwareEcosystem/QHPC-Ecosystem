@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import sqlite3
 from pathlib import Path
 
 from qhpc_ecosystem.contract import document_digest, load_document
@@ -50,6 +51,48 @@ def test_worker_drains_persistent_tasks_outside_the_api(tmp_path: Path) -> None:
 
     assert worker.drain() == 2
     assert engine.get_run(run_id)["state"] == "succeeded"
+
+
+def test_worker_advertises_compatibility_and_stale_heartbeats_are_unavailable(
+    tmp_path: Path,
+) -> None:
+    engine, _run_id = queued_engine(tmp_path)
+    worker = Worker(
+        engine,
+        RegistryBoundRunner(make_runner(), example_registry()),
+        worker_id="compatibility-worker",
+        execution_targets=("local-development",),
+        execution_classes=("interactive-local",),
+    )
+    requirement = engine.workflow_execution_requirements(
+        "example-generate-and-simulate",
+        "0.1.0",
+        execution_target="local-development",
+    )
+
+    ready = engine.worker_readiness(requirement, stale_after_seconds=15)
+
+    assert ready["ready"]
+    registered = ready["workers"][0]
+    assert registered["metadata"]["execution_targets"] == ["local-development"]
+    assert registered["metadata"]["execution_classes"] == ["interactive-local"]
+    assert registered["metadata"]["runtime_digests"]
+    assert registered["available"]
+
+    with sqlite3.connect(engine.database) as connection:
+        connection.execute(
+            """
+            UPDATE workers SET last_heartbeat_at='2000-01-01T00:00:00Z'
+            WHERE id=?
+            """,
+            (worker.worker_id,),
+        )
+
+    unavailable = engine.worker_readiness(requirement, stale_after_seconds=15)
+    assert not unavailable["ready"]
+    assert unavailable["workers"][0]["effective_state"] == "stale"
+    assert not unavailable["workers"][0]["available"]
+    assert "no healthy compatible worker" in unavailable["reason"]
 
 
 def test_worker_rejects_operation_missing_from_deployment_registry(

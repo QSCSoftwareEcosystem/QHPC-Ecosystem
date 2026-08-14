@@ -3,8 +3,8 @@ kind: DeploymentProfile
 metadata:
   id: initial
   name: QHPC Initial Deployment
-  version: 0.3.0
-  description: Authoritative allowlist for the first QHPC ecosystem deployment.
+  version: 0.7.0
+  description: Authoritative allowlist for the first QHPC ecosystem deployment, including non-executable QFlow/QIRIS incubation records.
 spec:
   selection_mode: allowlist
   components:
@@ -16,11 +16,11 @@ spec:
       catalog_repository: STABSim
       source:
         kind: repository
-        url: https://github.com/seangarn32/STABSim
+        url: https://github.com/QSCSoftwareThrust/STABSim
     - id: tn-sim
       name: TN-Sim
       role: operation-provider
-      onboarding_status: cataloged
+      onboarding_status: registry-published
       integration_scaffold: integrations/tn-sim/integration.yaml
       catalog_repository: NWQ-Sim
       source:
@@ -29,7 +29,7 @@ spec:
     - id: nwqec
       name: NWQEC
       role: operation-provider
-      onboarding_status: cataloged
+      onboarding_status: registry-published
       integration_scaffold: integrations/nwqec/integration.yaml
       catalog_repository: nwqec
       source:
@@ -38,21 +38,21 @@ spec:
     - id: ftprimitivebench
       name: FTPrimitiveBench
       role: operation-provider
-      onboarding_status: cataloged
+      onboarding_status: registry-published
       integration_scaffold: integrations/ftprimitivebench/integration.yaml
       catalog_repository: FTPrimitiveBench
       source:
         kind: repository
-        url: https://github.com/ShuwenKan/FTPrimitiveBench
+        url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench
     - id: lightstim
       name: LightStim
       role: operation-provider
-      onboarding_status: cataloged
+      onboarding_status: registry-published
       integration_scaffold: integrations/lightstim/integration.yaml
       catalog_repository: LightStim
       source:
         kind: repository
-        url: https://github.com/QuTone/LightStim
+        url: https://github.com/QSCSoftwareThrust/LightStim
     - id: qasmtrans
       name: QASMTrans
       role: operation-provider
@@ -62,6 +62,15 @@ spec:
       source:
         kind: repository
         url: https://github.com/pnnl/qasmtrans
+    - id: ftqc
+      name: FTQC
+      role: operation-provider
+      onboarding_status: registry-published
+      integration_scaffold: integrations/ftqc/integration.yaml
+      catalog_repository: ftqc
+      source:
+        kind: repository
+        url: https://github.com/QSCSoftwareThrust/FTQC
     - id: openqevo
       name: OpenQEvo
       role: operation-provider
@@ -92,9 +101,36 @@ spec:
     - id: chatqec
       name: ChatQEC
       role: assistant-service
-      onboarding_status: cataloged
+      onboarding_status: registry-published
       integration_scaffold: integrations/chatqec/integration.yaml
       catalog_repository: chatqec
       source:
         kind: repository
         url: https://github.com/QSCSoftwareThrust/ChatQEC
+    - id: exachem-qflow
+      name: ExaChem QFlow
+      role: operation-provider
+      onboarding_status: onboarding
+      integration_scaffold: integrations/exachem-qflow/integration.yaml
+      catalog_repository: ExaChem
+      source:
+        kind: repository
+        url: https://github.com/ExaChem/exachem
+    - id: iris-qiris
+      name: QIRIS Runtime (IRIS/QIR-EE)
+      role: operation-provider
+      onboarding_status: onboarding
+      integration_scaffold: integrations/iris-qiris/integration.yaml
+      catalog_repository: IRIS-QIRIS
+      source:
+        kind: repository
+        url: https://github.com/ORNL/iris
+    - id: nwqsim-qflow
+      name: NWQSim QFlow VQE Plugin
+      role: operation-provider
+      onboarding_status: onboarding
+      integration_scaffold: integrations/nwqsim-qflow/integration.yaml
+      catalog_repository: NWQSim-QFlow
+      source:
+        kind: repository
+        url: https://github.com/pnnl/nwq-sim

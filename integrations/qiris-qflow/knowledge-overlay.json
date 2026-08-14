@@ -1,0 +1,83 @@
+{
+  "schema_version": "qhpc-knowledge-overlay-0",
+  "nodes": [
+    {
+      "id": "packages/exachem-qflow",
+      "title": "ExaChem QFlow",
+      "type": "package",
+      "domains": [
+        "quantum-chemistry",
+        "hybrid-workflows",
+        "hpc"
+      ],
+      "status": "prototype",
+      "provenance_status": "integration-tested",
+      "community": null,
+      "community_label": null,
+      "rel_path": "integrations/qiris-qflow/architecture.md",
+      "version_built": "0991cb52ce687ccf35ba29f3746a6fb13a13c464",
+      "version_scope": "public base revision plus qualified local development evidence",
+      "version_source": "EQO-QSC registry overlay"
+    },
+    {
+      "id": "packages/iris-qiris",
+      "title": "QIRIS Runtime (IRIS/QIR-EE)",
+      "type": "package",
+      "domains": [
+        "quantum-runtime",
+        "hybrid-workflows",
+        "hpc"
+      ],
+      "status": "prototype",
+      "provenance_status": "contract-valid",
+      "community": null,
+      "community_label": null,
+      "rel_path": "integrations/qiris-qflow/architecture.md",
+      "version_built": "ff57e620a92fcf62eff3568d9c6eeaaf078f0340",
+      "version_scope": "public IRIS/QIR-EE runtime substrate",
+      "version_source": "EQO-QSC registry overlay"
+    },
+    {
+      "id": "packages/nwqsim-qflow",
+      "title": "NWQSim QFlow VQE Plugin",
+      "type": "package",
+      "domains": [
+        "quantum-simulation",
+        "quantum-chemistry",
+        "hybrid-workflows",
+        "hpc"
+      ],
+      "status": "prototype",
+      "provenance_status": "integration-tested",
+      "community": null,
+      "community_label": null,
+      "rel_path": "integrations/qiris-qflow/h6-validation-workflow.md",
+      "version_built": "b35763d846e6512ed817d3f88ac8ce79a7e82a7e",
+      "version_scope": "public base revision plus qualified local development evidence",
+      "version_source": "EQO-QSC registry overlay"
+    }
+  ],
+  "edges": [
+    {
+      "source": "packages/exachem-qflow",
+      "target": "packages/iris-qiris",
+      "relation": "delegates-taskset-to",
+      "confidence": "EXTRACTED",
+      "origin": "integrations/qiris-qflow/architecture.md"
+    },
+    {
+      "source": "packages/iris-qiris",
+      "target": "packages/nwqsim-qflow",
+      "relation": "invokes-plugin",
+      "confidence": "EXTRACTED",
+      "origin": "integrations/qiris-qflow/architecture.md"
+    },
+    {
+      "source": "packages/iris-qiris",
+      "target": "packages/exachem-qflow",
+      "relation": "returns-complete-cycle-result-to",
+      "confidence": "EXTRACTED",
+      "origin": "integrations/qiris-qflow/architecture.md"
+    }
+  ]
+}

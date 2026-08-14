@@ -1,0 +1,48 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: ftqc
+  name: FTQC
+  version: 0.1.0
+  project: compilation-tools
+  role: operation-provider
+  owners: [ftqc]
+  visibility: internal
+  integration_status: published
+spec:
+  source:
+    kind: repository
+    url: https://github.com/QSCSoftwareThrust/FTQC
+    catalog_repository: ftqc
+  mirror:
+    status: verified
+    url: https://code.ornl.gov/qsc-ct/ftqc
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [qasm, mlir, qir, cli]
+  scope:
+    status: defined
+    summary: Import OpenQASM 2 or 3 into pinned FTQC MLIR through the project-owned standalone compiler frontend.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs:
+    - capabilities/FTQC/compiler/qhpc-capability.yaml
+    - integrations/ftqc/interface.yaml
+    - artifact-types/ftqc-mlir-v1.yaml
+  evidence:
+    - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Build and accept the exact-revision LLVM/MLIR 22 compiler in a reproducible Linux runtime before publishing executable operations.
+  blockers:
+    - Add explicit distributable license terms before publishing FTQC binaries or images.
+    - Pin and reproduce the LLVM/MLIR 22 toolchain and execute the upstream lit suite.
+    - Preserve a developer-approved IQM hardware run receipt, exact device identity, generated-circuit digest, physical layout, raw counts, and corrected logical result before promoting the one-logical-qubit demonstration to verified evidence.
+    - Publish immutable OCI and SIF artifacts with supply-chain and target acceptance evidence.

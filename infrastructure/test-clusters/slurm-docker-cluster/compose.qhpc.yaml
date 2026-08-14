@@ -1,18 +1,32 @@
 services:
+  mysql:
+    container_name: qhpc-slurm-test-mysql
   slurmdbd:
+    image: qhpc/slurm-docker-cluster:25.05.0-qhpc
+    container_name: qhpc-slurm-test-slurmdbd
     build:
       context: .
       dockerfile: Dockerfile.qhpc
       secrets:
         - qhpc_build_ca
   slurmctld:
+    image: qhpc/slurm-docker-cluster:25.05.0-qhpc
+    container_name: qhpc-slurm-test-slurmctld
     pull_policy: never
     volumes:
       - qhpc_slurm_state:/var/lib/slurmd
   c1:
+    image: qhpc/slurm-docker-cluster:25.05.0-qhpc
+    container_name: qhpc-slurm-test-c1
     pull_policy: never
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
   c2:
+    image: qhpc/slurm-docker-cluster:25.05.0-qhpc
+    container_name: qhpc-slurm-test-c2
     pull_policy: never
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 secrets:
   qhpc_build_ca:

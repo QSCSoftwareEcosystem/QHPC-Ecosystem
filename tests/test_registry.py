@@ -26,6 +26,27 @@ CATALOG_PATH = ROOT / "ecosystem.yaml"
 EXAMPLE_CAPABILITY = ROOT / "examples" / "contracts" / "valid" / "capability.yaml"
 
 
+def test_published_capabilities_separate_tool_and_integration_identity() -> None:
+    descriptors = sorted(
+        (ROOT / "capabilities").rglob("qhpc-capability.yaml")
+    )
+
+    assert len(descriptors) == 17
+    for descriptor in descriptors:
+        capability = validate_contract("capability", descriptor)
+        assert capability["spec"]["component"]["name"]
+
+    lightstim = validate_contract(
+        "capability",
+        ROOT / "capabilities/LightStim/simulation/qhpc-capability.yaml",
+    )
+    assert lightstim["spec"]["component"]["name"] == "LightStim"
+    assert lightstim["metadata"]["name"] == "LightStim Logical Error Estimation"
+    assert lightstim["spec"]["component"]["description"].startswith(
+        "Modular QEC framework built on Stim"
+    )
+
+
 def write_capability(
     root: Path,
     *,
@@ -33,11 +54,15 @@ def write_capability(
     version: str = "0.1.0",
     project: str = "cross-project",
     repository_url: str = "https://github.com/QSCSoftwareThrust/OpenQEvo",
+    canonical_repository_url: str | None = None,
     revision: str = "v0.1.0",
     qappswiki: str | None = "packages/openqevo.md",
     nested: bool = True,
 ) -> Path:
     capability = copy.deepcopy(load_document(EXAMPLE_CAPABILITY))
+    repository = {"url": repository_url, "revision": revision}
+    if canonical_repository_url is not None:
+        repository["canonical_url"] = canonical_repository_url
     capability["metadata"].update(
         {
             "id": capability_id,
@@ -45,7 +70,7 @@ def write_capability(
             "version": version,
             "project": project,
             "owners": ["openqevo"],
-            "repository": {"url": repository_url, "revision": revision},
+            "repository": repository,
         }
     )
     if qappswiki is None:
@@ -123,11 +148,6 @@ def test_registry_rejects_duplicate_capability_version(tmp_path: Path) -> None:
             "https://example.invalid/not-cataloged",
             "does not match a repository",
         ),
-        (
-            "compilation-tools",
-            "https://code.ornl.gov/qsc-ct/ftqc",
-            "catalog repository ftqc is ambiguous",
-        ),
     ],
 )
 def test_registry_rejects_catalog_ownership_problems(
@@ -164,8 +184,13 @@ def test_registry_requires_pinned_revision_and_qappswiki(tmp_path: Path) -> None
         ),
         (
             "hybrid-workflows",
-            "https://github.com/seangarn32/STABSim",
+            "https://github.com/QSCSoftwareThrust/STABSim",
             "STABSim",
+        ),
+        (
+            "compilation-tools",
+            "https://github.com/QSCSoftwareThrust/FTQC",
+            "ftqc",
         ),
     ],
 )
@@ -181,6 +206,41 @@ def test_registry_maps_legacy_catalog_project_names(
 
     registry = build_registry([descriptor], load_catalog(CATALOG_PATH))
     assert registry_entries(registry)[0]["catalog_repository"] == catalog_repository
+
+
+def test_registry_maps_admitted_release_source_to_canonical_repository(
+    tmp_path: Path,
+) -> None:
+    descriptor = write_capability(
+        tmp_path / "lightstim",
+        capability_id="lightstim-registry-test",
+        project="hybrid-workflows",
+        repository_url="https://github.com/QuTone/LightStim",
+        canonical_repository_url="https://github.com/QSCSoftwareThrust/LightStim",
+        revision="b08d4c2f9cd69531a51b658e6f88089be69f16c0",
+    )
+
+    registry = build_registry([descriptor], load_catalog(CATALOG_PATH))
+    entry = registry_entries(registry)[0]
+    assert entry["catalog_repository"] == "LightStim"
+    assert entry["capability"]["metadata"]["repository"] == {
+        "url": "https://github.com/QuTone/LightStim",
+        "canonical_url": "https://github.com/QSCSoftwareThrust/LightStim",
+        "revision": "b08d4c2f9cd69531a51b658e6f88089be69f16c0",
+    }
+
+
+def test_registry_rejects_unadmitted_release_source_for_canonical_repository(
+    tmp_path: Path,
+) -> None:
+    descriptor = write_capability(
+        tmp_path / "invalid-source",
+        repository_url="https://example.invalid/unadmitted-release",
+        canonical_repository_url="https://github.com/QSCSoftwareThrust/OpenQEvo",
+    )
+
+    with pytest.raises(RegistryError, match="release source must match"):
+        build_registry([descriptor], load_catalog(CATALOG_PATH))
 
 
 def test_registry_rejects_capability_ownership_change(tmp_path: Path) -> None:
@@ -265,7 +325,48 @@ def test_registry_cli_build_validate_and_inspect(tmp_path: Path, capsys) -> None
         cli.main(["registry", "info", str(registry_path), "openqevo-registry-test"])
         == 0
     )
-    assert "Catalog repository: OpenQEvo" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "Catalog repository: OpenQEvo" in output
+    assert "Purpose:" in output
+    assert "Use when:" in output
+    assert "Quick start:" in output
+    assert "generate: Generate example circuit" in output
+
+    assert (
+        cli.main(
+            [
+                "registry",
+                "info",
+                str(registry_path),
+                "openqevo-registry-test",
+                "--operation",
+                "generate",
+            ]
+        )
+        == 0
+    )
+    operation_output = capsys.readouterr().out
+    assert "Operation:          Generate example circuit" in operation_output
+    assert "circuit: qhpc.quantum-circuit@1" in operation_output
+    assert "Number of qubits (qubits): integer; default=4" in operation_output
+
+    assert (
+        cli.main(
+            [
+                "registry",
+                "info",
+                str(registry_path),
+                "openqevo-registry-test",
+                "--operation",
+                "generate",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    operation_json = yaml.safe_load(capsys.readouterr().out)
+    assert operation_json["operation"]["id"] == "generate"
+    assert operation_json["capability"]["guidance"]["quick_start"]
 
     assert cli.main(["registry", "digest", str(registry_path)]) == 0
     assert capsys.readouterr().out.startswith("sha256:")

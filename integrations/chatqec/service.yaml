@@ -15,6 +15,8 @@ metadata:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
     - docs/adr/0008-chatqec-internal-service-boundary.md
     - docs/chatqec-service-boundary.md
+    - docs/chatqec-api-handoff.md
+    - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
 spec:
   transport:
     protocol: https

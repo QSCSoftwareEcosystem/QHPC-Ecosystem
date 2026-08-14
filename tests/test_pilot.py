@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -50,6 +51,18 @@ def _request(tmp_path: Path, *, attempt: str = "attempt-one") -> TaskRequest:
             "walltime_seconds": 60,
         },
     )
+
+
+def test_pilot_store_closes_database_connections_after_each_operation(
+    tmp_path: Path,
+) -> None:
+    store = PilotStore(tmp_path / "pilots.sqlite")
+
+    with store._connect() as connection:
+        assert connection.execute("SELECT 1").fetchone()[0] == 1
+
+    with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+        connection.execute("SELECT 1")
 
 
 def test_active_pilot_profile_requires_evidence_and_account() -> None:

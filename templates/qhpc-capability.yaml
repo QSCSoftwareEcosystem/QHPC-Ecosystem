@@ -22,7 +22,17 @@ metadata:
   maturity: prototype
 spec:
   component:
-    description: Replace with a concise description of the project-owned component.
+    name: Replace with the upstream project or tool name.
+    description: Replace with a concise description of the upstream project or tool, not only the operation exposed by EQO.
+  guidance:
+    use_when:
+      - Replace with a concrete situation in which a researcher should choose this tool.
+    quick_start:
+      - Open Compose and select the supported operation or an example workflow.
+      - Provide the declared input artifact and review the published parameters.
+    example_workflows: []
+    limitations:
+      - Replace with an honest runtime, scientific, or integration limitation.
   operations:
     - id: replace-me
       title: Replace me

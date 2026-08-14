@@ -9,7 +9,7 @@ import shutil
 import time
 from hashlib import sha256
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import unquote, urlparse
 
 from .contract import load_document, validate_contract_data
@@ -93,12 +93,47 @@ class SlurmApptainerRunner:
         runtimes: Iterable[dict[str, Any]],
         *,
         client: SlurmClient | None = None,
+        scheduler_path_mapper: Callable[[Path], str] = str,
+    ) -> None:
+        runtime_documents = tuple(runtimes)
+        for runtime in runtime_documents:
+            validate_contract_data("operation-runtime", runtime)
+        self._initialize_target(
+            execution_target,
+            storage_profile,
+            client=client,
+            scheduler_path_mapper=scheduler_path_mapper,
+        )
+
+        self.runtimes: dict[tuple[str, str], dict[str, Any]] = {}
+        for runtime in runtime_documents:
+            metadata = runtime["metadata"]
+            release = runtime["spec"]["release"]
+            if metadata["status"] != "target-accepted":
+                raise SlurmApptainerError(
+                    f"runtime is not target-accepted: {metadata['id']}"
+                )
+            if release["status"] != "target-accepted":
+                raise SlurmApptainerError(
+                    f"runtime release is not target-accepted: {metadata['id']}"
+                )
+            key = (metadata["capability"], metadata["operation"])
+            if key in self.runtimes:
+                raise SlurmApptainerError(
+                    f"duplicate operation runtime: {key[0]}/{key[1]}"
+                )
+            self.runtimes[key] = runtime
+
+    def _initialize_target(
+        self,
+        execution_target: dict[str, Any],
+        storage_profile: dict[str, Any],
+        *,
+        client: SlurmClient | None,
+        scheduler_path_mapper: Callable[[Path], str],
     ) -> None:
         validate_contract_data("execution-target", execution_target)
         validate_contract_data("storage-profile", storage_profile)
-        for runtime in runtimes:
-            validate_contract_data("operation-runtime", runtime)
-
         target_metadata = execution_target["metadata"]
         target_spec = execution_target["spec"]
         storage_metadata = storage_profile["metadata"]
@@ -125,6 +160,7 @@ class SlurmApptainerRunner:
         self.execution_target = execution_target
         self.storage_profile = storage_profile
         self.client = client or SlurmClient()
+        self.scheduler_path_mapper = scheduler_path_mapper
         self.target_id = target_metadata["id"]
         self.execution_targets = frozenset({self.target_id})
         self.execution_classes = frozenset({"batch-hpc"})
@@ -146,24 +182,25 @@ class SlurmApptainerRunner:
                 f"approved image cache does not exist: {self.image_cache}"
             )
 
-        self.runtimes: dict[tuple[str, str], dict[str, Any]] = {}
-        for runtime in runtimes:
-            metadata = runtime["metadata"]
-            release = runtime["spec"]["release"]
-            if metadata["status"] != "target-accepted":
-                raise SlurmApptainerError(
-                    f"runtime is not target-accepted: {metadata['id']}"
-                )
-            if release["status"] != "target-accepted":
-                raise SlurmApptainerError(
-                    f"runtime release is not target-accepted: {metadata['id']}"
-                )
-            key = (metadata["capability"], metadata["operation"])
-            if key in self.runtimes:
-                raise SlurmApptainerError(
-                    f"duplicate operation runtime: {key[0]}/{key[1]}"
-                )
-            self.runtimes[key] = runtime
+    def _scheduler_path(self, path: Path, label: str) -> str:
+        try:
+            value = self.scheduler_path_mapper(path.resolve())
+        except (OSError, TypeError, ValueError) as error:
+            raise SlurmApptainerError(
+                f"cannot map {label} into scheduler storage"
+            ) from error
+        if not isinstance(value, str):
+            raise SlurmApptainerError(f"scheduler {label} path must be text")
+        parsed = PurePosixPath(value)
+        if (
+            not parsed.is_absolute()
+            or ".." in parsed.parts
+            or "\x00" in value
+            or "\n" in value
+            or "\r" in value
+        ):
+            raise SlurmApptainerError(f"invalid scheduler {label} path: {value}")
+        return str(parsed)
 
     def _runtime(self, request: TaskRequest) -> dict[str, Any]:
         if request.execution_target != self.target_id:
@@ -452,16 +489,28 @@ class SlurmApptainerRunner:
         execution = runtime["spec"]["execution"]
         mounts = self._mounts(runtime)
         binds = [
-            ApptainerBind(str(paths["outputs"]), mounts["output"], read_only=False)
+            ApptainerBind(
+                self._scheduler_path(paths["outputs"], "output bind"),
+                mounts["output"],
+                read_only=False,
+            )
         ]
         if "input" in mounts:
             binds.insert(
                 0,
-                ApptainerBind(str(paths["inputs"]), mounts["input"], read_only=True),
+                ApptainerBind(
+                    self._scheduler_path(paths["inputs"], "input bind"),
+                    mounts["input"],
+                    read_only=True,
+                ),
             )
         if "scratch" in mounts:
             binds.append(
-                ApptainerBind(str(paths["scratch"]), mounts["scratch"], read_only=False)
+                ApptainerBind(
+                    self._scheduler_path(paths["scratch"], "scratch bind"),
+                    mounts["scratch"],
+                    read_only=False,
+                )
             )
         node_policy = self.storage_profile["spec"]["node_local"]
         node_local = None
@@ -475,16 +524,20 @@ class SlurmApptainerRunner:
         scheduler = self.execution_target["spec"]["scheduler"]
         started = time.perf_counter()
         script = render_apptainer_job(
-            image=str(image),
+            image=self._scheduler_path(image, "image"),
             entrypoint=execution["entrypoint"],
             arguments=self._arguments(runtime, request),
             resources=self._resources(request),
             job_name=job_name,
             binds=binds,
             working_directory=execution["working_directory"],
-            stdout_path=str(paths["logs"] / "stdout.log"),
-            stderr_path=str(paths["logs"] / "stderr.log"),
-            telemetry_path=str(paths["telemetry"]),
+            stdout_path=self._scheduler_path(
+                paths["logs"] / "stdout.log", "stdout"
+            ),
+            stderr_path=self._scheduler_path(
+                paths["logs"] / "stderr.log", "stderr"
+            ),
+            telemetry_path=self._scheduler_path(paths["telemetry"], "telemetry"),
             apptainer_executable=scheduler["apptainer_executable"],
             node_local=node_local,
         )
@@ -607,3 +660,183 @@ class SlurmApptainerRunner:
             directory = self._attempt_directory(request)
             if directory.exists():
                 shutil.rmtree(directory)
+
+
+class SlurmDockerClusterRunner(SlurmApptainerRunner):
+    """Run verified local OCI images through the development Slurm fixture."""
+
+    def __init__(
+        self,
+        execution_target: dict[str, Any],
+        storage_profile: dict[str, Any],
+        runtimes: Iterable[dict[str, Any]],
+        runtime_images: Iterable[dict[str, str]],
+        *,
+        host_shared_root: str | Path,
+        scheduler_shared_root: str,
+        client: SlurmClient,
+        scheduler_path_mapper: Callable[[Path], str],
+    ) -> None:
+        if execution_target["metadata"]["id"] != "development-slurm-docker":
+            raise SlurmApptainerError(
+                "Docker-cluster runner requires the development Slurm target"
+            )
+        executable = execution_target["spec"]["scheduler"][
+            "apptainer_executable"
+        ]
+        if executable != "/usr/local/bin/qhpc-oci-shim":
+            raise SlurmApptainerError(
+                "Docker-cluster runner requires the reviewed OCI shim"
+            )
+
+        shared_root = Path(host_shared_root).expanduser().resolve()
+        scheduler_root = PurePosixPath(scheduler_shared_root)
+        if not shared_root.is_dir():
+            raise SlurmApptainerError(
+                f"development shared directory not found: {shared_root}"
+            )
+        if not scheduler_root.is_absolute() or ".." in scheduler_root.parts:
+            raise SlurmApptainerError("invalid development scheduler shared root")
+
+        runtime_image_documents = tuple(runtime_images)
+        bindings = {
+            item["runtime_id"]: dict(item) for item in runtime_image_documents
+        }
+        if len(bindings) != len(runtime_image_documents):
+            raise SlurmApptainerError("duplicate development runtime image binding")
+
+        runtime_documents = tuple(runtimes)
+        runtime_ids = {runtime["metadata"]["id"] for runtime in runtime_documents}
+        if runtime_ids != set(bindings):
+            missing = sorted(runtime_ids - set(bindings))
+            extra = sorted(set(bindings) - runtime_ids)
+            details = []
+            if missing:
+                details.append("missing bindings: " + ", ".join(missing))
+            if extra:
+                details.append("unused bindings: " + ", ".join(extra))
+            raise SlurmApptainerError(
+                "development runtime image set does not match manifests"
+                + (": " + "; ".join(details) if details else "")
+            )
+
+        image_cache = Path(
+            storage_profile["spec"]["roots"]["image_cache"]
+        ).resolve()
+        task_staging = Path(
+            storage_profile["spec"]["roots"]["task_staging"]
+        ).resolve()
+        for path, label in (
+            (image_cache, "image cache"),
+            (task_staging, "task staging"),
+        ):
+            _within(path, shared_root, f"development {label}")
+        image_cache.mkdir(parents=True, exist_ok=True)
+
+        self._initialize_target(
+            execution_target,
+            storage_profile,
+            client=client,
+            scheduler_path_mapper=scheduler_path_mapper,
+        )
+        self.runtimes: dict[tuple[str, str], dict[str, Any]] = {}
+        self._development_descriptors: dict[str, tuple[Path, str]] = {}
+        self._development_runtimes: dict[
+            tuple[str, str], tuple[dict[str, Any], dict[str, str]]
+        ] = {}
+        for runtime in runtime_documents:
+            validate_contract_data("operation-runtime", runtime)
+            metadata = runtime["metadata"]
+            if metadata["status"] != "oci-smoke-tested":
+                raise SlurmApptainerError(
+                    f"development runtime lacks OCI smoke evidence: {metadata['id']}"
+                )
+            binding = bindings[metadata["id"]]
+            if not binding["registry_reference"].endswith(
+                "@" + binding["digest"]
+            ):
+                raise SlurmApptainerError(
+                    f"development registry reference is mutable: {metadata['id']}"
+                )
+            descriptor = image_cache / f"{metadata['id']}.oci.json"
+            _atomic_json(
+                descriptor,
+                {
+                    "kind": "QHPCDevelopmentOCIImage",
+                    "image": binding["local_reference"],
+                    "digest": binding["digest"],
+                    "host_shared_root": str(shared_root),
+                    "scheduler_shared_root": str(scheduler_root),
+                },
+            )
+            key = (metadata["capability"], metadata["operation"])
+            if key in self.runtimes:
+                raise SlurmApptainerError(
+                    f"duplicate development operation runtime: {key[0]}/{key[1]}"
+                )
+            self._development_runtimes[key] = (runtime, binding)
+            self._development_descriptors[metadata["id"]] = (
+                descriptor,
+                file_digest(descriptor),
+            )
+            self.runtimes[key] = runtime
+
+    def _image(self, runtime: dict[str, Any]) -> Path:
+        runtime_id = runtime["metadata"]["id"]
+        descriptor, expected_digest = self._development_descriptors[runtime_id]
+        _within(descriptor, self.image_cache, "development OCI descriptor")
+        if not descriptor.is_file() or descriptor.is_symlink():
+            raise SlurmApptainerError(
+                f"development OCI descriptor not found: {descriptor}"
+            )
+        actual = file_digest(descriptor)
+        if actual != expected_digest:
+            raise SlurmApptainerError(
+                "development OCI descriptor digest mismatch: "
+                f"expected {expected_digest}, found {actual}"
+            )
+        return descriptor
+
+    def _runtime(self, request: TaskRequest) -> dict[str, Any]:
+        if request.execution_target != self.target_id:
+            raise SlurmApptainerError(
+                f"request target is not admitted: {request.execution_target}"
+            )
+        if request.execution_class not in self.execution_classes:
+            raise SlurmApptainerError(
+                f"request execution class is not admitted: {request.execution_class}"
+            )
+        allowed_projects = self.execution_target["spec"]["policies"].get(
+            "allowed_projects"
+        )
+        if allowed_projects is not None and request.project not in allowed_projects:
+            raise SlurmApptainerError(
+                f"request project is not admitted: {request.project}"
+            )
+        key = (request.capability_id, request.operation_id)
+        development = self._development_runtimes.get(key)
+        if development is None:
+            raise SlurmApptainerError(
+                "no development OCI runtime for "
+                f"{request.capability_id}/{request.operation_id}"
+            )
+        runtime, binding = development
+        if request.runtime_type != "oci":
+            raise SlurmApptainerError("development registry runtime type must be OCI")
+        if (
+            request.runtime_reference != binding["registry_reference"]
+            or request.runtime_digest != binding["digest"]
+        ):
+            raise SlurmApptainerError(
+                "registry runtime does not match the verified local OCI image"
+            )
+        ports = runtime["spec"]["execution"]["ports"]
+        if set(request.inputs) != set(ports["inputs"]):
+            raise SlurmApptainerError("request input ports do not match runtime ports")
+        if set(request.output_types) != set(ports["outputs"]):
+            raise SlurmApptainerError("request output ports do not match runtime ports")
+        if set(request.parameters) != set(runtime["spec"]["execution"]["parameters"]):
+            raise SlurmApptainerError(
+                "request parameters do not match runtime parameter policy"
+            )
+        return self.runtimes[key]

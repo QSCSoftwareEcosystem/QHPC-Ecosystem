@@ -117,9 +117,9 @@ cannot execute a QHPC operation. QHPC validates the proposed operation against
 the registry, authorizes it as the user, requests confirmation when policy
 requires it, and submits it through the ordinary workflow control plane.
 
-## Required Source Work
+## Required Production Source Work
 
-Before this decision can become an executable service contract:
+Before the model-backed service can be accepted for production:
 
 - add a dedicated internal HTTP/SSE adapter rather than using Streamlit as the
   service API;
@@ -140,11 +140,17 @@ response adapter, SSE parser, representative fixtures, and client-side
 contract tests. The adapter deliberately requires a deployment-configured
 transport so it cannot select a workload credential or model provider.
 
-The ChatQEC server changes listed above are not implemented by this repository.
-They remain required before the service runtime can be built or accepted. The
-machine-readable contract closes the ecosystem's pre-container interface
-boundary; it does not approve a provider, corpus, identity mechanism, or
-production deployment.
+QHPC also carries a separate loopback-only development server that implements
+the JSON/SSE contract over ChatQEC's exact-revision canonical corpus. It uses
+deterministic extractive retrieval, immutable citations, a generated workload
+token, no retained conversation state, and no model, Qdrant, web, image, or tool
+path. The QHPC API owns the browser-facing request allowlist and injects subject,
+workspace, policy, correlation, and corpus identity.
+
+That development server makes the local integration executable, but it does
+not implement or approve the model-backed production runtime. The source work
+and institutional selections above remain required before production
+acceptance.
 
 ## Accepted Baseline
 

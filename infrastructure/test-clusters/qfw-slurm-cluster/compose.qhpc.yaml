@@ -1,0 +1,24 @@
+services:
+  slurmctld:
+    pull_policy: never
+    volumes:
+      - qhpc_qfw_slurm_state:/var/lib/slurmd
+  c1:
+    pull_policy: never
+  c2:
+    pull_policy: never
+  c3:
+    pull_policy: never
+  c4:
+    pull_policy: never
+  c5:
+    pull_policy: never
+  c6:
+    pull_policy: never
+  c7:
+    pull_policy: never
+  c8:
+    pull_policy: never
+
+volumes:
+  qhpc_qfw_slurm_state:

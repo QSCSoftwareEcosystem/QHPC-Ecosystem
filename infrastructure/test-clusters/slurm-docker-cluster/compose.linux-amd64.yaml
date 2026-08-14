@@ -1,0 +1,9 @@
+services:
+  slurmdbd:
+    platform: linux/amd64
+  slurmctld:
+    platform: linux/amd64
+  c1:
+    platform: linux/amd64
+  c2:
+    platform: linux/amd64

@@ -18,11 +18,11 @@ only after the immutable runtime is accepted and its digest can be recorded.
 Validate and inspect the set with:
 
 ```bash
-qhpc-ecosystem integration validate deployments/initial.yaml
-qhpc-ecosystem integration list deployments/initial.yaml
-qhpc-ecosystem integration info deployments/initial.yaml nwqec
-qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
-qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
+eqo integration validate deployments/initial.yaml
+eqo integration list deployments/initial.yaml
+eqo integration info deployments/initial.yaml nwqec
+eqo contract validate operation-interface integrations/nwqec/interface.yaml
+eqo contract validate service-interface integrations/chatqec/service.yaml
 ```
 
 Source-backed verification entry points for the current pre-runtime adapters

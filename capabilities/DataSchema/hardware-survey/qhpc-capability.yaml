@@ -20,7 +20,18 @@ metadata:
   maturity: prototype
 spec:
   component:
-    description: Hardware information survey source material and collected data.
+    name: DataSchema
+    description: Common data schema for interoperable QHPC compilation, simulation, validation, resource management, and hardware metadata.
+  guidance:
+    use_when:
+      - Consult the QSC hardware survey when comparing or documenting quantum hardware characteristics.
+    quick_start:
+      - Open the published hardware-survey resource and its source documentation from this record.
+      - Use the pinned survey revision as reference material rather than an executable workflow step.
+    example_workflows: []
+    limitations:
+      - This record publishes survey data only; no executable validator or operation is available.
+      - EQO currently publishes only the hardware-survey portion of the broader DataSchema project.
   resources:
     - id: hardware-survey
       kind: dataset

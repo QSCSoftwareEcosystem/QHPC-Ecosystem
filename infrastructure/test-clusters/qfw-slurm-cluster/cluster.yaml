@@ -1,0 +1,80 @@
+api_version: qhpc/v1
+kind: SlurmTestCluster
+metadata:
+  id: openqse-qfw-slurm
+  name: OpenQSE QFw Slurm development environment
+  owners:
+    - QSC Software Thrust
+  contributors:
+    - OpenQSE
+    - Thomas Naughton
+  status: planned
+  evidence:
+    - ../../../docs/adr/0010-openqse-qfw-slurm-provider.md
+    - ../../../docs/evidence/qfw-slurm-cluster-source-audit-2026-07-28.md
+    - ../../../docs/hpc-execution.md
+spec:
+  scheduler: slurm
+  scope: development-only
+  production_evidence: false
+  source:
+    repository: https://github.com/openQSE/QFw-SLURM-Cluster.git
+    branch: main
+    revision: 16bc49691679d99fc4f28a27612425a2a67909c1
+    license: MIT
+  compatibility:
+    build_ca_destination: qhpc-build-ca.pem
+    files:
+      - source: compose.qhpc.yaml
+        destination: compose.qhpc.yaml
+  compose:
+    project_name: qhpc-openqse-qfw-test
+    compose_file: docker-compose.yml
+    overrides:
+      - compose.qhpc.yaml
+    services:
+      - mysql
+      - slurmdbd
+      - slurmctld
+      - c1
+      - c2
+      - c3
+      - c4
+      - c5
+      - c6
+      - c7
+      - c8
+    controller_service: slurmctld
+    worker_services:
+      - c1
+      - c2
+      - c3
+      - c4
+      - c5
+      - c6
+      - c7
+      - c8
+    cluster_name: linux
+    partition: normal
+    shared_directory:
+      host: shared-dir
+      container: /mnt
+    readiness_timeout_seconds: 900
+    poll_interval_seconds: 2
+  security:
+    start_rest_api: false
+    default_credentials: true
+    isolated_test_data_only: true
+  limitations:
+    - Planned Tier 1C project-stack provider; activation is blocked until the compatibility image is reviewed and validated.
+    - This provider complements the lightweight scheduler-conformance cluster and does not replace it.
+    - The upstream source starts slurmrestd by default; QHPC excludes that service and does not accept its REST security settings.
+    - The upstream Dockerfile disables TLS verification and is not approved for QHPC builds.
+    - The upstream image clones QFw and installs several dependencies without immutable identities.
+    - The published development image is linux/amd64 only and transfers approximately 3.84 GB of compressed layers.
+    - The published image has no QHPC-reviewed SBOM, signature, attestation, or source-to-image provenance.
+    - Shared root SSH, default database credentials, synthetic QPU resources, and task/none isolation are development-only.
+    - Real IQM or other device credentials must not be passed through shell history, Compose files, images, or committed environment files.
+    - Apptainer, accepted operation SIFs, facility identity, parallel storage, RDMA hardware, GPUs, and production security are not validated.
+    - MPI and libfabric behavior inside one Docker host is not representative of a facility interconnect.
+    - The stack is not an ecosystem-wide runtime and cannot bypass project operation and target-adapter contracts.

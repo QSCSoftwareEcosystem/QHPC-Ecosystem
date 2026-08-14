@@ -36,9 +36,11 @@ def _prepared_checkout(path: Path) -> None:
     (path / "shared-dir").mkdir()
     (path / "docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
     (path / "LICENSE").write_text("MIT\n", encoding="utf-8")
-    (path / "Dockerfile.qhpc").write_bytes(
-        (MANIFEST.parent / "Dockerfile.qhpc").read_bytes()
-    )
+    manifest = load_document(MANIFEST)
+    for item in manifest["spec"]["compatibility"]["files"]:
+        destination = path / item["destination"]
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((MANIFEST.parent / item["source"]).read_bytes())
     (path / "qhpc-build-ca.pem").write_bytes(b"")
 
 
@@ -55,14 +57,22 @@ def test_manifest_rejects_rest_service_and_unsafe_source_paths() -> None:
     assert "must be a safe relative path" in message
 
 
-def test_compose_override_persists_controller_state_and_disables_image_pulls() -> None:
+def test_compose_override_isolates_names_and_persists_controller_state() -> None:
     override = yaml.safe_load((MANIFEST.parent / "compose.qhpc.yaml").read_text())
 
     services = override["services"]
+    assert services["mysql"]["container_name"] == "qhpc-slurm-test-mysql"
+    for name in ("slurmdbd", "slurmctld", "c1", "c2"):
+        assert services[name]["container_name"] == f"qhpc-slurm-test-{name}"
+        assert services[name]["image"] == (
+            "qhpc/slurm-docker-cluster:25.05.0-qhpc"
+        )
     assert "qhpc_slurm_state:/var/lib/slurmd" in services["slurmctld"]["volumes"]
     assert services["slurmctld"]["pull_policy"] == "never"
     assert services["c1"]["pull_policy"] == "never"
     assert services["c2"]["pull_policy"] == "never"
+    assert "/var/run/docker.sock:/var/run/docker.sock" in services["c1"]["volumes"]
+    assert "/var/run/docker.sock:/var/run/docker.sock" in services["c2"]["volumes"]
 
 
 def test_prepare_rejects_private_key_as_build_ca(tmp_path: Path) -> None:
@@ -128,6 +138,52 @@ def test_compose_executor_preserves_tokens_and_maps_shared_paths(
     ]
     with pytest.raises(SlurmTestClusterError, match="outside"):
         cluster.map_shared_path(tmp_path / "outside.sbatch")
+
+
+def test_development_target_loads_all_verified_oci_runtime_bindings(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "cluster"
+    (checkout / "shared-dir").mkdir(parents=True)
+    cluster = SlurmDockerCluster.from_manifest(MANIFEST, checkout)
+
+    target = cluster.development_execution_target()
+    storage = cluster.development_storage_profile()
+    runtimes = cluster.development_runtimes()
+
+    assert target["metadata"]["id"] == "development-slurm-docker"
+    assert target["spec"]["scheduler"]["apptainer_executable"] == (
+        "/usr/local/bin/qhpc-oci-shim"
+    )
+    assert storage["metadata"]["status"] == "active"
+    assert Path(storage["spec"]["roots"]["task_staging"]).is_relative_to(
+        cluster.shared_host_directory
+    )
+    assert {runtime["metadata"]["id"] for runtime in runtimes} == {
+        image["runtime_id"] for image in cluster.runtime_images
+    }
+    assert len(runtimes) == 5
+
+
+def test_development_target_verifies_local_image_ids(tmp_path: Path) -> None:
+    checkout = tmp_path / "cluster"
+    (checkout / "shared-dir").mkdir(parents=True)
+    expected = {
+        image["local_reference"]: image["digest"]
+        for image in load_document(MANIFEST)["spec"]["runtime_images"]
+    }
+    commands: list[list[str]] = []
+
+    def run(command):
+        command = list(command)
+        commands.append(command)
+        return CommandResult(0, expected[command[-1]] + "\n")
+
+    cluster = SlurmDockerCluster.from_manifest(MANIFEST, checkout, runner=run)
+    cluster.verify_runtime_images()
+
+    assert len(commands) == 5
+    assert all(command[:3] == ["docker", "image", "inspect"] for command in commands)
 
 
 def test_smoke_exercises_completion_accounting_and_cancellation(

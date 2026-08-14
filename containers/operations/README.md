@@ -36,7 +36,7 @@ cache against the manifest, and Docker build steps run with networking
 disabled:
 
 ```bash
-qhpc-ecosystem operation-runtime build-oci \
+eqo operation-runtime build-oci \
   containers/operations/ftprimitivebench/runtime.yaml \
   /path/to/FTPrimitiveBench \
   --dependency-cache /approved/wheel-cache \

@@ -4,25 +4,43 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>QHPC Workbench · Quantum Science Center</title>
+  <title>EQO-QSC · QHPC Workbench · Quantum Science Center</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23131E29'/%3E%3Ccircle cx='30' cy='29' r='17' fill='none' stroke='white' stroke-width='7'/%3E%3Cpath d='M41 41 53 53' stroke='%23AA1E2E' stroke-width='7' stroke-linecap='square'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to content</a>
+  <canvas class="neon-nebula" id="neon-nebula" aria-hidden="true"></canvas>
 
   <div class="app-shell">
     <aside class="rail" aria-label="Primary navigation">
       <div class="brand">
         <img src="/assets/qsc-logo-white.png" alt="Quantum Science Center" width="600" height="200">
-        <span class="brand-product">QHPC Workbench</span>
+        <span class="brand-product">EQO-QSC</span>
+        <span class="brand-product-detail">Ecosystem for Quantum Orchestration</span>
       </div>
-      <nav id="primary-nav">
-        <button class="nav-item active" data-view="projects"><span class="nav-code" aria-hidden="true">PR</span>Projects</button>
-        <button class="nav-item" data-view="explore"><span class="nav-code" aria-hidden="true">EX</span>Explore</button>
-        <button class="nav-item" data-view="compose"><span class="nav-code" aria-hidden="true">CP</span>Compose</button>
-        <button class="nav-item" data-view="runs"><span class="nav-code" aria-hidden="true">RN</span>Runs</button>
-        <button class="nav-item" data-view="artifacts"><span class="nav-code" aria-hidden="true">AR</span>Artifacts</button>
-        <button class="nav-item" data-view="environments"><span class="nav-code" aria-hidden="true">EN</span>Environments</button>
+      <nav id="primary-nav" aria-label="EQO-QSC workspaces">
+        <div class="nav-group" aria-labelledby="nav-workspace-label">
+          <span class="nav-group-label" id="nav-workspace-label">Workspace</span>
+          <button class="nav-item active" data-view="overview" aria-current="page"><span class="nav-code" aria-hidden="true">OV</span><span class="nav-item-label">Overview</span></button>
+          <button class="nav-item" data-view="tools"><span class="nav-code" aria-hidden="true">TL</span><span class="nav-item-label">Tools</span></button>
+          <button class="nav-item" data-view="knowledge"><span class="nav-code" aria-hidden="true">KN</span><span class="nav-item-label">Knowledge</span></button>
+          <button class="nav-item" data-view="assistant"><span class="nav-code" aria-hidden="true">AS</span><span class="nav-item-label">Assistant</span></button>
+          <button class="nav-item" data-view="compose"><span class="nav-code" aria-hidden="true">CP</span><span class="nav-item-label">Compose</span></button>
+        </div>
+        <div class="nav-group" aria-labelledby="nav-execution-label">
+          <span class="nav-group-label" id="nav-execution-label">Execution</span>
+          <button class="nav-item" data-view="runs"><span class="nav-code" aria-hidden="true">RN</span><span class="nav-item-label">Runs</span></button>
+          <button class="nav-item" data-view="artifacts"><span class="nav-code" aria-hidden="true">AR</span><span class="nav-item-label">Artifacts</span></button>
+        </div>
+        <div class="nav-group" aria-labelledby="nav-system-label">
+          <span class="nav-group-label" id="nav-system-label">System</span>
+          <button class="nav-item" data-view="environments"><span class="nav-code" aria-hidden="true">EN</span><span class="nav-item-label">Environments</span></button>
+          <button class="nav-item" data-view="updates"><span class="nav-code" aria-hidden="true">UP</span><span class="nav-item-label">Updates</span></button>
+        </div>
       </nav>
       <div class="rail-status">
         <span class="status-dot hex" id="service-dot" aria-hidden="true"></span>
@@ -33,20 +51,21 @@
 
     <main>
       <header class="topbar">
-        <div>
-          <p class="eyebrow" id="view-eyebrow">ECOSYSTEM / PROJECTS</p>
-          <h1 id="view-title">Software Thrust projects</h1>
+        <div class="view-identity">
+          <p class="eyebrow" id="view-eyebrow">QHPC / OVERVIEW</p>
+          <h1 id="view-title">QHPC ecosystem</h1>
         </div>
         <div class="topbar-actions">
           <label class="search-control">
             <span aria-hidden="true">⌕</span>
-            <input id="global-search" type="search" placeholder="Search registry" autocomplete="off" aria-label="Search registry">
+            <input id="global-search" type="search" placeholder="Find a tool or operation" autocomplete="off" aria-label="Search tools">
           </label>
+          <button class="command-assistant" id="chatqec-dock-toggle" type="button" aria-expanded="false" aria-controls="chatqec-dock"><span aria-hidden="true">QEC</span>ChatQEC</button>
           <button class="button secondary" id="refresh-button">Refresh</button>
         </div>
       </header>
 
-      <section class="summary-strip" id="summary-strip" aria-label="Registry summary"></section>
+      <section class="summary-strip" id="summary-strip" aria-label="Ecosystem summary"></section>
       <section class="workspace" id="workspace" tabindex="-1" aria-live="polite"></section>
     </main>
   </div>
@@ -59,7 +78,16 @@
     <div id="inspector-content"></div>
   </aside>
   <div class="scrim" id="scrim"></div>
+  <aside class="chatqec-dock" id="chatqec-dock" aria-label="ChatQEC contextual assistant" aria-hidden="true" role="dialog" aria-modal="true">
+    <header>
+      <div><p class="eyebrow">CONTEXT / CHATQEC</p><strong>Research assistant</strong></div>
+      <button class="icon-button" id="chatqec-dock-close" type="button" aria-label="Close ChatQEC">×</button>
+    </header>
+    <div class="chatqec-dock-body" id="chatqec-dock-body"></div>
+  </aside>
+  <div class="chatqec-dock-scrim" id="chatqec-dock-scrim"></div>
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <script src="/nebula.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

@@ -96,3 +96,73 @@ def test_ct_hw_workflow_resolves_pinned_cross_project_operations() -> None:
     assert topological_nodes(workflow) == ("transpile", "analyze")
     assert resolved.operations["transpile"].project == "compilation-tools"
     assert resolved.operations["analyze"].project == "hybrid-workflows"
+
+
+def test_evolution_showcase_resolves_four_tools_and_five_outputs() -> None:
+    workflow = load_document(
+        ROOT / "examples/workflows/showcase-evolution-readiness.yaml"
+    )
+    registry = load_registry(ROOT / "examples/registry.yaml")
+
+    resolved = resolve_workflow(workflow, registry)
+
+    assert topological_nodes(workflow) == (
+        "synthesize",
+        "count",
+        "transpile",
+        "analyze",
+    )
+    assert {
+        operation.capability_id
+        for operation in resolved.operations.values()
+    } == {
+        "openqevo-library",
+        "qasmtrans-transpiler",
+        "stabsim-simulator",
+        "nwqec-qec-transpilation",
+    }
+    assert {
+        output["artifact_type"]
+        for output in workflow["spec"]["outputs"].values()
+    } == {
+        "qhpc.quantum-circuit@1",
+        "qhpc.evolution-synthesis-report@1",
+        "qhpc.transpiled-circuit@1",
+        "qhpc.circuit-metrics@1",
+        "qhpc.clifford-t-counts@1",
+    }
+    nodes = {node["id"]: node for node in workflow["spec"]["nodes"]}
+    assert nodes["synthesize"]["execution_target"] == "local-development"
+    assert nodes["synthesize"]["execution_class"] == "interactive-local"
+    for node_id in ("count", "transpile", "analyze"):
+        assert nodes[node_id]["execution_target"] == "development-slurm-docker"
+        assert nodes[node_id]["execution_class"] == "batch-hpc"
+
+
+def test_qec_distance_showcase_resolves_two_parallel_experiments() -> None:
+    workflow = load_document(
+        ROOT / "examples/workflows/showcase-qec-distance-study.yaml"
+    )
+    registry = load_registry(ROOT / "examples/registry.yaml")
+
+    resolved = resolve_workflow(workflow, registry)
+
+    assert topological_nodes(workflow) == (
+        "build-distance-3",
+        "build-distance-5",
+        "estimate-distance-3",
+        "estimate-distance-5",
+    )
+    assert {
+        operation.capability_id
+        for operation in resolved.operations.values()
+    } == {
+        "ftprimitivebench-primitives",
+        "lightstim-simulation",
+    }
+    assert set(workflow["spec"]["outputs"]) == {
+        "distance_3_circuit",
+        "distance_3_estimate",
+        "distance_5_circuit",
+        "distance_5_estimate",
+    }

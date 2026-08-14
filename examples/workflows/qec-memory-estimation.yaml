@@ -1,0 +1,54 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: qec-memory-estimation
+  name: Build and estimate a fault-tolerant memory circuit
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Connect FTPrimitiveBench circuit generation to LightStim logical-error estimation on the virtual Slurm target.
+spec:
+  nodes:
+    - id: build-memory
+      operation:
+        capability: ftprimitivebench-primitives
+        version: 0.1.0
+        operation: build-memory
+      parameters:
+        x_distance: 3
+        z_distance: 3
+        rounds: 3
+        measurement_basis: Z
+        physical_error_rate: 0.001
+    - id: estimate
+      operation:
+        capability: lightstim-simulation
+        version: 0.1.0
+        operation: estimate-logical-error
+      parameters:
+        decoder: pymatching
+        max_shots: 100
+        max_errors: 20
+        batch_size: 25
+        num_workers: 1
+  edges:
+    - from:
+        node: build-memory
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+      to:
+        node: estimate
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+  inputs: {}
+  outputs:
+    circuit:
+      artifact_type: qhpc.stim-circuit@1
+      from:
+        node: build-memory
+        port: circuit
+    estimate:
+      artifact_type: qhpc.logical-error-estimate@1
+      from:
+        node: estimate
+        port: estimate

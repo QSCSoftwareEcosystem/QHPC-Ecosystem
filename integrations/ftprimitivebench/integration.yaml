@@ -8,11 +8,11 @@ metadata:
   role: operation-provider
   owners: [ftprimitivebench]
   visibility: public
-  integration_status: scaffolded
+  integration_status: published
 spec:
   source:
     kind: repository
-    url: https://github.com/ShuwenKan/FTPrimitiveBench
+    url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench
     catalog_repository: FTPrimitiveBench
   mirror:
     status: inventory-listed
@@ -30,8 +30,9 @@ spec:
     adapter: complete
     fixtures: complete
     integration_tests: complete
-    registry_publication: pending
+    registry_publication: complete
   contract_refs:
+    - capabilities/FTPrimitiveBench/primitives/qhpc-capability.yaml
     - integrations/ftprimitivebench/interface.yaml
     - containers/operations/ftprimitivebench/runtime.yaml
   evidence:

@@ -1,0 +1,17 @@
+{
+  "qubits": 2,
+  "terms": [
+    {
+      "pauli": "ZI",
+      "coefficient": 1.0
+    },
+    {
+      "pauli": "IZ",
+      "coefficient": 0.5
+    },
+    {
+      "pauli": "XX",
+      "coefficient": 0.25
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: lightstim-simulation
+  name: LightStim Logical Error Estimation
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [lightstim]
+  repository:
+    url: https://github.com/QuTone/LightStim
+    canonical_url: https://github.com/QSCSoftwareThrust/LightStim
+    revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/initial-component-source-audit-2026-07-22.md
+      - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+  visibility: public
+  maturity: alpha
+spec:
+  component:
+    name: LightStim
+    description: Modular QEC framework built on Stim for constructing fault-tolerant circuits and protocols, applying noise models, simulating and decoding experiments, and analyzing logical performance.
+  guidance:
+    use_when:
+      - Estimate logical error rates from detector-annotated Stim circuits with PyMatching.
+    quick_start:
+      - Open Compose and choose QEC memory estimation or add Estimate logical error rate.
+      - Supply a Stim circuit, review shot and stopping limits, and run on the development Slurm Docker target.
+    example_workflows:
+      - qec-memory-estimation
+      - showcase-qec-distance-study
+    limitations:
+      - EQO currently exposes only logical-error estimation through LightStim's CPU PyMatching simulation pipeline; its circuit builders, protocols, additional decoders, GPU support, and visualization services are not yet integrated.
+      - The verified operation is admitted only on the development Slurm Docker target.
+  operations:
+    - id: estimate-logical-error
+      title: Estimate logical error rate
+      description: Sample and decode a detector-annotated Stim circuit with PyMatching.
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      outputs:
+        estimate:
+          artifact_type: qhpc.logical-error-estimate@1
+      parameters:
+        decoder:
+          type: string
+          title: Decoder
+          default: pymatching
+          enum: [pymatching]
+        max_shots:
+          type: integer
+          title: Maximum sampled shots
+          default: 1000
+          minimum: 1
+          maximum: 100000000
+        max_errors:
+          type: integer
+          title: Logical-error stopping count
+          default: 100
+          minimum: 1
+          maximum: 1000000
+        batch_size:
+          type: integer
+          title: Shots per sampling batch
+          default: 1000
+          minimum: 1
+          maximum: 1000000
+        num_workers:
+          type: integer
+          title: CPU worker processes
+          default: 1
+          minimum: 1
+          maximum: 256
+      runtime:
+        type: oci
+        reference: docker://qhpc/lightstim@sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+        digest: sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-lightstim-estimate]
+      resources:
+        cpu: 1
+        memory_mb: 2048
+        walltime_seconds: 120
+      execution_targets: [development-slurm-docker]
+  resources:
+    - id: lightstim-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QuTone/LightStim/tree/b08d4c2f9cd69531a51b658e6f88089be69f16c0
+  documentation:
+    qappswiki: packages/lightstim.md
+    url: https://github.com/QuTone/LightStim/blob/b08d4c2f9cd69531a51b658e6f88089be69f16c0/README.md

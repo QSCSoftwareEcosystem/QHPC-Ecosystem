@@ -23,6 +23,23 @@ qhpc.quantum-circuit@1
 qhpc.compilation-report@1
 ```
 
+## Workflow Drafts
+
+A `WorkflowDraft` is mutable control-plane state for interactive composition.
+It stores a candidate `Workflow` object and canvas layout under a server-owned
+draft identity, owner, revision, and timestamps. The candidate workflow may be
+incomplete or invalid while it is being edited.
+
+Canvas nodes record only presentation kind and position. Viewport state,
+position, zoom, and future selection state do not participate in the canonical
+workflow or its digest. Duplicate canvas node IDs are invalid.
+
+Draft updates require the last observed revision. A stale revision is rejected
+instead of silently overwriting newer state. Validation resolves the candidate
+workflow against the active deployment-filtered registry without publishing
+it. Publication succeeds only after authoritative workflow validation and uses
+the existing immutable `(workflow ID, semantic version)` registration rule.
+
 ## Deployment Profiles
 
 A deployment profile is a versioned, deny-by-default component allowlist. It
@@ -35,6 +52,56 @@ mapping is validated against both the repository slug and canonical source URL.
 Before a service starts, its registry is filtered through the profile; catalog
 presence without profile admission cannot make a capability discoverable or
 usable by workflow validation.
+
+## Canonical And Release Repositories
+
+Capability `metadata.repository.url` identifies the exact source repository for
+that published release and revision. Optional `canonical_url` identifies the
+current project repository when ownership has moved or a working mirror has
+diverged from the admitted release history. Registry ownership is resolved
+through `canonical_url` when present, while the release URL must still be the
+catalog's canonical source or an explicitly admitted alternate.
+
+The Workbench presents the canonical repository and labels a differing release
+source separately. This permits a project to move under QSC ownership without
+rewriting the provenance of an already-built runtime.
+
+## Capability Guidance
+
+A capability descriptor separates the upstream project identity from the
+specific integration EQO publishes. `spec.component.name` and
+`spec.component.description` identify and explain the upstream project or
+tool. `metadata.name` names the narrower EQO capability, while operations,
+guidance, limitations, and runtime evidence state exactly which part of that
+project is currently integrated. Consumers fall back to `metadata.name` for
+older descriptors that do not yet provide `spec.component.name`.
+
+A capability may publish a structured `spec.guidance` block so the registry,
+Workbench, and CLI explain the tool from the same source of truth. Curated
+guidance contains:
+
+- `use_when`: concrete situations in which a researcher should choose the tool;
+- `quick_start`: ordered steps that lead to a supported operation or resource;
+- `example_workflows`: published workflow identifiers that demonstrate the
+  capability;
+- `limitations`: current scientific, runtime, or integration boundaries.
+
+`use_when` and `quick_start` are required whenever `guidance` is present.
+Guidance is optional so older project-authored descriptors remain compatible.
+Consumers fall back to the component description and executable-operation
+status when a descriptor has not yet published guidance. Operation-specific
+descriptions, artifact ports, parameters, runtimes, and execution targets
+remain authoritative and are rendered alongside the capability-level guide.
+
+## Repository Update State
+
+Repository update operations are mutable control-plane state, not integration
+contracts. Targets are derived from a validated deployment profile and
+registry. The API accepts no client-supplied repository URL, ref, credential,
+checkout path, or Git option. Candidate staging verifies the configured remote
+ref again and records a full immutable commit without modifying the active
+capability, operation runtime, or registry contracts. See
+[Repository Updates](repository-updates.md).
 
 ## Integration Scaffolds
 
@@ -55,9 +122,9 @@ production runtime not applicable.
 The deployment profile and all linked scaffolds can be checked together:
 
 ```bash
-qhpc-ecosystem integration validate deployments/initial.yaml
-qhpc-ecosystem integration list deployments/initial.yaml
-qhpc-ecosystem integration info deployments/initial.yaml nwqec
+eqo integration validate deployments/initial.yaml
+eqo integration list deployments/initial.yaml
+eqo integration info deployments/initial.yaml nwqec
 ```
 
 ## Operation Interfaces
@@ -120,8 +187,16 @@ A `SlurmTestCluster` pins an external Docker Compose source revision and defines
 the controller, worker, shared-path, service, and readiness boundary used for
 development scheduler testing. Its schema fixes the scope to
 `development-only` and `production_evidence: false`; it cannot be used as an
-execution target or activate a DOE profile. The current provider and operating
+execution target or activate a DOE profile. The current fixture and operating
 procedure are documented in [hpc-execution.md](hpc-execution.md).
+
+An `HpcAcceptanceProfile` maps every component in one deployment profile to
+exactly one acceptance classification. Batch operations require an
+`OperationRuntime`; services, integration standards, and knowledge or library
+resources are recorded as explicitly outside the Slurm batch gate. The profile
+also references the scheduler fixture and the planned site target and storage
+contracts. Cross-file inspection rejects deployment membership, role,
+integration, runtime, or component drift.
 
 ## Service Interfaces
 
@@ -217,7 +292,9 @@ declared types and bounds, and execution targets are supported.
 
 Artifacts record a storage URI, type, SHA-256 checksum, size, creator, and
 optional producing run/task. Artifact payloads are not embedded in workflow or
-run records.
+run records. Local preview and download resolve only `file:` artifacts below
+the configured artifact root and recheck the recorded checksum and size before
+returning content.
 
 ## Workflows and Runs
 
@@ -225,6 +302,14 @@ Workflows are directed acyclic graphs. They contain pinned capability versions,
 typed edges, parameters, and declared external inputs and outputs. A workflow
 definition is independent of frontend canvas coordinates and presentation
 state.
+
+A `WorkflowDraft` is a mutable, revision-checked wrapper around a possibly
+incomplete workflow and separate canvas layout. Its layout records node
+positions and viewport only. Draft saves do not publish a workflow, and stale
+updates or deletes fail on revision mismatch. Draft validation resolves the
+embedded workflow against the active registry without creating an immutable
+version; publication repeats that validation and then uses the normal workflow
+publication path.
 
 A run resolves the workflow digest, execution target, operation versions,
 runtime digests, task attempts, states, and output artifact IDs. Run records are
@@ -244,18 +329,19 @@ core contracts.
 List and inspect packaged schemas:
 
 ```bash
-qhpc-ecosystem contract list
-qhpc-ecosystem contract schema capability
+eqo contract list
+eqo contract schema capability
 ```
 
 Validate YAML or JSON documents:
 
 ```bash
-qhpc-ecosystem contract validate capability capability.yaml
-qhpc-ecosystem contract validate integration-scaffold integrations/nwqec/integration.yaml
-qhpc-ecosystem contract validate operation-interface integrations/nwqec/interface.yaml
-qhpc-ecosystem contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
-qhpc-ecosystem contract validate service-interface integrations/chatqec/service.yaml
-qhpc-ecosystem contract validate slurm-test-cluster infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
-qhpc-ecosystem contract validate workflow workflow.yaml
+eqo contract validate capability capability.yaml
+eqo contract validate hpc-acceptance infrastructure/hpc-acceptance/initial.yaml
+eqo contract validate integration-scaffold integrations/nwqec/integration.yaml
+eqo contract validate operation-interface integrations/nwqec/interface.yaml
+eqo contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
+eqo contract validate service-interface integrations/chatqec/service.yaml
+eqo contract validate slurm-test-cluster infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+eqo contract validate workflow workflow.yaml
 ```

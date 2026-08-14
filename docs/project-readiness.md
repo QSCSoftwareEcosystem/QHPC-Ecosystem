@@ -1,7 +1,7 @@
 # Software Thrust Integration Readiness
 
 - Status: Curator audit queue
-- Last updated: 2026-07-27
+- Last updated: 2026-07-29
 
 This matrix tracks the evidence required before a repository capability enters
 the QHPC registry. Project review is recorded when available, but an
@@ -12,11 +12,12 @@ evidence-backed ecosystem curator may perform local integration independently.
 | SE | `spack-packages/` is available; `SoftEng/` is sparse | Packaging and release resources | Audit package definitions and stage a resource descriptor | Source available |
 | DS | `DataSchema/` is available | Artifact types and metadata validators | Publish versioned schema resources | Source available |
 | AS | Supporting repositories are cataloged; `AgenticSoftware/` is sparse | Recommendation or workflow assistance | Select an operation with tests and a stable entry point | Audit required |
-| CT | Compiler repositories are cataloged | QASMTrans transpilation | Native workflow and reproducible OCI runtime verified; resolve FTQC independently | OCI smoke-tested locally |
+| CT | Compiler repositories are cataloged | QASMTrans transpilation and FTQC QASM import | QASMTrans OCI verified; FTQC source, contract, adapter, fixtures, and source smoke verified; package and accept the FTQC runtime | Mixed: QASMTrans OCI smoke-tested; FTQC pre-runtime integration complete |
 | HW | Simulator and QEC repositories are cataloged | STABSim structural metrics | Native workflow and reproducible OCI runtime verified; obtain explicit license terms before image publication | OCI smoke-tested; publication license-blocked |
 | OpenQEvo | `OpenQEvo/` is available | Method discovery and time-evolution operation | Resolve upstream licensing before redistributable container packaging | Registry published; OCI license-blocked |
 
-Within the initial deployment, TN-Sim, NWQEC, FTPrimitiveBench, and LightStim
+Within the initial deployment, TN-Sim, NWQEC, FTPrimitiveBench, LightStim, and
+FTQC
 have passed the pre-runtime contract portion of this ladder at exact source
 revisions: runtime-free contracts, controlled adapters, fixtures, and
 integration tests. NWQEC, FTPrimitiveBench, and LightStim were also exercised
@@ -24,7 +25,9 @@ against their pinned source dependencies and now have reproducible locally
 smoke-tested OCI operation images. TN-Sim's controlled CLI adapter is
 fixture-tested against the audited output format, but its external iTensor
 binary still requires a corrected reproducible build and source-backed
-execution. None is production-approved, and those without an existing
+execution. FTQC's standalone QASM importer was source-smoke-tested, but its full
+LLVM/MLIR 22 compiler runtime and license terms remain open. None is
+production-approved, and those without an existing
 capability remain non-executable in the registry until immutable releases pass
 target acceptance.
 
@@ -32,8 +35,9 @@ OpenQSE and QAppsWiki complete the non-executable resource path: their pinned
 capabilities contain documentation or dataset/library resources and no
 operation runtime. ChatQEC completes the pre-runtime service path with a pinned
 source, accepted boundary, machine-valid HTTPS JSON/SSE contract, controlled
-client adapter, fixtures, and integration tests. Its server implementation and
-institutional deployment dependencies remain production gates.
+client adapter, fixtures, and integration tests. Its cited canonical-corpus
+development server is functional through the QHPC API; the model-backed server
+and institutional deployment dependencies remain production gates.
 
 ## Validation Ladder
 
@@ -46,7 +50,9 @@ institutional deployment dependencies remain production gates.
 ## Cross-Cutting Source Decisions
 
 - `HeteQSys` still lacks an authoritative repository URL.
-- FTQC has competing internal GitLab and public GitHub source references.
+- FTQC's private QSC working mirror is synchronized from its authoritative
+  internal GitLab upstream; recurring synchronization requires approved
+  GitLab and GitHub service identities.
 - Internal automated retrieval requires an approved service identity.
 - A catalog entry alone does not establish a supported operation.
 

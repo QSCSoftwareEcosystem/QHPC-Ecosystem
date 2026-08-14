@@ -1,0 +1,47 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: exachem-qflow
+  name: ExaChem QFlow
+  version: 0.1.0
+  project: hybrid-workflows
+  role: operation-provider
+  owners: [exachem-qflow]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/ExaChem/exachem
+    catalog_repository: ExaChem
+  mirror:
+    status: not-applicable
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [json-context, adapter, cli]
+  scope:
+    status: defined
+    summary: Admit the QFlow task-set and cycle-checkpoint boundary as non-executable resources while preserving ExaChem ownership of chemistry state, convergence, and amplitude updates.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: pending
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs:
+    - capabilities/ExaChem/qflow/qhpc-capability.yaml
+    - artifact-types/qflow-taskset-v1.yaml
+    - artifact-types/qflow-cycle-checkpoint-v1.yaml
+  evidence:
+    - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+    - integrations/qiris-qflow/h6-validation-workflow.md
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Publish no operation until the task-set export hook is project-reviewed, committed, packaged immutably, and accepted on a QHPC target.
+  blockers:
+    - Upstream or otherwise review and pin the current uncommitted ExaChem QFlow export hook.
+    - Demonstrate live submit, wait, complete-cycle acceptance, amplitude application, and restart checkpoint equivalence.
+    - Build and accept an immutable ExaChem runtime for the intended HPC target.

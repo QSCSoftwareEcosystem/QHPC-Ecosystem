@@ -1,0 +1,94 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: showcase-qec-distance-study
+  name: Compare QEC memory protection
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Build distance-three and distance-five surface-code memories with the same physical error model, then estimate both logical error rates with LightStim.
+spec:
+  nodes:
+    - id: build-distance-3
+      operation:
+        capability: ftprimitivebench-primitives
+        version: 0.1.0
+        operation: build-memory
+      parameters:
+        x_distance: 3
+        z_distance: 3
+        rounds: 3
+        measurement_basis: Z
+        physical_error_rate: 0.001
+    - id: estimate-distance-3
+      operation:
+        capability: lightstim-simulation
+        version: 0.1.0
+        operation: estimate-logical-error
+      parameters:
+        decoder: pymatching
+        max_shots: 500
+        max_errors: 50
+        batch_size: 100
+        num_workers: 1
+    - id: build-distance-5
+      operation:
+        capability: ftprimitivebench-primitives
+        version: 0.1.0
+        operation: build-memory
+      parameters:
+        x_distance: 5
+        z_distance: 5
+        rounds: 5
+        measurement_basis: Z
+        physical_error_rate: 0.001
+    - id: estimate-distance-5
+      operation:
+        capability: lightstim-simulation
+        version: 0.1.0
+        operation: estimate-logical-error
+      parameters:
+        decoder: pymatching
+        max_shots: 500
+        max_errors: 50
+        batch_size: 100
+        num_workers: 1
+  edges:
+    - from:
+        node: build-distance-3
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+      to:
+        node: estimate-distance-3
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+    - from:
+        node: build-distance-5
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+      to:
+        node: estimate-distance-5
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+  inputs: {}
+  outputs:
+    distance_3_circuit:
+      artifact_type: qhpc.stim-circuit@1
+      from:
+        node: build-distance-3
+        port: circuit
+    distance_3_estimate:
+      artifact_type: qhpc.logical-error-estimate@1
+      from:
+        node: estimate-distance-3
+        port: estimate
+    distance_5_circuit:
+      artifact_type: qhpc.stim-circuit@1
+      from:
+        node: build-distance-5
+        port: circuit
+    distance_5_estimate:
+      artifact_type: qhpc.logical-error-estimate@1
+      from:
+        node: estimate-distance-5
+        port: estimate

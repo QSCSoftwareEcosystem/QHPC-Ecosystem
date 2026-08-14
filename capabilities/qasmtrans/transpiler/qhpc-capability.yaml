@@ -15,12 +15,27 @@ metadata:
     project_reviewed: false
     runtime_status: verified
     validation_status: integration-tested
-    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+    evidence:
+      - docs/evidence/repository-audit-2026-07-11.md
+      - docs/evidence/qasmtrans-oci-smoke-2026-07-27.md
   visibility: public
   maturity: alpha
 spec:
   component:
-    description: C++ OpenQASM transpiler with target topology and basis-gate mapping.
+    name: QASMTrans
+    description: Extensible C++ quantum transpiler that maps OpenQASM circuits to device topologies and native basis gates for multiple quantum hardware families.
+  guidance:
+    use_when:
+      - Map an OpenQASM 2.0 circuit to the audited IBM Toronto topology and basis-gate family.
+    quick_start:
+      - Open Compose and choose QASMTrans transpilation or Compile and analyze OpenQASM.
+      - Upload an OpenQASM 2.0 circuit, review the fixed backend and mode, and run on the development Slurm Docker target.
+    example_workflows:
+      - qasmtrans-transpile
+      - ct-hw-qasm-analysis
+      - showcase-evolution-readiness
+    limitations:
+      - The current operation is restricted to the audited IBM Toronto topology and IBMQ basis family.
   operations:
     - id: transpile
       title: Transpile OpenQASM circuit
@@ -43,17 +58,16 @@ spec:
           default: ibmq_toronto
           enum: [ibmq_toronto]
       runtime:
-        type: native-bundle
-        reference: qhpc-runtime://native/qasmtrans-1843c98fa4ba-darwin-arm64.zip
-        digest: sha256:16dd5fe10c63bc1a036dc2ba22eb315d9f6bb8afba738ef5b77fed3862b24ad9
+        type: oci
+        reference: docker://qhpc/qasmtrans@sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
+        digest: sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
       invocation:
-        entrypoint: [QASMTrans]
-        arguments: [-i, "{{ inputs.circuit }}", -o, "{{ outputs.circuit }}"]
+        entrypoint: [/opt/qhpc/bin/qhpc-qasmtrans]
       resources:
         cpu: 1
         memory_mb: 1024
         walltime_seconds: 60
-      execution_targets: [local-development]
+      execution_targets: [development-slurm-docker]
   resources:
     - id: transpiler-source
       kind: library

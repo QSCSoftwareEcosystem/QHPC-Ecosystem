@@ -147,6 +147,7 @@ def validate_scaffold_references(
     root = Path(workspace_root).expanduser().resolve()
     issues: list[ContractIssue] = []
     kind_map = {
+        "ArtifactType": "artifact-type",
         "Capability": "capability",
         "OperationInterface": "operation-interface",
         "OperationRuntime": "operation-runtime",

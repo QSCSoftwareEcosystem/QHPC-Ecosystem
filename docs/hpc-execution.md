@@ -1,7 +1,7 @@
 # HPC Execution Operations
 
 - Status: implementation complete for local simulation; site activation pending
-- Last updated: 2026-07-27
+- Last updated: 2026-07-29
 
 This document describes the boundary between QHPC's durable control plane and a
 site-owned Slurm/Apptainer execution target.
@@ -47,7 +47,44 @@ activation until required scheduler account, partition, resource limits,
 storage roots, immutable runtime digests, and evidence are supplied. Placeholder
 paths and all-zero digests must never be activated.
 
-## Development Slurm Cluster
+## Initial-Package Acceptance
+
+`infrastructure/hpc-acceptance/initial.yaml` is the machine-readable HPC
+acceptance inventory for the fourteen initial components. Inspect it with:
+
+```bash
+eqo hpc-acceptance status \
+  infrastructure/hpc-acceptance/initial.yaml
+```
+
+The profile currently identifies seven intended batch operations. STABSim,
+NWQEC, FTPrimitiveBench, LightStim, and QASMTrans have OCI-verified runtime
+contracts; TN-Sim and FTQC still need reproducible runtimes. OpenQEvo is
+currently a library resource, OpenQSE an integration standard, QAppsWiki a
+knowledge resource, and ChatQEC a separately deployed service, so they do not
+enter the Slurm batch gate.
+
+The gate command returns nonzero until every required runtime is
+`target-accepted` and the execution target, storage profile, and acceptance
+profile are active:
+
+```bash
+eqo hpc-acceptance gate \
+  infrastructure/hpc-acceptance/initial.yaml
+```
+
+All five current runtime contracts traverse simulated Slurm/Apptainer
+admission, input staging, job rendering, polling, output collection, telemetry,
+and cleanup tests. Scheduler-visible image, bind, log, and telemetry paths are
+translated through an injected mapper, allowing the same runner contract to
+use host-local or Compose-backed Slurm command transports. This remains
+contract evidence, not scientific execution evidence.
+
+## Development Slurm Fixture
+
+The development fixture is layered test infrastructure. It is not an execution
+target, operation runtime, or deployment-registry entry, and it cannot produce
+DOE acceptance evidence.
 
 Thomas Naughton's
 [`slurm-docker-cluster`](https://github.com/naughtont3/slurm-docker-cluster)
@@ -63,16 +100,16 @@ The source is cloned on demand under ignored `.qhpc/` state. It is not vendored
 into this repository:
 
 ```bash
-qhpc-ecosystem slurm-test-cluster prepare \
+eqo slurm-test-cluster prepare \
   infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml \
   --build-ca /approved/path/development-build-ca.pem
-qhpc-ecosystem slurm-test-cluster start \
+eqo slurm-test-cluster start \
   infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
-qhpc-ecosystem slurm-test-cluster smoke \
+eqo slurm-test-cluster smoke \
   infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
-qhpc-ecosystem slurm-test-cluster status \
+eqo slurm-test-cluster status \
   infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
-qhpc-ecosystem slurm-test-cluster stop \
+eqo slurm-test-cluster stop \
   infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
 ```
 
@@ -82,7 +119,9 @@ test submits through the shared `/mnt` path, waits through `squeue` and `sacct`,
 checks worker output, then submits and cancels a second job through `scancel`.
 The QHPC override also persists `/var/lib/slurmd`; `stop` preserves that named
 volume, and the recorded restart test confirms scheduler job IDs continue
-across full Compose replacement.
+across full Compose replacement. It replaces the source's global container
+names and image tag with QHPC-scoped identities, allowing the fixture to run
+without taking ownership of an unrelated Slurm Compose stack.
 
 The public build CA is optional on networks that do not intercept TLS. QHPC
 rejects CA inputs containing a private key, never commits the local CA, and
@@ -99,6 +138,10 @@ GPUDirect, representative queue behavior, or representative performance. See
 The first live verification passed on 2026-07-27; the exact source, build,
 image, node, completion, accounting, and cancellation record is in
 [the scheduler smoke evidence](evidence/slurm-docker-cluster-smoke-2026-07-27.md).
+
+The external OpenQSE QFw Slurm stack is reference material only. QHPC may use
+its design ideas when defining future multi-node or synthetic-resource tests,
+but it is not a provider, dependency, runtime, or deployment component.
 
 ## Site Activation
 
@@ -119,7 +162,7 @@ A site owner must:
 The active cold-batch worker is then started with explicit inputs:
 
 ```bash
-qhpc-ecosystem target-worker \
+eqo target-worker \
   --registry /approved/qhpc/registry.yaml \
   --deployment-profile deployments/initial.yaml \
   --execution-target /approved/qhpc/execution-target.yaml \
@@ -148,8 +191,8 @@ use ordinary batch execution.
 Pilot state can be inspected without activating a target:
 
 ```bash
-qhpc-ecosystem pilot list --database .qhpc/workbench.sqlite
-qhpc-ecosystem pilot reconcile \
+eqo pilot list --database .qhpc/workbench.sqlite
+eqo pilot reconcile \
   infrastructure/pilot-profiles/doe-short-interactive.yaml \
   --database .qhpc/workbench.sqlite
 ```

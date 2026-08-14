@@ -1,0 +1,65 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: exachem-qflow-tasksets
+  name: ExaChem QFlow Task-Set Boundary
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [exachem-qflow]
+  repository:
+    url: https://github.com/ExaChem/exachem
+    revision: 0991cb52ce687ccf35ba29f3746a6fb13a13c464
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+  visibility: public
+  maturity: prototype
+spec:
+  component:
+    name: ExaChem
+    description: Scalable electronic-structure software for ground- and excited-state molecular calculations on modern exascale computing platforms.
+    license: Apache-2.0
+  guidance:
+    use_when:
+      - Design or review the boundary that exports formed active-space Hamiltonians from an ExaChem QFlow cycle for heterogeneous execution.
+      - Inspect the cycle and restart state that must remain under QFlow ownership when task execution is delegated.
+    quick_start:
+      - Open Compose and choose H6 QFlow chemistry cycle to inspect the evidence-backed incubation blueprint and its runtime gates.
+      - Open the QFlow/QIRIS architecture resource to review ownership and the complete-cycle acceptance rule.
+      - Inspect qflow-taskset@1 for the cycle export and qflow-cycle-checkpoint@1 for restart provenance.
+      - Use the H6 validation procedure as evidence only; there is no Compose or Run action while the export hook remains an uncommitted development patch.
+    example_workflows: []
+    limitations:
+      - EQO currently represents only the proposed QFlow task-set export boundary, not the complete ExaChem electronic-structure suite.
+      - The observed task-set export hook is an uncommitted patch in the qiris-qflow checkout, not part of the pinned public ExaChem revision.
+      - Live QFlow submit, wait, acceptance, amplitude update, and checkpoint equivalence have not been demonstrated.
+      - No executable operation is published until project review, immutable packaging, and QHPC target acceptance are complete.
+  resources:
+    - id: qflow-taskset
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/qflow-taskset-v1.yaml
+      description: Typed export of all active-space tasks formed from one QFlow amplitude snapshot.
+    - id: qflow-cycle-checkpoint
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/qflow-cycle-checkpoint-v1.yaml
+      description: Proposed cycle-boundary checkpoint for restart and amplitude-update provenance.
+    - id: qflow-qiris-architecture
+      kind: documentation
+      version: 0.1.0
+      uri: integrations/qiris-qflow/architecture.md
+      description: EQO-QSC ownership, artifact flow, and promotion gates for the integration.
+    - id: exachem-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/ExaChem/exachem/tree/0991cb52ce687ccf35ba29f3746a6fb13a13c464
+      description: Pinned public ExaChem base revision audited for this incubation record.
+  documentation:
+    qappswiki: packages/exachem-qflow.md
+    url: https://github.com/ExaChem/exachem/blob/0991cb52ce687ccf35ba29f3746a6fb13a13c464/README.md

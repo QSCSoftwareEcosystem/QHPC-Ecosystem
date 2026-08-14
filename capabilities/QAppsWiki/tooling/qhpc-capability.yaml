@@ -20,9 +20,27 @@ metadata:
   maturity: alpha
 spec:
   component:
-    description: Markdown validation, graph construction, provenance, and query tooling.
+    name: QAppsWiki
+    description: Provenance-backed quantum-computing knowledge base and engine that compiles maintained content into a queryable graph for people, applications, and agents.
     license: MIT
+  guidance:
+    use_when:
+      - Validate and explore QAppsWiki content with its graph, provenance, query, and citation tooling.
+    quick_start:
+      - Open the Knowledge workspace to browse thematic communities or search the QAppsWiki corpus.
+      - Select a node to inspect its relationships, provenance, citations, and version context.
+      - Use Set path start and Connect from to trace how two concepts or software packages relate.
+    example_workflows: []
+    limitations:
+      - EQO currently integrates QAppsWiki's published corpus, knowledge graph, provenance, and query resources rather than every ingestion, freshness, and content-maintenance workflow.
+      - The EQO-QSC Knowledge workspace is read-only; QAppsWiki ingest, promotion, and corpus editing remain curator-controlled.
+      - QAppsWiki is a knowledge service and does not expose an executable scientific workflow operation.
   resources:
+    - id: qappswiki-knowledge-adapter
+      kind: adapter
+      version: 0.1.0
+      uri: integrations/qappswiki/knowledge-interface.md
+      description: Read-only EQO-QSC API and Workbench projection of the compiled QAppsWiki graph.
     - id: qappswiki-cli
       kind: library
       version: 0.1.0

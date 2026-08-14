@@ -15,12 +15,31 @@ metadata:
     project_reviewed: false
     runtime_status: verified
     validation_status: integration-tested
-    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+    evidence:
+      - docs/evidence/repository-audit-2026-07-11.md
+      - docs/evidence/openqevo-synthesis-smoke-2026-07-29.md
   visibility: public
   maturity: pre-alpha
 spec:
   component:
-    description: OpenQEvo Python APIs, adapters, and structured method context.
+    name: OpenQEvo
+    description: Reusable, documented, and reproducible Python library that packages quantum-evolution methods with adapters, a method registry, and attributed scientific context.
+  guidance:
+    use_when:
+      - Discover available quantum time-evolution methods and inspect their attributed scientific context.
+      - Convert a real-weighted Pauli Hamiltonian into an OpenQASM 2.0 Trotter circuit for a local development workflow.
+    quick_start:
+      - Open Compose and choose Hamiltonian to evolution circuit.
+      - Load the two-qubit example or upload a Pauli-Hamiltonian JSON artifact.
+      - Review the evolution time, Trotter steps, and Suzuki order, then run the scientific path.
+    example_workflows:
+      - openqevo-method-catalog
+      - openqevo-trotter-synthesis
+      - showcase-evolution-readiness
+    limitations:
+      - EQO currently exposes method discovery, context inspection, and development Trotter synthesis rather than every OpenQEvo method and adapter.
+      - Circuit synthesis is a local-development OpenQEvo and Qiskit bridge, not an accepted production or HPC runtime.
+      - Production promotion requires a project-reviewed circuit API, packaged method context, immutable dependencies, and resolved redistribution rights.
   operations:
     - id: list-methods
       title: List registered evolution methods
@@ -45,6 +64,81 @@ spec:
         memory_mb: 512
         walltime_seconds: 60
       execution_targets: [local-development]
+    - id: describe-method
+      title: Inspect evolution method context
+      description: Return the pinned OpenQEvo description, applicability, limitations, complexity, references, and source provenance for one registered method.
+      inputs: {}
+      outputs:
+        context:
+          artifact_type: qhpc.evolution-method-context@1
+      parameters:
+        method:
+          type: string
+          title: Evolution method
+          description: Registered OpenQEvo method to inspect. Context availability is reported explicitly.
+          default: trotter_s2
+          enum: [exact, qiskit_trotter, trotter_s1, trotter_s2]
+      runtime:
+        type: python-wheel
+        reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+        digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+      invocation:
+        entrypoint: [qhpc-openqevo-context]
+      resources:
+        cpu: 1
+        memory_mb: 512
+        walltime_seconds: 60
+      execution_targets: [local-development]
+    - id: synthesize-evolution
+      title: Synthesize a Trotter evolution circuit
+      description: Convert a Pauli Hamiltonian into an attributed OpenQASM 2.0 Trotter circuit through the development OpenQEvo/Qiskit bridge.
+      inputs:
+        hamiltonian:
+          artifact_type: qhpc.pauli-hamiltonian@1
+          description: Real-weighted Pauli strings using Qiskit-compatible qubit ordering.
+      outputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: OpenQASM 2.0 circuit in the u1/u2/u3/cx basis.
+        report:
+          artifact_type: qhpc.evolution-synthesis-report@1
+          description: Method parameters, source revision, circuit depth, and gate counts.
+      parameters:
+        method:
+          type: string
+          title: OpenQEvo adapter
+          description: Circuit-producing OpenQEvo adapter available in the pinned development runtime.
+          default: qiskit_trotter
+          enum: [qiskit_trotter]
+        evolution_time:
+          type: number
+          title: Evolution time
+          description: Positive time t in exp(-iHt).
+          default: 1.0
+          minimum: 1.0e-12
+        steps:
+          type: integer
+          title: Trotter steps
+          description: Product-formula repetitions; term count multiplied by steps may not exceed 4096.
+          default: 4
+          minimum: 1
+          maximum: 256
+        order:
+          type: integer
+          title: Suzuki order
+          default: 2
+          enum: [1, 2, 4]
+      runtime:
+        type: python-wheel
+        reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+        digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+      invocation:
+        entrypoint: [qhpc-openqevo-synthesize]
+      resources:
+        cpu: 1
+        memory_mb: 2048
+        walltime_seconds: 120
+      execution_targets: [local-development]
   resources:
     - id: python-library
       kind: library
@@ -54,6 +148,18 @@ spec:
       kind: dataset
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d/context
+    - id: pauli-hamiltonian
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/pauli-hamiltonian-v1.yaml
+    - id: evolution-method-context
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/evolution-method-context-v1.yaml
+    - id: evolution-synthesis-report
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/evolution-synthesis-report-v1.yaml
   documentation:
     qappswiki: packages/openqevo.md
     url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md

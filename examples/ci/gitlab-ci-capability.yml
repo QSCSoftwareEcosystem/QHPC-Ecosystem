@@ -4,7 +4,7 @@ qhpc-capability-validate:
   image: registry.internal/qsc/qhpc-ecosystem-validator:0.1.0
   stage: test
   script:
-    - qhpc-ecosystem contract validate capability qhpc-capability.yaml
+    - eqo contract validate capability qhpc-capability.yaml
   rules:
     - changes:
         - qhpc-capability.yaml

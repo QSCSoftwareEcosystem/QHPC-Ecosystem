@@ -28,6 +28,7 @@ VALID_EXAMPLES = {
     "capability": VALID / "capability.yaml",
     "deployment-profile": ROOT / "deployments" / "initial.yaml",
     "execution-target": VALID / "execution-target.yaml",
+    "hpc-acceptance": ROOT / "infrastructure/hpc-acceptance/initial.yaml",
     "integration-scaffold": ROOT / "integrations" / "nwqec" / "integration.yaml",
     "operation-interface": ROOT / "integrations" / "nwqec" / "interface.yaml",
     "operation-runtime": (
@@ -47,6 +48,7 @@ VALID_EXAMPLES = {
     ),
     "storage-profile": VALID / "storage-profile.yaml",
     "workflow": VALID / "workflow.yaml",
+    "workflow-draft": VALID / "workflow-draft.yaml",
 }
 
 
@@ -96,6 +98,21 @@ def test_capability_rejects_default_with_wrong_parameter_type() -> None:
 
     with pytest.raises(ContractError, match="does not match parameter type"):
         validate_contract_data("capability", capability)
+
+
+def test_capability_guidance_requires_use_case_and_quick_start() -> None:
+    capability = copy.deepcopy(load_document(VALID_EXAMPLES["capability"]))
+    capability["spec"]["guidance"].pop("quick_start")
+
+    with pytest.raises(ContractError, match="quick_start"):
+        validate_contract_data("capability", capability)
+
+
+def test_capability_component_can_name_the_upstream_tool() -> None:
+    capability = copy.deepcopy(load_document(VALID_EXAMPLES["capability"]))
+
+    assert capability["spec"]["component"]["name"] == "Example Quantum Toolkit"
+    validate_contract_data("capability", capability)
 
 
 def test_operation_interface_rejects_default_with_wrong_parameter_type() -> None:

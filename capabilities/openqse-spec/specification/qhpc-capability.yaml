@@ -20,8 +20,18 @@ metadata:
   maturity: alpha
 spec:
   component:
-    description: Versioned OpenQSE terminology, architecture definitions, requirements, and sequence documentation.
+    name: OpenQSE Specification
+    description: Shared terminology, architecture definitions, requirements, and sequence documentation for consistent quantum systems engineering.
     license: CC-BY-4.0
+  guidance:
+    use_when:
+      - Align quantum-system-engineering terminology, architecture, requirements, or sequence descriptions with OpenQSE.
+    quick_start:
+      - Open the glossary or architecture documentation resource from this record.
+      - Cite the pinned revision when using definitions in integration specifications.
+    example_workflows: []
+    limitations:
+      - This component publishes documentation resources and has no executable workflow operation.
   resources:
     - id: openqse-glossary
       kind: documentation

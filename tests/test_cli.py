@@ -13,6 +13,13 @@ def invoke(*args: str) -> int:
     return cli.main(["--catalog", str(CATALOG), *args])
 
 
+def test_eqo_is_the_primary_cli_name() -> None:
+    parser = cli.build_parser()
+
+    assert parser.prog == "eqo"
+    assert parser.format_help().startswith("usage: eqo ")
+
+
 def test_list_and_info_do_not_require_apptainer(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         runtime, "find_runtime", lambda *_: (_ for _ in ()).throw(AssertionError)
@@ -22,13 +29,13 @@ def test_list_and_info_do_not_require_apptainer(monkeypatch, capsys) -> None:
     assert "OpenQEvo" in capsys.readouterr().out
     assert invoke("info", "ftqc") == 0
     output = capsys.readouterr().out
-    assert "Canonical status:  ambiguous" in output
-    assert "QSCSoftwareThrust/FTQC" in output
+    assert "Canonical status:  canonical" in output
+    assert "Source:            https://github.com/QSCSoftwareThrust/FTQC" in output
 
 
 def test_validate_checks_catalog_and_recipes(capsys) -> None:
     assert invoke("validate") == 0
-    assert "20 repositories, 5 environments" in capsys.readouterr().out
+    assert "23 repositories, 5 environments" in capsys.readouterr().out
 
 
 def test_build_explains_docker_only_host(tmp_path: Path, monkeypatch, capsys) -> None:

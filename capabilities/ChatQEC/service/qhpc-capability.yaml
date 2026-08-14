@@ -1,0 +1,50 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: chatqec-assistant-service
+  name: ChatQEC Assistant Service Contract
+  version: 0.1.0
+  project: agentic-software
+  owners: [chatqec]
+  repository:
+    url: https://github.com/QSCSoftwareThrust/ChatQEC
+    revision: 4c017510511f835001bfe5901a9d59e86cc130cd
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: not-applicable
+    validation_status: integration-tested
+    evidence:
+      - docs/adr/0008-chatqec-internal-service-boundary.md
+      - docs/chatqec-service-boundary.md
+      - docs/chatqec-api-handoff.md
+      - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
+  visibility: internal
+  maturity: pre-alpha
+spec:
+  component:
+    name: ChatQEC
+    description: Quantum error-correction research assistant with cited retrieval over a curated corpus and optional sandboxed Stim circuit execution.
+  guidance:
+    use_when:
+      - Ask QEC questions while retaining the current EQO-QSC workspace context and source citations.
+    quick_start:
+      - Open Assistant or the contextual ChatQEC panel.
+      - Ask a focused QEC question and inspect the cited sources in the response.
+    example_workflows: []
+    limitations:
+      - The current canonical-corpus service is a deterministic development implementation and does not execute tools.
+      - EQO currently integrates ChatQEC through an authenticated service boundary rather than exposing every upstream CLI, library, Streamlit, and sandboxed-Stim feature.
+  resources:
+    - id: service-interface
+      kind: adapter
+      version: 0.1.0
+      uri: integrations/chatqec/service.yaml
+    - id: chatqec-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/4c017510511f835001bfe5901a9d59e86cc130cd
+  documentation:
+    qappswiki: packages/chatqec.md
+    url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/4c017510511f835001bfe5901a9d59e86cc130cd/README.md

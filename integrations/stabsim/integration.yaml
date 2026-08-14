@@ -12,7 +12,7 @@ metadata:
 spec:
   source:
     kind: repository
-    url: https://github.com/seangarn32/STABSim
+    url: https://github.com/QSCSoftwareThrust/STABSim
     catalog_repository: STABSim
   mirror:
     status: inventory-listed

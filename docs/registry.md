@@ -22,7 +22,13 @@ version-control, virtual-environment, cache, build, distribution, and
 
 Curated overlays use
 `capabilities/<repository>/<capability>/qhpc-capability.yaml`. The descriptor
-still points to the originating repository and an immutable revision.
+still points to the source of that release and an immutable revision. When the
+project has moved, optional `metadata.repository.canonical_url` identifies the
+current project repository without rewriting historical release provenance.
+The descriptor's `spec.component.name` and description identify the upstream
+project; `metadata.name` identifies the narrower capability EQO publishes.
+This prevents one admitted operation from being presented as the purpose of an
+entire project.
 
 Use [the contributor template](../templates/qhpc-capability.yaml) as a starting
 point. The examples in `examples/contracts/` validate the contract machinery;
@@ -39,8 +45,10 @@ component executable.
 Registry publication requires all of the following:
 
 - The capability passes the packaged `capability-v1` schema and semantic rules.
-- The repository URL matches exactly one entry in `ecosystem.yaml` after
-  normalizing a trailing slash or `.git` suffix.
+- The canonical repository URL matches exactly one entry in `ecosystem.yaml`
+  after normalizing a trailing slash or `.git` suffix.
+- A differing release-source URL is explicitly admitted through the catalog's
+  `alternate_sources`.
 - The catalog repository has a canonical source decision.
 - The capability project matches the catalog project. Legacy `data-science` and
   `hardware-tools` catalog labels map explicitly to `data-schema` and
@@ -69,7 +77,7 @@ and catalog content.
 Build from one or more release checkouts or explicit descriptors:
 
 ```bash
-qhpc-ecosystem registry build \
+eqo registry build \
   --source /path/to/project-release \
   --source /path/to/another/qhpc-capability.yaml \
   --output registry.yaml
@@ -78,17 +86,26 @@ qhpc-ecosystem registry build \
 Validate ownership against the current repository catalog:
 
 ```bash
-qhpc-ecosystem registry validate registry.yaml
+eqo registry validate registry.yaml
 ```
 
 Inspect generated content without contacting repositories or registries:
 
 ```bash
-qhpc-ecosystem registry list registry.yaml
-qhpc-ecosystem registry info registry.yaml CAPABILITY_ID
-qhpc-ecosystem registry info registry.yaml CAPABILITY_ID --version 1.2.0
-qhpc-ecosystem registry digest registry.yaml
+eqo registry list registry.yaml
+eqo registry info registry.yaml CAPABILITY_ID
+eqo registry info registry.yaml CAPABILITY_ID --version 1.2.0
+eqo registry info registry.yaml CAPABILITY_ID \
+  --operation OPERATION_ID
+eqo registry info registry.yaml CAPABILITY_ID --json
+eqo registry digest registry.yaml
 ```
+
+`registry info` prints the component purpose, recommended use cases,
+quick-start steps, example workflows, limitations, and available operation
+descriptions. Selecting an operation adds its typed inputs, outputs,
+parameters, runtime, and execution targets. `--json` exposes the same
+contract-backed record for automation.
 
 Authenticated GitLab retrieval is intentionally outside the local registry
 builder. An approved release checkout or staging service supplies local source

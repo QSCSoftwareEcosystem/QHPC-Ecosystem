@@ -6,20 +6,28 @@ import json
 import re
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Iterator, Protocol
+from urllib.parse import unquote, urlparse
 
-from .contract import ContractError, document_digest
+from .contract import (
+    ContractError,
+    ContractIssue,
+    document_digest,
+    validate_contract_data,
+)
 from .registry import registry_digest
 from .workflow import resolve_workflow, topological_nodes
 
 
 TERMINAL_STATES = {"succeeded", "failed", "canceled"}
 ARTIFACT_TYPE = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*@[1-9][0-9]*$")
-DATABASE_SCHEMA_VERSION = 3
+DATABASE_SCHEMA_VERSION = 4
+DEFAULT_WORKER_STALE_AFTER_SECONDS = 15.0
 
 
 def _now() -> str:
@@ -101,6 +109,10 @@ class TaskRejectedError(RuntimeError):
     """A worker policy rejected a task before scientific execution."""
 
 
+class WorkflowDraftRevisionError(RuntimeError):
+    """A workflow draft changed after the client loaded it."""
+
+
 class FunctionRunner:
     """Execute only explicitly registered Python callables, never arbitrary shell."""
 
@@ -136,11 +148,16 @@ class WorkflowEngine:
         self.artifact_root.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.database, timeout=30)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -161,6 +178,16 @@ class WorkflowEngine:
                     created_at TEXT NOT NULL,
                     created_by TEXT NOT NULL,
                     PRIMARY KEY (workflow_id, version)
+                );
+                CREATE TABLE IF NOT EXISTS workflow_drafts (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    owner TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    workflow TEXT NOT NULL,
+                    layout TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS runs (
                     id TEXT PRIMARY KEY,
@@ -481,6 +508,28 @@ class WorkflowEngine:
             ).fetchall()
         return [self.get_artifact(row["id"]) for row in (*inputs, *outputs)]
 
+    def read_artifact_content(
+        self,
+        artifact_id: str,
+    ) -> tuple[dict[str, Any], bytes, str]:
+        artifact = self.get_artifact(artifact_id)
+        parsed = urlparse(artifact["uri"])
+        if parsed.scheme != "file" or parsed.netloc not in {"", "localhost"}:
+            raise ContractError("only local file artifacts can be read")
+        path = Path(unquote(parsed.path)).resolve()
+        if path != self.artifact_root and self.artifact_root not in path.parents:
+            raise ContractError("artifact path is outside the configured artifact root")
+        if not path.is_file():
+            raise FileNotFoundError(f"artifact content not found: {artifact_id}")
+        content = path.read_bytes()
+        checksum = "sha256:" + sha256(content).hexdigest()
+        if checksum != artifact["checksum"]:
+            raise ContractError(f"artifact checksum mismatch: {artifact_id}")
+        if len(content) != artifact["size_bytes"]:
+            raise ContractError(f"artifact size mismatch: {artifact_id}")
+        name = artifact.get("name") or path.name or f"{artifact_id}.bin"
+        return artifact, content, Path(name).name
+
     def register_workflow(
         self,
         workflow: dict[str, Any],
@@ -527,6 +576,262 @@ class WorkflowEngine:
                 ),
             )
         return self.get_workflow(metadata["id"], metadata["version"])
+
+    @staticmethod
+    def _default_draft_layout() -> dict[str, Any]:
+        return {
+            "nodes": [],
+            "viewport": {"x": 0, "y": 0, "zoom": 1},
+        }
+
+    @staticmethod
+    def _draft_name(workflow: dict[str, Any]) -> str:
+        metadata = workflow.get("metadata")
+        if isinstance(metadata, dict):
+            name = metadata.get("name")
+            if isinstance(name, str) and name.strip():
+                return name.strip()
+        return "Untitled workflow"
+
+    @staticmethod
+    def _draft_row(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "api_version": "qhpc/v1",
+            "kind": "WorkflowDraft",
+            "metadata": {
+                "id": row["id"],
+                "name": row["name"],
+                "owner": row["owner"],
+                "revision": row["revision"],
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            },
+            "spec": {
+                "workflow": json.loads(row["workflow"]),
+                "layout": json.loads(row["layout"]),
+            },
+        }
+
+    def create_workflow_draft(
+        self,
+        workflow: dict[str, Any],
+        *,
+        layout: dict[str, Any] | None = None,
+        created_by: str,
+    ) -> dict[str, Any]:
+        draft_id = "draft-" + uuid.uuid4().hex
+        now = _now()
+        draft = {
+            "api_version": "qhpc/v1",
+            "kind": "WorkflowDraft",
+            "metadata": {
+                "id": draft_id,
+                "name": self._draft_name(workflow),
+                "owner": created_by,
+                "revision": 1,
+                "created_at": now,
+                "updated_at": now,
+            },
+            "spec": {
+                "workflow": workflow,
+                "layout": layout or self._default_draft_layout(),
+            },
+        }
+        validate_contract_data("workflow-draft", draft)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO workflow_drafts
+                  (id, name, owner, revision, workflow, layout, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    draft_id,
+                    draft["metadata"]["name"],
+                    created_by,
+                    1,
+                    _json(workflow),
+                    _json(draft["spec"]["layout"]),
+                    now,
+                    now,
+                ),
+            )
+        return self.get_workflow_draft(draft_id)
+
+    def list_workflow_drafts(self, *, owner: str | None = None) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            if owner is None:
+                rows = connection.execute(
+                    "SELECT * FROM workflow_drafts ORDER BY updated_at DESC, id"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """
+                    SELECT * FROM workflow_drafts
+                    WHERE owner=?
+                    ORDER BY updated_at DESC, id
+                    """,
+                    (owner,),
+                ).fetchall()
+        return [self._draft_row(row) for row in rows]
+
+    def get_workflow_draft(self, draft_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM workflow_drafts WHERE id=?",
+                (draft_id,),
+            ).fetchone()
+        if not row:
+            raise KeyError(f"workflow draft not found: {draft_id}")
+        return self._draft_row(row)
+
+    def update_workflow_draft(
+        self,
+        draft_id: str,
+        workflow: dict[str, Any],
+        *,
+        layout: dict[str, Any],
+        expected_revision: int,
+    ) -> dict[str, Any]:
+        if not isinstance(expected_revision, int) or isinstance(
+            expected_revision, bool
+        ):
+            raise ValueError("expected_revision must be an integer")
+        current = self.get_workflow_draft(draft_id)
+        if current["metadata"]["revision"] != expected_revision:
+            raise WorkflowDraftRevisionError(
+                f"workflow draft revision conflict: expected {expected_revision}, "
+                f"current {current['metadata']['revision']}"
+            )
+        updated_at = _now()
+        next_revision = expected_revision + 1
+        candidate = {
+            "api_version": "qhpc/v1",
+            "kind": "WorkflowDraft",
+            "metadata": {
+                **current["metadata"],
+                "name": self._draft_name(workflow),
+                "revision": next_revision,
+                "updated_at": updated_at,
+            },
+            "spec": {"workflow": workflow, "layout": layout},
+        }
+        validate_contract_data("workflow-draft", candidate)
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE workflow_drafts
+                SET name=?, revision=?, workflow=?, layout=?, updated_at=?
+                WHERE id=? AND revision=?
+                """,
+                (
+                    candidate["metadata"]["name"],
+                    next_revision,
+                    _json(workflow),
+                    _json(layout),
+                    updated_at,
+                    draft_id,
+                    expected_revision,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise WorkflowDraftRevisionError(
+                    "workflow draft changed while it was being saved"
+                )
+        return self.get_workflow_draft(draft_id)
+
+    def delete_workflow_draft(
+        self,
+        draft_id: str,
+        *,
+        expected_revision: int,
+    ) -> dict[str, Any]:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "DELETE FROM workflow_drafts WHERE id=? AND revision=?",
+                (draft_id, expected_revision),
+            )
+            if cursor.rowcount == 1:
+                return {"deleted": draft_id, "revision": expected_revision}
+            existing = connection.execute(
+                "SELECT revision FROM workflow_drafts WHERE id=?",
+                (draft_id,),
+            ).fetchone()
+        if not existing:
+            raise KeyError(f"workflow draft not found: {draft_id}")
+        raise WorkflowDraftRevisionError(
+            f"workflow draft revision conflict: expected {expected_revision}, "
+            f"current {existing['revision']}"
+        )
+
+    def validate_workflow_draft(
+        self,
+        draft_id: str,
+        registry: dict[str, Any],
+        *,
+        expected_revision: int | None = None,
+    ) -> dict[str, Any]:
+        draft = self.get_workflow_draft(draft_id)
+        revision = draft["metadata"]["revision"]
+        if expected_revision is not None and revision != expected_revision:
+            raise WorkflowDraftRevisionError(
+                f"workflow draft revision conflict: expected {expected_revision}, "
+                f"current {revision}"
+            )
+        try:
+            resolved = resolve_workflow(draft["spec"]["workflow"], registry)
+        except ContractError as error:
+            return {
+                "draft_id": draft_id,
+                "revision": revision,
+                "valid": False,
+                "issues": [
+                    {"path": issue.path, "message": issue.message}
+                    for issue in error.issues
+                ],
+                "message": str(error),
+            }
+        return {
+            "draft_id": draft_id,
+            "revision": revision,
+            "valid": True,
+            "digest": resolved.digest,
+            "node_ids": sorted(resolved.operations),
+            "issues": [],
+        }
+
+    def publish_workflow_draft(
+        self,
+        draft_id: str,
+        registry: dict[str, Any],
+        *,
+        expected_revision: int,
+        created_by: str,
+    ) -> dict[str, Any]:
+        validation = self.validate_workflow_draft(
+            draft_id,
+            registry,
+            expected_revision=expected_revision,
+        )
+        if not validation["valid"]:
+            raise ContractError(
+                "workflow draft is not publishable",
+                [
+                    ContractIssue(issue["path"], issue["message"])
+                    for issue in validation["issues"]
+                ],
+            )
+        draft = self.get_workflow_draft(draft_id)
+        workflow = self.register_workflow(
+            draft["spec"]["workflow"],
+            registry,
+            created_by=created_by,
+        )
+        return {
+            "draft_id": draft_id,
+            "revision": expected_revision,
+            "workflow": workflow,
+        }
 
     def list_workflows(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
@@ -842,15 +1147,153 @@ class WorkflowEngine:
         return self._worker_row(row)
 
     def list_workers(self) -> list[dict[str, Any]]:
+        return self.worker_health()
+
+    def worker_health(
+        self,
+        *,
+        stale_after_seconds: float = DEFAULT_WORKER_STALE_AFTER_SECONDS,
+    ) -> list[dict[str, Any]]:
+        if stale_after_seconds <= 0:
+            raise ValueError("worker stale threshold must be greater than zero")
         with self._connect() as connection:
             rows = connection.execute("SELECT * FROM workers ORDER BY id").fetchall()
-        return [self._worker_row(row) for row in rows]
+        now = datetime.now(timezone.utc)
+        return [
+            self._worker_row(
+                row,
+                now=now,
+                stale_after_seconds=stale_after_seconds,
+            )
+            for row in rows
+        ]
 
     @staticmethod
-    def _worker_row(row: sqlite3.Row) -> dict[str, Any]:
+    def _worker_row(
+        row: sqlite3.Row,
+        *,
+        now: datetime | None = None,
+        stale_after_seconds: float = DEFAULT_WORKER_STALE_AFTER_SECONDS,
+    ) -> dict[str, Any]:
         result = dict(row)
         result["metadata"] = json.loads(result["metadata"])
+        current = now or datetime.now(timezone.utc)
+        heartbeat = datetime.fromisoformat(
+            result["last_heartbeat_at"].replace("Z", "+00:00")
+        )
+        age_seconds = max(0.0, (current - heartbeat).total_seconds())
+        stale = result["state"] == "online" and age_seconds > stale_after_seconds
+        result["heartbeat_age_seconds"] = round(age_seconds, 3)
+        result["stale"] = stale
+        result["effective_state"] = "stale" if stale else result["state"]
+        result["available"] = result["state"] == "online" and not stale
         return result
+
+    @staticmethod
+    def _worker_supports(
+        worker: dict[str, Any],
+        requirement: dict[str, str],
+    ) -> bool:
+        if not worker["available"]:
+            return False
+        metadata = worker["metadata"]
+        targets = set(metadata.get("execution_targets", ()))
+        classes = set(metadata.get("execution_classes", ()))
+        digests = set(metadata.get("runtime_digests", ()))
+        return (
+            requirement["execution_target"] in targets
+            and requirement["execution_class"] in classes
+            and requirement["runtime_digest"] in digests
+        )
+
+    def worker_readiness(
+        self,
+        requirements: list[dict[str, str]],
+        *,
+        stale_after_seconds: float = DEFAULT_WORKER_STALE_AFTER_SECONDS,
+    ) -> dict[str, Any]:
+        workers = self.worker_health(stale_after_seconds=stale_after_seconds)
+        checked: list[dict[str, Any]] = []
+        for requirement in requirements:
+            compatible = [
+                worker["id"]
+                for worker in workers
+                if self._worker_supports(worker, requirement)
+            ]
+            checked.append(
+                {
+                    **requirement,
+                    "ready": bool(compatible),
+                    "compatible_workers": compatible,
+                }
+            )
+        ready = bool(checked) and all(item["ready"] for item in checked)
+        missing = [
+            f"{item.get('node_id', 'operation')} "
+            f"({item['execution_target']}/{item['execution_class']})"
+            for item in checked
+            if not item["ready"]
+        ]
+        if ready:
+            reason = "compatible worker available"
+        elif missing:
+            reason = "no healthy compatible worker for " + ", ".join(missing)
+        else:
+            reason = "no execution requirements supplied"
+        return {
+            "ready": ready,
+            "reason": reason,
+            "stale_after_seconds": stale_after_seconds,
+            "requirements": checked,
+            "workers": workers,
+        }
+
+    def workflow_execution_requirements(
+        self,
+        workflow_id: str,
+        version: str,
+        *,
+        execution_target: str,
+        execution_class: str | None = None,
+    ) -> list[dict[str, str]]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT definition, resolution FROM workflow_versions
+                WHERE workflow_id=? AND version=?
+                """,
+                (workflow_id, version),
+            ).fetchone()
+        if not row:
+            raise KeyError(f"workflow not found: {workflow_id}@{version}")
+        definition = json.loads(row["definition"])
+        resolution = json.loads(row["resolution"])
+        nodes = {node["id"]: node for node in definition["spec"]["nodes"]}
+        default_execution_class = execution_class or (
+            "interactive-local"
+            if execution_target == "local-development"
+            else "batch-hpc"
+        )
+        requirements: list[dict[str, str]] = []
+        for node_id in topological_nodes(definition):
+            node = nodes[node_id]
+            operation = resolution[node_id]["operation"]
+            target = node.get("execution_target", execution_target)
+            if target not in operation["execution_targets"]:
+                raise ContractError(
+                    f"node {node_id} does not support execution target {target}"
+                )
+            requirements.append(
+                {
+                    "node_id": node_id,
+                    "execution_target": target,
+                    "execution_class": node.get(
+                        "execution_class", default_execution_class
+                    ),
+                    "runtime_digest": operation["runtime"]["digest"],
+                }
+            )
+        return requirements
 
     def _reset_expired_leases(self, connection: sqlite3.Connection) -> None:
         now = _now()
@@ -1278,29 +1721,26 @@ class WorkflowEngine:
     def _assert_lease(
         self, lease: TaskLease, connection: sqlite3.Connection | None = None
     ) -> sqlite3.Row:
-        owns_connection = connection is None
-        active_connection = connection or self._connect()
-        try:
-            row = active_connection.execute(
-                """
-                SELECT * FROM task_attempts
-                WHERE id=? AND run_id=? AND node_id=? AND worker_id=?
-                  AND lease_token=?
-                """,
-                (
-                    lease.attempt_id,
-                    lease.run_id,
-                    lease.node_id,
-                    lease.worker_id,
-                    lease.token,
-                ),
-            ).fetchone()
-            if not row:
-                raise RuntimeError("stale or invalid task lease")
-            return row
-        finally:
-            if owns_connection:
-                active_connection.close()
+        if connection is None:
+            with self._connect() as active_connection:
+                return self._assert_lease(lease, active_connection)
+        row = connection.execute(
+            """
+            SELECT * FROM task_attempts
+            WHERE id=? AND run_id=? AND node_id=? AND worker_id=?
+              AND lease_token=?
+            """,
+            (
+                lease.attempt_id,
+                lease.run_id,
+                lease.node_id,
+                lease.worker_id,
+                lease.token,
+            ),
+        ).fetchone()
+        if not row:
+            raise RuntimeError("stale or invalid task lease")
+        return row
 
     def renew_lease(self, lease: TaskLease, *, lease_seconds: int) -> TaskLease:
         if lease_seconds <= 0:

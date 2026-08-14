@@ -1,0 +1,50 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.evolution-method-context
+  name: Quantum Evolution Method Context
+  version: 1
+  project: cross-project
+  owners: [openqevo, qhpc-ecosystem]
+  status: draft
+spec:
+  description: Attributed OpenQEvo method metadata, scientific context availability, and source provenance.
+  media_type: application/vnd.qsc.evolution-method-context+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [method, available, context_status, context, provenance]
+    properties:
+      method:
+        type: object
+        additionalProperties: false
+        required: [name, description, source]
+        properties:
+          name:
+            type: string
+          description:
+            type: string
+          source:
+            type: string
+      available:
+        type: boolean
+      context_status:
+        enum: [available, not-published]
+      context:
+        type: [object, "null"]
+      provenance:
+        type: object
+        additionalProperties: false
+        required: [repository, revision, path]
+        properties:
+          repository:
+            type: string
+            format: uri
+          revision:
+            type: string
+          path:
+            type: [string, "null"]
+  compatibility:
+    accepts_versions: [1]

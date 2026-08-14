@@ -23,17 +23,19 @@ spec:
   interfaces: [markdown-source, metadata-bundle, mcp, cli]
   scope:
     status: defined
-    summary: Publish the curated knowledge corpus and tooling as versioned ecosystem resources.
+    summary: Publish the curated corpus and expose its compiled graph through a read-only EQO-QSC knowledge interface.
   deliverables:
     source_audit: complete
     interface_contract: complete
-    adapter: not-applicable
-    fixtures: not-applicable
+    adapter: complete
+    fixtures: complete
     integration_tests: complete
     registry_publication: complete
   contract_refs: [capabilities/QAppsWiki/tooling/qhpc-capability.yaml]
-  evidence: [docs/evidence/repository-audit-2026-07-11.md]
+  evidence:
+    - docs/evidence/repository-audit-2026-07-11.md
+    - integrations/qappswiki/knowledge-interface.md
   production_runtime:
     status: not-applicable
-    reason: The initial deployment publishes QAppsWiki resources without an executable workflow operation.
+    reason: The API reads an immutable graph artifact; QAppsWiki remains outside the scientific workflow execution plane.
   blockers: []

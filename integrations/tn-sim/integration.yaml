@@ -8,7 +8,7 @@ metadata:
   role: operation-provider
   owners: [tn-sim]
   visibility: public
-  integration_status: scaffolded
+  integration_status: published
 spec:
   source:
     kind: repository
@@ -29,8 +29,10 @@ spec:
     adapter: complete
     fixtures: complete
     integration_tests: complete
-    registry_publication: pending
-  contract_refs: [integrations/tn-sim/interface.yaml]
+    registry_publication: complete
+  contract_refs:
+    - capabilities/NWQ-Sim/tn-sim/qhpc-capability.yaml
+    - integrations/tn-sim/interface.yaml
   evidence:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
     - docs/evidence/tn-sim-source-audit-2026-07-24.md

@@ -3,10 +3,16 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
+import pytest
+
 from qhpc_ecosystem.contract import document_digest, load_document
-from qhpc_ecosystem.engine import WorkflowEngine
+from qhpc_ecosystem.engine import ArtifactResult, TaskRequest, WorkflowEngine
 from qhpc_ecosystem.operation_runtime import file_digest
-from qhpc_ecosystem.slurm_runner import SlurmApptainerRunner
+from qhpc_ecosystem.slurm_runner import (
+    SlurmApptainerRunner,
+    SlurmDockerClusterRunner,
+)
+from qhpc_ecosystem.slurm_test_cluster import SlurmDockerCluster
 from qhpc_ecosystem.worker import AsyncWorker, RegistryBoundAsyncRunner
 
 
@@ -14,6 +20,20 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "containers/operations/qasmtrans/runtime.yaml"
 WORKFLOW = ROOT / "examples/workflows/qasmtrans-transpile.yaml"
 REGISTRY = ROOT / "examples/registry.yaml"
+CLUSTER_MANIFEST = (
+    ROOT
+    / "infrastructure"
+    / "test-clusters"
+    / "slurm-docker-cluster"
+    / "cluster.yaml"
+)
+INITIAL_RUNTIMES = (
+    ROOT / "containers/operations/stabsim/runtime.yaml",
+    ROOT / "containers/operations/nwqec/runtime.yaml",
+    ROOT / "containers/operations/ftprimitivebench/runtime.yaml",
+    ROOT / "containers/operations/lightstim/runtime.yaml",
+    ROOT / "containers/operations/qasmtrans/runtime.yaml",
+)
 
 
 class FakeSlurm:
@@ -39,14 +59,15 @@ class FakeSlurm:
         return None
 
 
-def _contracts(tmp_path: Path):
+def _contracts(tmp_path: Path, runtime_path: Path = RUNTIME):
+    runtime = copy.deepcopy(load_document(runtime_path))
+    component_id = runtime["metadata"]["component"]
     image_cache = tmp_path / "images"
     image_cache.mkdir()
-    image = image_cache / "qasmtrans.sif"
+    image = image_cache / f"{component_id}.sif"
     image.write_bytes(b"simulated accepted SIF\n")
     image_digest = file_digest(image)
 
-    runtime = copy.deepcopy(load_document(RUNTIME))
     runtime["metadata"]["status"] = "target-accepted"
     runtime["metadata"]["evidence"].append("docs/evidence/simulated-target.md")
     runtime["spec"]["release"] = {
@@ -83,7 +104,7 @@ def _contracts(tmp_path: Path):
             "policies": {
                 "approved_images_only": True,
                 "network_access": "none",
-                "allowed_projects": ["compilation-tools"],
+                "allowed_projects": [runtime["metadata"]["project"]],
             },
             "storage_profile": "test-storage",
             "scheduler": {
@@ -177,7 +198,18 @@ def test_slurm_apptainer_runner_executes_simulated_qasm_workflow(
         created_by="test-user",
     )
     scheduler = FakeSlurm()
-    runner = SlurmApptainerRunner(target, storage, [runtime], client=scheduler)
+
+    def scheduler_path(path: Path) -> str:
+        relative = path.resolve().relative_to(tmp_path.resolve())
+        return "/mnt/" + relative.as_posix()
+
+    runner = SlurmApptainerRunner(
+        target,
+        storage,
+        [runtime],
+        client=scheduler,
+        scheduler_path_mapper=scheduler_path,
+    )
     worker = AsyncWorker(
         engine,
         RegistryBoundAsyncRunner(runner, registry),
@@ -197,6 +229,9 @@ def test_slurm_apptainer_runner_executes_simulated_qasm_workflow(
     assert "SLURM_TMPDIR" in script
     assert ":/inputs:ro" in script
     assert ":/outputs:rw" in script
+    assert str(tmp_path) not in script
+    assert "/mnt/images/qasmtrans.sif" in script
+    assert "/mnt/staging/" in script
 
     attempt_root = (
         Path(storage["spec"]["roots"]["task_staging"])
@@ -236,6 +271,212 @@ def test_slurm_apptainer_runner_executes_simulated_qasm_workflow(
     assert stages["target.node-local-stage"] == 6
     assert stages["target.application"] == 22
     assert stages["target.output-stage"] >= 0
+    assert not attempt_root.exists()
+
+
+def test_virtual_slurm_runner_uses_normal_worker_and_verified_oci_identity(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "cluster"
+    (checkout / "shared-dir").mkdir(parents=True)
+    cluster = SlurmDockerCluster.from_manifest(CLUSTER_MANIFEST, checkout)
+    target = cluster.development_execution_target()
+    storage = cluster.development_storage_profile()
+    runtimes = cluster.development_runtimes()
+    registry = load_document(REGISTRY)
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(WORKFLOW)
+    engine.register_workflow(workflow, registry, created_by="test-user")
+    uploaded = engine.register_input_artifact(
+        artifact_type="qhpc.quantum-circuit@1",
+        content=b"OPENQASM 2.0;\nqreg q[2];\n",
+        name="bell.qasm",
+        created_by="test-user",
+    )
+    run = engine.submit_run(
+        workflow["metadata"]["id"],
+        workflow["metadata"]["version"],
+        registry=registry,
+        inputs={"circuit": uploaded["id"]},
+        execution_target="development-slurm-docker",
+        created_by="test-user",
+    )
+    scheduler = FakeSlurm()
+    runner = SlurmDockerClusterRunner(
+        target,
+        storage,
+        runtimes,
+        cluster.runtime_images,
+        host_shared_root=cluster.shared_host_directory,
+        scheduler_shared_root=str(cluster.shared_container_directory),
+        client=scheduler,
+        scheduler_path_mapper=cluster.map_shared_path,
+    )
+    worker = AsyncWorker(
+        engine,
+        RegistryBoundAsyncRunner(runner, registry),
+        worker_id="virtual-slurm-worker",
+    )
+
+    assert worker.run_once()
+    submitted = engine.get_run(run["id"])
+    attempt = submitted["tasks"][0]["attempts"][0]
+    script = scheduler.submissions[0].read_text(encoding="utf-8")
+    assert attempt["target_handle"] == "41001"
+    assert "#SBATCH --account=development" in script
+    assert "#SBATCH --partition=normal" in script
+    assert "/usr/local/bin/qhpc-oci-shim exec" in script
+    assert "/mnt/qhpc/images/qasmtrans-transpile-linux-amd64.oci.json" in script
+    assert ":/inputs:ro" in script
+    assert ":/outputs:rw" in script
+
+    attempt_root = (
+        Path(storage["spec"]["roots"]["task_staging"])
+        / run["id"]
+        / "transpile"
+        / attempt["id"]
+    )
+    assert (attempt_root / "inputs/circuit.qasm").is_file()
+    (attempt_root / "outputs/circuit.qasm").write_text(
+        "OPENQASM 2.0;\nqreg q[2];\n",
+        encoding="utf-8",
+    )
+    (attempt_root / "stage-timing.tsv").write_text(
+        "application\t100\t125\n",
+        encoding="ascii",
+    )
+    scheduler.state = "succeeded"
+
+    restarted = AsyncWorker(
+        engine,
+        RegistryBoundAsyncRunner(runner, registry),
+        worker_id="virtual-slurm-worker-restarted",
+    )
+    assert restarted.run_once()
+    completed = engine.get_run(run["id"])
+    assert completed["state"] == "succeeded"
+    assert completed["tasks"][0]["outputs"]["circuit"].startswith("artifact-")
+    assert any(
+        event["stage"] == "target.application" and event["duration_ms"] == 25
+        for event in completed["events"]
+    )
+
+
+def _verification_parameters(runtime: dict) -> dict:
+    values = {
+        name: binding["fixed"]
+        for name, binding in runtime["spec"]["execution"]["parameters"].items()
+        if "fixed" in binding
+    }
+    by_argument = {
+        binding["argument"]: (name, binding["type"])
+        for name, binding in runtime["spec"]["execution"]["parameters"].items()
+        if "argument" in binding
+    }
+    arguments = iter(runtime["spec"]["verification"]["arguments"])
+    for argument in arguments:
+        name, value_type = by_argument[argument]
+        raw = next(arguments)
+        if value_type == "integer":
+            value = int(raw)
+        elif value_type == "number":
+            value = float(raw)
+        elif value_type == "boolean":
+            value = raw.lower() == "true"
+        else:
+            value = raw
+        values[name] = value
+    return values
+
+
+@pytest.mark.parametrize("runtime_path", INITIAL_RUNTIMES)
+def test_initial_operation_runtimes_conform_to_slurm_apptainer_runner(
+    tmp_path: Path,
+    runtime_path: Path,
+) -> None:
+    case_root = tmp_path / runtime_path.parent.name
+    case_root.mkdir()
+    runtime, target, storage = _contracts(case_root, runtime_path)
+    execution = runtime["spec"]["execution"]
+    verification = runtime["spec"]["verification"]
+    inputs: dict[str, dict] = {}
+    fixture = verification.get("fixture")
+    if fixture is not None:
+        source = ROOT / fixture["path"]
+        port = next(
+            name
+            for name, path in execution["ports"]["inputs"].items()
+            if path == fixture["mount_path"]
+        )
+        artifact = ArtifactResult.from_path("qhpc.test-input@1", source)
+        inputs[port] = {
+            "uri": artifact.uri,
+            "checksum": artifact.checksum,
+            "size_bytes": artifact.size_bytes,
+        }
+
+    work = case_root / "work"
+    work.mkdir()
+    metadata = runtime["metadata"]
+    release = runtime["spec"]["release"]
+    request = TaskRequest(
+        run_id=f"run-{metadata['component']}",
+        node_id="operation",
+        attempt_id=f"attempt-{metadata['component']}",
+        capability_id=metadata["capability"],
+        capability_version=metadata["version"],
+        operation_id=metadata["operation"],
+        runtime_reference=release["apptainer_reference"],
+        runtime_digest=release["apptainer_digest"],
+        parameters=_verification_parameters(runtime),
+        inputs=inputs,
+        output_types={
+            name: "qhpc.test-output@1"
+            for name in execution["ports"]["outputs"]
+        },
+        work_directory=work,
+        project=metadata["project"],
+        execution_target=target["metadata"]["id"],
+        execution_class="batch-hpc",
+        runtime_type="apptainer",
+        resources={
+            "cpu": 1,
+            "memory_mb": 1024,
+            "gpu": 0,
+            "walltime_seconds": verification["timeout_seconds"],
+        },
+    )
+    scheduler = FakeSlurm()
+    runner = SlurmApptainerRunner(target, storage, [runtime], client=scheduler)
+
+    submission = runner.submit(request)
+    script = scheduler.submissions[0].read_text(encoding="utf-8")
+    assert submission.handle == "41001"
+    assert execution["entrypoint"][0] in script
+    assert "--network none" in script
+
+    attempt_root = (
+        Path(storage["spec"]["roots"]["task_staging"])
+        / request.run_id
+        / request.node_id
+        / request.attempt_id
+    )
+    output_mount = next(
+        mount["path"]
+        for mount in execution["mounts"]
+        if mount["kind"] == "output"
+    )
+    for container_path in execution["ports"]["outputs"].values():
+        relative = Path(container_path).relative_to(output_mount)
+        output = attempt_root / "outputs" / relative
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text("accepted fixture output\n", encoding="utf-8")
+    scheduler.state = "succeeded"
+
+    assert runner.poll(request, submission.handle).state == "succeeded"
+    result = runner.collect(request, submission.handle)
+    assert set(result.outputs) == set(execution["ports"]["outputs"])
+    runner.finalize(request, succeeded=True)
     assert not attempt_root.exists()
 
 

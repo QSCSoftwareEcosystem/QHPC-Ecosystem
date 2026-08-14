@@ -1,0 +1,2070 @@
+.qhpc-composer {
+  height: min(760px, calc(100vh - 230px));
+  min-height: 590px;
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.qhpc-composer.is-guided {
+  grid-template-rows: 42px minmax(0, 1fr);
+}
+
+.qhpc-composer.is-advanced {
+  grid-template-rows: 42px 48px minmax(0, 1fr);
+}
+
+.composer-modebar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunken);
+}
+
+.composer-mode-switch {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 82px);
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.composer-mode-switch button {
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.composer-mode-switch button:hover {
+  color: var(--ink);
+}
+
+.composer-mode-switch button.is-active {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.composer-mode-context {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.composer-mode-context strong,
+.composer-mode-context small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-mode-context strong {
+  font-size: 12px;
+}
+
+.composer-mode-context small {
+  color: var(--muted);
+  font: 11px/1.3 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-workspace {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 274px minmax(0, 1fr);
+}
+
+.composer-path-index {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  background: var(--surface-sunken);
+}
+
+.composer-path-index-header {
+  min-height: 58px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.composer-path-index-header span {
+  color: var(--muted);
+  font: 700 11px/1.25 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-path-index-header strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.composer-path-list {
+  padding: 8px;
+}
+
+.composer-path-item {
+  width: 100%;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.composer-path-item:hover {
+  border-color: var(--line-strong);
+}
+
+.composer-path-item.is-selected {
+  border-color: var(--line-strong);
+  border-left-color: var(--qsc-red);
+  background: color-mix(in srgb, var(--surface) 88%, var(--run-soft));
+}
+
+.composer-path-item.is-blueprint .composer-path-code {
+  background: var(--warn);
+  color: var(--ink);
+}
+
+.composer-path-item.is-blueprint.is-selected {
+  border-left-color: var(--warn);
+  background: color-mix(in srgb, var(--surface) 88%, var(--warn-soft));
+}
+
+.composer-path-item.is-blueprint > svg {
+  color: var(--warn);
+}
+
+.composer-path-item > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.composer-path-item strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 680;
+}
+
+.composer-path-item small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 11px/1.35 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-path-code,
+.composer-guided-glyph {
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--surface);
+  font: 700 11px/1 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-path-code {
+  width: 30px;
+  height: 34px;
+}
+
+.composer-guided-detail {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--surface);
+}
+
+.composer-guided-header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) minmax(190px, 240px);
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-guided-glyph {
+  width: 38px;
+  height: 42px;
+  background: var(--qsc-red);
+  color: #fff;
+}
+
+.composer-guided-header > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-guided-header h2,
+.composer-guided-header p {
+  margin: 0;
+}
+
+.composer-guided-header h2 {
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 680;
+}
+
+.composer-guided-header p {
+  max-width: 720px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.composer-guided-header > span small {
+  color: var(--qsc-red);
+  font: 700 11px/1.25 ui-monospace, "SFMono-Regular", monospace;
+  text-transform: uppercase;
+}
+
+.composer-guided-header.is-blueprint .composer-guided-glyph {
+  background: var(--warn);
+  color: var(--ink);
+}
+
+.composer-guided-header.is-blueprint > span small {
+  color: var(--warn);
+}
+
+.composer-guided-header.is-blueprint h2 {
+  font-size: 1.25rem;
+}
+
+.composer-guided-header.is-blueprint p {
+  font-size: .9375rem;
+}
+
+.composer-guided-header dl {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 5px 8px;
+  margin: 0;
+}
+
+.composer-guided-header dt,
+.composer-guided-header dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 11px/1.35 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-header dt {
+  color: var(--muted);
+}
+
+.composer-guided-header dd {
+  color: var(--ink-soft);
+}
+
+.composer-guided-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.composer-guided-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-guided-section h3 {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font: 700 11px/1.25 ui-monospace, "SFMono-Regular", monospace;
+  text-transform: uppercase;
+}
+
+.composer-guided-pipeline {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  list-style: none;
+}
+
+.composer-guided-pipeline li {
+  min-width: 0;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 34px minmax(160px, 1fr) minmax(140px, .8fr);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.composer-guided-pipeline li:last-child {
+  border-bottom: 0;
+}
+
+.composer-pipeline-sequence {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: var(--run);
+  color: #fff;
+  font: 700 11px/1 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-pipeline li > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-guided-pipeline strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.composer-guided-pipeline small,
+.composer-pipeline-contract {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-pipeline-contract {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.composer-blueprint-pipeline li {
+  min-height: 70px;
+}
+
+.composer-blueprint-pipeline li > span:nth-child(2) {
+  gap: 3px;
+}
+
+.composer-blueprint-pipeline strong {
+  font-size: .9375rem;
+}
+
+.composer-blueprint-pipeline li > span:nth-child(2) small:last-child {
+  max-width: 72ch;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: .9375rem;
+  line-height: 1.5;
+}
+
+.composer-blueprint-pipeline .composer-pipeline-sequence {
+  background: var(--warn);
+  color: var(--ink);
+}
+
+.composer-blueprint-handoff {
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.composer-blueprint-handoff small {
+  overflow-wrap: anywhere;
+}
+
+.composer-blueprint-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font: 700 10px/1.2 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-blueprint-status.is-evidence-passed {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.composer-blueprint-status.is-contract-defined,
+.composer-blueprint-status.is-partial-evidence {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.composer-blueprint-status.is-optional-future {
+  background: var(--run-soft);
+  color: var(--run);
+}
+
+.composer-blueprint-status.is-source-verified {
+  background: var(--run-soft);
+  color: var(--run);
+}
+
+.composer-blueprint-status.is-developer-reported {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.composer-blueprint-status.is-result-pending {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.composer-blueprint-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 12px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.composer-blueprint-facts > div {
+  min-width: 0;
+  padding: 9px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-blueprint-facts dt,
+.composer-blueprint-facts dd {
+  margin: 0;
+}
+
+.composer-blueprint-facts dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font: 10px/1.3 ui-monospace, "SFMono-Regular", monospace;
+  text-transform: uppercase;
+}
+
+.composer-blueprint-facts dd {
+  overflow-wrap: anywhere;
+  color: var(--ink-soft);
+  font-size: .9375rem;
+  line-height: 1.5;
+}
+
+.composer-blueprint-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+}
+
+.composer-blueprint-table {
+  width: 100%;
+  min-width: 570px;
+  border-collapse: collapse;
+  color: var(--ink-soft);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-blueprint-table th,
+.composer-blueprint-table td {
+  padding: 8px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.composer-blueprint-table th:first-child,
+.composer-blueprint-table td:first-child {
+  text-align: left;
+}
+
+.composer-blueprint-table th:last-child,
+.composer-blueprint-table td:last-child {
+  border-right: 0;
+}
+
+.composer-blueprint-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.composer-blueprint-table th {
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.composer-blueprint-table.is-pending th,
+.composer-blueprint-table.is-pending td {
+  text-align: left;
+  white-space: normal;
+}
+
+.composer-blueprint-table.is-pending td {
+  font-family: inherit;
+  font-size: .9375rem;
+  line-height: 1.45;
+}
+
+.composer-blueprint-table.is-pending th:first-child,
+.composer-blueprint-table.is-pending td:first-child {
+  width: 18%;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.composer-blueprint-acceptance {
+  margin: 8px 0 0;
+  color: var(--ok);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-blueprint-acceptance.is-pending {
+  color: var(--warn);
+  font-family: inherit;
+  font-size: .9375rem;
+  line-height: 1.5;
+}
+
+.composer-blueprint-artifacts > div {
+  align-items: start;
+}
+
+.composer-blueprint-artifacts strong {
+  font-size: .9375rem;
+}
+
+.composer-blueprint-artifacts > div > svg {
+  margin-top: 2px;
+  color: var(--warn);
+}
+
+.composer-blueprint-gates {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.composer-blueprint-gates li {
+  position: relative;
+  padding-left: 17px;
+  color: var(--ink-soft);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+
+.composer-blueprint-gates li::before {
+  content: "";
+  position: absolute;
+  top: .58em;
+  left: 1px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--warn);
+  border-radius: 50%;
+}
+
+.composer-blueprint-callout {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 7px;
+  margin: 12px 0 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+
+.composer-blueprint-callout svg {
+  margin-top: 2px;
+  color: var(--run);
+}
+
+.composer-blueprint-callout.is-warning {
+  background: var(--bad-soft);
+}
+
+.composer-blueprint-callout.is-warning svg,
+.composer-blueprint-callout.is-warning strong {
+  color: var(--bad);
+}
+
+.composer-guided-status.is-blueprint {
+  color: var(--warn);
+}
+
+.composer-guided-input {
+  display: grid;
+  gap: 8px;
+}
+
+.composer-guided-input-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.composer-guided-input-title > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.composer-guided-input-title strong {
+  font-size: 12px;
+}
+
+.composer-guided-input-title small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-input-title > div {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+
+.composer-guided-input-title input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.composer-guided-input textarea {
+  min-width: 0;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 12px/1.55 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-input-meta {
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-input-meta span {
+  overflow-wrap: anywhere;
+}
+
+.composer-guided-input-error {
+  margin: 0;
+  color: var(--bad);
+  font-size: 12px;
+}
+
+.composer-guided-parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.composer-guided-parameters > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  padding: 9px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-guided-parameters dt,
+.composer-guided-parameters dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.composer-guided-parameters dt {
+  color: var(--muted);
+}
+
+.composer-guided-parameters dd {
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-parameters small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font: 10px/1.3 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-outputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.composer-guided-outputs > div {
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-guided-outputs > div > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-guided-outputs strong {
+  font-size: 12px;
+}
+
+.composer-guided-outputs small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-actions {
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-sunken);
+}
+
+.composer-guided-actions > div {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+
+.composer-guided-status {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-status > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-guided-status.is-error {
+  color: var(--bad);
+}
+
+.composer-guided-status.is-queued {
+  color: var(--ok);
+}
+
+.composer-guided-unavailable {
+  grid-row: 1 / -1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.composer-commandbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(360px, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.composer-document,
+.composer-command-group,
+.composer-primary-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.composer-document > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.composer-document strong,
+.composer-document small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-document strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.composer-document small {
+  color: var(--muted);
+  font: 11px/1.35 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-primary-actions {
+  justify-content: flex-end;
+}
+
+.composer-icon-button {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+.composer-icon-button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.composer-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: .38;
+}
+
+.composer-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.composer-button:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.composer-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.composer-button.is-primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.composer-button.is-primary:hover:not(:disabled) {
+  opacity: .88;
+}
+
+.composer-button.is-danger {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.composer-button.is-full {
+  width: 100%;
+}
+
+/* Composer controls are task controls, not telemetry labels. Keep their text
+   at the product's 14px operational floor while compact identifiers remain
+   monospaced at the smaller instrumentation scale. */
+.qhpc-composer button,
+.qhpc-composer input,
+.qhpc-composer select,
+.qhpc-composer textarea {
+  font-size: .9375rem;
+}
+
+.composer-save-state {
+  min-width: 0;
+  max-width: 190px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 4px;
+  color: var(--muted);
+  font: 11px/1.35 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-save-state > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-save-state.is-error {
+  color: var(--bad);
+}
+
+.composer-save-state.is-saved {
+  color: var(--ok);
+}
+
+.composer-grid {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 260px minmax(360px, 1fr) 286px;
+}
+
+.composer-grid.without-library {
+  grid-template-columns: minmax(360px, 1fr) 286px;
+}
+
+.composer-grid.without-inspector {
+  grid-template-columns: 260px minmax(360px, 1fr);
+}
+
+.composer-grid.without-library.without-inspector {
+  grid-template-columns: minmax(360px, 1fr);
+}
+
+.composer-library,
+.composer-inspector-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+
+.composer-library {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  border-right: 1px solid var(--line);
+}
+
+.composer-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.composer-tabs button {
+  height: 36px;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.composer-tabs button:hover {
+  color: var(--ink);
+}
+
+.composer-tabs button.is-active {
+  border-bottom-color: var(--qsc-red);
+  color: var(--ink);
+}
+
+.composer-search {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.composer-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.composer-library-list {
+  min-height: 0;
+  padding: 8px;
+  overflow: auto;
+}
+
+.composer-library-item {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.composer-library-item:hover,
+.composer-library-item.is-current {
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--surface) 86%, var(--run-soft));
+}
+
+.composer-library-item > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-library-item strong,
+.composer-library-item small {
+  overflow-wrap: anywhere;
+}
+
+.composer-library-item strong {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.composer-library-item small {
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-item-glyph {
+  width: 28px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--surface);
+  font: 700 10px/1 ui-monospace, monospace;
+}
+
+.composer-item-glyph.is-template {
+  background: var(--qsc-red);
+  color: #fff;
+}
+
+.composer-item-glyph.is-draft {
+  background: var(--run);
+  color: #fff;
+}
+
+.composer-empty-list {
+  margin: 24px 8px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
+
+.composer-canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--paper);
+}
+
+.composer-canvas .react-flow {
+  background: var(--paper);
+}
+
+.composer-canvas .react-flow__edge-path {
+  stroke: var(--run);
+  stroke-width: 1.5;
+}
+
+.composer-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--qsc-red);
+  stroke-width: 2.2;
+}
+
+.composer-canvas .react-flow__connection-path {
+  stroke: var(--run);
+  stroke-width: 1.8;
+}
+
+.composer-canvas .react-flow__selection,
+.composer-canvas .react-flow__nodesselection-rect {
+  border-color: var(--focus);
+  background: color-mix(in srgb, var(--run-soft) 55%, transparent);
+}
+
+.composer-operation-node {
+  width: 254px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--run);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.composer-operation-node.is-selected {
+  border-color: var(--focus);
+  border-left-color: var(--qsc-red);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 24%, transparent);
+}
+
+.composer-operation-node header {
+  min-height: 51px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-operation-node header > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-operation-node strong,
+.composer-operation-node small {
+  overflow-wrap: anywhere;
+}
+
+.composer-operation-node strong {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 680;
+}
+
+.composer-operation-node small {
+  color: var(--muted);
+  font: 11px/1.35 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-node-icon {
+  width: 26px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-sunken);
+  color: var(--run);
+}
+
+.composer-port-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 46px;
+}
+
+.composer-port-list {
+  min-width: 0;
+  padding: 5px 0;
+}
+
+.composer-port-list-output {
+  border-left: 1px solid var(--line);
+  text-align: right;
+}
+
+.composer-port {
+  position: relative;
+  min-height: 31px;
+  display: grid;
+  gap: 2px;
+  padding: 4px 10px;
+}
+
+.composer-port > span {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.composer-port .react-flow__handle,
+.composer-boundary-node .react-flow__handle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--surface);
+  background: var(--run);
+}
+
+.composer-port .react-flow__handle-left {
+  left: -5px;
+  top: 50%;
+}
+
+.composer-port .react-flow__handle-right {
+  right: -5px;
+  top: 50%;
+}
+
+.composer-operation-node footer {
+  min-height: 25px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font: 11px/1.35 ui-monospace, monospace;
+}
+
+.composer-boundary-node {
+  width: 158px;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.composer-boundary-node.is-input {
+  border-left: 3px solid var(--ok);
+}
+
+.composer-boundary-node.is-output {
+  border-right: 3px solid var(--qsc-red);
+}
+
+.composer-boundary-node.is-selected {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 24%, transparent);
+}
+
+.composer-boundary-node > span:last-of-type {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.composer-boundary-node strong {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.composer-boundary-node small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 10px/1.35 ui-monospace, monospace;
+}
+
+.composer-boundary-node .react-flow__handle-left {
+  left: -5px;
+}
+
+.composer-boundary-node .react-flow__handle-right {
+  right: -5px;
+}
+
+.composer-canvas-empty {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 7px;
+  color: var(--muted);
+}
+
+.composer-canvas-empty strong {
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.composer-validation-strip {
+  position: absolute;
+  z-index: 4;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 93%, transparent);
+  color: var(--muted);
+  font: 11px/1.3 ui-monospace, monospace;
+  box-shadow: var(--shadow-sm);
+}
+
+.composer-validation-strip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.composer-validation-strip .has-issues {
+  color: var(--warn);
+}
+
+.composer-validation-strip .is-valid {
+  color: var(--ok);
+}
+
+.composer-inspector-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-left: 1px solid var(--line);
+}
+
+.composer-inspector-header {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.composer-inspector-header > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-inspector-header small {
+  color: var(--muted);
+  font: 700 11px/1.25 ui-monospace, monospace;
+}
+
+.composer-inspector-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.composer-inspector-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.composer-inspector-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-inspector-section h3 {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font: 700 11px/1.25 ui-monospace, monospace;
+  text-transform: uppercase;
+}
+
+.composer-execution-section {
+  scroll-margin-block: 12px;
+  border-left: 3px solid var(--qsc-red);
+  background: color-mix(in srgb, var(--surface) 93%, var(--run-soft));
+}
+
+.composer-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.composer-section-heading h3 {
+  margin: 0;
+}
+
+.composer-section-heading > span {
+  padding: 3px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 700 9px/1.2 ui-monospace, monospace;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.composer-section-copy {
+  margin: 0 0 11px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.composer-execution-steps {
+  counter-reset: execution-step;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0 0 11px;
+  padding: 0;
+  list-style: none;
+}
+
+.composer-execution-steps li {
+  counter-increment: execution-step;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font: 10px/1.3 ui-monospace, monospace;
+}
+
+.composer-execution-steps li::before {
+  content: counter(execution-step);
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 9px;
+}
+
+.composer-execution-section .composer-definition {
+  margin-bottom: 10px;
+}
+
+.composer-field {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.composer-field > span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.composer-field input,
+.composer-field select,
+.composer-field textarea {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.composer-field input,
+.composer-field select {
+  height: 32px;
+}
+
+.composer-field-help {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.composer-field textarea {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  resize: vertical;
+  font: 12px/1.5 ui-monospace, monospace;
+}
+
+.composer-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.composer-toggle-control {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.composer-toggle-control > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.composer-toggle-control strong {
+  font-size: 12px;
+}
+
+.composer-toggle-control small {
+  color: var(--muted);
+  font: 11px/1.35 ui-monospace, monospace;
+}
+
+.composer-toggle-control input {
+  width: 34px;
+  height: 18px;
+  accent-color: var(--run);
+}
+
+.composer-definition {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  margin: 4px 0 0;
+}
+
+.composer-definition dt,
+.composer-definition dd {
+  min-width: 0;
+  margin: 0;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.composer-definition dt {
+  color: var(--muted);
+}
+
+.composer-definition dd {
+  font-family: ui-monospace, monospace;
+}
+
+.composer-port-inspector {
+  display: grid;
+  gap: 6px;
+}
+
+.composer-port-inspector > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.composer-port-inspector > div > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.composer-port-inspector strong {
+  font-size: 12px;
+}
+
+.composer-port-inspector small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 10px/1.35 ui-monospace, monospace;
+}
+
+.composer-issue-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.composer-issue-list li {
+  padding: 7px 8px;
+  border-left: 3px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.composer-run-id {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ok);
+  font: 11px/1.45 ui-monospace, monospace;
+}
+
+.composer-danger-zone {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.composer-loading {
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font: 12px/1.3 ui-monospace, monospace;
+}
+
+.composer-spin {
+  animation: composer-spin 800ms linear infinite;
+}
+
+@keyframes composer-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1260px) {
+  .composer-guided-workspace {
+    grid-template-columns: 246px minmax(0, 1fr);
+  }
+
+  .composer-commandbar {
+    grid-template-columns: minmax(150px, 1fr) auto minmax(300px, 1fr);
+  }
+
+  .composer-save-state {
+    display: none;
+  }
+
+  .composer-grid {
+    grid-template-columns: 230px minmax(340px, 1fr) 260px;
+  }
+
+  .composer-grid.without-library {
+    grid-template-columns: minmax(340px, 1fr) 260px;
+  }
+
+  .composer-grid.without-inspector {
+    grid-template-columns: 230px minmax(340px, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  .qhpc-composer {
+    height: auto;
+    min-height: 720px;
+  }
+
+  .qhpc-composer.is-guided {
+    grid-template-rows: 42px minmax(0, 1fr);
+  }
+
+  .qhpc-composer.is-advanced {
+    grid-template-rows: 42px 48px minmax(0, 1fr);
+  }
+
+  .composer-guided-workspace {
+    min-height: 670px;
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .composer-guided-header {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .composer-guided-header dl {
+    grid-column: 1 / -1;
+    grid-template-columns: 54px minmax(100px, 1fr) 54px minmax(100px, 1fr);
+  }
+
+  .composer-guided-header dt:last-of-type,
+  .composer-guided-header dd:last-of-type {
+    display: none;
+  }
+
+  .composer-guided-header.is-blueprint dl {
+    grid-template-columns: repeat(3, 54px minmax(90px, 1fr));
+  }
+
+  .composer-guided-header.is-blueprint dt:last-of-type,
+  .composer-guided-header.is-blueprint dd:last-of-type {
+    display: block;
+  }
+
+  .composer-guided-pipeline li {
+    grid-template-columns: 34px minmax(130px, 1fr);
+  }
+
+  .composer-pipeline-contract {
+    grid-column: 2;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .composer-blueprint-handoff {
+    grid-column: 2;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .composer-blueprint-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composer-guided-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .composer-guided-actions > div {
+    justify-content: flex-end;
+  }
+
+  .composer-commandbar {
+    grid-template-columns: minmax(140px, 1fr) auto;
+  }
+
+  .composer-command-group {
+    display: none;
+  }
+
+  .composer-grid,
+  .composer-grid.without-library,
+  .composer-grid.without-inspector {
+    grid-template-columns: minmax(0, 1fr) 250px;
+  }
+
+  .composer-grid:not(.without-library) .composer-library {
+    position: absolute;
+    z-index: 7;
+    top: 49px;
+    bottom: 0;
+    left: 0;
+    width: min(270px, 72vw);
+    box-shadow: var(--shadow);
+  }
+
+  .composer-grid {
+    position: relative;
+    min-height: 670px;
+  }
+}
+
+@media (max-width: 760px) {
+  .qhpc-composer {
+    min-height: 760px;
+  }
+
+  .qhpc-composer.is-guided {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .qhpc-composer.is-advanced {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .composer-modebar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .composer-mode-switch {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composer-mode-context {
+    justify-content: space-between;
+  }
+
+  .composer-guided-workspace {
+    min-height: 720px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .composer-path-index {
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .composer-path-index-header {
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .composer-path-list {
+    display: grid;
+    grid-auto-columns: minmax(210px, 76vw);
+    grid-auto-flow: column;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .composer-path-item {
+    min-height: 62px;
+    margin-bottom: 0;
+  }
+
+  .composer-guided-detail {
+    min-height: 570px;
+  }
+
+  .composer-guided-header {
+    padding: 11px;
+  }
+
+  .composer-guided-header h2 {
+    font-size: 16px;
+  }
+
+  .composer-guided-header dl {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .composer-guided-header dt:nth-of-type(2),
+  .composer-guided-header dd:nth-of-type(2) {
+    display: none;
+  }
+
+  .composer-guided-header.is-blueprint dl {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .composer-guided-header.is-blueprint dt:nth-of-type(2),
+  .composer-guided-header.is-blueprint dd:nth-of-type(2) {
+    display: block;
+  }
+
+  .composer-guided-section {
+    padding: 12px 10px;
+  }
+
+  .composer-blueprint-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .composer-blueprint-table.is-pending {
+    display: block;
+    min-width: 0;
+  }
+
+  .composer-blueprint-table.is-pending thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .composer-blueprint-table.is-pending tbody,
+  .composer-blueprint-table.is-pending tr {
+    display: grid;
+  }
+
+  .composer-blueprint-table.is-pending tr {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .composer-blueprint-table.is-pending tr:last-child {
+    border-bottom: 0;
+  }
+
+  .composer-blueprint-table.is-pending td,
+  .composer-blueprint-table.is-pending td:first-child {
+    width: auto;
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 8px;
+    border-right: 0;
+    text-align: left;
+  }
+
+  .composer-blueprint-table.is-pending td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font: 700 .6875rem/1.35 ui-monospace, "SFMono-Regular", monospace;
+    text-transform: uppercase;
+  }
+
+  .composer-blueprint-table.is-pending td:last-child {
+    border-bottom: 0;
+  }
+
+  .composer-guided-input-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .composer-guided-input-title > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composer-guided-input-title .composer-button {
+    white-space: normal;
+  }
+
+  .composer-guided-input-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .composer-guided-actions > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .composer-guided-status > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .composer-guided-actions > div .composer-button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .composer-guided-actions .composer-button {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .composer-commandbar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .composer-document {
+    min-height: 34px;
+  }
+
+  .composer-primary-actions {
+    min-width: 0;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .composer-grid,
+  .composer-grid.without-library,
+  .composer-grid.without-inspector,
+  .composer-grid.without-library.without-inspector {
+    min-height: 690px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(430px, 1fr) auto;
+  }
+
+  .composer-canvas {
+    min-height: 430px;
+  }
+
+  .composer-grid:not(.without-library) .composer-library {
+    top: 0;
+  }
+
+  .composer-inspector-panel {
+    max-height: 360px;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .composer-operation-node {
+    width: 230px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-spin {
+    animation: none;
+  }
+}

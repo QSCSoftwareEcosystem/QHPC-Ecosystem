@@ -1,0 +1,68 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.evolution-synthesis-report
+  name: Quantum Evolution Synthesis Report
+  version: 1
+  project: cross-project
+  owners: [openqevo, qhpc-ecosystem]
+  status: draft
+spec:
+  description: Parameters, provenance, and structural circuit metrics from an OpenQEvo evolution synthesis.
+  media_type: application/vnd.qsc.evolution-synthesis-report+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - method
+      - method_source
+      - framework
+      - circuit_format
+      - qubits
+      - term_count
+      - evolution_time
+      - steps
+      - order
+      - depth
+      - gate_counts
+      - source_revision
+      - bridge_status
+    properties:
+      method:
+        type: string
+      method_source:
+        type: string
+      framework:
+        enum: [qiskit]
+      circuit_format:
+        enum: [openqasm-2.0]
+      qubits:
+        type: integer
+        minimum: 1
+      term_count:
+        type: integer
+        minimum: 1
+      evolution_time:
+        type: number
+        exclusiveMinimum: 0
+      steps:
+        type: integer
+        minimum: 1
+      order:
+        enum: [1, 2, 4]
+      depth:
+        type: integer
+        minimum: 0
+      gate_counts:
+        type: object
+        additionalProperties:
+          type: integer
+          minimum: 0
+      source_revision:
+        type: string
+      bridge_status:
+        enum: [development]
+  compatibility:
+    accepts_versions: [1]

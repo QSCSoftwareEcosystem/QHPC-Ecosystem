@@ -111,12 +111,16 @@ def _catalog_repository(
     capability: dict[str, Any], catalog: Catalog, descriptor_path: Path
 ) -> Repository:
     metadata = capability["metadata"]
-    source_url = _repository_url(metadata["repository"]["url"])
+    repository_metadata = metadata["repository"]
+    source_url = _repository_url(repository_metadata["url"])
+    canonical_url = _repository_url(
+        repository_metadata.get("canonical_url", source_url)
+    )
     matches = [
         repository
         for repository in catalog.repositories
         if repository.source_url
-        and _repository_url(repository.source_url) == source_url
+        and _repository_url(repository.source_url) == canonical_url
     ]
     issues: list[ContractIssue] = []
     if not matches:
@@ -137,6 +141,19 @@ def _catalog_repository(
         raise RegistryError(f"registry ownership failed for {descriptor_path}", issues)
 
     repository = matches[0]
+    admitted_sources = {
+        _repository_url(value)
+        for value in (repository.source_url, *repository.alternate_sources)
+        if value
+    }
+    if source_url not in admitted_sources:
+        issues.append(
+            ContractIssue(
+                "/metadata/repository/url",
+                "release source must match the canonical repository or an "
+                "admitted alternate source",
+            )
+        )
     expected_project = CATALOG_PROJECT_ALIASES.get(
         repository.qsc_project, repository.qsc_project
     )

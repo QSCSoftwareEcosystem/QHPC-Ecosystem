@@ -1,0 +1,160 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.qflow-taskset-result
+  name: QFlow Cycle Task-Set Result
+  version: 1
+  project: hybrid-workflows
+  owners: [exachem-qflow, iris-qiris, nwqsim-qflow, qhpc-ecosystem]
+  status: draft
+spec:
+  description: A complete-cycle QIRIS aggregate that preserves QFlow identity, amplitude snapshot, terminal task states, ordering, and execution provenance.
+  media_type: application/vnd.qsc.qflow-taskset-result+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - schema
+      - task_set_id
+      - workflow
+      - amplitude_state
+      - status
+      - summary
+      - results
+      - provenance
+      - diagnostics
+    properties:
+      schema:
+        const: qflow.qiris.taskset_result.v1
+      task_set_id:
+        type: string
+        minLength: 1
+      workflow:
+        type: object
+        additionalProperties: false
+        required: [name, run_id, cycle_id]
+        properties:
+          name:
+            const: qflow
+          run_id:
+            type: string
+            minLength: 1
+          cycle_id:
+            type: integer
+            minimum: 1
+      amplitude_state:
+        type: object
+        additionalProperties: false
+        required: [snapshot_id, update_policy]
+        properties:
+          snapshot_id:
+            type: string
+            minLength: 1
+          update_policy:
+            const: qflow_after_cycle
+      status:
+        enum: [succeeded, failed, cancelled]
+      summary:
+        type: object
+        additionalProperties: false
+        required: [submitted, succeeded, failed, cancelled, retried]
+        properties:
+          submitted:
+            type: integer
+            minimum: 1
+          succeeded:
+            type: integer
+            minimum: 0
+          failed:
+            type: integer
+            minimum: 0
+          cancelled:
+            type: integer
+            minimum: 0
+          retried:
+            type: integer
+            minimum: 0
+      results:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required:
+            - schema
+            - task_id
+            - task_set_id
+            - cycle_id
+            - amplitude_snapshot_id
+            - status
+            - ordering
+            - provenance
+            - diagnostics
+          properties:
+            schema:
+              enum:
+                - qflow.qiris.result.v1
+                - qflow.qiris.nwqsim_plugin_result.v1
+            compatible_schema:
+              const: qflow.qiris.result.v1
+            task_id:
+              type: string
+              minLength: 1
+            task_set_id:
+              type: string
+              minLength: 1
+            cycle_id:
+              type: integer
+              minimum: 1
+            amplitude_snapshot_id:
+              type: string
+              minLength: 1
+            status:
+              enum: [succeeded, failed, cancelled]
+            converged:
+              type: boolean
+            energy:
+              type: number
+            parameters:
+              type: array
+            amplitudes:
+              type: array
+            ordering:
+              type: object
+            provenance:
+              type: object
+            diagnostics:
+              type: object
+      provenance:
+        type: object
+        additionalProperties: false
+        required: [orchestrator, aggregation_policy, ordering, started_at, finished_at]
+        properties:
+          orchestrator:
+            const: qiris
+          aggregation_policy:
+            const: complete_cycle
+          ordering:
+            const: task_index
+          started_at:
+            type: [string, "null"]
+          finished_at:
+            type: [string, "null"]
+      diagnostics:
+        type: object
+        additionalProperties: false
+        required: [message, warnings, errors]
+        properties:
+          message:
+            type: [string, "null"]
+          warnings:
+            type: array
+            items:
+              type: string
+          errors:
+            type: array
+            items:
+              type: string
+  compatibility:
+    accepts_versions: [1]

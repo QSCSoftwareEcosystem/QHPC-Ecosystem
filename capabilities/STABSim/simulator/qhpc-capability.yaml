@@ -7,7 +7,7 @@ metadata:
   project: hybrid-workflows
   owners: [stabsim]
   repository:
-    url: https://github.com/seangarn32/STABSim
+    url: https://github.com/QSCSoftwareThrust/STABSim
     revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
   integration:
     authority: ecosystem
@@ -15,12 +15,26 @@ metadata:
     project_reviewed: false
     runtime_status: verified
     validation_status: integration-tested
-    evidence: [docs/evidence/repository-audit-2026-07-11.md]
+    evidence:
+      - docs/evidence/repository-audit-2026-07-11.md
+      - docs/evidence/stabsim-oci-smoke-2026-07-27.md
   visibility: public
   maturity: prototype
 spec:
   component:
-    description: CPU, GPU, and MPI stabilizer simulator with QASM and Stim parsing.
+    name: STABSim
+    description: Quantum stabilizer simulator for QEC with C++ and Python circuit construction, QASM and Stim parsing, noise modeling, and GPU and MPI acceleration.
+  guidance:
+    use_when:
+      - Extract structural circuit metrics from transpiled OpenQASM as part of a QHPC analysis workflow.
+    quick_start:
+      - Open Compose and choose Compile and analyze OpenQASM or add Analyze QASM circuit metrics.
+      - Supply a transpiled-circuit artifact and run on the development Slurm Docker target.
+    example_workflows:
+      - ct-hw-qasm-analysis
+      - showcase-evolution-readiness
+    limitations:
+      - The published operation reports structural metrics and does not claim full stabilizer simulation.
   operations:
     - id: analyze-metrics
       title: Analyze QASM circuit metrics
@@ -38,22 +52,21 @@ spec:
           default: 42
           minimum: 0
       runtime:
-        type: native-bundle
-        reference: qhpc-runtime://native/stabsim-a0d8d2e2a9fd-darwin-arm64.zip
-        digest: sha256:be15c1898b50095536f39cba25d4725673b496cb0e525c693a4ab59997d1c8c5
+        type: oci
+        reference: docker://qhpc/stabsim@sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
+        digest: sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
       invocation:
-        entrypoint: [nwq_qasm]
-        arguments: [--qasm_file, "{{ inputs.circuit }}", --metrics]
+        entrypoint: [/opt/qhpc/bin/qhpc-stabsim-metrics]
       resources:
         cpu: 1
         memory_mb: 1024
         walltime_seconds: 60
-      execution_targets: [local-development]
+      execution_targets: [development-slurm-docker]
   resources:
     - id: simulator-source
       kind: library
       version: 0.1.0
-      uri: https://github.com/seangarn32/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
+      uri: https://github.com/QSCSoftwareThrust/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
   documentation:
     qappswiki: packages/stabsim.md
-    url: https://github.com/seangarn32/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md
+    url: https://github.com/QSCSoftwareThrust/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md

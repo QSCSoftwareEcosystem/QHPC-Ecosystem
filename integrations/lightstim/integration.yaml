@@ -8,11 +8,11 @@ metadata:
   role: operation-provider
   owners: [lightstim]
   visibility: public
-  integration_status: scaffolded
+  integration_status: published
 spec:
   source:
     kind: repository
-    url: https://github.com/QuTone/LightStim
+    url: https://github.com/QSCSoftwareThrust/LightStim
     catalog_repository: LightStim
   mirror:
     status: inventory-listed
@@ -30,8 +30,9 @@ spec:
     adapter: complete
     fixtures: complete
     integration_tests: complete
-    registry_publication: pending
+    registry_publication: complete
   contract_refs:
+    - capabilities/LightStim/simulation/qhpc-capability.yaml
     - integrations/lightstim/interface.yaml
     - containers/operations/lightstim/runtime.yaml
   evidence:

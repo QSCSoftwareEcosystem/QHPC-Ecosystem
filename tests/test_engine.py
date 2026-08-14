@@ -4,6 +4,7 @@ import copy
 import json
 import sqlite3
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import pytest
 
@@ -13,6 +14,7 @@ from qhpc_ecosystem.engine import (
     FunctionRunner,
     TaskRequest,
     TaskResult,
+    WorkflowDraftRevisionError,
     WorkflowEngine,
 )
 from test_workflow import example_registry
@@ -58,6 +60,18 @@ def make_runner() -> FunctionRunner:
     runner.register("example-toolkit", "generate", generate)
     runner.register("example-toolkit", "simulate", simulate)
     return runner
+
+
+def test_engine_closes_database_connections_after_each_operation(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+
+    with engine._connect() as connection:
+        assert connection.execute("SELECT 1").fetchone()[0] == 1
+
+    with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+        connection.execute("SELECT 1")
 
 
 def test_engine_executes_persistent_workflow_and_exports_bundle(tmp_path: Path) -> None:
@@ -107,6 +121,70 @@ def test_workflow_versions_are_immutable(tmp_path: Path) -> None:
         engine.register_workflow(changed, example_registry(), created_by="test-user")
 
 
+def test_workflow_draft_revision_validation_and_publication(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    draft = engine.create_workflow_draft(workflow, created_by="test-user")
+
+    assert draft["kind"] == "WorkflowDraft"
+    assert draft["metadata"]["revision"] == 1
+    assert engine.list_workflow_drafts(owner="test-user") == [draft]
+    assert engine.list_workflow_drafts(owner="another-user") == []
+
+    changed = copy.deepcopy(workflow)
+    changed["metadata"]["name"] = "Edited draft"
+    layout = {
+        "nodes": [
+            {
+                "id": "generate",
+                "kind": "operation",
+                "position": {"x": 20, "y": 40},
+            }
+        ],
+        "viewport": {"x": 0, "y": 0, "zoom": 1},
+    }
+    updated = engine.update_workflow_draft(
+        draft["metadata"]["id"],
+        changed,
+        layout=layout,
+        expected_revision=1,
+    )
+    assert updated["metadata"]["revision"] == 2
+    assert updated["metadata"]["name"] == "Edited draft"
+
+    with pytest.raises(WorkflowDraftRevisionError, match="revision conflict"):
+        engine.update_workflow_draft(
+            draft["metadata"]["id"],
+            workflow,
+            layout=layout,
+            expected_revision=1,
+        )
+
+    validation = engine.validate_workflow_draft(
+        draft["metadata"]["id"],
+        example_registry(),
+        expected_revision=2,
+    )
+    assert validation["valid"]
+    assert validation["node_ids"] == ["generate", "simulate"]
+
+    published = engine.publish_workflow_draft(
+        draft["metadata"]["id"],
+        example_registry(),
+        expected_revision=2,
+        created_by="test-user",
+    )
+    assert published["workflow"]["definition"]["metadata"]["name"] == "Edited draft"
+
+    deleted = engine.delete_workflow_draft(
+        draft["metadata"]["id"],
+        expected_revision=2,
+    )
+    assert deleted["deleted"] == draft["metadata"]["id"]
+    with pytest.raises(KeyError, match="workflow draft not found"):
+        engine.get_workflow_draft(draft["metadata"]["id"])
+
+
 def test_schema_migration_links_attempt_outputs_and_artifacts(
     tmp_path: Path,
 ) -> None:
@@ -150,7 +228,7 @@ def test_schema_migration_links_attempt_outputs_and_artifacts(
 
     engine = WorkflowEngine(database, tmp_path / "artifacts")
 
-    assert engine.schema_version() == 3
+    assert engine.schema_version() == 4
     with sqlite3.connect(database) as connection:
         artifact_columns = {
             row[1] for row in connection.execute("PRAGMA table_info(artifacts)")
@@ -316,6 +394,37 @@ def test_external_input_artifact_is_typed_persisted_and_exported(
             execution_target="local-development",
             created_by="test-user",
         )
+
+
+def test_artifact_content_is_contained_and_checksum_verified(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    artifact = engine.register_input_artifact(
+        artifact_type="qhpc.quantum-circuit@1",
+        content=b"OPENQASM 2.0;\n",
+        name="input.qasm",
+        created_by="test-user",
+    )
+
+    metadata, content, name = engine.read_artifact_content(artifact["id"])
+
+    assert metadata["checksum"] == artifact["checksum"]
+    assert content == b"OPENQASM 2.0;\n"
+    assert name == "input.qasm"
+
+    path = Path(unquote(urlparse(artifact["uri"]).path))
+    path.write_bytes(b"tampered")
+    with pytest.raises(ContractError, match="checksum mismatch"):
+        engine.read_artifact_content(artifact["id"])
+
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside", encoding="utf-8")
+    with sqlite3.connect(engine.database) as connection:
+        connection.execute(
+            "UPDATE input_artifacts SET uri=? WHERE id=?",
+            (outside.resolve().as_uri(), artifact["id"]),
+        )
+    with pytest.raises(ContractError, match="outside the configured artifact root"):
+        engine.read_artifact_content(artifact["id"])
 
 
 def test_run_submission_rechecks_a_stored_workflow_against_active_registry(

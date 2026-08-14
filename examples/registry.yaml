@@ -1,12 +1,12 @@
 api_version: qhpc/v1
 kind: Registry
 metadata:
-  entry_count: 8
-  catalog_digest: sha256:d2b17173e0d16761d0ef5c6b7bd1f53271d1af26e6eb434b4057d5b9a2f0630d
+  entry_count: 17
+  catalog_digest: sha256:be1d8377cb7766fe8ecb61bc20d86ac616881a479167828f230d5fb2363037cc
 spec:
   entries:
-  - descriptor_digest: sha256:b94db71f5f6c790216ef7f0a3993ba8f711eaf0f4776bfed3c085dbbd9b56928
-    catalog_repository: OpenQEvo
+  - descriptor_digest: sha256:6a2402c79c105bae284a637ac180d6d4f308a00fca3cb1b3a85c0ea8f2744c70
+    catalog_repository: chatqec
     validation:
       contract: valid
       attribution: valid
@@ -14,11 +14,782 @@ spec:
       curated_by: &id001
       - qhpc-ecosystem
       project_reviewed: false
-      runtime: verified
+      runtime: not-applicable
       documentation: linked
       status: integration-tested
       evidence: &id002
+      - docs/adr/0008-chatqec-internal-service-boundary.md
+      - docs/chatqec-service-boundary.md
+      - docs/chatqec-api-handoff.md
+      - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: chatqec-assistant-service
+        name: ChatQEC Assistant Service Contract
+        version: 0.1.0
+        project: agentic-software
+        owners:
+        - chatqec
+        repository:
+          url: https://github.com/QSCSoftwareThrust/ChatQEC
+          revision: 4c017510511f835001bfe5901a9d59e86cc130cd
+        integration:
+          authority: ecosystem
+          maintainers: *id001
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: integration-tested
+          evidence: *id002
+        visibility: internal
+        maturity: pre-alpha
+      spec:
+        component:
+          name: ChatQEC
+          description: Quantum error-correction research assistant with cited retrieval over a curated
+            corpus and optional sandboxed Stim circuit execution.
+        guidance:
+          use_when:
+          - Ask QEC questions while retaining the current EQO-QSC workspace context and source citations.
+          quick_start:
+          - Open Assistant or the contextual ChatQEC panel.
+          - Ask a focused QEC question and inspect the cited sources in the response.
+          example_workflows: []
+          limitations:
+          - The current canonical-corpus service is a deterministic development implementation and does
+            not execute tools.
+          - EQO currently integrates ChatQEC through an authenticated service boundary rather than exposing
+            every upstream CLI, library, Streamlit, and sandboxed-Stim feature.
+        resources:
+        - id: service-interface
+          kind: adapter
+          version: 0.1.0
+          uri: integrations/chatqec/service.yaml
+        - id: chatqec-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/4c017510511f835001bfe5901a9d59e86cc130cd
+        documentation:
+          qappswiki: packages/chatqec.md
+          url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/4c017510511f835001bfe5901a9d59e86cc130cd/README.md
+  - descriptor_digest: sha256:1d34ef384a67d8f735533e1920376c6f17ede05af4f6d0a511e96ff9a23d4334
+    catalog_repository: ExaChem
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id003
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id004
+      - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: exachem-qflow-tasksets
+        name: ExaChem QFlow Task-Set Boundary
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - exachem-qflow
+        repository:
+          url: https://github.com/ExaChem/exachem
+          revision: 0991cb52ce687ccf35ba29f3746a6fb13a13c464
+        integration:
+          authority: ecosystem
+          maintainers: *id003
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: integration-tested
+          evidence: *id004
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          name: ExaChem
+          description: Scalable electronic-structure software for ground- and excited-state molecular
+            calculations on modern exascale computing platforms.
+          license: Apache-2.0
+        guidance:
+          use_when:
+          - Design or review the boundary that exports formed active-space Hamiltonians from an ExaChem
+            QFlow cycle for heterogeneous execution.
+          - Inspect the cycle and restart state that must remain under QFlow ownership when task execution
+            is delegated.
+          quick_start:
+          - Open Compose and choose H6 QFlow chemistry cycle to inspect the evidence-backed incubation
+            blueprint and its runtime gates.
+          - Open the QFlow/QIRIS architecture resource to review ownership and the complete-cycle acceptance
+            rule.
+          - Inspect qflow-taskset@1 for the cycle export and qflow-cycle-checkpoint@1 for restart provenance.
+          - Use the H6 validation procedure as evidence only; there is no Compose or Run action while
+            the export hook remains an uncommitted development patch.
+          example_workflows: []
+          limitations:
+          - EQO currently represents only the proposed QFlow task-set export boundary, not the complete
+            ExaChem electronic-structure suite.
+          - The observed task-set export hook is an uncommitted patch in the qiris-qflow checkout, not
+            part of the pinned public ExaChem revision.
+          - Live QFlow submit, wait, acceptance, amplitude update, and checkpoint equivalence have not
+            been demonstrated.
+          - No executable operation is published until project review, immutable packaging, and QHPC target
+            acceptance are complete.
+        resources:
+        - id: qflow-taskset
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/qflow-taskset-v1.yaml
+          description: Typed export of all active-space tasks formed from one QFlow amplitude snapshot.
+        - id: qflow-cycle-checkpoint
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/qflow-cycle-checkpoint-v1.yaml
+          description: Proposed cycle-boundary checkpoint for restart and amplitude-update provenance.
+        - id: qflow-qiris-architecture
+          kind: documentation
+          version: 0.1.0
+          uri: integrations/qiris-qflow/architecture.md
+          description: EQO-QSC ownership, artifact flow, and promotion gates for the integration.
+        - id: exachem-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/ExaChem/exachem/tree/0991cb52ce687ccf35ba29f3746a6fb13a13c464
+          description: Pinned public ExaChem base revision audited for this incubation record.
+        documentation:
+          qappswiki: packages/exachem-qflow.md
+          url: https://github.com/ExaChem/exachem/blob/0991cb52ce687ccf35ba29f3746a6fb13a13c464/README.md
+  - descriptor_digest: sha256:b91404f39c962ac6c6e110f6ab85000ce95b1c135bc806616021010805d7d859
+    catalog_repository: FTPrimitiveBench
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id005
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id006
+      - docs/evidence/initial-component-source-audit-2026-07-22.md
+      - docs/evidence/ftprimitivebench-oci-smoke-2026-07-27.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: ftprimitivebench-primitives
+        name: FTPrimitiveBench Circuit Primitives
+        version: 0.1.0
+        project: compilation-tools
+        owners:
+        - ftprimitivebench
+        repository:
+          url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench
+          revision: ba15eba263ac6d641d225984fa074f4ee25bb462
+        integration:
+          authority: ecosystem
+          maintainers: *id005
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id006
+        visibility: public
+        maturity: alpha
+      spec:
+        component:
+          name: FTPrimitiveBench
+          description: Python library for constructing and benchmarking fault-tolerant computation primitives
+            under hardware-motivated noise models.
+        guidance:
+          use_when:
+          - Build a detector-annotated surface-code memory circuit for downstream logical-error estimation.
+          quick_start:
+          - Open Compose and choose the QEC memory estimation workflow or add Build a surface-code memory
+            primitive.
+          - Review code distances, syndrome rounds, measurement basis, and physical error rate before
+            running.
+          example_workflows:
+          - qec-memory-estimation
+          - showcase-qec-distance-study
+          limitations:
+          - EQO currently exposes the surface-code memory builder rather than every primitive, noise model,
+            and visualization in FTPrimitiveBench.
+          - The executable operation is admitted only on the development Slurm Docker target.
+        operations:
+        - id: build-memory
+          title: Build a surface-code memory primitive
+          description: Construct a detector-annotated Stim memory circuit with uniform depolarizing noise.
+          inputs: {}
+          outputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          parameters:
+            x_distance:
+              type: integer
+              title: X code distance
+              default: 3
+              minimum: 1
+              maximum: 31
+            z_distance:
+              type: integer
+              title: Z code distance
+              default: 3
+              minimum: 1
+              maximum: 31
+            rounds:
+              type: integer
+              title: Syndrome extraction rounds
+              default: 3
+              minimum: 1
+              maximum: 100
+            measurement_basis:
+              type: string
+              title: Logical measurement basis
+              default: Z
+              enum:
+              - X
+              - Z
+            physical_error_rate:
+              type: number
+              title: Physical error rate
+              default: 0.001
+              minimum: 0
+              maximum: 0.5
+          runtime:
+            type: oci
+            reference: docker://qhpc/ftprimitivebench@sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+            digest: sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-ftprimitivebench-memory
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - development-slurm-docker
+        resources:
+        - id: ftprimitivebench-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/tree/ba15eba263ac6d641d225984fa074f4ee25bb462
+        documentation:
+          qappswiki: packages/ftprimitivebench.md
+          url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md
+  - descriptor_digest: sha256:23d750fe73a789f9e816eee032c9c3331c547277df626d4815fa296cc74dc4e2
+    catalog_repository: ftqc
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id007
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id008
+      - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: ftqc-compiler
+        name: FTQC Fault-Tolerant Compiler
+        version: 0.1.0
+        project: compilation-tools
+        owners:
+        - ftqc
+        repository:
+          url: https://github.com/QSCSoftwareThrust/FTQC
+          revision: 947fd0a067f15a9f9d6e7418742080cf34cfb51a
+        integration:
+          authority: ecosystem
+          maintainers: *id007
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: integration-tested
+          evidence: *id008
+        visibility: internal
+        maturity: pre-alpha
+      spec:
+        component:
+          name: FTQC
+          description: C++ and LLVM/MLIR compiler project for fault-tolerant quantum operations, resource
+            estimation, and QASM 3, Stim, QIR, and IQM lowerings.
+        guidance:
+          use_when:
+          - Review or integrate against the pinned FTQC MLIR compiler and controlled QASM importer interface.
+          - Inspect the source-supported candidate for a one-logical-qubit execution on an ORNL IQM system
+            and the evidence required to verify it.
+          quick_start:
+          - Open the FTQC Tool Record and read the IQM one-logical-qubit hardware demonstration candidate,
+            including its evidence gaps.
+          - Open Compose and choose One logical qubit on IQM to inspect the complete OpenQASM-to-logical-result
+            pipeline and its hardware evidence gates.
+          - Open Compose and choose H6 QFlow chemistry cycle to inspect where optional FTQC circuit lowering
+            would attach after a QIRIS-selected backend emits OpenQASM.
+          - Inspect the published compiler-interface resource and pinned source revision from this record.
+          - Use the interface contract for integration work while the executable runtime remains pending.
+          example_workflows: []
+          limitations:
+          - EQO currently publishes source, interface, and hardware-evidence resources rather than the
+            full compiler as an executable capability.
+          - EQO-QSC does not publish an executable FTQC operation until a reproducible LLVM and MLIR runtime
+            is accepted.
+          - The one-logical-qubit IQM run is developer-reported and source-supported, but the repository
+            does not preserve a job receipt, exact QPU identity, raw counts, corrected logical histogram,
+            or acceptance comparison; it is not verified hardware evidence.
+          - The repository names the live 20-qubit backend Crystal/default while the public ORNL announcement
+            names Pathfinder; EQO-QSC does not assert that they are the same device without developer
+            confirmation.
+          - The validated H6 QFlow evidence does not emit an OpenQASM circuit, so its FTQC branch is an
+            explicit future extension rather than a completed handoff.
+        resources:
+        - id: ftqc-iqm-logical-qubit-candidate
+          kind: documentation
+          version: 0.1.0
+          uri: docs/evidence/ftqc-iqm-logical-qubit-candidate-2026-07-29.md
+          description: Developer-reported and source-supported one-logical-qubit ORNL IQM demonstration
+            candidate, with the exact promotion evidence still required.
+        - id: ftqc-compiler-interface
+          kind: adapter
+          version: 0.1.0
+          uri: integrations/ftqc/interface.yaml
+          description: Controlled OpenQASM-to-FTQC-MLIR contract; it does not publish the IQM hardware
+            submission path as an executable operation.
+        - id: ftqc-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareThrust/FTQC/tree/947fd0a067f15a9f9d6e7418742080cf34cfb51a
+          description: Pinned source containing the IQM JSON lowering, 20-qubit topology snapshot, routing/submission
+            path, and one-logical-qubit fixtures.
+        documentation:
+          qappswiki: packages/ftqc.md
+          url: https://github.com/QSCSoftwareThrust/FTQC/blob/947fd0a067f15a9f9d6e7418742080cf34cfb51a/README.md
+  - descriptor_digest: sha256:27c564cc6353f7574dda270f0d047f11b4d6f0b2a176eafd59154f410919533d
+    catalog_repository: IRIS-QIRIS
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id009
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: contract-valid
+      evidence: &id010
+      - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: iris-qiris-runtime
+        name: QIRIS Runtime Boundary (IRIS/QIR-EE)
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - iris-qiris
+        repository:
+          url: https://github.com/ORNL/iris
+          revision: ff57e620a92fcf62eff3568d9c6eeaaf078f0340
+        integration:
+          authority: ecosystem
+          maintainers: *id009
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: contract-valid
+          evidence: *id010
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          name: IRIS
+          description: Portable runtime system that discovers and orchestrates data movement and tasks
+            across heterogeneous programming systems and devices.
+          license: BSD-3-Clause
+        guidance:
+          use_when:
+          - Design heterogeneous scheduling for independent active-space tasks that share one QFlow amplitude
+            snapshot.
+          - Review how QIRIS should preserve task identity, collect complete-cycle results, and invoke
+            backend plugins.
+          quick_start:
+          - Open Compose and choose H6 QFlow chemistry cycle to inspect QIRIS's proposed task-set scheduling
+            role and the saved contract replay.
+          - Read the architecture resource and confirm that QFlow, not QIRIS, owns cycle advancement and
+            amplitude updates.
+          - Inspect qflow-taskset@1 and qflow-taskset-result@1 as the proposed orchestration boundary.
+          - Treat IRIS/QIR-EE as the admitted runtime substrate; a high-level QIRIS VQE service is not
+            yet published or runnable here.
+          example_workflows: []
+          limitations:
+          - The pinned IRIS source provides QIR execution infrastructure; this record does not claim that
+            it already implements the proposed high-level QFlow task-set service.
+          - QIR generation, expectation-result conversion, scheduler admission, and live QFlow result
+            application remain unresolved.
+          - No executable operation is published until the orchestration adapter and immutable runtime
+            pass end-to-end target acceptance.
+        resources:
+        - id: qflow-taskset
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/qflow-taskset-v1.yaml
+          description: Proposed complete-cycle request consumed by the QIRIS boundary.
+        - id: qflow-taskset-result
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/qflow-taskset-result-v1.yaml
+          description: Proposed complete-cycle response returned to QFlow.
+        - id: qflow-qiris-architecture
+          kind: documentation
+          version: 0.1.0
+          uri: integrations/qiris-qflow/architecture.md
+          description: EQO-QSC ownership, artifact flow, and promotion gates for the integration.
+        - id: iris-source
+          kind: library
+          version: 3.0.1
+          uri: https://github.com/ORNL/iris/tree/ff57e620a92fcf62eff3568d9c6eeaaf078f0340
+          description: Pinned public IRIS/QIR-EE source; it is not represented as an already-complete
+            QIRIS VQE service.
+        documentation:
+          qappswiki: packages/iris-qiris.md
+          url: https://github.com/ORNL/iris/blob/ff57e620a92fcf62eff3568d9c6eeaaf078f0340/README.md
+  - descriptor_digest: sha256:22d129ac5c5cc3c11b57cfbe8f78078044a979d72b8f28b94844a399f1a6529e
+    catalog_repository: LightStim
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id011
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id012
+      - docs/evidence/initial-component-source-audit-2026-07-22.md
+      - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: lightstim-simulation
+        name: LightStim Logical Error Estimation
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - lightstim
+        repository:
+          url: https://github.com/QuTone/LightStim
+          canonical_url: https://github.com/QSCSoftwareThrust/LightStim
+          revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+        integration:
+          authority: ecosystem
+          maintainers: *id011
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id012
+        visibility: public
+        maturity: alpha
+      spec:
+        component:
+          name: LightStim
+          description: Modular QEC framework built on Stim for constructing fault-tolerant circuits and
+            protocols, applying noise models, simulating and decoding experiments, and analyzing logical
+            performance.
+        guidance:
+          use_when:
+          - Estimate logical error rates from detector-annotated Stim circuits with PyMatching.
+          quick_start:
+          - Open Compose and choose QEC memory estimation or add Estimate logical error rate.
+          - Supply a Stim circuit, review shot and stopping limits, and run on the development Slurm Docker
+            target.
+          example_workflows:
+          - qec-memory-estimation
+          - showcase-qec-distance-study
+          limitations:
+          - EQO currently exposes only logical-error estimation through LightStim's CPU PyMatching simulation
+            pipeline; its circuit builders, protocols, additional decoders, GPU support, and visualization
+            services are not yet integrated.
+          - The verified operation is admitted only on the development Slurm Docker target.
+        operations:
+        - id: estimate-logical-error
+          title: Estimate logical error rate
+          description: Sample and decode a detector-annotated Stim circuit with PyMatching.
+          inputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          outputs:
+            estimate:
+              artifact_type: qhpc.logical-error-estimate@1
+          parameters:
+            decoder:
+              type: string
+              title: Decoder
+              default: pymatching
+              enum:
+              - pymatching
+            max_shots:
+              type: integer
+              title: Maximum sampled shots
+              default: 1000
+              minimum: 1
+              maximum: 100000000
+            max_errors:
+              type: integer
+              title: Logical-error stopping count
+              default: 100
+              minimum: 1
+              maximum: 1000000
+            batch_size:
+              type: integer
+              title: Shots per sampling batch
+              default: 1000
+              minimum: 1
+              maximum: 1000000
+            num_workers:
+              type: integer
+              title: CPU worker processes
+              default: 1
+              minimum: 1
+              maximum: 256
+          runtime:
+            type: oci
+            reference: docker://qhpc/lightstim@sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+            digest: sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-lightstim-estimate
+          resources:
+            cpu: 1
+            memory_mb: 2048
+            walltime_seconds: 120
+          execution_targets:
+          - development-slurm-docker
+        resources:
+        - id: lightstim-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/QuTone/LightStim/tree/b08d4c2f9cd69531a51b658e6f88089be69f16c0
+        documentation:
+          qappswiki: packages/lightstim.md
+          url: https://github.com/QuTone/LightStim/blob/b08d4c2f9cd69531a51b658e6f88089be69f16c0/README.md
+  - descriptor_digest: sha256:5815d43d6e4aef0c110ff8a0313b57000981d5495eba86d0657070f2bd373035
+    catalog_repository: nwqec
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id013
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id014
+      - docs/evidence/initial-component-source-audit-2026-07-22.md
+      - docs/evidence/nwqec-oci-smoke-2026-07-27.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: nwqec-qec-transpilation
+        name: NWQEC Fault-Tolerant Circuit Analysis
+        version: 0.1.0
+        project: compilation-tools
+        owners:
+        - nwqec
+        repository:
+          url: https://github.com/pnnl/nwqec
+          revision: d93299c2a0fe47fb7758bff02b456acfb3ac4416
+        integration:
+          authority: ecosystem
+          maintainers: *id013
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id014
+        visibility: public
+        maturity: alpha
+      spec:
+        component:
+          name: NWQEC
+          description: C++ and Python toolkit for fault-tolerant quantum circuit transpilation, including
+            Clifford+T synthesis and counting, Pauli-based circuits, and Clifford reduction.
+        guidance:
+          use_when:
+          - Count Clifford and T gates in an OpenQASM 2.0 circuit for fault-tolerant resource analysis.
+          quick_start:
+          - Open Compose and choose the NWQEC counts workflow or add Count Clifford and T gates.
+          - Upload an OpenQASM 2.0 circuit, review the CCX and RZ synthesis settings, and run the workflow.
+          example_workflows:
+          - nwqec-counts
+          - showcase-evolution-readiness
+          limitations:
+          - The operation performs gate analysis only and is admitted on the development Slurm Docker
+            target.
+        operations:
+        - id: count-clifford-t
+          title: Count Clifford and T gates
+          description: Parse an OpenQASM 2.0 circuit and return exact Clifford and T gate counts.
+          inputs:
+            circuit:
+              artifact_type: qhpc.quantum-circuit@1
+          outputs:
+            counts:
+              artifact_type: qhpc.clifford-t-counts@1
+          parameters:
+            keep_ccx:
+              type: boolean
+              title: Preserve CCX gates
+              default: false
+            rz_error_policy:
+              type: string
+              title: RZ synthesis error policy
+              default: total
+              enum:
+              - per-gate
+              - total
+              - relative
+            epsilon:
+              type: number
+              title: RZ synthesis error tolerance
+              default: 0.01
+              minimum: 1.0e-12
+              maximum: 0.5
+          runtime:
+            type: oci
+            reference: docker://qhpc/nwqec@sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+            digest: sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-nwqec-counts
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - development-slurm-docker
+        resources:
+        - id: nwqec-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/pnnl/nwqec/tree/d93299c2a0fe47fb7758bff02b456acfb3ac4416
+        documentation:
+          qappswiki: packages/nwqec.md
+          url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md
+  - descriptor_digest: sha256:788042b70455533264da8705b7effd15fb0825a2eecf57afd24fc16b9e7aebc5
+    catalog_repository: NWQSim-QFlow
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id015
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id016
+      - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: nwqsim-qflow-vqe-plugin
+        name: NWQSim QFlow VQE Plugin Contract
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - nwqsim-qflow
+        repository:
+          url: https://github.com/pnnl/nwq-sim
+          revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+        integration:
+          authority: ecosystem
+          maintainers: *id015
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: integration-tested
+          evidence: *id016
+        visibility: public
+        maturity: prototype
+      spec:
+        component:
+          name: NWQSim
+          description: Quantum circuit simulation environment for classical multi-node, multi-CPU, and
+            GPU HPC systems, including ideal state-vector and noise-aware density-matrix simulation.
+          license: MIT
+        guidance:
+          use_when:
+          - Review the single-task solver plugin boundary beneath QIRIS for formed active-space Hamiltonians.
+          - Compare NWQSim plugin energies and returned parameter or amplitude mappings against native
+            QFlow evidence.
+          quick_start:
+          - Open Compose and choose H6 QFlow chemistry cycle to compare the three saved native and NWQSim
+            plugin energies.
+          - Read the H6 validation procedure and evidence summary for the three cycle-1 task comparisons.
+          - Inspect qflow-taskset-result@1 for the identity, energy, convergence, and amplitude mapping
+            returned to QFlow.
+          - Use this record for integration design only; it intentionally has no Run action while the
+            plugin is an uncommitted development patch.
+          example_workflows: []
+          limitations:
+          - EQO currently represents only the proposed QFlow VQE plugin boundary, not the complete NWQSim
+            simulation environment.
+          - The QFlow VQE plugin and adapter are uncommitted changes in the qiris-qflow checkout, not
+            part of the pinned public NWQSim revision.
+          - The saved H6 energy comparison does not prove native amplitude-update equivalence or live
+            QIRIS orchestration.
+          - This main-branch plugin record is distinct from the separately admitted NWQ-Sim tn_sim tensor-network
+            capability.
+        resources:
+        - id: qflow-taskset-result
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/qflow-taskset-result-v1.yaml
+          description: Typed aggregate containing per-task solver results and complete-cycle identity.
+        - id: h6-validation-procedure
+          kind: documentation
+          version: 0.1.0
+          uri: integrations/qiris-qflow/h6-validation-workflow.md
+          description: Non-executable H6 validation workflow and current pass/fail gates.
+        - id: qflow-qiris-architecture
+          kind: documentation
+          version: 0.1.0
+          uri: integrations/qiris-qflow/architecture.md
+          description: EQO-QSC ownership, artifact flow, and promotion gates for the integration.
+        - id: nwqsim-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/pnnl/nwq-sim/tree/b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+          description: Pinned public NWQSim base revision audited for this incubation record.
+        documentation:
+          qappswiki: packages/nwqsim-qflow.md
+          url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
+  - descriptor_digest: sha256:67768633c0949474f2a7841f96b36b64598f5b8b239c29c0febb4ac64be3e067
+    catalog_repository: OpenQEvo
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id017
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id018
       - docs/evidence/repository-audit-2026-07-11.md
+      - docs/evidence/openqevo-synthesis-smoke-2026-07-29.md
     capability:
       api_version: qhpc/v1
       kind: Capability
@@ -34,16 +805,39 @@ spec:
           revision: 250550a3992bd57c032d4066843c2b03055c4b9d
         integration:
           authority: ecosystem
-          maintainers: *id001
+          maintainers: *id017
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id002
+          evidence: *id018
         visibility: public
         maturity: pre-alpha
       spec:
         component:
-          description: OpenQEvo Python APIs, adapters, and structured method context.
+          name: OpenQEvo
+          description: Reusable, documented, and reproducible Python library that packages quantum-evolution
+            methods with adapters, a method registry, and attributed scientific context.
+        guidance:
+          use_when:
+          - Discover available quantum time-evolution methods and inspect their attributed scientific
+            context.
+          - Convert a real-weighted Pauli Hamiltonian into an OpenQASM 2.0 Trotter circuit for a local
+            development workflow.
+          quick_start:
+          - Open Compose and choose Hamiltonian to evolution circuit.
+          - Load the two-qubit example or upload a Pauli-Hamiltonian JSON artifact.
+          - Review the evolution time, Trotter steps, and Suzuki order, then run the scientific path.
+          example_workflows:
+          - openqevo-method-catalog
+          - openqevo-trotter-synthesis
+          - showcase-evolution-readiness
+          limitations:
+          - EQO currently exposes method discovery, context inspection, and development Trotter synthesis
+            rather than every OpenQEvo method and adapter.
+          - Circuit synthesis is a local-development OpenQEvo and Qiskit bridge, not an accepted production
+            or HPC runtime.
+          - Production promotion requires a project-reviewed circuit API, packaged method context, immutable
+            dependencies, and resolved redistribution rights.
         operations:
         - id: list-methods
           title: List registered evolution methods
@@ -70,6 +864,96 @@ spec:
             walltime_seconds: 60
           execution_targets:
           - local-development
+        - id: describe-method
+          title: Inspect evolution method context
+          description: Return the pinned OpenQEvo description, applicability, limitations, complexity,
+            references, and source provenance for one registered method.
+          inputs: {}
+          outputs:
+            context:
+              artifact_type: qhpc.evolution-method-context@1
+          parameters:
+            method:
+              type: string
+              title: Evolution method
+              description: Registered OpenQEvo method to inspect. Context availability is reported explicitly.
+              default: trotter_s2
+              enum:
+              - exact
+              - qiskit_trotter
+              - trotter_s1
+              - trotter_s2
+          runtime:
+            type: python-wheel
+            reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+            digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+          invocation:
+            entrypoint:
+            - qhpc-openqevo-context
+          resources:
+            cpu: 1
+            memory_mb: 512
+            walltime_seconds: 60
+          execution_targets:
+          - local-development
+        - id: synthesize-evolution
+          title: Synthesize a Trotter evolution circuit
+          description: Convert a Pauli Hamiltonian into an attributed OpenQASM 2.0 Trotter circuit through
+            the development OpenQEvo/Qiskit bridge.
+          inputs:
+            hamiltonian:
+              artifact_type: qhpc.pauli-hamiltonian@1
+              description: Real-weighted Pauli strings using Qiskit-compatible qubit ordering.
+          outputs:
+            circuit:
+              artifact_type: qhpc.quantum-circuit@1
+              description: OpenQASM 2.0 circuit in the u1/u2/u3/cx basis.
+            report:
+              artifact_type: qhpc.evolution-synthesis-report@1
+              description: Method parameters, source revision, circuit depth, and gate counts.
+          parameters:
+            method:
+              type: string
+              title: OpenQEvo adapter
+              description: Circuit-producing OpenQEvo adapter available in the pinned development runtime.
+              default: qiskit_trotter
+              enum:
+              - qiskit_trotter
+            evolution_time:
+              type: number
+              title: Evolution time
+              description: Positive time t in exp(-iHt).
+              default: 1.0
+              minimum: 1.0e-12
+            steps:
+              type: integer
+              title: Trotter steps
+              description: Product-formula repetitions; term count multiplied by steps may not exceed
+                4096.
+              default: 4
+              minimum: 1
+              maximum: 256
+            order:
+              type: integer
+              title: Suzuki order
+              default: 2
+              enum:
+              - 1
+              - 2
+              - 4
+          runtime:
+            type: python-wheel
+            reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+            digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+          invocation:
+            entrypoint:
+            - qhpc-openqevo-synthesize
+          resources:
+            cpu: 1
+            memory_mb: 2048
+            walltime_seconds: 120
+          execution_targets:
+          - local-development
         resources:
         - id: python-library
           kind: library
@@ -79,22 +963,34 @@ spec:
           kind: dataset
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d/context
+        - id: pauli-hamiltonian
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/pauli-hamiltonian-v1.yaml
+        - id: evolution-method-context
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/evolution-method-context-v1.yaml
+        - id: evolution-synthesis-report
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/evolution-synthesis-report-v1.yaml
         documentation:
           qappswiki: packages/openqevo.md
           url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md
-  - descriptor_digest: sha256:f4e7b15949e6628e6ae883a213c95a32947ae994b2ce440676362c035e51cd2d
+  - descriptor_digest: sha256:47623ba57c9c1fef2140813696d7907c9abd44954d59b6d8c1a0b9359371f849
     catalog_repository: openqse-spec
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id003
+      curated_by: &id019
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id004
+      evidence: &id020
       - docs/evidence/openqse-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -111,18 +1007,29 @@ spec:
           revision: c172c716e6566bd0a7502b34896dce7467f5a474
         integration:
           authority: ecosystem
-          maintainers: *id003
+          maintainers: *id019
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id004
+          evidence: *id020
         visibility: public
         maturity: alpha
       spec:
         component:
-          description: Versioned OpenQSE terminology, architecture definitions, requirements, and sequence
-            documentation.
+          name: OpenQSE Specification
+          description: Shared terminology, architecture definitions, requirements, and sequence documentation
+            for consistent quantum systems engineering.
           license: CC-BY-4.0
+        guidance:
+          use_when:
+          - Align quantum-system-engineering terminology, architecture, requirements, or sequence descriptions
+            with OpenQSE.
+          quick_start:
+          - Open the glossary or architecture documentation resource from this record.
+          - Cite the pinned revision when using definitions in integration specifications.
+          example_workflows: []
+          limitations:
+          - This component publishes documentation resources and has no executable workflow operation.
         resources:
         - id: openqse-glossary
           kind: documentation
@@ -138,19 +1045,19 @@ spec:
         documentation:
           qappswiki: docs/qsc-integration.md
           url: https://github.com/openQSE/openqse-spec/blob/c172c716e6566bd0a7502b34896dce7467f5a474/README.md
-  - descriptor_digest: sha256:a21b6187fe89b93af8568e542af01fd6ff7ed837028bd06dbb25fe4ca597a801
+  - descriptor_digest: sha256:29f5f0f4d92e7d0d912001d9c12f63d98c6c043e85f3e97c12dc0c735869641c
     catalog_repository: QAppsWiki
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id005
+      curated_by: &id021
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id006
+      evidence: &id022
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -167,18 +1074,39 @@ spec:
           revision: d5f0248945516a4198f92edd9764a2fe5b676549
         integration:
           authority: ecosystem
-          maintainers: *id005
+          maintainers: *id021
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id006
+          evidence: *id022
         visibility: public
         maturity: alpha
       spec:
         component:
-          description: Markdown validation, graph construction, provenance, and query tooling.
+          name: QAppsWiki
+          description: Provenance-backed quantum-computing knowledge base and engine that compiles maintained
+            content into a queryable graph for people, applications, and agents.
           license: MIT
+        guidance:
+          use_when:
+          - Validate and explore QAppsWiki content with its graph, provenance, query, and citation tooling.
+          quick_start:
+          - Open the Knowledge workspace to browse thematic communities or search the QAppsWiki corpus.
+          - Select a node to inspect its relationships, provenance, citations, and version context.
+          - Use Set path start and Connect from to trace how two concepts or software packages relate.
+          example_workflows: []
+          limitations:
+          - EQO currently integrates QAppsWiki's published corpus, knowledge graph, provenance, and query
+            resources rather than every ingestion, freshness, and content-maintenance workflow.
+          - The EQO-QSC Knowledge workspace is read-only; QAppsWiki ingest, promotion, and corpus editing
+            remain curator-controlled.
+          - QAppsWiki is a knowledge service and does not expose an executable scientific workflow operation.
         resources:
+        - id: qappswiki-knowledge-adapter
+          kind: adapter
+          version: 0.1.0
+          uri: integrations/qappswiki/knowledge-interface.md
+          description: Read-only EQO-QSC API and Workbench projection of the compiled QAppsWiki graph.
         - id: qappswiki-cli
           kind: library
           version: 0.1.0
@@ -190,20 +1118,21 @@ spec:
         documentation:
           qappswiki: docs/qsc-integration.md
           url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md
-  - descriptor_digest: sha256:0c2d69142e904342a37d69e824c71a2c4acf70c6f3da2b42fe58753031777b56
+  - descriptor_digest: sha256:2d5b3a1b4bf42da295597cafb4b058584501a9d301e59734416ea8ebbe94e8db
     catalog_repository: qasmtrans
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id007
+      curated_by: &id023
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id008
+      evidence: &id024
       - docs/evidence/repository-audit-2026-07-11.md
+      - docs/evidence/qasmtrans-oci-smoke-2026-07-27.md
     capability:
       api_version: qhpc/v1
       kind: Capability
@@ -219,16 +1148,31 @@ spec:
           revision: 1843c98fa4bac9cf6b88412145b69457e9176124
         integration:
           authority: ecosystem
-          maintainers: *id007
+          maintainers: *id023
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id008
+          evidence: *id024
         visibility: public
         maturity: alpha
       spec:
         component:
-          description: C++ OpenQASM transpiler with target topology and basis-gate mapping.
+          name: QASMTrans
+          description: Extensible C++ quantum transpiler that maps OpenQASM circuits to device topologies
+            and native basis gates for multiple quantum hardware families.
+        guidance:
+          use_when:
+          - Map an OpenQASM 2.0 circuit to the audited IBM Toronto topology and basis-gate family.
+          quick_start:
+          - Open Compose and choose QASMTrans transpilation or Compile and analyze OpenQASM.
+          - Upload an OpenQASM 2.0 circuit, review the fixed backend and mode, and run on the development
+            Slurm Docker target.
+          example_workflows:
+          - qasmtrans-transpile
+          - ct-hw-qasm-analysis
+          - showcase-evolution-readiness
+          limitations:
+          - The current operation is restricted to the audited IBM Toronto topology and IBMQ basis family.
         operations:
         - id: transpile
           title: Transpile OpenQASM circuit
@@ -253,23 +1197,18 @@ spec:
               enum:
               - ibmq_toronto
           runtime:
-            type: native-bundle
-            reference: qhpc-runtime://native/qasmtrans-1843c98fa4ba-darwin-arm64.zip
-            digest: sha256:16dd5fe10c63bc1a036dc2ba22eb315d9f6bb8afba738ef5b77fed3862b24ad9
+            type: oci
+            reference: docker://qhpc/qasmtrans@sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
+            digest: sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
           invocation:
             entrypoint:
-            - QASMTrans
-            arguments:
-            - -i
-            - '{{ inputs.circuit }}'
-            - -o
-            - '{{ outputs.circuit }}'
+            - /opt/qhpc/bin/qhpc-qasmtrans
           resources:
             cpu: 1
             memory_mb: 1024
             walltime_seconds: 60
           execution_targets:
-          - local-development
+          - development-slurm-docker
         resources:
         - id: transpiler-source
           kind: library
@@ -278,19 +1217,19 @@ spec:
         documentation:
           qappswiki: packages/qasmtrans.md
           url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md
-  - descriptor_digest: sha256:d0fadbabc94027d917ae175c796ca00ed8139057009b3b8eeaf64ebb4d95f7a0
+  - descriptor_digest: sha256:93a7874c7abc54e6331bfc6f72d513a6f196540523eb55f4e1a798d18af19087
     catalog_repository: DataSchema
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id009
+      curated_by: &id025
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: discovered
-      evidence: &id010
+      evidence: &id026
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -307,16 +1246,28 @@ spec:
           revision: 704c1800614b37f0909cc8e5e15438b1be06b983
         integration:
           authority: ecosystem
-          maintainers: *id009
+          maintainers: *id025
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: discovered
-          evidence: *id010
+          evidence: *id026
         visibility: public
         maturity: prototype
       spec:
         component:
-          description: Hardware information survey source material and collected data.
+          name: DataSchema
+          description: Common data schema for interoperable QHPC compilation, simulation, validation,
+            resource management, and hardware metadata.
+        guidance:
+          use_when:
+          - Consult the QSC hardware survey when comparing or documenting quantum hardware characteristics.
+          quick_start:
+          - Open the published hardware-survey resource and its source documentation from this record.
+          - Use the pinned survey revision as reference material rather than an executable workflow step.
+          example_workflows: []
+          limitations:
+          - This record publishes survey data only; no executable validator or operation is available.
+          - EQO currently publishes only the hardware-survey portion of the broader DataSchema project.
         resources:
         - id: hardware-survey
           kind: dataset
@@ -325,19 +1276,19 @@ spec:
         documentation:
           qappswiki: integrations/qsc-hardware-data.md
           url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
-  - descriptor_digest: sha256:311198ceb749db5da8198e602804571fb12e362bccd98b5cac7047810ea02d3f
+  - descriptor_digest: sha256:bdd11da513bacb392d0583e2f10e0d0e89625753e159b91e0bedbefa13623122
     catalog_repository: spack-packages
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id011
+      curated_by: &id027
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id012
+      evidence: &id028
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -354,16 +1305,28 @@ spec:
           revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
         integration:
           authority: ecosystem
-          maintainers: *id011
+          maintainers: *id027
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id012
+          evidence: *id028
         visibility: public
         maturity: prototype
       spec:
         component:
-          description: Spack package recipes for QSC software deployment.
+          name: QSC Spack Repository
+          description: Spack package repository for developing, packaging, and deploying Quantum Science
+            Center software on HPC systems.
+        guidance:
+          use_when:
+          - Build or maintain QSC software environments using the published Spack package repository.
+          quick_start:
+          - Open the repository documentation and pinned source resource from this record.
+          - Add the project-owned repository to a compatible Spack environment outside the EQO-QSC workflow
+            runner.
+          example_workflows: []
+          limitations:
+          - This record publishes package recipes and does not expose an executable EQO-QSC operation.
         resources:
         - id: spack-repository
           kind: library
@@ -372,19 +1335,19 @@ spec:
         documentation:
           qappswiki: packages/qsc-spack.md
           url: https://github.com/QSCSoftwareThrust/spack-packages/blob/11edfc3b95af9b4352c1554d6492b48d5977628c/README.md
-  - descriptor_digest: sha256:21d468f956a6808ca704131db6caedf1bbe5a35a6428f86a090fa6fc25081088
+  - descriptor_digest: sha256:55631da54b9a11e83b5bd7adde066acbe9399819b494ed5e97aeda0846d82bb3
     catalog_repository: AS-popular_quantum_sdk_dashboard
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id013
+      curated_by: &id029
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id014
+      evidence: &id030
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -401,16 +1364,29 @@ spec:
           revision: e7568760747752e29397f4fcc800bd475c6011a1
         integration:
           authority: ecosystem
-          maintainers: *id013
+          maintainers: *id029
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id014
+          evidence: *id030
         visibility: public
         maturity: prototype
       spec:
         component:
-          description: Deterministic ranking library and dashboard for quantum SDK metrics.
+          name: Quantum SDK Popularity Rankings Dashboard
+          description: Interactive application that ranks quantum SDKs and frameworks using weighted GitHub
+            popularity, activity, and community metrics.
+        guidance:
+          use_when:
+          - Compare quantum SDKs using the metrics and deterministic ranking logic published by the project.
+          quick_start:
+          - Open the source documentation from this tool record to review the supported metrics and ranking
+            method.
+          - Use the published ranking-library resource in a project-owned development environment.
+          example_workflows: []
+          limitations:
+          - EQO-QSC currently publishes this component as a library resource and does not expose an executable
+            operation.
         resources:
         - id: ranking-library
           kind: library
@@ -419,20 +1395,21 @@ spec:
         documentation:
           qappswiki: packages/quantum-sdk-ranking.md
           url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/blob/e7568760747752e29397f4fcc800bd475c6011a1/README.md
-  - descriptor_digest: sha256:88b82f6e4c551ef89239855b75bce03ff705e6faf029980a06fdc1bb851cabca
+  - descriptor_digest: sha256:75524948f9721eedf9b608a7e15afed1a7d6593c994e8dd15a9f9a82b70cd504
     catalog_repository: STABSim
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id015
+      curated_by: &id031
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id016
+      evidence: &id032
       - docs/evidence/repository-audit-2026-07-11.md
+      - docs/evidence/stabsim-oci-smoke-2026-07-27.md
     capability:
       api_version: qhpc/v1
       kind: Capability
@@ -444,20 +1421,33 @@ spec:
         owners:
         - stabsim
         repository:
-          url: https://github.com/seangarn32/STABSim
+          url: https://github.com/QSCSoftwareThrust/STABSim
           revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
         integration:
           authority: ecosystem
-          maintainers: *id015
+          maintainers: *id031
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id016
+          evidence: *id032
         visibility: public
         maturity: prototype
       spec:
         component:
-          description: CPU, GPU, and MPI stabilizer simulator with QASM and Stim parsing.
+          name: STABSim
+          description: Quantum stabilizer simulator for QEC with C++ and Python circuit construction,
+            QASM and Stim parsing, noise modeling, and GPU and MPI acceleration.
+        guidance:
+          use_when:
+          - Extract structural circuit metrics from transpiled OpenQASM as part of a QHPC analysis workflow.
+          quick_start:
+          - Open Compose and choose Compile and analyze OpenQASM or add Analyze QASM circuit metrics.
+          - Supply a transpiled-circuit artifact and run on the development Slurm Docker target.
+          example_workflows:
+          - ct-hw-qasm-analysis
+          - showcase-evolution-readiness
+          limitations:
+          - The published operation reports structural metrics and does not claim full stabilizer simulation.
         operations:
         - id: analyze-metrics
           title: Analyze QASM circuit metrics
@@ -475,27 +1465,89 @@ spec:
               default: 42
               minimum: 0
           runtime:
-            type: native-bundle
-            reference: qhpc-runtime://native/stabsim-a0d8d2e2a9fd-darwin-arm64.zip
-            digest: sha256:be15c1898b50095536f39cba25d4725673b496cb0e525c693a4ab59997d1c8c5
+            type: oci
+            reference: docker://qhpc/stabsim@sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
+            digest: sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
           invocation:
             entrypoint:
-            - nwq_qasm
-            arguments:
-            - --qasm_file
-            - '{{ inputs.circuit }}'
-            - --metrics
+            - /opt/qhpc/bin/qhpc-stabsim-metrics
           resources:
             cpu: 1
             memory_mb: 1024
             walltime_seconds: 60
           execution_targets:
-          - local-development
+          - development-slurm-docker
         resources:
         - id: simulator-source
           kind: library
           version: 0.1.0
-          uri: https://github.com/seangarn32/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
+          uri: https://github.com/QSCSoftwareThrust/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
         documentation:
           qappswiki: packages/stabsim.md
-          url: https://github.com/seangarn32/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md
+          url: https://github.com/QSCSoftwareThrust/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md
+  - descriptor_digest: sha256:a6cae70af0e1a65f4047f2c1a06da65235084cdc30c2c263a37ddd846ad37a64
+    catalog_repository: NWQ-Sim
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id033
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id034
+      - docs/evidence/tn-sim-source-audit-2026-07-24.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: tn-sim-mps-simulation
+        name: TN-Sim Matrix Product State Integration
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - tn-sim
+        repository:
+          url: https://github.com/pnnl/NWQ-Sim/tree/tn_sim
+          revision: 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
+        integration:
+          authority: ecosystem
+          maintainers: *id033
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: integration-tested
+          evidence: *id034
+        visibility: public
+        maturity: pre-alpha
+      spec:
+        component:
+          name: TN-Sim
+          description: Tensor-network quantum circuit simulator in the NWQ-Sim tn_sim branch that uses
+            matrix product states for classically simulating quantum circuits.
+        guidance:
+          use_when:
+          - Review the contracted CPU matrix-product-state simulation interface and normalized result
+            format.
+          quick_start:
+          - Inspect the MPS operation-interface resource and pinned source revision from this record.
+          - Use the contract for integration planning while the iTensor runtime is being made reproducible.
+          example_workflows: []
+          limitations:
+          - EQO currently publishes an audited CPU MPS operation contract and normalized result adapter
+            rather than the complete NWQ-Sim simulation environment.
+          - No executable operation is published until the iTensor-backed runtime is reproducible and
+            accepted.
+        resources:
+        - id: mps-operation-interface
+          kind: adapter
+          version: 0.1.0
+          uri: integrations/tn-sim/interface.yaml
+        - id: tn-sim-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/pnnl/NWQ-Sim/tree/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
+        documentation:
+          qappswiki: packages/tn-sim.md
+          url: https://github.com/pnnl/NWQ-Sim/blob/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b/README.md

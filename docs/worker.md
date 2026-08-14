@@ -1,7 +1,7 @@
 # QHPC Worker Processes
 
 - Status: Durable local and asynchronous target workers implemented
-- Last updated: 2026-07-27
+- Last updated: 2026-07-28
 
 The API is a control-plane process. It validates and stores workflows, queues
 runs, exposes state, and never calls a scientific operation adapter. A separate
@@ -10,6 +10,22 @@ controlled runner. Workers register an identity, heartbeat their admitted
 targets and execution classes, and write append-only attempt and execution
 event records.
 
+## Supervised Development Stack
+
+The preferred local entry point keeps the process boundary while avoiding
+partial startup:
+
+```bash
+eqo dev up
+```
+
+The foreground supervisor prepares or starts the pinned virtual Slurm fixture,
+starts the API, waits for its health endpoint, starts local and target workers,
+waits for their worker heartbeats, and then reports the stack ready. API and
+workers remain separate child processes. An unexpectedly exited child is
+restarted after a bounded delay. `Ctrl-C` terminates the child processes
+cleanly; `--stop-cluster-on-exit` also stops the development cluster.
+
 ## Local Topology
 
 Run the API and worker from the same checkout with the same registry,
@@ -17,12 +33,12 @@ deployment profile, database, and artifact root:
 
 ```bash
 # Terminal 1: control plane and Workbench
-qhpc-ecosystem serve \
+eqo serve \
   --registry examples/registry.yaml \
   --deployment-profile deployments/initial.yaml
 
 # Terminal 2: local development worker
-qhpc-ecosystem worker \
+eqo worker \
   --registry examples/registry.yaml \
   --deployment-profile deployments/initial.yaml \
   --runtime-root .qhpc/runtimes
@@ -37,6 +53,19 @@ Use an explicit `--worker-id` when the process identity must remain stable
 across restarts. `--execution-target` and `--execution-class` are repeatable
 allowlists; a worker cannot lease a task outside those values. Expired leases
 are recovered without rewriting prior attempt history.
+
+Workers advertise their execution targets, classes, and admitted runtime
+digests in the persistent worker record. A heartbeat loop remains active while
+a synchronous scientific operation is running. The API computes an effective
+`stale` state when a worker misses the configured heartbeat threshold; stale,
+draining, and offline workers cannot satisfy submission readiness.
+
+`GET /api/v1/readiness` checks a target, execution class, and one or more
+runtime digests. `POST /api/v1/runs` performs the equivalent exact-workflow
+check and returns `503 Service Unavailable` before creating a run when any node
+lacks a healthy compatible worker. Deliberate durable batch queueing while a
+worker is offline requires the explicit JSON field
+`"queue_if_unavailable": true`.
 
 The Workbench queues runs and polls their persistent state. The retired
 `POST /api/v1/runs/{id}/execute` path returns `410 Gone`; execution cannot be
@@ -61,7 +90,7 @@ adapter is installed.
 target, storage profile, and one or more accepted runtime manifests:
 
 ```bash
-qhpc-ecosystem target-worker \
+eqo target-worker \
   --registry /approved/qhpc/registry.yaml \
   --deployment-profile deployments/initial.yaml \
   --execution-target /approved/qhpc/execution-target.yaml \
@@ -82,8 +111,9 @@ See [hpc-execution.md](hpc-execution.md).
 
 SQLite WAL mode and filesystem artifacts support this local two-process slice.
 They are not a multi-host production backend. The asynchronous target path is
-covered by fake scheduler and Apptainer transports; it has not executed on a
-DOE target. Production still requires PostgreSQL-backed transactional leases,
+covered by fake transports and by real OCI operation execution through the
+development Docker Slurm cluster. It has not executed accepted SIFs on a DOE
+target. Production still requires PostgreSQL-backed transactional leases,
 an approved shared artifact service, institutional identity and workspace
 policy, active site-owned target and storage profiles, target-accepted SIFs,
 and operational monitoring and recovery evidence.

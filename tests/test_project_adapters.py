@@ -21,6 +21,13 @@ def _tnsim_executable(tmp_path: Path) -> Path:
     return executable
 
 
+def _ftqc_executable(tmp_path: Path) -> Path:
+    executable = tmp_path / "qasm3-import"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
+    return executable
+
+
 def test_nwqec_adapter_normalizes_public_api_output(tmp_path, monkeypatch) -> None:
     circuit_path = tmp_path / "input.qasm"
     circuit_path.write_text("OPENQASM 2.0;\n", encoding="utf-8")
@@ -281,6 +288,72 @@ def test_tnsim_adapter_rejects_unknown_parameters_without_execution(
             {"backend": "TN_TAMM_GPU"},
             executor=executor,
         )
+
+
+def test_ftqc_adapter_builds_controlled_import_command(tmp_path) -> None:
+    executable = _ftqc_executable(tmp_path)
+    circuit = ROOT / "integrations" / "ftqc" / "fixtures" / "bell.qasm"
+    output = (
+        ROOT / "integrations" / "ftqc" / "fixtures" / "bell.ftqc.mlir"
+    ).read_text(encoding="utf-8")
+    call = {}
+
+    def executor(command, **options):
+        call["command"] = command
+        call["options"] = options
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    result = project_adapters.import_ftqc_qasm(
+        executable,
+        circuit,
+        {"ecc": "surface", "distance": 5, "function_name": "bell_surface"},
+        executor=executor,
+    )
+
+    assert call["command"] == [
+        str(executable.resolve()),
+        "--ecc=surface",
+        "--distance=5",
+        "--func-name=bell_surface",
+        str(circuit.resolve()),
+    ]
+    assert call["options"] == {
+        "capture_output": True,
+        "text": True,
+        "check": False,
+    }
+    assert result == output
+
+
+def test_ftqc_adapter_rejects_uncontrolled_parameters_without_execution(
+    tmp_path,
+) -> None:
+    executable = _ftqc_executable(tmp_path)
+    circuit = ROOT / "integrations" / "ftqc" / "fixtures" / "bell.qasm"
+
+    def executor(_command, **_options):
+        raise AssertionError("executor must not be called")
+
+    with pytest.raises(
+        ProjectAdapterError, match="unsupported FTQC parameters: output_file"
+    ):
+        project_adapters.import_ftqc_qasm(
+            executable,
+            circuit,
+            {"output_file": "/tmp/uncontrolled.mlir"},
+            executor=executor,
+        )
+
+
+def test_ftqc_adapter_requires_openqasm_input(tmp_path) -> None:
+    executable = _ftqc_executable(tmp_path)
+    circuit = tmp_path / "not-qasm.txt"
+    circuit.write_text("h q[0];\n", encoding="utf-8")
+
+    with pytest.raises(
+        ProjectAdapterError, match="must declare OPENQASM 2.0 or 3.0"
+    ):
+        project_adapters.import_ftqc_qasm(executable, circuit, {})
 
 
 def test_adapter_outputs_match_draft_json_artifact_types(tmp_path, monkeypatch) -> None:

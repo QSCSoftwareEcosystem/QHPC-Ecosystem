@@ -1,0 +1,46 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: nwqsim-qflow
+  name: NWQSim QFlow VQE Plugin
+  version: 0.1.0
+  project: hybrid-workflows
+  role: operation-provider
+  owners: [nwqsim-qflow]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/pnnl/nwq-sim
+    catalog_repository: NWQSim-QFlow
+  mirror:
+    status: not-applicable
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [json-context, adapter, cli]
+  scope:
+    status: defined
+    summary: Admit the proposed single-task NWQSim formed-Hamiltonian VQE plugin contract and H6 numerical evidence without publishing the local development patch as an executable operation.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: pending
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs:
+    - capabilities/NWQSim-QFlow/vqe-plugin/qhpc-capability.yaml
+    - artifact-types/qflow-taskset-result-v1.yaml
+  evidence:
+    - docs/evidence/qiris-qflow-incubation-2026-07-29.md
+    - integrations/qiris-qflow/h6-validation-workflow.md
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: Publish no operation until the plugin and adapter are committed, reproducibly built, invoked through live QIRIS, and accepted on QHPC targets.
+  blockers:
+    - Upstream or otherwise review and pin the current uncommitted NWQSim QFlow plugin and adapter.
+    - Reproduce H6 through live QIRIS dispatch and compare amplitude-update inputs with the native QFlow path.
+    - Build and accept immutable CPU and intended accelerator runtime variants.

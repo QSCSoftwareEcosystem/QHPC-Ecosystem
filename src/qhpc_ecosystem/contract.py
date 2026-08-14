@@ -21,6 +21,7 @@ CONTRACT_SCHEMAS = {
     "capability": "capability-v1.schema.json",
     "deployment-profile": "deployment-profile-v1.schema.json",
     "execution-target": "execution-target-v1.schema.json",
+    "hpc-acceptance": "hpc-acceptance-v1.schema.json",
     "integration-scaffold": "integration-scaffold-v1.schema.json",
     "operation-interface": "operation-interface-v1.schema.json",
     "operation-runtime": "operation-runtime-v1.schema.json",
@@ -31,6 +32,7 @@ CONTRACT_SCHEMAS = {
     "slurm-test-cluster": "slurm-test-cluster-v1.schema.json",
     "storage-profile": "storage-profile-v1.schema.json",
     "workflow": "workflow-v1.schema.json",
+    "workflow-draft": "workflow-draft-v1.schema.json",
 }
 
 
@@ -360,6 +362,15 @@ def _validate_workflow(document: dict[str, Any]) -> list[ContractIssue]:
     return issues
 
 
+def _validate_workflow_draft(document: dict[str, Any]) -> list[ContractIssue]:
+    layout_ids = [node["id"] for node in document["spec"]["layout"]["nodes"]]
+    return _duplicate_issues(
+        layout_ids,
+        "/spec/layout/nodes",
+        "canvas node IDs",
+    )
+
+
 def _validate_run(document: dict[str, Any]) -> list[ContractIssue]:
     return _duplicate_issues(
         (task["node_id"] for task in document["spec"]["tasks"]),
@@ -640,6 +651,98 @@ def _validate_operation_interface(document: dict[str, Any]) -> list[ContractIssu
         )
     )
     issues.extend(_validate_parameter_defaults(document))
+    return issues
+
+
+def _validate_hpc_acceptance(document: dict[str, Any]) -> list[ContractIssue]:
+    issues: list[ContractIssue] = []
+    metadata = document["metadata"]
+    spec = document["spec"]
+    cases = spec["cases"]
+    issues.extend(
+        _duplicate_issues(
+            (case["component"] for case in cases),
+            "/spec/cases",
+            "component IDs",
+        )
+    )
+
+    relative_paths = [
+        ("/spec/deployment_profile", spec["deployment_profile"]),
+        ("/spec/scheduler_fixture", spec["scheduler_fixture"]),
+        ("/spec/target/execution_target", spec["target"]["execution_target"]),
+        ("/spec/target/storage_profile", spec["target"]["storage_profile"]),
+        *[
+            (f"/spec/cases/{index}/integration", case["integration"])
+            for index, case in enumerate(cases)
+        ],
+        *[
+            (f"/spec/cases/{index}/runtime", case["runtime"])
+            for index, case in enumerate(cases)
+            if "runtime" in case
+        ],
+    ]
+    for path, value in relative_paths:
+        parsed = PurePosixPath(value)
+        if parsed.is_absolute() or ".." in parsed.parts:
+            issues.append(
+                ContractIssue(path, "must be a workspace-relative path without '..'")
+            )
+
+    for index, case in enumerate(cases):
+        path = f"/spec/cases/{index}"
+        is_batch = case["classification"] == "batch-operation"
+        if is_batch and case["acceptance"] != "required":
+            issues.append(
+                ContractIssue(
+                    path + "/acceptance",
+                    "batch operations require HPC acceptance",
+                )
+            )
+        if not is_batch and case["acceptance"] != "not-applicable":
+            issues.append(
+                ContractIssue(
+                    path + "/acceptance",
+                    "non-batch components cannot require Slurm acceptance",
+                )
+            )
+        if not is_batch and "runtime" in case:
+            issues.append(
+                ContractIssue(
+                    path + "/runtime",
+                    "non-batch components cannot declare an operation runtime",
+                )
+            )
+        if not is_batch and "rationale" not in case:
+            issues.append(
+                ContractIssue(
+                    path + "/rationale",
+                    "is required for a non-batch component",
+                )
+            )
+
+    if metadata["status"] in {"active", "accepted"} and not metadata["evidence"]:
+        issues.append(
+            ContractIssue(
+                "/metadata/evidence",
+                "is required for an active or accepted HPC profile",
+            )
+        )
+    if metadata["status"] == "accepted":
+        missing = [
+            case["component"]
+            for case in cases
+            if case["classification"] == "batch-operation"
+            and "runtime" not in case
+        ]
+        if missing:
+            issues.append(
+                ContractIssue(
+                    "/spec/cases",
+                    "accepted profile has batch components without runtimes: "
+                    + ", ".join(missing),
+                )
+            )
     return issues
 
 
@@ -1149,6 +1252,10 @@ def _validate_slurm_test_cluster(
             "/spec/compatibility/build_ca_destination",
             spec["compatibility"]["build_ca_destination"],
         ),
+        *[
+            (f"/spec/runtime_images/{index}/runtime_manifest", item["runtime_manifest"])
+            for index, item in enumerate(spec.get("runtime_images", []))
+        ],
     ]
     for path, value in relative_paths:
         parsed = PurePosixPath(value)
@@ -1164,6 +1271,22 @@ def _validate_slurm_test_cluster(
             "compatibility destinations",
         )
     )
+    runtime_images = spec.get("runtime_images", [])
+    issues.extend(
+        _duplicate_issues(
+            (item["runtime_id"] for item in runtime_images),
+            "/spec/runtime_images",
+            "runtime IDs",
+        )
+    )
+    for index, item in enumerate(runtime_images):
+        if not item["registry_reference"].endswith("@" + item["digest"]):
+            issues.append(
+                ContractIssue(
+                    f"/spec/runtime_images/{index}/registry_reference",
+                    "must end with the declared digest",
+                )
+            )
     if metadata["status"] == "validated" and not metadata["evidence"]:
         issues.append(
             ContractIssue(
@@ -1181,6 +1304,8 @@ def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]
         return _validate_deployment_profile(document)
     if kind == "execution-target":
         return _validate_execution_target(document)
+    if kind == "hpc-acceptance":
+        return _validate_hpc_acceptance(document)
     if kind == "integration-scaffold":
         return _validate_integration_scaffold(document)
     if kind == "operation-interface":
@@ -1197,6 +1322,8 @@ def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]
         return _validate_storage_profile(document)
     if kind == "workflow":
         return _validate_workflow(document)
+    if kind == "workflow-draft":
+        return _validate_workflow_draft(document)
     if kind == "run":
         return _validate_run(document)
     if kind == "registry":

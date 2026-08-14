@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import qhpc_ecosystem.local_adapters as local_adapters
 from qhpc_ecosystem.engine import TaskRequest
 from qhpc_ecosystem.local_adapters import build_local_runner
 from qhpc_ecosystem.local_runtime import build_wheel_runtime, resolve_wheel_runtime
@@ -15,9 +16,13 @@ from qhpc_ecosystem.local_runtime import build_cpp_runtime, resolve_native_runti
 def make_openqevo_fixture(root: Path) -> str:
     (root / "openqevo").mkdir(parents=True)
     (root / "openqevo/__init__.py").write_text(
-        "def list_methods():\n    return ['exact']\n\n"
+        "def list_methods():\n    return ['exact', 'qiskit_trotter', 'trotter_s2']\n\n"
         "def list_methods_detail():\n"
-        "    return [{'name': 'exact', 'description': 'reference', 'source': 'fixture'}]\n",
+        "    return [\n"
+        "        {'name': 'exact', 'description': 'reference', 'source': 'fixture'},\n"
+        "        {'name': 'qiskit_trotter', 'description': 'adapter', 'source': 'qiskit'},\n"
+        "        {'name': 'trotter_s2', 'description': 'symmetric', 'source': 'algorithms-thrust'},\n"
+        "    ]\n",
         encoding="utf-8",
     )
     (root / "pyproject.toml").write_text(
@@ -51,7 +56,10 @@ def make_openqevo_fixture(root: Path) -> str:
     ).stdout.strip()
 
 
-def test_wheel_runtime_is_reproducible_verified_and_allowlisted(tmp_path: Path) -> None:
+def test_wheel_runtime_is_reproducible_verified_and_allowlisted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     source = tmp_path / "source"
     revision = make_openqevo_fixture(source)
     first = build_wheel_runtime(
@@ -82,11 +90,91 @@ def test_wheel_runtime_is_reproducible_verified_and_allowlisted(tmp_path: Path) 
         output_types={"methods": "qhpc.method-catalog@1"},
         work_directory=work,
     )
-    result = build_local_runner(tmp_path / "runtime-1").execute(request)
+    runner = build_local_runner(tmp_path / "runtime-1")
+    result = runner.execute(request)
     output = Path(result.outputs["methods"].uri.removeprefix("file://"))
     assert (
         json.loads(output.read_text(encoding="utf-8"))["methods"][0]["name"] == "exact"
     )
+
+    context_work = tmp_path / "context-work"
+    context_work.mkdir()
+    context_result = runner.execute(
+        TaskRequest(
+            run_id="run-context",
+            node_id="describe",
+            capability_id="openqevo-library",
+            capability_version="0.1.0",
+            operation_id="describe-method",
+            runtime_reference=first.reference,
+            runtime_digest=first.digest,
+            parameters={"method": "trotter_s2"},
+            inputs={},
+            output_types={"context": "qhpc.evolution-method-context@1"},
+            work_directory=context_work,
+        )
+    )
+    context_output = Path(
+        context_result.outputs["context"].uri.removeprefix("file://")
+    )
+    context = json.loads(context_output.read_text(encoding="utf-8"))
+    assert context["method"]["name"] == "trotter_s2"
+    assert context["context_status"] == "available"
+    assert context["context"]["complexity"]["error_scaling"].endswith("/ n^2)")
+
+    monkeypatch.setattr(
+        local_adapters,
+        "_synthesize_qiskit_trotter",
+        lambda hamiltonian, **parameters: (
+            "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\n",
+            {"depth": 3, "gate_counts": {"cx": 2}},
+        ),
+    )
+    hamiltonian = tmp_path / "hamiltonian.json"
+    hamiltonian.write_text(
+        json.dumps(
+            {
+                "qubits": 2,
+                "terms": [
+                    {"pauli": "ZI", "coefficient": 1.0},
+                    {"pauli": "XX", "coefficient": 0.25},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    synthesis_work = tmp_path / "synthesis-work"
+    synthesis_work.mkdir()
+    synthesis_result = runner.execute(
+        TaskRequest(
+            run_id="run-synthesis",
+            node_id="synthesize",
+            capability_id="openqevo-library",
+            capability_version="0.1.0",
+            operation_id="synthesize-evolution",
+            runtime_reference=first.reference,
+            runtime_digest=first.digest,
+            parameters={
+                "method": "qiskit_trotter",
+                "evolution_time": 1.0,
+                "steps": 4,
+                "order": 2,
+            },
+            inputs={"hamiltonian": {"uri": hamiltonian.resolve().as_uri()}},
+            output_types={
+                "circuit": "qhpc.quantum-circuit@1",
+                "report": "qhpc.evolution-synthesis-report@1",
+            },
+            work_directory=synthesis_work,
+        )
+    )
+    report_output = Path(
+        synthesis_result.outputs["report"].uri.removeprefix("file://")
+    )
+    report = json.loads(report_output.read_text(encoding="utf-8"))
+    assert report["method"] == "qiskit_trotter"
+    assert report["gate_counts"] == {"cx": 2}
+    assert report["bridge_status"] == "development"
 
     first.path.write_bytes(first.path.read_bytes() + b"tamper")
     with pytest.raises(RuntimeError, match="digest mismatch"):

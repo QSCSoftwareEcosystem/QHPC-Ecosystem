@@ -1,0 +1,45 @@
+api_version: qhpc/v1
+kind: OperationInterface
+metadata:
+  id: ftqc-compiler
+  name: FTQC Fault-Tolerant Compiler
+  version: 0.1.0
+  component: ftqc
+  project: compilation-tools
+  owners: [ftqc]
+  source:
+    url: https://github.com/QSCSoftwareThrust/FTQC
+    revision: 947fd0a067f15a9f9d6e7418742080cf34cfb51a
+  status: contract-valid
+  evidence:
+    - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
+spec:
+  operations:
+    - id: import-qasm
+      title: Import OpenQASM into FTQC MLIR
+      description: Run the project-owned standalone OpenQASM 2 or 3 frontend and emit FTQC-dialect MLIR text.
+      behavior: deterministic
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: UTF-8 OpenQASM 2.0 or 3.0 circuit source.
+      outputs:
+        program:
+          artifact_type: qhpc.ftqc-mlir@1
+          description: FTQC-dialect MLIR program at the pinned compiler revision.
+      parameters:
+        ecc:
+          type: string
+          title: Error-correcting code
+          default: steane
+          enum: [steane, surface, color_code]
+        distance:
+          type: integer
+          title: Code distance
+          default: 3
+          minimum: 1
+          maximum: 31
+        function_name:
+          type: string
+          title: MLIR function name
+          default: circuit
