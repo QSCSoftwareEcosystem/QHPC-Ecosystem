@@ -6,11 +6,12 @@ attributed capability registry, persistent workflow engine, controlled runners,
 versioned API, and browser workbench. Scientific source repositories remain
 independent.
 
-The roadmap and remaining deployment dependencies are tracked in
-[PLAN.md](PLAN.md). The target control, execution, data, container, and storage
-boundaries are defined in [docs/architecture.md](docs/architecture.md).
-Integration contracts, architecture decisions, curator evidence, and DOE
-deployment readiness are maintained under [docs/](docs/).
+Remaining deployment dependencies are tracked in
+[docs/deployment-readiness.md](docs/deployment-readiness.md). The target
+control, execution, data, container, and storage boundaries are defined in
+[docs/architecture.md](docs/architecture.md). Integration contracts,
+architecture decisions, curator evidence, and DOE deployment readiness are
+maintained under [docs/](docs/).
 
 The first deployment uses the explicit allowlist in
 [deployments/initial.yaml](deployments/initial.yaml): STABSim, TN-Sim, NWQEC,
