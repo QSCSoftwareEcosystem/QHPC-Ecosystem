@@ -141,6 +141,26 @@ class FakeKnowledge:
         return {"id": node_id, "title": "OpenQEvo", "citations": []}
 
 
+class FakeDatabucket:
+    bucket = "proj-materials-db"
+
+    def __init__(self) -> None:
+        self.requested_prefixes: list[str] = []
+
+    def list_objects(self, prefix: str = ""):
+        from qhpc_ecosystem.s3_client import ObjectSummary
+
+        self.requested_prefixes.append(prefix)
+        return [
+            ObjectSummary(
+                key=f"{prefix}materials-schema-v0.1.yaml",
+                size=512,
+                last_modified="2026-08-31T00:00:00.000Z",
+                etag="abc123",
+            )
+        ]
+
+
 def request_json(
     base: str,
     path: str,
@@ -522,6 +542,67 @@ def test_api_exposes_read_only_knowledge_queries(tmp_path: Path) -> None:
         )
         assert status == 200
         assert path["found"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_data_objects_reports_unavailable_without_databucket(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    context = APIContext(engine=engine, registry=example_registry())
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, body = request_json(base, "/api/v1/data/objects")
+        assert status == 200
+        assert body == {
+            "available": False,
+            "reason": "databucket/Garage is not configured",
+        }
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_data_objects_lists_bucket_contents(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    databucket = FakeDatabucket()
+    context = APIContext(
+        engine=engine,
+        registry=example_registry(),
+        databucket=databucket,
+    )
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, body = request_json(base, "/api/v1/data/objects?prefix=materials-db/")
+        assert status == 200
+        assert body["available"] is True
+        assert body["bucket"] == "proj-materials-db"
+        assert body["prefix"] == "materials-db/"
+        assert body["objects"] == [
+            {
+                "key": "materials-db/materials-schema-v0.1.yaml",
+                "size": 512,
+                "last_modified": "2026-08-31T00:00:00.000Z",
+                "etag": "abc123",
+            }
+        ]
+        assert databucket.requested_prefixes == ["materials-db/"]
     finally:
         server.shutdown()
         server.server_close()

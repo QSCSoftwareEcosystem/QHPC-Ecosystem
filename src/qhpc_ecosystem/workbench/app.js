@@ -88,6 +88,7 @@ const state = {
     staging: null,
     error: null,
   },
+  dataObjectsByPrefix: {},
 };
 const workspace = document.querySelector("#workspace");
 let quantumAsciiCleanup = () => {};
@@ -586,6 +587,54 @@ function dataServiceKind(item) {
   return "Data resource";
 }
 
+function dataObjectsPrefix(item) {
+  // The registry doesn't publish a storage prefix per capability yet, so
+  // this reuses the same materials-db text heuristic as isDataCapability
+  // rather than inventing a second, more general mechanism for the one
+  // live-backed data service that exists so far.
+  const text = dataCapabilityText(item);
+  if (text.includes("materials-db") || text.includes("materials db")) return "materials-db/";
+  return null;
+}
+
+function ensureDataObjectsLoaded(prefix) {
+  if (!prefix) return;
+  const cached = state.dataObjectsByPrefix[prefix];
+  if (cached && (cached.loading || cached.loadedAt)) return;
+  state.dataObjectsByPrefix[prefix] = {
+    loading: true,
+    available: null,
+    bucket: null,
+    objects: [],
+    error: null,
+    loadedAt: null,
+  };
+  api(`/data/objects?prefix=${encodeURIComponent(prefix)}`)
+    .then(body => {
+      state.dataObjectsByPrefix[prefix] = {
+        loading: false,
+        available: Boolean(body.available),
+        bucket: body.bucket || null,
+        objects: body.objects || [],
+        error: null,
+        loadedAt: Date.now(),
+      };
+    })
+    .catch(error => {
+      state.dataObjectsByPrefix[prefix] = {
+        loading: false,
+        available: false,
+        bucket: null,
+        objects: [],
+        error: error.message,
+        loadedAt: Date.now(),
+      };
+    })
+    .finally(() => {
+      if (state.view === "data") renderData();
+    });
+}
+
 function evidenceList(item) {
   return [...new Set([
     ...(item.integration?.evidence || []),
@@ -631,6 +680,22 @@ function dataDetail(item) {
     ? evidence.map(reference => `<li><code>${escapeHtml(reference)}</code></li>`).join("")
     : `<li><span>No separate evidence reference is published.</span></li>`;
   const sourceReviewed = item.integration?.project_reviewed ? "yes" : "no";
+  const objectsPrefix = dataObjectsPrefix(item);
+  const objectsState = objectsPrefix ? state.dataObjectsByPrefix[objectsPrefix] : null;
+  const liveObjectsBody = !objectsPrefix
+    ? ""
+    : !objectsState || objectsState.loading
+      ? `<p class="tool-record-empty">Loading live objects from databucket…</p>`
+      : !objectsState.available
+        ? `<p class="tool-record-empty">databucket/Garage is not configured for this Workbench — start it with <code>eqo dev up</code> (without <code>--no-databucket</code>).</p>`
+        : objectsState.objects.length
+          ? `<table class="data-table"><thead><tr><th>KEY</th><th>SIZE</th><th>LAST MODIFIED</th></tr></thead><tbody>${objectsState.objects.map(object => `<tr><td><code>${escapeHtml(object.key)}</code></td><td>${escapeHtml(object.size)} B</td><td>${escapeHtml(object.last_modified)}</td></tr>`).join("")}</tbody></table>`
+          : `<p class="tool-record-empty">Bucket '${escapeHtml(objectsState.bucket || "")}' has no objects under this prefix yet.</p>`;
+  const liveObjectsSection = !objectsPrefix ? "" : `
+    <section class="data-detail-section">
+      <div class="data-section-title"><h3>Live Object Storage (databucket)</h3><span>${objectsState?.objects?.length ?? 0}</span></div>
+      ${liveObjectsBody}
+    </section>`;
   return `<section class="data-detail">
     <header class="data-detail-head">
       <div>
@@ -653,6 +718,7 @@ function dataDetail(item) {
       <div class="data-section-title"><h3>Published Data Resources</h3><span>${item.resources.length}</span></div>
       <div class="data-resource-grid">${resources || `<p class="tool-record-empty">No data resources are published for this service.</p>`}</div>
     </section>
+    ${liveObjectsSection}
     <section class="data-detail-section">
       <div class="data-section-title"><h3>Provenance Ledger</h3><span>${evidence.length}</span></div>
       <dl class="data-provenance-ledger">
@@ -688,13 +754,18 @@ function renderData() {
     const text = dataCapabilityText(item);
     return text.includes("materials-db") || text.includes("materials db");
   });
+  new Set(allData.map(dataObjectsPrefix).filter(Boolean)).forEach(ensureDataObjectsLoaded);
   const serviceRows = filtered.map(item => {
     const repository = repositoryDisplay(item);
+    const objectsState = state.dataObjectsByPrefix[dataObjectsPrefix(item)];
+    const liveBadge = objectsState?.available && objectsState.objects.length
+      ? `<span class="badge blue" data-glyph="●">Live · ${objectsState.objects.length} object${objectsState.objects.length === 1 ? "" : "s"}</span>`
+      : "";
     return `<button class="data-service-card ${selected?.id === item.id ? "active" : ""}" type="button" data-data-service="${escapeHtml(item.id)}">
       <span>${escapeHtml(dataServiceKind(item))}</span>
       <strong>${escapeHtml(item.name)}</strong>
       <small>${escapeHtml(item.id)}@${escapeHtml(item.version)}</small>
-      <span class="data-service-meta">${badge(item.validation.status)}<em>${item.resources.length} resources</em></span>
+      <span class="data-service-meta">${badge(item.validation.status)}${liveBadge}<em>${item.resources.length} resources</em></span>
       <small>${escapeHtml(repository.label)}</small>
     </button>`;
   }).join("");
@@ -713,7 +784,7 @@ function renderData() {
       <div>
         <span class="panel-label">DATA / SCIENTIFIC DATA LAYER</span>
         <h2 id="data-command-heading">Governed datasets and SDL-backed services</h2>
-        <p>Data stays discoverable without becoming an execution tool. Selected records can become QHPC artifacts only after an explicit materialization path exists.</p>
+        <p>Data stays discoverable without becoming an execution tool. Admitted records can show live object-storage contents from databucket when it's running; selected records can become QHPC artifacts only after an explicit materialization path exists.</p>
       </div>
       <dl>
         <div><dt>Components</dt><dd>${allData.length}</dd></div>

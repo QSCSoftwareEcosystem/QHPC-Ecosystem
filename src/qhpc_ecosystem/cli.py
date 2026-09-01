@@ -387,6 +387,30 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="stop the virtual Slurm fixture when the supervisor exits",
     )
+    dev_up.add_argument(
+        "--databucket-checkout",
+        help="path to a databucket checkout (docker-compose.yml + .env already set up)",
+    )
+    dev_up.add_argument(
+        "--databucket-project",
+        default="materials-db",
+        help="databucket project name to provision (bucket 'proj-<name>')",
+    )
+    dev_up.add_argument(
+        "--no-databucket",
+        action="store_true",
+        help="do not start or connect to databucket/Garage object storage",
+    )
+    dev_up.add_argument(
+        "--no-databucket-start",
+        action="store_true",
+        help="require databucket/Garage to be running already",
+    )
+    dev_up.add_argument(
+        "--stop-databucket-on-exit",
+        action="store_true",
+        help="stop the databucket/Garage stack when the supervisor exits",
+    )
 
     chatqec_service = subparsers.add_parser(
         "chatqec-service",
@@ -1236,6 +1260,7 @@ def dispatch(args: argparse.Namespace) -> int:
         from .deployment import load_deployment_profile, registry_for_deployment
         from .engine import WorkflowEngine
         from .knowledge import QAppsWikiKnowledge
+        from .s3_client import S3Client
 
         catalog = load_catalog(args.catalog)
         profile = load_deployment_profile(args.deployment_profile, catalog)
@@ -1256,6 +1281,19 @@ def dispatch(args: argparse.Namespace) -> int:
             chatqec = ChatQECGateway(
                 args.chatqec_service_url,
                 identity_token,
+            )
+        databucket = None
+        databucket_endpoint = os.environ.get("QHPC_DATABUCKET_S3_ENDPOINT", "")
+        databucket_bucket = os.environ.get("QHPC_DATABUCKET_BUCKET", "")
+        if databucket_endpoint and databucket_bucket:
+            databucket = S3Client(
+                endpoint=databucket_endpoint,
+                region="garage",
+                bucket=databucket_bucket,
+                access_key_id=os.environ.get("QHPC_DATABUCKET_ACCESS_KEY_ID", ""),
+                secret_access_key=os.environ.get(
+                    "QHPC_DATABUCKET_SECRET_ACCESS_KEY", ""
+                ),
             )
         repository_updates = None
         if args.enable_repository_updates:
@@ -1329,6 +1367,7 @@ def dispatch(args: argparse.Namespace) -> int:
                 chatqec=chatqec,
                 repository_updates=repository_updates,
                 knowledge=knowledge,
+                databucket=databucket,
             ),
             args.host,
             args.port,
@@ -1346,6 +1385,9 @@ def dispatch(args: argparse.Namespace) -> int:
         )
         from .chatqec_service import ChatQECSource
         from .slurm_test_cluster import SlurmDockerCluster
+        from .databucket_stack import GarageStack
+        from .s3_client import S3Client
+        from . import materials_db_ingest
 
         if args.dev_command != "up":
             raise ContractError(f"unsupported dev command: {args.dev_command}")
@@ -1376,6 +1418,36 @@ def dispatch(args: argparse.Namespace) -> int:
         if not status.ready:
             raise ContractError("development Slurm cluster did not become ready")
         cluster.verify_runtime_images()
+
+        databucket_stack = None
+        databucket_credentials = None
+        if not args.no_databucket:
+            if not args.databucket_checkout:
+                raise ContractError(
+                    "--databucket-checkout is required unless --no-databucket is set"
+                )
+            databucket_stack = GarageStack(args.databucket_checkout)
+            databucket_stack.prepare()
+            if not databucket_stack.status():
+                if args.no_databucket_start:
+                    raise ContractError(
+                        "databucket/Garage is not running and automatic start "
+                        "is disabled"
+                    )
+                databucket_stack.start()
+            databucket_credentials = databucket_stack.ensure_project(
+                args.databucket_project
+            )
+            materials_db_ingest.publish(
+                S3Client(
+                    endpoint=databucket_credentials.endpoint,
+                    region=databucket_credentials.region,
+                    bucket=databucket_credentials.bucket,
+                    access_key_id=databucket_credentials.access_key_id,
+                    secret_access_key=databucket_credentials.secret_access_key,
+                ),
+                Path.cwd(),
+            )
 
         api_port = (
             args.port
@@ -1431,6 +1503,21 @@ def dispatch(args: argparse.Namespace) -> int:
             start_workbench=not args.no_django_workbench,
             start_chatqec=not args.no_chatqec,
             start_repository_updates=not args.no_repository_updates,
+            start_databucket=not args.no_databucket,
+            databucket_s3_endpoint=(
+                databucket_credentials.endpoint if databucket_credentials else ""
+            ),
+            databucket_bucket=(
+                databucket_credentials.bucket if databucket_credentials else ""
+            ),
+            databucket_access_key_id=(
+                databucket_credentials.access_key_id if databucket_credentials else ""
+            ),
+            databucket_secret_access_key=(
+                databucket_credentials.secret_access_key
+                if databucket_credentials
+                else ""
+            ),
         )
         supervisor = DevStackSupervisor(
             build_service_specs(config),
@@ -1478,6 +1565,8 @@ def dispatch(args: argparse.Namespace) -> int:
             supervisor.stop()
             if args.stop_cluster_on_exit:
                 cluster.stop()
+            if args.stop_databucket_on_exit and databucket_stack is not None:
+                databucket_stack.stop()
         return 0
 
     if args.subcommand == "slurm-test-cluster":
