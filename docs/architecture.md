@@ -290,7 +290,7 @@ target. The Docker fixture does not contain Apptainer and cannot provide that
 evidence.
 
 `infrastructure/hpc-acceptance/initial.yaml` connects that gate to the
-authoritative fourteen-component deployment profile. It classifies each component,
+authoritative fifteen-component deployment profile. It classifies each component,
 references the current runtime where applicable, and names the target and
 storage contracts. The runner keeps host storage paths separate from
 scheduler-visible paths through an injected mapper, so transport-specific path

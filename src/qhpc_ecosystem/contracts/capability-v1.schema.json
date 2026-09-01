@@ -231,7 +231,16 @@
       "properties": {
         "id": {"$ref": "#/$defs/identifier"},
         "kind": {
-          "enum": ["artifact-type", "dataset", "documentation", "adapter", "library"]
+          "enum": [
+            "artifact-type",
+            "dataset",
+            "documentation",
+            "adapter",
+            "library",
+            "schema",
+            "data-service",
+            "provenance"
+          ]
         },
         "version": {"$ref": "#/$defs/version"},
         "uri": {"type": "string", "format": "uri-reference"},

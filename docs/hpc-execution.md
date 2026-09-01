@@ -50,7 +50,7 @@ paths and all-zero digests must never be activated.
 ## Initial-Package Acceptance
 
 `infrastructure/hpc-acceptance/initial.yaml` is the machine-readable HPC
-acceptance inventory for the fourteen initial components. Inspect it with:
+acceptance inventory for the fifteen initial components. Inspect it with:
 
 ```bash
 eqo hpc-acceptance status \

@@ -47,6 +47,10 @@ records each selected component's source, ecosystem role, catalog mapping when
 applicable, and onboarding state. Component IDs and catalog repository
 references must be unique.
 
+Data-service components publish governed datasets, schemas, provenance records,
+or service access metadata without entering the workflow execution plane unless
+a separate operation contract is admitted.
+
 An unresolved source must be blocked and carry an explicit blocker. A catalog
 mapping is validated against both the repository slug and canonical source URL.
 Before a service starts, its registry is filtered through the profile; catalog
