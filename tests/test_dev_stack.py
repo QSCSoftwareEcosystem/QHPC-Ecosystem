@@ -72,6 +72,22 @@ def test_dev_stack_builds_separate_api_and_worker_processes() -> None:
     )
 
 
+def test_dev_stack_accepts_release_specific_worker_identity() -> None:
+    value = config()
+    value = DevStackConfig(
+        **{
+            **value.__dict__,
+            "start_target_worker": False,
+            "local_worker_id": "eqo-local-worker",
+        }
+    )
+
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+
+    assert [service.name for service in services][-1] == "local-worker"
+    assert "eqo-local-worker" in services[-1].command
+
+
 class FakeProcess:
     next_pid = 1000
 

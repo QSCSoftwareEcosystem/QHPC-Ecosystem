@@ -1,6 +1,6 @@
 # EQO Local Release Plan
 
-- Status: Proposed implementation plan
+- Status: Implementation in progress; release-mode lifecycle implemented
 - Branch: `dev-local`
 - Initial release target: portable local EQO
 - Future deployment target: shared server or cloud profile
@@ -163,24 +163,34 @@ every scientific operation runtime.
 
 ### 1. Release-mode lifecycle
 
-- Add the `eqo local` command group.
-- Define stable lifecycle, health, shutdown, and failure behavior.
-- Separate local release defaults from developer-only defaults.
-- Prevent duplicate supervisors and detect incompatible running versions.
+- [x] Add the `eqo local` command group.
+- [x] Define stable startup, health, shutdown, and failure behavior for
+  `up`, `status`, `open`, and `down`.
+- [x] Separate the local API, Workbench, Assistant, and local worker from the
+  developer-only virtual Slurm fixture and repository-update controller.
+- [x] Prevent duplicate supervisors and refuse ambiguous stale process IDs.
+- [ ] Add `export` and `import` after the portable state schema is implemented.
 
 ### 2. Configuration and paths
 
-- Introduce a versioned local configuration profile.
-- Remove hard-coded localhost, port, checkout, and data-path assumptions.
-- Define stable application-data, cache, artifact, log, and temporary paths.
-- Keep environment-variable overrides explicit and documented.
+- [x] Introduce a versioned local configuration profile and runtime-state
+  document without persisted service credentials.
+- [x] Make loopback service ports and the optional Assistant source checkout
+  configurable while retaining loopback-only local security.
+- [x] Define stable macOS and XDG configuration, application-data, cache,
+  artifact, runtime, export, state, and log paths.
+- [x] Support and document `EQO_HOME` and `--home` as explicit portable-root
+  overrides.
 
 ### 3. Built Workbench distribution
 
-- Build and package Workbench assets during release production.
-- Serve the same assets through the local application boundary.
-- Support a configurable API endpoint without embedding credentials.
-- Validate browser behavior without requiring Node.js on the user's machine.
+- [x] Package the compiled Workbench together with a versioned catalog,
+  registry, deployment profile, workflows, and Assistant interface.
+- [x] Serve the packaged Workbench through the local application boundary.
+- [x] Support a configurable API endpoint without embedding credentials.
+- [x] Validate an installed wheel from outside the source checkout without
+  requiring Node.js on the user's machine.
+- [ ] Automate a clean frontend rebuild before producing release artifacts.
 
 ### 4. Persistence and migration
 

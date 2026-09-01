@@ -41,6 +41,8 @@ class DevStackConfig:
     start_workbench: bool = True
     start_chatqec: bool = True
     start_repository_updates: bool = True
+    local_worker_id: str = "dev-local-worker"
+    target_worker_id: str = "dev-virtual-slurm-worker"
 
 
 @dataclass(frozen=True)
@@ -163,7 +165,7 @@ def build_service_specs(
                     "--lease-seconds",
                     str(config.lease_seconds),
                     "--worker-id",
-                    "dev-local-worker",
+                    config.local_worker_id,
                 ),
             )
         )
@@ -182,7 +184,7 @@ def build_service_specs(
                     "--lease-seconds",
                     str(config.lease_seconds),
                     "--worker-id",
-                    "dev-virtual-slurm-worker",
+                    config.target_worker_id,
                 ),
             )
         )
@@ -201,6 +203,7 @@ class DevStackSupervisor:
         *,
         restart_delay_seconds: float = 1.0,
         process_factory: ProcessFactory = subprocess.Popen,
+        service_label: str = "QHPC dev",
     ) -> None:
         if not services:
             raise ValueError("development stack requires at least one service")
@@ -209,6 +212,7 @@ class DevStackSupervisor:
         self.services = tuple(services)
         self.restart_delay_seconds = restart_delay_seconds
         self.process_factory = process_factory
+        self.service_label = service_label
         self.processes: dict[str, subprocess.Popen[bytes]] = {}
 
     def _start(self, service: ServiceSpec) -> subprocess.Popen[bytes]:
@@ -220,7 +224,7 @@ class DevStackSupervisor:
             env=environment,
         )
         self.processes[service.name] = process
-        print(f"QHPC dev service started: {service.name} (pid {process.pid})")
+        print(f"{self.service_label} service started: {service.name} (pid {process.pid})")
         return process
 
     def start_api(self) -> None:
@@ -308,7 +312,7 @@ class DevStackSupervisor:
                     continue
                 return_code = process.returncode
                 print(
-                    f"QHPC dev service exited: {service.name} "
+                    f"{self.service_label} service exited: {service.name} "
                     f"(status {return_code}); restarting"
                 )
                 if stop_event.wait(self.restart_delay_seconds):
@@ -326,7 +330,10 @@ class DevStackSupervisor:
             try:
                 process.wait(timeout=remaining)
             except subprocess.TimeoutExpired:
-                print(f"QHPC dev service did not stop cleanly: {name}; killing")
+                print(
+                    f"{self.service_label} service did not stop cleanly: "
+                    f"{name}; killing"
+                )
                 process.kill()
                 process.wait()
         self.processes.clear()

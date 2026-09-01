@@ -1,0 +1,510 @@
+schema_version: 1
+catalog_updated: '2026-07-29'
+source_manifest: ../ProjectManagement/gitlab-mirror/repositories.tsv
+environments:
+  python-lib:
+    recipe: containers/base-python.def
+    description: Python libraries, frameworks, and lightweight simulators.
+  hpc-build:
+    recipe: containers/base-hpc.def
+    description: Compilers, native extensions, MPI, and HPC-oriented simulation.
+  schema-docs:
+    recipe: containers/base-docs.def
+    description: Schemas, documentation, catalogs, and knowledge tooling.
+  agentic:
+    recipe: containers/base-agentic.def
+    description: Python and Node.js environment for agents, RAG, and dashboards.
+  packaging:
+    recipe: containers/base-packaging.def
+    description: Spack repository development and HPC package maintenance.
+repositories:
+- slug: openqse-spec
+  display_name: OpenQSE Specification
+  source_url: https://github.com/openQSE/openqse-spec
+  notes: Initial OpenQSE integration selects the pinned glossary and architecture
+    specification as non-executable documentation resources.
+  qsc_project: cross-project
+  package_role: other
+  capabilities:
+  - schema
+  - qhpc
+  hardware_targets:
+  - local-cpu
+  interfaces:
+  - markdown-source
+  environment: schema-docs
+  container_status: ready
+  visibility: public
+  canonical_status: canonical
+- slug: OpenQEvo
+  display_name: OpenQEvo
+  source_url: https://github.com/QSCSoftwareThrust/OpenQEvo
+  notes: Includes OpenQEvo context data under context/ and context/schema.json.
+  qsc_project: cross-project
+  package_role: framework
+  capabilities:
+  - circuit-framework
+  - workflow-composition
+  - schema
+  - qhpc
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - quantum-hardware
+  - simulator
+  interfaces:
+  - python-api
+  - registry
+  - adapter
+  - json-context
+  - qasm
+  environment: python-lib
+  container_status: ready
+  visibility: public
+  canonical_status: canonical
+  local_path: ../OpenQEvo
+- slug: spack-packages
+  display_name: QSCSpack
+  source_url: https://github.com/QSCSoftwareThrust/spack-packages
+  notes: QSC Spack package repository.
+  qsc_project: software-engineering
+  package_role: framework
+  capabilities:
+  - qhpc
+  hardware_targets:
+  - hpc
+  interfaces:
+  - registry
+  - cli
+  environment: packaging
+  container_status: ready
+  visibility: public
+  canonical_status: canonical
+  local_path: ../spack-packages
+- slug: QAppsWiki
+  display_name: QAppsWiki
+  source_url: https://github.com/QSCSoftwareThrust/QAppsWiki
+  notes: QSC applications/wiki context repository.
+  qsc_project: cross-project
+  package_role: framework
+  capabilities:
+  - knowledge-graph
+  - provenance
+  - markdown-compilation
+  - agentic-query
+  hardware_targets:
+  - local-cpu
+  interfaces:
+  - markdown-source
+  - metadata-bundle
+  - mcp
+  - cli
+  environment: schema-docs
+  container_status: ready
+  visibility: public
+  canonical_status: canonical
+  local_path: ../QAppsWiki
+- slug: quantum-rag
+  display_name: Baseline RAG
+  source_url: https://github.com/nhstaple/quantum-rag
+  notes: Baseline RAG repository.
+  qsc_project: agentic-software
+  package_role: framework
+  capabilities:
+  - agentic-query
+  - knowledge-graph
+  hardware_targets:
+  - local-cpu
+  - local-gpu
+  interfaces:
+  - python-api
+  - cli
+  environment: agentic
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: chatqec
+  display_name: ChatQEC
+  source_url: https://github.com/QSCSoftwareThrust/ChatQEC
+  notes: GitHub selected as the QHPC working source on 2026-07-24; internal GitLab
+    repositories are secondary mirrors.
+  qsc_project: agentic-software
+  package_role: workflow
+  capabilities:
+  - agentic-query
+  - qec
+  hardware_targets:
+  - local-cpu
+  interfaces:
+  - python-api
+  - cli
+  environment: agentic
+  container_status: planned
+  visibility: internal
+  canonical_status: canonical
+- slug: AS-popular_quantum_sdk_dashboard
+  display_name: QuantumSDK
+  source_url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard
+  notes: Quantum SDK dashboard.
+  qsc_project: agentic-software
+  package_role: framework
+  capabilities:
+  - benchmarking
+  - agentic-query
+  hardware_targets:
+  - local-cpu
+  interfaces:
+  - python-api
+  - cli
+  environment: agentic
+  container_status: ready
+  visibility: public
+  canonical_status: canonical
+  local_path: ../AS-popular_quantum_sdk_dashboard
+- slug: code_generation_agent
+  display_name: Q-Orch
+  source_url: https://code.ornl.gov/qsc-as/code_generation_agent
+  notes: Internal GitLab source; access may require ORNL credentials.
+  qsc_project: agentic-software
+  package_role: workflow
+  capabilities:
+  - agentic-query
+  - workflow-composition
+  hardware_targets:
+  - local-cpu
+  - hpc
+  interfaces:
+  - python-api
+  - cli
+  - hybrid-agent-interface
+  environment: agentic
+  container_status: planned
+  visibility: internal
+  canonical_status: canonical
+- slug: quantum-ai-assistants-benchmark
+  display_name: Q-Code Assistance
+  source_url: https://code.ornl.gov/pza/quantum-ai-assistants-benchmark
+  notes: Internal GitLab source; access may require ORNL credentials.
+  qsc_project: agentic-software
+  package_role: framework
+  capabilities:
+  - benchmarking
+  - agentic-query
+  hardware_targets:
+  - local-cpu
+  - local-gpu
+  interfaces:
+  - python-api
+  - metadata-bundle
+  - cli
+  environment: agentic
+  container_status: planned
+  visibility: internal
+  canonical_status: canonical
+- slug: DataSchema
+  display_name: Platform-Hw-metadata
+  source_url: https://github.com/QSCSoftwareThrust/DataSchema
+  notes: Also contains QSC data catalog branches and hardware information survey dataset.
+  qsc_project: data-science
+  package_role: dataset
+  capabilities:
+  - schema
+  - provenance
+  hardware_targets:
+  - hpc
+  - quantum-hardware
+  interfaces:
+  - json-context
+  - metadata-bundle
+  - markdown-source
+  environment: schema-docs
+  container_status: ready
+  visibility: public
+  canonical_status: canonical
+  local_path: ../DataSchema
+- slug: qasmtrans
+  display_name: QASMTrans
+  source_url: https://github.com/pnnl/qasmtrans
+  notes: External GitHub source.
+  qsc_project: compilation-tools
+  package_role: compiler
+  capabilities:
+  - adapter
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - quantum-hardware
+  interfaces:
+  - qasm
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: FTCircuitBench
+  display_name: FTCircuitBench
+  source_url: https://github.com/AdrianHarkness/FTCircuitBench
+  notes: External GitHub source.
+  qsc_project: compilation-tools
+  package_role: dataset
+  capabilities:
+  - benchmarking
+  - qec
+  hardware_targets:
+  - simulator
+  - quantum-hardware
+  interfaces:
+  - qasm
+  - metadata-bundle
+  environment: python-lib
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: nwqec
+  display_name: NWQEC
+  source_url: https://github.com/pnnl/nwqec
+  notes: External GitHub source.
+  qsc_project: compilation-tools
+  package_role: framework
+  capabilities:
+  - qec
+  - simulation
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - simulator
+  interfaces:
+  - python-api
+  - qasm
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: FTPrimitiveBench
+  display_name: FTPrimitiveBench
+  source_url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench
+  notes: QSCSoftwareThrust GitHub source selected after its main branch was verified
+    at the admitted revision; the original upstream remains recorded as an alternate.
+  alternate_sources:
+  - https://github.com/ShuwenKan/FTPrimitiveBench
+  qsc_project: compilation-tools
+  package_role: dataset
+  capabilities:
+  - benchmarking
+  - qec
+  hardware_targets:
+  - simulator
+  - quantum-hardware
+  interfaces:
+  - metadata-bundle
+  - python-api
+  environment: python-lib
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: STABSim
+  display_name: STABSim
+  source_url: https://github.com/QSCSoftwareThrust/STABSim
+  notes: QSCSoftwareThrust GitHub source selected after its main branch was verified
+    at the admitted revision; the original upstream remains recorded in the ecosystem
+    catalog.
+  alternate_sources:
+  - https://github.com/seangarn32/STABSim
+  qsc_project: hardware-tools
+  package_role: simulator
+  capabilities:
+  - stabilizer-simulation
+  - qec
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - simulator
+  interfaces:
+  - python-api
+  - stim
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: NWQ-Sim
+  display_name: TN-Sim (NWQ-Sim tn_sim branch)
+  source_url: https://github.com/pnnl/NWQ-Sim/tree/tn_sim
+  notes: TN-Sim is maintained as the public tn_sim branch of pnnl/NWQ-Sim; no QSC
+    mirror is required. Revision 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b is audited
+    for a seeded OpenQASM 2.0 CPU iTensor MPS operation. The production binary, immutable
+    runtime, and target evidence remain pending.
+  qsc_project: hybrid-workflows
+  package_role: simulator
+  capabilities:
+  - tensor-network-simulation
+  hardware_targets:
+  - local-cpu
+  - hpc
+  interfaces:
+  - qasm
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: ExaChem
+  display_name: ExaChem QFlow
+  source_url: https://github.com/ExaChem/exachem
+  notes: The pinned public ExaChem revision supplies the QFlow chemistry and cycle implementation. The observed task-set export hook is an uncommitted qiris-qflow development patch and is not a published executable EQO-QSC operation.
+  qsc_project: hybrid-workflows
+  package_role: workflow
+  capabilities:
+  - quantum-chemistry
+  - qflow-tasksets
+  - formed-hamiltonian-export
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - simulator
+  interfaces:
+  - json-context
+  - adapter
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+  local_path: ../qiris-qflow/exachem
+- slug: IRIS-QIRIS
+  display_name: QIRIS Runtime (IRIS/QIR-EE)
+  source_url: https://github.com/ORNL/iris
+  notes: Public IRIS/QIR-EE source admitted as the runtime substrate for the proposed QIRIS task-orchestration boundary; the ecosystem does not claim an existing high-level VQE service.
+  qsc_project: hybrid-workflows
+  package_role: backend
+  capabilities:
+  - quantum-task-orchestration
+  - qir-execution
+  - heterogeneous-scheduling
+  hardware_targets:
+  - local-cpu
+  - local-gpu
+  - hpc
+  - quantum-hardware
+  - simulator
+  interfaces:
+  - qir
+  - adapter
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+  local_path: ../qiris-qflow/iris
+- slug: NWQSim-QFlow
+  display_name: NWQSim QFlow VQE Plugin
+  source_url: https://github.com/pnnl/nwq-sim
+  notes: Main-branch NWQSim source for the proposed formed-Hamiltonian VQE plugin. This is separate from the admitted tn_sim branch and the plugin remains an uncommitted qiris-qflow development patch.
+  qsc_project: hybrid-workflows
+  package_role: simulator
+  capabilities:
+  - vqe
+  - qflow-plugin
+  - formed-hamiltonian-solve
+  hardware_targets:
+  - local-cpu
+  - local-gpu
+  - hpc
+  - simulator
+  interfaces:
+  - json-context
+  - adapter
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+  local_path: ../qiris-qflow/nwq-sim
+- slug: calibration-conditioned-decoding
+  display_name: ML decoder
+  source_url: https://github.com/Samuelstein1224/calibration-conditioned-decoding
+  notes: Calibration-conditioned decoding repository.
+  qsc_project: hardware-tools
+  package_role: framework
+  capabilities:
+  - qec
+  - benchmarking
+  hardware_targets:
+  - local-cpu
+  - local-gpu
+  - quantum-hardware
+  interfaces:
+  - python-api
+  - metadata-bundle
+  environment: python-lib
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: ftqc
+  display_name: FTQC compiler
+  source_url: https://github.com/QSCSoftwareThrust/FTQC
+  notes: QSCSoftwareThrust is the canonical QHPC working mirror; code.ornl.gov/qsc-ct/ftqc
+    remains the authoritative internal upstream and recurring mirror source.
+  alternate_sources:
+  - https://code.ornl.gov/qsc-ct/ftqc
+  qsc_project: compilation-tools
+  package_role: compiler
+  capabilities:
+  - qec
+  - resource-estimation
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - quantum-hardware
+  interfaces:
+  - qasm
+  - qir
+  - mlir
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: internal
+  canonical_status: canonical
+- slug: LightStim
+  display_name: LightStim
+  source_url: https://github.com/QSCSoftwareThrust/LightStim
+  notes: QSCSoftwareThrust is the canonical working repository; the current runtime
+    retains explicit QuTone release provenance until a QSC revision is rebuilt and
+    requalified.
+  alternate_sources:
+  - https://github.com/QuTone/LightStim
+  qsc_project: hardware-tools
+  package_role: simulator
+  capabilities:
+  - stabilizer-simulation
+  - qec
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - simulator
+  interfaces:
+  - python-api
+  - stim
+  - cli
+  environment: hpc-build
+  container_status: planned
+  visibility: public
+  canonical_status: canonical
+- slug: HeteQSys
+  display_name: HeteQSys
+  source_url: null
+  notes: Authoritative repository URL has not yet been identified.
+  qsc_project: hardware-tools
+  package_role: framework
+  capabilities:
+  - qhpc
+  hardware_targets:
+  - hpc
+  - quantum-hardware
+  interfaces:
+  - hybrid-agent-interface
+  environment: hpc-build
+  container_status: blocked
+  visibility: unknown
+  canonical_status: unresolved

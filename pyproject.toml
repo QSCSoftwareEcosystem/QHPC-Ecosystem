@@ -14,6 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "wheel>=0.41", "Django>=5.2.15,<5.3"]
+local = ["Django>=5.2.15,<5.3"]
 workbench = ["Django>=5.2.15,<5.3"]
 
 [project.scripts]
@@ -31,6 +32,7 @@ include = ["qhpc_ecosystem*", "qhpc_workbench*"]
 
 [tool.setuptools.package-data]
 qhpc_ecosystem = ["contracts/*.json", "openqevo_context/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js", "workbench/assets/*"]
+"qhpc_ecosystem.local_assets" = ["*.yaml", "workflows/*.yaml"]
 qhpc_workbench = ["templates/qhpc_workbench/*.html", "static/qhpc_workbench/*"]
 
 [tool.pytest.ini_options]

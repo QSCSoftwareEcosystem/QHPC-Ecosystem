@@ -116,7 +116,12 @@ REPOSITORY_REQUIRED_FIELDS = {
 
 def default_catalog_path() -> Path:
     """Return the catalog beside the source tree."""
-    return Path(__file__).resolve().parents[2] / "ecosystem.yaml"
+    source_catalog = Path(__file__).resolve().parents[2] / "ecosystem.yaml"
+    if source_catalog.is_file():
+        return source_catalog
+    from .local_assets import asset_path
+
+    return asset_path("catalog")
 
 
 def _resolve_path(base: Path, value: str) -> Path:

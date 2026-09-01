@@ -1,0 +1,40 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: openqevo-trotter-synthesis
+  name: Synthesize an OpenQEvo Trotter circuit
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Convert a Pauli Hamiltonian into OpenQASM 2.0 with an attributed local OpenQEvo/Qiskit development bridge.
+spec:
+  nodes:
+    - id: synthesize
+      operation:
+        capability: openqevo-library
+        version: 0.1.0
+        operation: synthesize-evolution
+      parameters:
+        method: qiskit_trotter
+        evolution_time: 1.0
+        steps: 4
+        order: 2
+  edges: []
+  inputs:
+    hamiltonian:
+      artifact_type: qhpc.pauli-hamiltonian@1
+      required: true
+      to:
+        node: synthesize
+        port: hamiltonian
+  outputs:
+    circuit:
+      artifact_type: qhpc.quantum-circuit@1
+      from:
+        node: synthesize
+        port: circuit
+    report:
+      artifact_type: qhpc.evolution-synthesis-report@1
+      from:
+        node: synthesize
+        port: report

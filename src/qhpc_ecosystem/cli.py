@@ -28,6 +28,8 @@ from .contract import (
     validate_contract,
 )
 from .operation_runtime import OperationRuntimeError
+from .local_release import LocalReleaseError
+from .local_assets import asset_path as local_asset_path
 from .registry import (
     RegistryError,
     build_registry,
@@ -109,7 +111,7 @@ def _image_dir(value: str | None) -> Path:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="eqo",
-        description="Discover and enter QSC quantum-HPC development environments.",
+        description="Operate the EQO quantum-HPC ecosystem and local Workbench.",
     )
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
@@ -297,6 +299,85 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve_parser.add_argument("--workspace-root", default=".")
     serve_parser.add_argument("--update-state-root", default=".qhpc/updates")
+
+    local_parser = subparsers.add_parser(
+        "local", help="operate the portable single-user EQO release"
+    )
+    local_commands = local_parser.add_subparsers(
+        dest="local_command", required=True, metavar="{up,status,open,down}"
+    )
+    local_up = local_commands.add_parser(
+        "up", help="start the Workbench, API, local worker, and Assistant"
+    )
+    local_status = local_commands.add_parser(
+        "status", help="report local services, worker readiness, and storage"
+    )
+    local_open = local_commands.add_parser(
+        "open", help="open the running EQO Workbench"
+    )
+    local_down = local_commands.add_parser(
+        "down", help="stop the supervised local services"
+    )
+    local_supervise = local_commands.add_parser("_supervise", help=argparse.SUPPRESS)
+    local_commands._choices_actions = [
+        action
+        for action in local_commands._choices_actions
+        if action.dest != "_supervise"
+    ]
+
+    for command in (local_up, local_status, local_open, local_down, local_supervise):
+        command.add_argument(
+            "--home",
+            help="single portable root; defaults to operating-system application paths",
+        )
+    for command in (local_up, local_supervise):
+        command.add_argument(
+            "--registry", default=str(local_asset_path("registry"))
+        )
+        command.add_argument(
+            "--deployment-profile",
+            default=str(local_asset_path("deployment-profile")),
+        )
+        command.add_argument(
+            "--assistant-interface",
+            default=str(local_asset_path("assistant-interface")),
+        )
+        command.add_argument("--assistant-source-checkout")
+        command.add_argument(
+            "--workflow",
+            action="append",
+            default=[],
+            help="workflow published at startup; repeat to replace release defaults",
+        )
+        command.add_argument("--host", default="127.0.0.1")
+        command.add_argument("--port", type=int, default=8080)
+        command.add_argument("--api-port", type=int, default=8081)
+        command.add_argument("--assistant-port", type=int, default=8082)
+        command.add_argument("--poll-interval", type=float, default=0.5)
+        command.add_argument("--lease-seconds", type=int, default=300)
+        command.add_argument("--worker-stale-after", type=float, default=15.0)
+        command.add_argument("--restart-delay", type=float, default=1.0)
+        command.add_argument(
+            "--no-assistant",
+            action="store_true",
+            help="start without the optional local Assistant service",
+        )
+    for name in ("config", "data", "cache", "state", "log"):
+        local_supervise.add_argument(
+            f"--{name}-root", help=argparse.SUPPRESS
+        )
+    local_up.add_argument(
+        "--timeout", type=float, default=30.0, help="startup timeout in seconds"
+    )
+    local_up.add_argument(
+        "--open", action="store_true", help="open the Workbench after startup"
+    )
+    local_status.add_argument(
+        "--json", action="store_true", help="emit machine-readable status"
+    )
+    local_down.add_argument(
+        "--timeout", type=float, default=15.0, help="shutdown timeout in seconds"
+    )
 
     dev_parser = subparsers.add_parser(
         "dev", help="run the supervised local Workbench and worker stack"
@@ -1103,6 +1184,88 @@ def _print_integration_scaffold(scaffold: object) -> None:
 
 
 def dispatch(args: argparse.Namespace) -> int:
+    if args.subcommand == "local":
+        from .local_release import (
+            LocalPaths,
+            LocalStackConfig,
+            default_local_workflows,
+            format_status,
+            launch_local,
+            local_status,
+            open_local,
+            resolve_paths,
+            stop_local,
+            supervise_local,
+        )
+
+        root_names = ("config_root", "data_root", "cache_root", "state_root", "log_root")
+        root_values = [getattr(args, name, None) for name in root_names]
+        if any(root_values):
+            if not all(root_values):
+                raise LocalReleaseError(
+                    "the internal local supervisor requires every path root"
+                )
+            paths = LocalPaths(*(Path(value).expanduser().resolve() for value in root_values))
+        else:
+            paths = LocalPaths.discover(args.home)
+
+        if args.local_command == "status":
+            report = local_status(paths)
+            if args.json:
+                print(json.dumps(report, indent=2, sort_keys=True))
+            else:
+                print(format_status(report))
+            return 0
+        if args.local_command == "open":
+            print(f"EQO Local Workbench: {open_local(paths)}")
+            return 0
+        if args.local_command == "down":
+            stopped = stop_local(paths, timeout_seconds=args.timeout)
+            print("EQO Local stopped" if stopped else "EQO Local is already stopped")
+            return 0
+        if args.local_command not in {"up", "_supervise"}:
+            raise LocalReleaseError(f"unsupported local command: {args.local_command}")
+
+        workflows = tuple(args.workflow) or default_local_workflows()
+        assistant_checkout = (
+            str(Path(args.assistant_source_checkout).expanduser().resolve())
+            if args.assistant_source_checkout
+            else None
+        )
+        config = LocalStackConfig(
+            catalog=str(Path(args.catalog).expanduser().resolve()),
+            registry=str(Path(args.registry).expanduser().resolve()),
+            deployment_profile=str(
+                Path(args.deployment_profile).expanduser().resolve()
+            ),
+            workflows=resolve_paths(workflows),
+            assistant_interface=str(
+                Path(args.assistant_interface).expanduser().resolve()
+            ),
+            assistant_source_checkout=assistant_checkout,
+            host=args.host,
+            workbench_port=args.port,
+            api_port=args.api_port,
+            assistant_port=args.assistant_port,
+            assistant_enabled=not args.no_assistant,
+            poll_interval_seconds=args.poll_interval,
+            lease_seconds=args.lease_seconds,
+            worker_stale_after_seconds=args.worker_stale_after,
+            restart_delay_seconds=args.restart_delay,
+        )
+        if args.local_command == "_supervise":
+            return supervise_local(config, paths, release_version=__version__)
+
+        report = launch_local(
+            config,
+            paths,
+            release_version=__version__,
+            timeout_seconds=args.timeout,
+            open_browser=args.open,
+        )
+        print(format_status(report))
+        return 0
+
     if args.subcommand == "integration":
         from .integration import (
             find_integration_scaffold,
@@ -2190,6 +2353,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         CatalogError,
         ChatQECServiceError,
         ContractError,
+        LocalReleaseError,
         OperationRuntimeError,
         RegistryError,
         RepositoryUpdateError,
