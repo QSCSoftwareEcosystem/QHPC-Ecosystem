@@ -690,8 +690,8 @@ function dataDetail(item) {
         ? `<p class="tool-record-empty">databucket/Garage is not configured for this Workbench — start it with <code>eqo dev up</code> (without <code>--no-databucket</code>).</p>`
         : objectsState.objects.length
           ? `<table class="data-table"><thead><tr><th>KEY</th><th>SIZE</th><th>LAST MODIFIED</th><th>ACTIONS</th></tr></thead><tbody>${objectsState.objects.map(object => {
-              const contentPath = `/api/v1/data/objects/content/${encodeURIComponent(object.key)}`;
-              return `<tr><td><code>${escapeHtml(object.key)}</code></td><td>${escapeHtml(object.size)} B</td><td>${escapeHtml(object.last_modified)}</td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></td></tr>`;
+              const contentPath = `/api/v1/data/objects/content?key=${encodeURIComponent(object.key)}`;
+              return `<tr><td><code>${escapeHtml(object.key)}</code></td><td>${escapeHtml(object.size)} B</td><td>${escapeHtml(object.last_modified)}</td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}&download=1">Download</a></span></td></tr>`;
             }).join("")}</tbody></table>`
           : `<p class="tool-record-empty">Bucket '${escapeHtml(objectsState.bucket || "")}' has no objects under this prefix yet.</p>`;
   const liveObjectsSection = !objectsPrefix ? "" : `

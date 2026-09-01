@@ -639,7 +639,9 @@ def test_api_data_object_content_downloads_bytes(tmp_path: Path) -> None:
     base = f"http://127.0.0.1:{server.server_port}"
     key = "materials-db/materials-schema-v0.1.yaml"
     try:
-        request = Request(f"{base}/api/v1/data/objects/content/{quote(key, safe='')}")
+        request = Request(
+            f"{base}/api/v1/data/objects/content?key={quote(key, safe='')}"
+        )
         with urlopen(request, timeout=3) as response:
             assert response.status == 200
             assert response.read() == b"schema: {}\n"
@@ -648,13 +650,14 @@ def test_api_data_object_content_downloads_bytes(tmp_path: Path) -> None:
         assert databucket.requested_keys == [key]
 
         download_request = Request(
-            f"{base}/api/v1/data/objects/content/{quote(key, safe='')}?download=1"
+            f"{base}/api/v1/data/objects/content?key={quote(key, safe='')}&download=1"
         )
         with urlopen(download_request, timeout=3) as response:
             assert "attachment" in response.headers["Content-Disposition"]
 
         missing_request = Request(
-            f"{base}/api/v1/data/objects/content/{quote('materials-db/missing.yaml', safe='')}"
+            f"{base}/api/v1/data/objects/content?key="
+            f"{quote('materials-db/missing.yaml', safe='')}"
         )
         with pytest.raises(HTTPError) as error:
             urlopen(missing_request, timeout=3)
@@ -678,7 +681,7 @@ def test_api_data_object_content_unavailable_without_databucket(
     thread.start()
     base = f"http://127.0.0.1:{server.server_port}"
     try:
-        request = Request(f"{base}/api/v1/data/objects/content/{quote('k', safe='')}")
+        request = Request(f"{base}/api/v1/data/objects/content?key={quote('k', safe='')}")
         with pytest.raises(HTTPError) as error:
             urlopen(request, timeout=3)
         assert error.value.status == 503

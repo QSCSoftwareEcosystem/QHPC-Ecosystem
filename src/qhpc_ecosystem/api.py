@@ -33,7 +33,6 @@ DRAFT_ACTION_ROUTE = re.compile(
 )
 ARTIFACT_ROUTE = re.compile(r"^/api/v1/artifacts/([^/]+)$")
 ARTIFACT_CONTENT_ROUTE = re.compile(r"^/api/v1/artifacts/([^/]+)/content$")
-DATA_OBJECT_CONTENT_ROUTE = re.compile(r"^/api/v1/data/objects/content/([^/]+)$")
 KNOWLEDGE_COMMUNITY_ROUTE = re.compile(r"^/api/v1/knowledge/communities/(\d+)$")
 KNOWLEDGE_NEIGHBORHOOD_ROUTE = re.compile(
     r"^/api/v1/knowledge/neighborhood/(.+)$"
@@ -222,15 +221,17 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         },
                     )
                     return
-                data_object_content_match = DATA_OBJECT_CONTENT_ROUTE.fullmatch(path)
-                if data_object_content_match:
+                if path == "/api/v1/data/objects/content":
                     if context.databucket is None:
                         self._error(
                             HTTPStatus.SERVICE_UNAVAILABLE,
                             "databucket/Garage is not configured",
                         )
                         return
-                    key = unquote(data_object_content_match.group(1))
+                    query = parse_qs(request_url.query)
+                    key = query.get("key", [""])[-1]
+                    if not key:
+                        raise ValueError("key query parameter is required")
                     content = context.databucket.get_object(key)
                     filename = key.rsplit("/", 1)[-1]
                     media_type = (
@@ -245,7 +246,6 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         "text/csv",
                         "text/plain",
                     }
-                    query = parse_qs(request_url.query)
                     download = query.get("download", ["0"])[-1] in {
                         "1",
                         "true",
