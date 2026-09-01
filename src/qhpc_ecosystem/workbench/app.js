@@ -41,6 +41,7 @@ function stateMeta(status) {
 const VIEW_META = {
   overview: ["QSC / QHPC ECOSYSTEM", "EQO-QSC"],
   tools: ["ECOSYSTEM / TOOLS", "Integrated software"],
+  data: ["DATA / SERVICES", "Data services"],
   knowledge: ["KNOWLEDGE / QAPPSWIKI", "Knowledge Explorer"],
   assistant: ["ASSISTANCE / CHATQEC", "ChatQEC"],
   compose: ["WORKFLOWS / COMPOSE", "Workflow composer"],
@@ -50,7 +51,7 @@ const VIEW_META = {
   updates: ["SOURCES / UPDATES", "Repository updates"],
 };
 
-const VIEW_ALIASES = { projects: "overview", explore: "tools" };
+const VIEW_ALIASES = { projects: "overview", explore: "tools", "data-services": "data" };
 const initialSearchParams = new URLSearchParams(window.location.search);
 const rawRequestedView = initialSearchParams.get("view");
 const requestedView = VIEW_ALIASES[rawRequestedView] || rawRequestedView;
@@ -64,6 +65,7 @@ const state = {
   view: initialView,
   knowledgeNode: initialSearchParams.get("knowledge_node"),
   requestedCapability: initialSearchParams.get("capability"),
+  selectedDataService: initialSearchParams.get("data_service"),
   query: "",
   statusFilter: "all",
   selectedOperation: null,
@@ -307,21 +309,34 @@ function metricTile({ value, total, label, color }) {
 
 function renderSummary() {
   const operations = state.capabilities.reduce((count, item) => count + item.operations.length, 0);
-  const tested = state.capabilities.filter(item => ["smoke-tested", "integration-tested", "production-approved"].includes(item.validation.status)).length;
   const activeRuns = state.runs.filter(run => ["queued", "running"].includes(run.state)).length;
+  const dataResources = dataCapabilities().reduce((count, item) => count + item.resources.length, 0);
   document.querySelector("#summary-strip").innerHTML = [
-    { value: state.capabilities.length, label: "Integrated tools" },
+    { value: state.capabilities.length, label: "Integrated capabilities" },
+    { value: dataResources, label: "Data resources" },
     { value: operations, label: "Executable operations" },
-    { value: tested, total: state.capabilities.length, label: "Evidence-backed tools", color: "var(--ok)" },
     { value: activeRuns, total: state.runs.length, label: "Active runs", color: "var(--run)" },
   ].map(metricTile).join("");
+}
+
+function textSearchBlob(values) {
+  return values.flatMap(value => Array.isArray(value) ? value : [value])
+    .filter(value => value !== null && value !== undefined)
+    .join(" ")
+    .toLowerCase();
 }
 
 function filteredTools() {
   const query = state.query.trim().toLowerCase();
   return state.capabilities.filter(item => {
     const operationText = item.operations.flatMap(operation => [operation.id, operation.title, operation.description || ""]);
-    const matchesQuery = !query || [
+    const resourceText = item.resources.flatMap(resource => [resource.id, resource.kind, resource.description || "", resource.uri]);
+    const guidanceText = [
+      item.guidance?.use_when || [],
+      item.guidance?.quick_start || [],
+      item.guidance?.limitations || [],
+    ];
+    const matchesQuery = !query || textSearchBlob([
       item.name,
       item.capability_name || item.name,
       item.id,
@@ -330,7 +345,9 @@ function filteredTools() {
       item.repository?.canonical_url,
       item.repository?.url,
       ...operationText,
-    ].join(" ").toLowerCase().includes(query);
+      ...resourceText,
+      ...guidanceText,
+    ]).includes(query);
     return matchesQuery && (state.statusFilter === "all" || item.validation.status === state.statusFilter);
   });
 }
@@ -491,6 +508,251 @@ function renderTools() {
     row.addEventListener("keydown", event => {
       if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openCapability(row.dataset.capability); }
     });
+  });
+}
+
+function titleLabel(value) {
+  return String(value || "")
+    .replaceAll("-", " ")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function dataResourceRole(resource) {
+  const text = textSearchBlob([resource.id, resource.kind, resource.description || "", resource.uri]);
+  if (resource.kind === "schema") return "Schema";
+  if (resource.kind === "data-service") return "Data Service";
+  if (resource.kind === "provenance") return "Provenance";
+  if (resource.kind === "artifact-type") return "Schema";
+  if (resource.kind === "dataset") return "Dataset";
+  if (resource.kind === "adapter") return "Adapter";
+  if (resource.kind === "documentation") return "Documentation";
+  if (text.includes("provenance") || text.includes("lineage") || hasSdlToken(text)) return "Provenance";
+  return titleLabel(resource.kind || "resource");
+}
+
+function hasSdlToken(text) {
+  return /(^|[^a-z0-9])sdl([^a-z0-9]|$)/.test(text);
+}
+
+function dataCapabilityText(item) {
+  return textSearchBlob([
+    item.id,
+    item.name,
+    item.capability_name,
+    item.catalog_repository,
+    item.project,
+    item.description,
+    item.repository?.url,
+    item.repository?.canonical_url,
+    item.resources.flatMap(resource => [resource.id, resource.kind, resource.description || "", resource.uri]),
+    item.guidance?.use_when || [],
+    item.guidance?.quick_start || [],
+    item.guidance?.limitations || [],
+  ]);
+}
+
+function isDataCapability(item) {
+  const text = dataCapabilityText(item);
+  return item.project === "data-schema"
+    || item.catalog_repository === "DataSchema"
+    || text.includes("materials-db")
+    || text.includes("materials db")
+    || text.includes("scientific data layer")
+    || hasSdlToken(text);
+}
+
+function dataCapabilities() {
+  return state.capabilities
+    .filter(isDataCapability)
+    .sort((left, right) => {
+      const leftMaterials = dataCapabilityText(left).includes("materials");
+      const rightMaterials = dataCapabilityText(right).includes("materials");
+      if (leftMaterials !== rightMaterials) return leftMaterials ? -1 : 1;
+      return left.name.localeCompare(right.name);
+    });
+}
+
+function filteredDataCapabilities() {
+  const query = state.query.trim().toLowerCase();
+  return dataCapabilities().filter(item => !query || dataCapabilityText(item).includes(query));
+}
+
+function dataServiceKind(item) {
+  const text = dataCapabilityText(item);
+  if (text.includes("materials-db") || text.includes("materials db")) return "SDL service";
+  if (item.resources.some(resource => dataResourceRole(resource) === "Dataset")) return "Dataset";
+  if (item.resources.some(resource => dataResourceRole(resource) === "Schema")) return "Schema";
+  return "Data resource";
+}
+
+function evidenceList(item) {
+  return [...new Set([
+    ...(item.integration?.evidence || []),
+    ...(item.validation?.evidence || []),
+  ])];
+}
+
+function resourceSourceLink(resource) {
+  const href = safeHttpUrl(resource.uri);
+  return href
+    ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span></a>`
+    : `<code>${escapeHtml(resource.uri)}</code>`;
+}
+
+function dataDetail(item) {
+  if (!item) {
+    return `<section class="data-detail data-detail-empty">
+      <span class="empty-code">DAT</span>
+      <h2>No data service selected</h2>
+      <p>Admitted SDL-backed services and governed datasets will appear here when their registry resources are available.</p>
+    </section>`;
+  }
+  const repository = repositoryDisplay(item);
+  const canonicalRepository = item.repository?.canonical_url || item.repository?.url || "";
+  const documentationUrl = safeHttpUrl(item.documentation?.url);
+  const knowledgeNodeId = qappswikiNodeId(item.documentation?.qappswiki);
+  const resources = item.resources.map(resource => `
+    <article class="data-resource-card">
+      <header>
+        <span>${escapeHtml(dataResourceRole(resource))}</span>
+        <strong>${escapeHtml(resource.id)}</strong>
+      </header>
+      <dl>
+        <div><dt>Version</dt><dd>${escapeHtml(resource.version)}</dd></div>
+        <div><dt>Kind</dt><dd>${escapeHtml(resource.kind)}</dd></div>
+        ${resource.digest ? `<div><dt>Digest</dt><dd>${escapeHtml(resource.digest)}</dd></div>` : ""}
+      </dl>
+      ${resource.description ? `<p>${escapeHtml(resource.description)}</p>` : ""}
+      <footer>${resourceSourceLink(resource)}</footer>
+    </article>`).join("");
+  const evidence = evidenceList(item);
+  const evidenceRows = evidence.length
+    ? evidence.map(reference => `<li><code>${escapeHtml(reference)}</code></li>`).join("")
+    : `<li><span>No separate evidence reference is published.</span></li>`;
+  const sourceReviewed = item.integration?.project_reviewed ? "yes" : "no";
+  return `<section class="data-detail">
+    <header class="data-detail-head">
+      <div>
+        <span class="panel-label">${escapeHtml(dataServiceKind(item))}</span>
+        <h2>${escapeHtml(item.name)}</h2>
+        <p>${escapeHtml(item.description)}</p>
+      </div>
+      <div class="data-detail-status">
+        ${badge(item.validation.status)}
+        ${badge(item.integration.runtime_status)}
+      </div>
+    </header>
+    <dl class="data-facts">
+      <div><dt>Capability</dt><dd>${escapeHtml(item.id)}@${escapeHtml(item.version)}</dd></div>
+      <div><dt>Source</dt><dd>${escapeHtml(repository.label)}</dd></div>
+      <div><dt>Revision</dt><dd title="${escapeHtml(item.repository?.revision || "")}">${escapeHtml(repository.detail)}</dd></div>
+      <div><dt>Resources</dt><dd>${item.resources.length}</dd></div>
+    </dl>
+    <section class="data-detail-section">
+      <div class="data-section-title"><h3>Published Data Resources</h3><span>${item.resources.length}</span></div>
+      <div class="data-resource-grid">${resources || `<p class="tool-record-empty">No data resources are published for this service.</p>`}</div>
+    </section>
+    <section class="data-detail-section">
+      <div class="data-section-title"><h3>Provenance Ledger</h3><span>${evidence.length}</span></div>
+      <dl class="data-provenance-ledger">
+        <div><dt>Repository</dt><dd>${escapeHtml(canonicalRepository || "unresolved")}</dd></div>
+        <div><dt>Catalog component</dt><dd>${escapeHtml(item.catalog_repository)}</dd></div>
+        <div><dt>Source ownership</dt><dd>${escapeHtml(SOURCE_AREAS[item.project] || item.project)}</dd></div>
+        <div><dt>Integration authority</dt><dd>${escapeHtml(item.integration.authority)}</dd></div>
+        <div><dt>Curated by</dt><dd>${escapeHtml((item.integration.maintainers || []).join(", ") || "unassigned")}</dd></div>
+        <div><dt>Source reviewed</dt><dd>${sourceReviewed}</dd></div>
+      </dl>
+      <ul class="data-evidence-list">${evidenceRows}</ul>
+    </section>
+    <div class="data-actions">
+      <button class="button secondary" id="data-open-record" type="button">Open Registry Record</button>
+      ${knowledgeNodeId ? `<button class="button secondary" id="data-open-knowledge" type="button">Explore Knowledge Link</button>` : ""}
+      ${documentationUrl ? `<a class="button secondary" href="${escapeHtml(documentationUrl)}" target="_blank" rel="noreferrer">Open Documentation</a>` : ""}
+    </div>
+  </section>`;
+}
+
+function renderData() {
+  const allData = dataCapabilities();
+  const filtered = filteredDataCapabilities();
+  const hasQuery = Boolean(state.query.trim());
+  const selected = filtered.find(item => item.id === state.selectedDataService)
+    || (!hasQuery ? allData.find(item => item.id === state.selectedDataService) : null)
+    || filtered[0]
+    || (!hasQuery ? allData[0] : null)
+    || null;
+  if (selected) state.selectedDataService = selected.id;
+  const totalResources = allData.reduce((count, item) => count + item.resources.length, 0);
+  const hasMaterialsDb = allData.some(item => {
+    const text = dataCapabilityText(item);
+    return text.includes("materials-db") || text.includes("materials db");
+  });
+  const serviceRows = filtered.map(item => {
+    const repository = repositoryDisplay(item);
+    return `<button class="data-service-card ${selected?.id === item.id ? "active" : ""}" type="button" data-data-service="${escapeHtml(item.id)}">
+      <span>${escapeHtml(dataServiceKind(item))}</span>
+      <strong>${escapeHtml(item.name)}</strong>
+      <small>${escapeHtml(item.id)}@${escapeHtml(item.version)}</small>
+      <span class="data-service-meta">${badge(item.validation.status)}<em>${item.resources.length} resources</em></span>
+      <small>${escapeHtml(repository.label)}</small>
+    </button>`;
+  }).join("");
+  const materialsSlot = hasMaterialsDb
+    ? ""
+    : `<aside class="data-sdl-slot" aria-label="SDL materials-db integration slot">
+        <span class="panel-label">SDL SERVICE SLOT</span>
+        <strong>materials-db</strong>
+        <p>Awaiting an admitted data-service contract or registry resource from the Scientific Data Layer.</p>
+      </aside>`;
+  workspace.innerHTML = sectionHeader(
+    "Data services",
+    `${allData.length} admitted data component${allData.length === 1 ? "" : "s"} · ${totalResources} published resource${totalResources === 1 ? "" : "s"}`,
+  ) + `
+    <section class="data-command" aria-labelledby="data-command-heading">
+      <div>
+        <span class="panel-label">DATA / SCIENTIFIC DATA LAYER</span>
+        <h2 id="data-command-heading">Governed datasets and SDL-backed services</h2>
+        <p>Data stays discoverable without becoming an execution tool. Selected records can become QHPC artifacts only after an explicit materialization path exists.</p>
+      </div>
+      <dl>
+        <div><dt>Components</dt><dd>${allData.length}</dd></div>
+        <div><dt>Resources</dt><dd>${totalResources}</dd></div>
+        <div><dt>Operations</dt><dd>${allData.reduce((count, item) => count + item.operations.length, 0)}</dd></div>
+      </dl>
+    </section>
+    <div class="data-layout">
+      <aside class="data-services-panel" aria-label="Data service registry">
+        <label class="data-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="data-search" type="search" value="${escapeHtml(state.query)}" placeholder="Search data resources" aria-label="Search data resources">
+        </label>
+        <div class="data-service-list">
+          ${serviceRows || `<div class="data-empty"><strong>No matching data resources</strong><p>Clear search to show admitted data components.</p></div>`}
+        </div>
+        ${materialsSlot}
+      </aside>
+      ${dataDetail(selected)}
+    </div>`;
+  document.querySelector("#data-search").addEventListener("input", event => {
+    state.query = event.target.value;
+    document.querySelector("#global-search").value = state.query;
+    renderData();
+  });
+  workspace.querySelectorAll("[data-data-service]").forEach(button => {
+    button.addEventListener("click", () => {
+      state.selectedDataService = button.dataset.dataService;
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "data");
+      url.searchParams.set("data_service", state.selectedDataService);
+      window.history.replaceState({}, "", url);
+      renderData();
+    });
+  });
+  document.querySelector("#data-open-record")?.addEventListener("click", () => openCapability(selected.id));
+  document.querySelector("#data-open-knowledge")?.addEventListener("click", () => {
+    state.knowledgeNode = qappswikiNodeId(selected.documentation?.qappswiki);
+    switchView("knowledge");
   });
 }
 
@@ -1330,7 +1592,7 @@ function render() {
   renderSummary();
   if (state.view !== "compose") window.QHPCComposer?.unmount();
   if (state.view !== "knowledge") window.QHPCKnowledge?.unmount();
-  ({ overview: renderOverview, tools: renderTools, knowledge: renderKnowledge, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
+  ({ overview: renderOverview, tools: renderTools, data: renderData, knowledge: renderKnowledge, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
 }
 
 function switchView(view) {
@@ -1342,6 +1604,11 @@ function switchView(view) {
     url.searchParams.set("knowledge_node", state.knowledgeNode);
   } else if (view !== "knowledge") {
     url.searchParams.delete("knowledge_node");
+  }
+  if (view === "data" && state.selectedDataService) {
+    url.searchParams.set("data_service", state.selectedDataService);
+  } else if (view !== "data") {
+    url.searchParams.delete("data_service");
   }
   if (view !== "tools") url.searchParams.delete("capability");
   window.history.replaceState({}, "", url);
@@ -1379,7 +1646,7 @@ function closeInspector() {
   // Return focus to whatever opened the panel, so keyboard position is not lost.
   if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
   lastFocused = null;
-  if (state.view === "tools") {
+  if (state.view === "tools" || state.view === "data") {
     const url = new URL(window.location.href);
     url.searchParams.delete("capability");
     window.history.replaceState({}, "", url);
@@ -1498,7 +1765,7 @@ function openCapability(id) {
   const item = state.capabilities.find(capability => capability.id === id);
   if (!item) return;
   const url = new URL(window.location.href);
-  url.searchParams.set("view", "tools");
+  url.searchParams.set("view", state.view === "data" ? "data" : "tools");
   url.searchParams.set("capability", id);
   window.history.replaceState({}, "", url);
   const guidance = capabilityGuidance(item);
@@ -1698,6 +1965,10 @@ async function loadData() {
       openCapability(state.requestedCapability);
       state.requestedCapability = null;
     }
+    if (state.view === "data" && state.requestedCapability) {
+      openCapability(state.requestedCapability);
+      state.requestedCapability = null;
+    }
   } catch (error) {
     document.querySelector("#service-state").textContent = "Unavailable";
     workspace.innerHTML = `<div class="empty-state"><div><span class="empty-code">ERR</span><h2>Workbench service unavailable</h2><p>${escapeHtml(error.message)}</p></div></div>`;
@@ -1710,7 +1981,7 @@ function enhancePrimaryNavigation() {
   const navigation = document.querySelector("#primary-nav");
   if (!navigation || navigation.querySelector(".nav-group")) return;
   const groups = [
-    ["workspace", "Workspace", ["overview", "tools", "knowledge", "assistant", "compose"]],
+    ["workspace", "Workspace", ["overview", "tools", "data", "knowledge", "assistant", "compose"]],
     ["execution", "Execution", ["runs", "artifacts"]],
     ["system", "System", ["environments", "updates"]],
   ];
@@ -1748,7 +2019,12 @@ document.querySelector("#refresh-button").addEventListener("click", () => {
   loadData();
   showToast("Workbench data refreshed");
 });
-document.querySelector("#global-search").addEventListener("input", event => { state.query = event.target.value; if (state.view !== "tools") switchView("tools"); else renderTools(); });
+document.querySelector("#global-search").addEventListener("input", event => {
+  state.query = event.target.value;
+  if (state.view === "data") renderData();
+  else if (state.view !== "tools") switchView("tools");
+  else renderTools();
+});
 document.querySelector("#close-inspector").addEventListener("click", closeInspector);
 document.querySelector("#scrim").addEventListener("click", closeInspector);
 document.querySelector("#chatqec-dock-toggle").addEventListener("click", () => {

@@ -1,0 +1,115 @@
+schema_id: qsc-materials-schema
+schema_version: 0.1.0
+status: static-initial
+title: QSC Materials Schema
+description: >
+  Static first-pass QHPC view of the SDL/QSC materials data model for the
+  materials-db seed repository. This record captures the phase-1 entity,
+  activity, result, and provenance shape without claiming a live SDL API.
+source_context:
+  sdl_workspace: ../sdl/intersect-sdl-workspace
+  qsc_data_model_path: deployments/QSC/data/README.md
+  qsc_repository_contract_path: deployments/QSC/data/repositories.json
+  sdl_linkml_root_path: implementation/schemas/schemas/sdl.yaml
+repository_profile:
+  id: qsc-materials-db
+  title: QSC Materials Repository
+  schema_profile: qsc-materials-v1
+  storage_bucket: qsc-data
+  storage_prefix: materials-db/
+  publication_status: draft
+classes:
+  Material:
+    description: Composition or structure definition for a material.
+    required:
+      - id
+      - label
+    optional:
+      - formula
+      - structure_reference
+  Sample:
+    description: Physical realization of one Material.
+    required:
+      - id
+      - material_id
+      - provenance_note
+    optional:
+      - synthesis_protocol_reference
+  Instrument:
+    description: Instrument, system, or computing resource used by an activity.
+    required:
+      - id
+      - instrument_type
+      - vendor_or_provider
+      - model_name
+      - configuration_snapshot_id
+  Agent:
+    description: Person, software agent, or service associated with activity execution or curation.
+    required:
+      - id
+      - agent_type
+      - name
+      - affiliation_or_service_provider
+  Activity:
+    description: Process node that connects inputs to generated results.
+    required:
+      - id
+      - activity_type
+      - started_at
+      - ended_at
+      - used_entity_ids
+      - used_instrument_ids
+      - associated_agent_ids
+      - method_reference
+  Result:
+    description: Experimental, quantum simulation, classical simulation, or validation result.
+    required:
+      - id
+      - result_type
+      - generated_by_activity_id
+      - primary_payload_reference
+      - summary_metrics
+      - schema_version
+    optional:
+      - uncertainty_or_error_model
+relationships:
+  - subject: Material
+    predicate: has_sample
+    object: Sample
+    cardinality: one_to_many
+  - subject: Sample
+    predicate: used_by_activity
+    object: Activity
+    cardinality: many_to_many
+  - subject: Activity
+    predicate: generated
+    object: Result
+    cardinality: one_to_many
+  - subject: Instrument
+    predicate: used_by_activity
+    object: Activity
+    cardinality: many_to_many
+  - subject: Agent
+    predicate: associated_with_activity
+    object: Activity
+    cardinality: one_or_more_to_many
+  - subject: Result
+    predicate: derived_from
+    object: Result
+    cardinality: many_to_many
+seed_examples:
+  - id: kcuf3-hamiltonian
+    material: KCuF3
+    result_type: spin_hamiltonian
+    payload_reference: materials-db/example-json/KCuF3_Hamiltonian.json
+    payload_notes: Three 3 x 3 matrices with interaction strengths in meV for expected dominant 1D spin-chain bond types.
+  - id: kcuf3-neutron-sqw
+    material: KCuF3
+    result_type: neutron_scattering_intensity_bundle
+    payload_reference: materials-db/orig-data/KCuF3_MAPS-SEQ_sqw.zip
+    payload_notes: Six temperature datasets with intensity, error, energy, and momentum arrays.
+boundaries:
+  - This is a static admission snapshot for QHPC Workbench discovery.
+  - It does not invoke SDL services, MinIO, Fuseki, or workspace-service APIs.
+  - It does not register an executable QHPC workflow operation.
+  - The SDL LinkML root schema provides the shared vocabulary foundation; a dedicated generated materials-domain LinkML module is still future work.

@@ -190,6 +190,9 @@ class RepositoryUpdateManager:
             elif role == "assistant-service":
                 activation = "service-review-required"
                 next_action = "Review corpus and restart service before activation"
+            elif role == "data-service":
+                activation = "data-review-required"
+                next_action = "Review schema, provenance, and data access before activation"
             else:
                 activation = "registry-review-required"
                 next_action = "Review integration and republish registry before activation"

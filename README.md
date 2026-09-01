@@ -16,15 +16,17 @@ maintained under [docs/](docs/).
 The first deployment uses the explicit allowlist in
 [deployments/initial.yaml](deployments/initial.yaml): STABSim, TN-Sim, NWQEC,
 FTPrimitiveBench, LightStim, QASMTrans, FTQC, OpenQEvo, OpenQSE, QAppsWiki,
-ChatQEC, ExaChem QFlow, QIRIS over IRIS/QIR-EE, and the NWQSim QFlow VQE
-plugin. See [docs/initial-deployment.md](docs/initial-deployment.md) for
+QSC Materials Repository, ChatQEC, ExaChem QFlow, QIRIS over IRIS/QIR-EE, and
+the NWQSim QFlow VQE plugin. See
+[docs/initial-deployment.md](docs/initial-deployment.md) for
 roles, onboarding state, and production gates. The larger catalog remains
 available for future onboarding but is not deployment scope. Each selected
 component has a validated record under [integrations/](integrations/), the
 pre-container source, contract, adapter, fixture, and integration-test scope is
-closed for the eleven published components; the three QFlow/QIRIS records are
-explicitly scaffolded, non-executable prototypes. All fourteen components have
-registry records admitted by the initial deployment profile. STABSim,
+closed for the twelve published components; the three QFlow/QIRIS records are
+explicitly scaffolded, non-executable prototypes. All fifteen components have
+registry records admitted by the initial deployment profile, including one
+static non-executable data-service schema for QSC materials. STABSim,
 QASMTrans, NWQEC, FTPrimitiveBench,
 and LightStim now have reproducible, digest-recorded, locally smoke-tested
 operation images; see
@@ -366,7 +368,7 @@ eqo slurm-test-cluster smoke \
 
 Omit `--build-ca` on development networks that do not intercept TLS.
 
-Inspect the acceptance boundary for all fourteen initial components:
+Inspect the acceptance boundary for all fifteen initial components:
 
 ```bash
 eqo hpc-acceptance status \

@@ -3,7 +3,7 @@ kind: HpcAcceptanceProfile
 metadata:
   id: initial
   name: Initial ecosystem HPC acceptance
-  version: 0.3.0
+  version: 0.4.0
   owners:
     - qhpc-ecosystem
   status: planned
@@ -74,6 +74,11 @@ spec:
       acceptance: not-applicable
       integration: integrations/qappswiki/integration.yaml
       rationale: QAppsWiki is a knowledge resource and is not submitted as a Slurm job.
+    - component: qsc-materials-db
+      classification: data-service
+      acceptance: not-applicable
+      integration: integrations/qsc-materials-db/integration.yaml
+      rationale: The static materials data-service schema exposes source and provenance references, not a Slurm-submitted operation.
     - component: chatqec
       classification: service
       acceptance: not-applicable
