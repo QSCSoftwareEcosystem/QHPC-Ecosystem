@@ -1,8 +1,8 @@
 api_version: qhpc/v1
 kind: Registry
 metadata:
-  entry_count: 17
-  catalog_digest: sha256:be1d8377cb7766fe8ecb61bc20d86ac616881a479167828f230d5fb2363037cc
+  entry_count: 18
+  catalog_digest: sha256:164956fa59a89ccae741ed45bd2d1ed9098b7d8a6fbea5c407efaaa61a32f042
 spec:
   entries:
   - descriptor_digest: sha256:6a2402c79c105bae284a637ac180d6d4f308a00fca3cb1b3a85c0ea8f2744c70
@@ -1276,8 +1276,8 @@ spec:
         documentation:
           qappswiki: integrations/qsc-hardware-data.md
           url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
-  - descriptor_digest: sha256:bdd11da513bacb392d0583e2f10e0d0e89625753e159b91e0bedbefa13623122
-    catalog_repository: spack-packages
+  - descriptor_digest: sha256:244a57428752ebb1bd3e3af2c7f996fa26ff2ce64c84808529e19768c14d6f17
+    catalog_repository: qsc-materials-db
     validation:
       contract: valid
       attribution: valid
@@ -1289,6 +1289,102 @@ spec:
       documentation: linked
       status: contract-valid
       evidence: &id028
+      - docs/evidence/sdl-qsc-materials-schema-admission-2026-08-28.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: qsc-materials-db-schema
+        name: QSC Materials Schema
+        version: 0.1.0
+        project: data-schema
+        owners:
+        - qsc-materials-db
+        repository:
+          url: https://code.ornl.gov/intersect/data/deployments
+          revision: 51373be831a94cc06c669346ca5d1fccc3a6ed76
+        integration:
+          authority: ecosystem
+          maintainers: *id027
+          project_reviewed: false
+          runtime_status: not-applicable
+          validation_status: contract-valid
+          evidence: *id028
+        visibility: internal
+        maturity: prototype
+      spec:
+        component:
+          name: QSC Materials Repository
+          description: Static SDL-backed materials-db schema and provenance record for QSC materials reference
+            artifacts.
+        guidance:
+          use_when:
+          - Inspect the initial materials-db entity, activity, result, storage, and provenance shape before
+            a live SDL data-service interface is admitted.
+          - Trace the KCuF3 Hamiltonian and neutron-scattering seed data back to the pinned SDL deployment
+            and schema sources.
+          quick_start:
+          - Open the static materials schema and provenance resources from the Data workspace.
+          - Treat the KCuF3 payloads as seed reference data, not as generated QHPC workflow artifacts.
+          - Use the published SDL source revisions when discussing changes to the future live materials-db
+            service.
+          example_workflows: []
+          limitations:
+          - This capability is a static admission record; it does not call MinIO, Fuseki, workspace-service,
+            or another SDL runtime.
+          - The current static schema mirrors the QSC data README phase-1 model and is not yet a generated
+            dedicated materials LinkML module.
+          - No executable operation is published for this component.
+        resources:
+        - id: materials-schema-v0.1
+          kind: schema
+          version: 0.1.0
+          uri: data-services/qsc-materials-db/materials-schema-v0.1.yaml
+          description: Static QHPC view of the SDL/QSC phase-1 materials model.
+        - id: materials-provenance-v0.1
+          kind: provenance
+          version: 0.1.0
+          uri: data-services/qsc-materials-db/provenance-v0.1.yaml
+          description: Pinned source, schema, seed data, and storage-prefix provenance for the static
+            materials-db record.
+        - id: qsc-materials-db-service
+          kind: data-service
+          version: 0.1.0
+          uri: https://code.ornl.gov/intersect/data/deployments/-/blob/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/repositories.json
+          description: SDL QSC repository declaration for qsc-materials-db, including draft status and
+            qsc-data/materials-db storage mapping.
+        - id: kcuf3-hamiltonian
+          kind: dataset
+          version: 0.1.0
+          uri: https://code.ornl.gov/intersect/data/deployments/-/blob/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/materials-db/example-json/KCuF3_Hamiltonian.json
+          description: First structured KCuF3 spin-Hamiltonian JSON seed payload.
+        - id: kcuf3-neutron-sqw
+          kind: dataset
+          version: 0.1.0
+          uri: https://code.ornl.gov/intersect/data/deployments/-/tree/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/materials-db
+          description: KCuF3 neutron scattering SQW source bundle and associated provenance notes.
+        - id: sdl-linkml-root
+          kind: schema
+          version: 0.1.0
+          uri: https://code.ornl.gov/intersect/data/sdl-schema/-/blob/66399f74a2419dc650ad1d8ba1036ed5d05464c3/schemas/sdl.yaml
+          description: Root SDL LinkML schema used as the vocabulary foundation for future generated material-domain
+            models.
+        documentation:
+          qappswiki: docs/qsc-integration.md
+          url: https://code.ornl.gov/intersect/data/deployments/-/blob/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/README.md
+  - descriptor_digest: sha256:bdd11da513bacb392d0583e2f10e0d0e89625753e159b91e0bedbefa13623122
+    catalog_repository: spack-packages
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id029
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: contract-valid
+      evidence: &id030
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1305,11 +1401,11 @@ spec:
           revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
         integration:
           authority: ecosystem
-          maintainers: *id027
+          maintainers: *id029
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id028
+          evidence: *id030
         visibility: public
         maturity: prototype
       spec:
@@ -1341,13 +1437,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id029
+      curated_by: &id031
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id030
+      evidence: &id032
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1364,11 +1460,11 @@ spec:
           revision: e7568760747752e29397f4fcc800bd475c6011a1
         integration:
           authority: ecosystem
-          maintainers: *id029
+          maintainers: *id031
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id030
+          evidence: *id032
         visibility: public
         maturity: prototype
       spec:
@@ -1401,13 +1497,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id031
+      curated_by: &id033
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id032
+      evidence: &id034
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/stabsim-oci-smoke-2026-07-27.md
     capability:
@@ -1425,11 +1521,11 @@ spec:
           revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
         integration:
           authority: ecosystem
-          maintainers: *id031
+          maintainers: *id033
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id032
+          evidence: *id034
         visibility: public
         maturity: prototype
       spec:
@@ -1491,13 +1587,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id033
+      curated_by: &id035
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: integration-tested
-      evidence: &id034
+      evidence: &id036
       - docs/evidence/tn-sim-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -1514,11 +1610,11 @@ spec:
           revision: 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
         integration:
           authority: ecosystem
-          maintainers: *id033
+          maintainers: *id035
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id034
+          evidence: *id036
         visibility: public
         maturity: pre-alpha
       spec:

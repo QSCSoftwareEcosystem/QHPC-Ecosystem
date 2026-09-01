@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import mimetypes
 import re
@@ -18,6 +19,7 @@ from .engine import DEFAULT_WORKER_STALE_AFTER_SECONDS, WorkflowEngine
 from .knowledge import KnowledgeGraphError, QAppsWikiKnowledge
 from .registry import registry_entries
 from .repository_updates import RepositoryUpdateError, RepositoryUpdateManager
+from .s3_client import S3Client, S3ClientError
 from .service_adapters import ServiceAdapterError
 
 
@@ -48,6 +50,7 @@ class APIContext:
     chatqec: ChatQECGateway | None = None
     repository_updates: RepositoryUpdateManager | None = None
     knowledge: QAppsWikiKnowledge | None = None
+    databucket: S3Client | None = None
 
 
 def _capability_summary(entry: dict[str, Any]) -> dict[str, Any]:
@@ -157,6 +160,8 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 self._error(HTTPStatus.CONFLICT, str(error))
             elif isinstance(error, KnowledgeGraphError):
                 self._error(HTTPStatus.BAD_GATEWAY, str(error))
+            elif isinstance(error, S3ClientError):
+                self._error(HTTPStatus.BAD_GATEWAY, str(error))
             elif isinstance(error, (ValueError, json.JSONDecodeError)):
                 self._error(HTTPStatus.BAD_REQUEST, str(error))
             else:
@@ -183,6 +188,81 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                             _capability_summary(entry)
                             for entry in registry_entries(context.registry)
                         ],
+                    )
+                    return
+                if path == "/api/v1/data/objects":
+                    if context.databucket is None:
+                        self._json_response(
+                            HTTPStatus.OK,
+                            {
+                                "available": False,
+                                "reason": "databucket/Garage is not configured",
+                            },
+                        )
+                        return
+                    query = parse_qs(request_url.query)
+                    prefix = query.get("prefix", [""])[-1]
+                    objects = context.databucket.list_objects(prefix)
+                    self._json_response(
+                        HTTPStatus.OK,
+                        {
+                            "available": True,
+                            "bucket": context.databucket.bucket,
+                            "prefix": prefix,
+                            "objects": [
+                                {
+                                    "key": item.key,
+                                    "size": item.size,
+                                    "last_modified": item.last_modified,
+                                    "etag": item.etag,
+                                }
+                                for item in objects
+                            ],
+                        },
+                    )
+                    return
+                if path == "/api/v1/data/objects/content":
+                    if context.databucket is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "databucket/Garage is not configured",
+                        )
+                        return
+                    query = parse_qs(request_url.query)
+                    key = query.get("key", [""])[-1]
+                    if not key:
+                        raise ValueError("key query parameter is required")
+                    content = context.databucket.get_object(key)
+                    filename = key.rsplit("/", 1)[-1]
+                    media_type = (
+                        {".yaml": "text/plain", ".yml": "text/plain"}.get(
+                            Path(filename).suffix.lower()
+                        )
+                        or mimetypes.guess_type(filename)[0]
+                        or "application/octet-stream"
+                    )
+                    safe_inline_types = {
+                        "application/json",
+                        "text/csv",
+                        "text/plain",
+                    }
+                    download = query.get("download", ["0"])[-1] in {
+                        "1",
+                        "true",
+                        "yes",
+                    }
+                    disposition = (
+                        "attachment"
+                        if download or media_type not in safe_inline_types
+                        else "inline"
+                    )
+                    self._bytes_response(
+                        HTTPStatus.OK,
+                        content,
+                        content_type=media_type,
+                        disposition=disposition,
+                        filename=filename,
+                        checksum=hashlib.sha256(content).hexdigest(),
                     )
                     return
                 if path == "/api/v1/knowledge":

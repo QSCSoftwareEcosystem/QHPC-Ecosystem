@@ -72,6 +72,39 @@ def test_dev_stack_builds_separate_api_and_worker_processes() -> None:
     )
 
 
+def test_dev_stack_injects_databucket_credentials_into_api_only() -> None:
+    databucket_config = DevStackConfig(
+        **{
+            **config().__dict__,
+            "databucket_s3_endpoint": "http://127.0.0.1:3900",
+            "databucket_bucket": "proj-materials-db",
+            "databucket_access_key_id": "GKtest",
+            "databucket_secret_access_key": "test-secret",
+        }
+    )
+    services = build_service_specs(databucket_config, python_executable="/usr/bin/python3")
+
+    endpoint = ("QHPC_DATABUCKET_S3_ENDPOINT", "http://127.0.0.1:3900")
+    bucket = ("QHPC_DATABUCKET_BUCKET", "proj-materials-db")
+    access_key = ("QHPC_DATABUCKET_ACCESS_KEY_ID", "GKtest")
+    secret_key = ("QHPC_DATABUCKET_SECRET_ACCESS_KEY", "test-secret")
+    assert endpoint in services[0].environment
+    assert bucket in services[0].environment
+    assert access_key in services[0].environment
+    assert secret_key in services[0].environment
+    assert all(
+        access_key not in service.environment and secret_key not in service.environment
+        for service in services[1:]
+    )
+
+
+def test_dev_stack_omits_databucket_credentials_when_disabled() -> None:
+    disabled_config = DevStackConfig(**{**config().__dict__, "start_databucket": False})
+    services = build_service_specs(disabled_config, python_executable="/usr/bin/python3")
+
+    assert not any(name.startswith("QHPC_DATABUCKET_") for name, _ in services[0].environment)
+
+
 class FakeProcess:
     next_pid = 1000
 

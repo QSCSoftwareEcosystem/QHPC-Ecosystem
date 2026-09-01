@@ -104,6 +104,36 @@ def test_django_proxy_uses_fixed_api_origin_and_enforces_csrf(monkeypatch) -> No
     assert timeout == 30
 
 
+def test_django_proxy_preserves_encoded_slashes_in_query_values(monkeypatch) -> None:
+    # Django's path("api/v1/<path:api_path>", ...) decodes %2F in the PATH
+    # before api_proxy ever sees it, so a route that packs a slash-bearing
+    # value (like a databucket object key) into the path segment breaks once
+    # requests actually go through this proxy — the query string, by
+    # contrast, is forwarded raw via request.META["QUERY_STRING"], so a key
+    # with slashes must travel as a query parameter, not a path segment.
+    from qhpc_workbench import views
+
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        requests.append((request, timeout))
+        return FakeUpstream({"available": True, "objects": []})
+
+    monkeypatch.setattr(views, "urlopen", fake_urlopen)
+    client = Client()
+
+    response = client.get(
+        "/api/v1/data/objects/content?key=materials-db%2Fschema%2Fx.yaml"
+    )
+
+    assert response.status_code == 200
+    upstream, _timeout = requests[-1]
+    assert upstream.full_url == (
+        "http://127.0.0.1:8999/api/v1/data/objects/content"
+        "?key=materials-db%2Fschema%2Fx.yaml"
+    )
+
+
 def test_django_workbench_does_not_import_engine_or_database_modules() -> None:
     package = ROOT / "src" / "qhpc_workbench"
     source = "\n".join(

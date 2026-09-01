@@ -74,11 +74,11 @@ local OCI evidence only; registry publication, SIF conversion, SBOM,
 signature, attestation, site storage activation, and target acceptance remain
 open.
 
-The machine-readable initial HPC acceptance profile covers all fourteen
+The machine-readable initial HPC acceptance profile covers all fifteen
 deployment components. It reports five OCI-verified batch runtimes, TN-Sim and
-FTQC as runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, ChatQEC, plus the
-three non-executable QFlow/QIRIS incubation records as outside the Slurm batch
-gate in their current roles. Its gate remains closed
+FTQC as runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, QSC Materials
+Repository, ChatQEC, plus the three non-executable QFlow/QIRIS incubation
+records as outside the Slurm batch gate in their current roles. Its gate remains closed
 while the target and storage profiles are planned and no runtime is
 target-accepted.
 

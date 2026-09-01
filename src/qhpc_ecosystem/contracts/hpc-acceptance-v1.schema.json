@@ -78,6 +78,7 @@
           "enum": [
             "batch-operation",
             "service",
+            "data-service",
             "integration-standard",
             "knowledge-resource",
             "library-resource"

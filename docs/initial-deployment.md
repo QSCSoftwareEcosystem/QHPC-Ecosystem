@@ -1,10 +1,10 @@
 # Initial Deployment Scope
 
 - Status: Authoritative allowlist
-- Last updated: 2026-07-29
+- Last updated: 2026-08-28
 - Machine-readable profile: [`deployments/initial.yaml`](../deployments/initial.yaml)
 
-The first QHPC deployment is limited to the fourteen components below. The broader
+The first QHPC deployment is limited to the fifteen components below. The broader
 `ecosystem.yaml` catalog remains an inventory and onboarding queue; catalog
 presence alone does not admit a component to this deployment.
 
@@ -20,6 +20,7 @@ presence alone does not admit a component to this deployment.
 | OpenQEvo | Operation provider | [Repository](https://github.com/QSCSoftwareThrust/OpenQEvo) | [Published](../integrations/openqevo/integration.yaml) | Registry published; OCI blocked on license |
 | OpenQSE | Integration standard | [Specification repository](https://github.com/openQSE/openqse-spec) | [Published](../integrations/openqse/integration.yaml) | Registry published |
 | QAppsWiki | Knowledge resource | [Repository](https://github.com/QSCSoftwareThrust/QAppsWiki) | [Published](../integrations/qappswiki/integration.yaml) | Registry published |
+| QSC Materials Repository | Data service | [SDL deployments repository](https://code.ornl.gov/intersect/data/deployments) | [Published](../integrations/qsc-materials-db/integration.yaml) | Static `materials-db` schema and provenance record published; live SDL service deferred |
 | ChatQEC | Assistant service | [GitHub repository](https://github.com/QSCSoftwareThrust/ChatQEC) | [Contract tested](../integrations/chatqec/integration.yaml) | Local cited canonical service functional; production service deferred |
 | ExaChem QFlow | Operation provider | [ExaChem](https://github.com/ExaChem/exachem) | [Scaffolded](../integrations/exachem-qflow/integration.yaml) | Resource-only prototype; local export hook is uncommitted; no Run action |
 | QIRIS Runtime (IRIS/QIR-EE) | Operation provider | [IRIS](https://github.com/ORNL/iris) | [Scaffolded](../integrations/iris-qiris/integration.yaml) | Resource-only prototype; high-level QFlow task-set adapter and live orchestration pending |
@@ -61,11 +62,12 @@ through that service. Stored workflows are re-resolved against the active
 filtered registry when a run is submitted, preventing an older workflow record
 from bypassing a narrowed profile.
 
-The current deployment registry exposes records for all fourteen components.
-Eleven have published integration scaffolds; the ExaChem/QFlow, QIRIS, and
+The current deployment registry exposes records for all fifteen components.
+Twelve have published integration scaffolds; the ExaChem/QFlow, QIRIS, and
 NWQSim QFlow records are explicitly scaffolded prototypes with resources,
 quick-start guidance, and evidence but no executable operations.
-OpenQSE and QAppsWiki expose resources only, with no operations or runtime.
+OpenQSE, QAppsWiki, and the QSC materials data-service schema expose resources
+only, with no operations or runtime.
 TN-Sim, NWQEC, FTPrimitiveBench, LightStim, and FTQC have exact-revision source
 audits, controlled adapters, fixtures, and integration tests. The shared Stim
 artifact boundary was also exercised from FTPrimitiveBench into LightStim.

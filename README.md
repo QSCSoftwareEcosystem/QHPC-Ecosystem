@@ -16,15 +16,17 @@ maintained under [docs/](docs/).
 The first deployment uses the explicit allowlist in
 [deployments/initial.yaml](deployments/initial.yaml): STABSim, TN-Sim, NWQEC,
 FTPrimitiveBench, LightStim, QASMTrans, FTQC, OpenQEvo, OpenQSE, QAppsWiki,
-ChatQEC, ExaChem QFlow, QIRIS over IRIS/QIR-EE, and the NWQSim QFlow VQE
-plugin. See [docs/initial-deployment.md](docs/initial-deployment.md) for
+QSC Materials Repository, ChatQEC, ExaChem QFlow, QIRIS over IRIS/QIR-EE, and
+the NWQSim QFlow VQE plugin. See
+[docs/initial-deployment.md](docs/initial-deployment.md) for
 roles, onboarding state, and production gates. The larger catalog remains
 available for future onboarding but is not deployment scope. Each selected
 component has a validated record under [integrations/](integrations/), the
 pre-container source, contract, adapter, fixture, and integration-test scope is
-closed for the eleven published components; the three QFlow/QIRIS records are
-explicitly scaffolded, non-executable prototypes. All fourteen components have
-registry records admitted by the initial deployment profile. STABSim,
+closed for the twelve published components; the three QFlow/QIRIS records are
+explicitly scaffolded, non-executable prototypes. All fifteen components have
+registry records admitted by the initial deployment profile, including one
+static non-executable data-service schema for QSC materials. STABSim,
 QASMTrans, NWQEC, FTPrimitiveBench,
 and LightStim now have reproducible, digest-recorded, locally smoke-tested
 operation images; see
@@ -187,6 +189,27 @@ token is supplied only to ChatQEC and the API child processes. The command
 prints the Workbench URL and stops its child processes cleanly on `Ctrl-C`.
 The cluster remains available by default so a subsequent start does not rebuild
 it.
+
+To back the Workbench **Data** panel's materials-db view with live object
+storage instead of only the static capability record, point `dev up` at a
+prepared [`databucket`](https://github.com/naughtont3/databucket) checkout
+(a sibling repo in this demo, at
+`../databucket-ecosystemdemo/databucket`):
+
+```bash
+eqo dev up --databucket-checkout /path/to/databucket
+```
+
+The databucket checkout must already have a generated `.env` (run
+`./scripts/setup.sh` once inside it — `dev up` does not do this for you) and
+its own Garage containers are otherwise managed automatically: started if not
+already running, a `materials-db` project (bucket + scoped key) provisioned
+idempotently, and the local `qsc-materials-db` schema/provenance files
+published into it. Pass `--no-databucket` to skip this entirely, or
+`--no-databucket-start` to require Garage to already be running. See
+[docs/databucket-integration.md](docs/databucket-integration.md) for the full
+flag reference, the API surface this adds, and how to test just the Data
+panel directly (`eqo serve` + `qhpc-workbench`) without the rest of `dev up`.
 
 Open the printed URL and select **Assistant** to use ChatQEC. Questions travel
 through the Workbench's CSRF-protected fixed-origin proxy and the QHPC API;
@@ -366,7 +389,7 @@ eqo slurm-test-cluster smoke \
 
 Omit `--build-ca` on development networks that do not intercept TLS.
 
-Inspect the acceptance boundary for all fourteen initial components:
+Inspect the acceptance boundary for all fifteen initial components:
 
 ```bash
 eqo hpc-acceptance status \

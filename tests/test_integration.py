@@ -27,7 +27,7 @@ def test_initial_profile_has_an_aligned_scaffold_for_every_component() -> None:
     assert tuple(scaffold.component_id for scaffold in scaffolds) == tuple(
         component["id"] for component in profile["spec"]["components"]
     )
-    assert len(scaffolds) == 14
+    assert len(scaffolds) == 15
     assert {
         scaffold.component_id
         for scaffold in scaffolds
@@ -43,6 +43,7 @@ def test_initial_profile_has_an_aligned_scaffold_for_every_component() -> None:
         "openqevo",
         "openqse",
         "qappswiki",
+        "qsc-materials-db",
         "chatqec",
     }
     assert {
@@ -198,6 +199,31 @@ def test_openqse_and_qappswiki_publish_only_pinned_resources() -> None:
     )
 
 
+def test_qsc_materials_db_publishes_static_data_service_resources() -> None:
+    _, scaffolds = load_integration_scaffolds(PROFILE)
+
+    scaffold = find_integration_scaffold(scaffolds, "qsc-materials-db").document
+    capability = validate_contract(
+        "capability",
+        ROOT / scaffold["spec"]["contract_refs"][0],
+    )
+    resources = {
+        resource["id"]: resource
+        for resource in capability["spec"]["resources"]
+    }
+
+    assert scaffold["metadata"]["role"] == "data-service"
+    assert scaffold["metadata"]["integration_status"] == "published"
+    assert scaffold["spec"]["production_runtime"]["status"] == "not-applicable"
+    assert scaffold["spec"]["deliverables"]["adapter"] == "not-applicable"
+    assert not capability["spec"].get("operations")
+    assert capability["metadata"]["visibility"] == "internal"
+    assert resources["materials-schema-v0.1"]["kind"] == "schema"
+    assert resources["materials-provenance-v0.1"]["kind"] == "provenance"
+    assert resources["qsc-materials-db-service"]["kind"] == "data-service"
+    assert resources["kcuf3-hamiltonian"]["kind"] == "dataset"
+
+
 def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
     scaffold = find_integration_scaffold(scaffolds, "tn-sim").document
@@ -338,7 +364,7 @@ def test_find_integration_scaffold_rejects_unknown_component() -> None:
 
 def test_integration_cli_validates_lists_and_inspects(capsys) -> None:
     assert cli.main(["integration", "validate", str(PROFILE)]) == 0
-    assert "Integration scaffolds valid: initial@0.7.0 (14 components)" in (
+    assert "Integration scaffolds valid: initial@0.8.0 (15 components)" in (
         capsys.readouterr().out
     )
 
