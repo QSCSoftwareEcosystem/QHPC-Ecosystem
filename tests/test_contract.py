@@ -30,6 +30,7 @@ VALID_EXAMPLES = {
     "execution-target": VALID / "execution-target.yaml",
     "hpc-acceptance": ROOT / "infrastructure/hpc-acceptance/initial.yaml",
     "integration-scaffold": ROOT / "integrations" / "nwqec" / "integration.yaml",
+    "local-state-bundle": VALID / "local-state-bundle.json",
     "operation-interface": ROOT / "integrations" / "nwqec" / "interface.yaml",
     "operation-runtime": (
         ROOT / "containers" / "operations" / "qasmtrans" / "runtime.yaml"

@@ -27,6 +27,7 @@ from .workflow import resolve_workflow, topological_nodes
 TERMINAL_STATES = {"succeeded", "failed", "canceled"}
 ARTIFACT_TYPE = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*@[1-9][0-9]*$")
 DATABASE_SCHEMA_VERSION = 4
+PORTABLE_STATE_SCHEMA_VERSION = 1
 DEFAULT_WORKER_STALE_AFTER_SECONDS = 15.0
 
 
@@ -417,6 +418,538 @@ class WorkflowEngine:
             ).fetchone()
         return int(row["version"] or 0)
 
+    def export_portable_state(self) -> dict[str, Any]:
+        """Export logical application records without SQLite or host paths."""
+
+        def decoded_rows(
+            connection: sqlite3.Connection,
+            query: str,
+            *,
+            json_columns: tuple[str, ...] = (),
+            clear_columns: tuple[str, ...] = (),
+        ) -> list[dict[str, Any]]:
+            records: list[dict[str, Any]] = []
+            for source in connection.execute(query).fetchall():
+                record = dict(source)
+                for column in json_columns:
+                    if record[column] is not None:
+                        record[column] = json.loads(record[column])
+                for column in clear_columns:
+                    record[column] = None
+                records.append(record)
+            return records
+
+        with self._connect() as connection:
+            active_runs = connection.execute(
+                "SELECT id, state FROM runs "
+                "WHERE state NOT IN ('succeeded', 'failed', 'canceled') "
+                "ORDER BY created_at, id"
+            ).fetchall()
+            if active_runs:
+                detail = ", ".join(
+                    f"{row['id']} ({row['state']})" for row in active_runs
+                )
+                raise RuntimeError(
+                    "portable export requires terminal runs; finish or cancel: "
+                    + detail
+                )
+
+            workflows = decoded_rows(
+                connection,
+                "SELECT * FROM workflow_versions ORDER BY workflow_id, version",
+                json_columns=("definition", "resolution"),
+            )
+            drafts = [
+                self._draft_row(row)
+                for row in connection.execute(
+                    "SELECT * FROM workflow_drafts ORDER BY created_at, id"
+                ).fetchall()
+            ]
+            input_artifacts = decoded_rows(
+                connection,
+                """
+                SELECT id, artifact_type, checksum, size_bytes, created_at,
+                       created_by, name, labels
+                FROM input_artifacts ORDER BY created_at, id
+                """,
+                json_columns=("labels",),
+            )
+            runs = decoded_rows(
+                connection,
+                "SELECT * FROM runs ORDER BY created_at, id",
+                json_columns=("inputs", "outputs"),
+            )
+            tasks = decoded_rows(
+                connection,
+                "SELECT * FROM tasks ORDER BY run_id, sequence, node_id",
+                json_columns=("operation", "outputs", "error"),
+                clear_columns=("lease_token", "lease_expires_at"),
+            )
+            attempts = decoded_rows(
+                connection,
+                """
+                SELECT * FROM task_attempts
+                ORDER BY run_id, node_id, number, id
+                """,
+                json_columns=("target_metadata", "outputs", "error"),
+                clear_columns=("worker_id", "lease_token", "lease_expires_at"),
+            )
+            output_artifacts = decoded_rows(
+                connection,
+                """
+                SELECT id, run_id, task_id, attempt_id, port, artifact_type,
+                       checksum, size_bytes, created_at
+                FROM artifacts ORDER BY created_at, id
+                """,
+            )
+            events = decoded_rows(
+                connection,
+                "SELECT * FROM execution_events ORDER BY sequence",
+                json_columns=("details",),
+            )
+
+        return {
+            "schema_version": PORTABLE_STATE_SCHEMA_VERSION,
+            "database_schema_version": self.schema_version(),
+            "workflow_versions": workflows,
+            "workflow_drafts": drafts,
+            "input_artifacts": input_artifacts,
+            "runs": runs,
+            "tasks": tasks,
+            "task_attempts": attempts,
+            "output_artifacts": output_artifacts,
+            "execution_events": events,
+        }
+
+    def import_portable_state(
+        self,
+        document: dict[str, Any],
+        *,
+        artifact_uris: dict[str, str],
+    ) -> None:
+        """Rebuild a clean current-schema database from logical records."""
+
+        collection_names = (
+            "workflow_versions",
+            "workflow_drafts",
+            "input_artifacts",
+            "runs",
+            "tasks",
+            "task_attempts",
+            "output_artifacts",
+            "execution_events",
+        )
+        expected_keys = {
+            "schema_version",
+            "database_schema_version",
+            *collection_names,
+        }
+        if not isinstance(document, dict) or set(document) != expected_keys:
+            raise RuntimeError("portable state document has an unsupported shape")
+        if document["schema_version"] != PORTABLE_STATE_SCHEMA_VERSION:
+            raise RuntimeError(
+                "unsupported portable state schema version: "
+                f"{document['schema_version']}"
+            )
+        source_database_version = document["database_schema_version"]
+        if (
+            isinstance(source_database_version, bool)
+            or not isinstance(source_database_version, int)
+            or source_database_version < 1
+            or source_database_version > DATABASE_SCHEMA_VERSION
+        ):
+            raise RuntimeError(
+                "portable state requires unsupported database schema version: "
+                f"{source_database_version}"
+            )
+        for name in collection_names:
+            if not isinstance(document[name], list):
+                raise RuntimeError(f"portable state {name} must be a list")
+
+        def require_row(
+            value: Any,
+            fields: tuple[str, ...],
+            label: str,
+        ) -> dict[str, Any]:
+            if not isinstance(value, dict) or set(value) != set(fields):
+                raise RuntimeError(f"portable state contains an invalid {label} row")
+            return value
+
+        workflow_fields = (
+            "workflow_id",
+            "version",
+            "digest",
+            "definition",
+            "resolution",
+            "registry_digest",
+            "created_at",
+            "created_by",
+        )
+        input_artifact_fields = (
+            "id",
+            "artifact_type",
+            "checksum",
+            "size_bytes",
+            "created_at",
+            "created_by",
+            "name",
+            "labels",
+            "payload",
+        )
+        run_fields = (
+            "id",
+            "workflow_id",
+            "workflow_version",
+            "workflow_digest",
+            "execution_target",
+            "state",
+            "created_at",
+            "created_by",
+            "started_at",
+            "finished_at",
+            "inputs",
+            "outputs",
+        )
+        task_fields = (
+            "run_id",
+            "node_id",
+            "sequence",
+            "state",
+            "attempt",
+            "operation",
+            "runtime_digest",
+            "lease_token",
+            "lease_expires_at",
+            "started_at",
+            "finished_at",
+            "error",
+            "outputs",
+            "log",
+        )
+        attempt_fields = (
+            "id",
+            "run_id",
+            "node_id",
+            "number",
+            "state",
+            "worker_id",
+            "lease_token",
+            "lease_expires_at",
+            "target_handle",
+            "target_state",
+            "target_metadata",
+            "started_at",
+            "submitted_at",
+            "finished_at",
+            "error",
+            "outputs",
+            "log",
+        )
+        output_artifact_fields = (
+            "id",
+            "run_id",
+            "task_id",
+            "attempt_id",
+            "port",
+            "artifact_type",
+            "checksum",
+            "size_bytes",
+            "created_at",
+            "payload",
+        )
+        event_fields = (
+            "sequence",
+            "id",
+            "run_id",
+            "node_id",
+            "attempt_id",
+            "correlation_id",
+            "event_type",
+            "source",
+            "execution_class",
+            "target_handle",
+            "stage",
+            "state",
+            "occurred_at",
+            "recorded_at",
+            "duration_ms",
+            "details",
+        )
+
+        workflows = [
+            require_row(row, workflow_fields, "workflow version")
+            for row in document["workflow_versions"]
+        ]
+        for workflow in workflows:
+            definition = workflow["definition"]
+            if not isinstance(definition, dict):
+                raise RuntimeError("portable workflow definition must be an object")
+            validate_contract_data("workflow", definition)
+            if workflow["digest"] != document_digest(definition):
+                raise RuntimeError(
+                    "portable workflow digest mismatch: "
+                    f"{workflow['workflow_id']}@{workflow['version']}"
+                )
+            if not isinstance(workflow["resolution"], dict):
+                raise RuntimeError("portable workflow resolution must be an object")
+
+        drafts = document["workflow_drafts"]
+        for draft in drafts:
+            if not isinstance(draft, dict):
+                raise RuntimeError("portable workflow draft must be an object")
+            validate_contract_data("workflow-draft", draft)
+
+        inputs = [
+            require_row(row, input_artifact_fields, "input artifact")
+            for row in document["input_artifacts"]
+        ]
+        runs = [
+            require_row(row, run_fields, "run") for row in document["runs"]
+        ]
+        nonterminal = [
+            str(run["id"])
+            for run in runs
+            if run["state"] not in TERMINAL_STATES
+        ]
+        if nonterminal:
+            raise RuntimeError(
+                "portable state contains nonterminal runs: " + ", ".join(nonterminal)
+            )
+        tasks = [
+            require_row(row, task_fields, "task") for row in document["tasks"]
+        ]
+        attempts = [
+            require_row(row, attempt_fields, "task attempt")
+            for row in document["task_attempts"]
+        ]
+        outputs = [
+            require_row(row, output_artifact_fields, "output artifact")
+            for row in document["output_artifacts"]
+        ]
+        events = [
+            require_row(row, event_fields, "execution event")
+            for row in document["execution_events"]
+        ]
+        artifact_ids = {str(row["id"]) for row in (*inputs, *outputs)}
+        if artifact_ids != set(artifact_uris):
+            raise RuntimeError("portable artifact payload identities do not match state")
+
+        try:
+            with self._connect() as connection:
+                database_tables = (
+                    "workflow_versions",
+                    "workflow_drafts",
+                    "input_artifacts",
+                    "runs",
+                    "tasks",
+                    "task_attempts",
+                    "artifacts",
+                    "execution_events",
+                )
+                existing = sum(
+                    int(
+                        connection.execute(
+                            f"SELECT COUNT(*) FROM {table}"
+                        ).fetchone()[0]
+                    )
+                    for table in database_tables
+                )
+                if existing:
+                    raise RuntimeError(
+                        "portable state can only be imported into a clean database"
+                    )
+
+                for row in workflows:
+                    connection.execute(
+                        """
+                        INSERT INTO workflow_versions
+                          (workflow_id, version, digest, definition, resolution,
+                           registry_digest, created_at, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["workflow_id"],
+                            row["version"],
+                            row["digest"],
+                            _json(row["definition"]),
+                            _json(row["resolution"]),
+                            row["registry_digest"],
+                            row["created_at"],
+                            row["created_by"],
+                        ),
+                    )
+                for draft in drafts:
+                    metadata = draft["metadata"]
+                    spec = draft["spec"]
+                    connection.execute(
+                        """
+                        INSERT INTO workflow_drafts
+                          (id, name, owner, revision, workflow, layout,
+                           created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            metadata["id"],
+                            metadata["name"],
+                            metadata["owner"],
+                            metadata["revision"],
+                            _json(spec["workflow"]),
+                            _json(spec["layout"]),
+                            metadata["created_at"],
+                            metadata["updated_at"],
+                        ),
+                    )
+                for row in inputs:
+                    connection.execute(
+                        """
+                        INSERT INTO input_artifacts
+                          (id, artifact_type, uri, checksum, size_bytes,
+                           created_at, created_by, name, labels)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["id"],
+                            row["artifact_type"],
+                            artifact_uris[str(row["id"])],
+                            row["checksum"],
+                            row["size_bytes"],
+                            row["created_at"],
+                            row["created_by"],
+                            row["name"],
+                            _json(row["labels"]),
+                        ),
+                    )
+                for row in runs:
+                    connection.execute(
+                        """
+                        INSERT INTO runs
+                          (id, workflow_id, workflow_version, workflow_digest,
+                           execution_target, state, created_at, created_by,
+                           started_at, finished_at, inputs, outputs)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["id"],
+                            row["workflow_id"],
+                            row["workflow_version"],
+                            row["workflow_digest"],
+                            row["execution_target"],
+                            row["state"],
+                            row["created_at"],
+                            row["created_by"],
+                            row["started_at"],
+                            row["finished_at"],
+                            _json(row["inputs"]),
+                            _json(row["outputs"]),
+                        ),
+                    )
+                for row in tasks:
+                    connection.execute(
+                        """
+                        INSERT INTO tasks
+                          (run_id, node_id, sequence, state, attempt, operation,
+                           runtime_digest, lease_token, lease_expires_at,
+                           started_at, finished_at, error, outputs, log)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["run_id"],
+                            row["node_id"],
+                            row["sequence"],
+                            row["state"],
+                            row["attempt"],
+                            _json(row["operation"]),
+                            row["runtime_digest"],
+                            row["started_at"],
+                            row["finished_at"],
+                            _json(row["error"]) if row["error"] is not None else None,
+                            _json(row["outputs"]),
+                            row["log"],
+                        ),
+                    )
+                for row in attempts:
+                    connection.execute(
+                        """
+                        INSERT INTO task_attempts
+                          (id, run_id, node_id, number, state, worker_id,
+                           lease_token, lease_expires_at, target_handle,
+                           target_state, target_metadata, started_at,
+                           submitted_at, finished_at, error, outputs, log)
+                        VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["id"],
+                            row["run_id"],
+                            row["node_id"],
+                            row["number"],
+                            row["state"],
+                            row["target_handle"],
+                            row["target_state"],
+                            _json(row["target_metadata"]),
+                            row["started_at"],
+                            row["submitted_at"],
+                            row["finished_at"],
+                            _json(row["error"]) if row["error"] is not None else None,
+                            _json(row["outputs"]),
+                            row["log"],
+                        ),
+                    )
+                for row in outputs:
+                    connection.execute(
+                        """
+                        INSERT INTO artifacts
+                          (id, run_id, task_id, attempt_id, port, artifact_type,
+                           uri, checksum, size_bytes, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["id"],
+                            row["run_id"],
+                            row["task_id"],
+                            row["attempt_id"],
+                            row["port"],
+                            row["artifact_type"],
+                            artifact_uris[str(row["id"])],
+                            row["checksum"],
+                            row["size_bytes"],
+                            row["created_at"],
+                        ),
+                    )
+                for row in events:
+                    connection.execute(
+                        """
+                        INSERT INTO execution_events
+                          (sequence, id, run_id, node_id, attempt_id,
+                           correlation_id, event_type, source, execution_class,
+                           target_handle, stage, state, occurred_at, recorded_at,
+                           duration_ms, details)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["sequence"],
+                            row["id"],
+                            row["run_id"],
+                            row["node_id"],
+                            row["attempt_id"],
+                            row["correlation_id"],
+                            row["event_type"],
+                            row["source"],
+                            row["execution_class"],
+                            row["target_handle"],
+                            row["stage"],
+                            row["state"],
+                            row["occurred_at"],
+                            row["recorded_at"],
+                            row["duration_ms"],
+                            _json(row["details"]),
+                        ),
+                    )
+                violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+                if violations:
+                    raise RuntimeError("portable state violates database relationships")
+        except sqlite3.DatabaseError as error:
+            raise RuntimeError(f"portable state is inconsistent: {error}") from error
+
     def register_input_artifact(
         self,
         *,
@@ -512,6 +1045,15 @@ class WorkflowEngine:
         self,
         artifact_id: str,
     ) -> tuple[dict[str, Any], bytes, str]:
+        artifact, path, name = self.verified_artifact_path(artifact_id)
+        return artifact, path.read_bytes(), name
+
+    def verified_artifact_path(
+        self,
+        artifact_id: str,
+    ) -> tuple[dict[str, Any], Path, str]:
+        """Resolve and checksum a local artifact without loading it into memory."""
+
         artifact = self.get_artifact(artifact_id)
         parsed = urlparse(artifact["uri"])
         if parsed.scheme != "file" or parsed.netloc not in {"", "localhost"}:
@@ -521,14 +1063,19 @@ class WorkflowEngine:
             raise ContractError("artifact path is outside the configured artifact root")
         if not path.is_file():
             raise FileNotFoundError(f"artifact content not found: {artifact_id}")
-        content = path.read_bytes()
-        checksum = "sha256:" + sha256(content).hexdigest()
+        digest = sha256()
+        size_bytes = 0
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+                size_bytes += len(chunk)
+        checksum = "sha256:" + digest.hexdigest()
         if checksum != artifact["checksum"]:
             raise ContractError(f"artifact checksum mismatch: {artifact_id}")
-        if len(content) != artifact["size_bytes"]:
+        if size_bytes != artifact["size_bytes"]:
             raise ContractError(f"artifact size mismatch: {artifact_id}")
         name = artifact.get("name") or path.name or f"{artifact_id}.bin"
-        return artifact, content, Path(name).name
+        return artifact, path, Path(name).name
 
     def register_workflow(
         self,

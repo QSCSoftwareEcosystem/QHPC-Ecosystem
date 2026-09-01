@@ -304,7 +304,9 @@ def build_parser() -> argparse.ArgumentParser:
         "local", help="operate the portable single-user EQO release"
     )
     local_commands = local_parser.add_subparsers(
-        dest="local_command", required=True, metavar="{up,status,open,down}"
+        dest="local_command",
+        required=True,
+        metavar="{up,status,open,export,import,down}",
     )
     local_up = local_commands.add_parser(
         "up", help="start the Workbench, API, local worker, and Assistant"
@@ -314,6 +316,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     local_open = local_commands.add_parser(
         "open", help="open the running EQO Workbench"
+    )
+    local_export = local_commands.add_parser(
+        "export", help="create a checksum-verified portable state bundle"
+    )
+    local_import = local_commands.add_parser(
+        "import", help="restore a checksum-verified portable state bundle"
     )
     local_down = local_commands.add_parser(
         "down", help="stop the supervised local services"
@@ -325,7 +333,15 @@ def build_parser() -> argparse.ArgumentParser:
         if action.dest != "_supervise"
     ]
 
-    for command in (local_up, local_status, local_open, local_down, local_supervise):
+    for command in (
+        local_up,
+        local_status,
+        local_open,
+        local_export,
+        local_import,
+        local_down,
+        local_supervise,
+    ):
         command.add_argument(
             "--home",
             help="single portable root; defaults to operating-system application paths",
@@ -374,6 +390,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     local_status.add_argument(
         "--json", action="store_true", help="emit machine-readable status"
+    )
+    local_export.add_argument(
+        "destination",
+        nargs="?",
+        help="output .eqo file; defaults to the local exports directory",
+    )
+    local_export.add_argument(
+        "--force", action="store_true", help="replace an existing export file"
+    )
+    local_import.add_argument("bundle", help="portable .eqo bundle to restore")
+    local_import.add_argument(
+        "--replace",
+        action="store_true",
+        help="replace existing local state after creating an automatic backup",
     )
     local_down.add_argument(
         "--timeout", type=float, default=15.0, help="shutdown timeout in seconds"
@@ -1218,6 +1248,41 @@ def dispatch(args: argparse.Namespace) -> int:
             return 0
         if args.local_command == "open":
             print(f"EQO Local Workbench: {open_local(paths)}")
+            return 0
+        if args.local_command == "export":
+            from .local_bundle import export_local_state
+
+            report = export_local_state(
+                paths,
+                release_version=__version__,
+                destination=args.destination,
+                overwrite=args.force,
+            )
+            print(f"EQO Local export: {report['path']}")
+            print(f"Checksum: {report['checksum']}")
+            print(
+                "Contents: "
+                f"{report['counts']['workflow_versions']} workflows, "
+                f"{report['counts']['workflow_drafts']} drafts, "
+                f"{report['counts']['runs']} runs, "
+                f"{report['counts']['artifact_payloads']} artifacts"
+            )
+            return 0
+        if args.local_command == "import":
+            from .local_bundle import import_local_state
+
+            report = import_local_state(paths, args.bundle, replace=args.replace)
+            print(f"EQO Local import restored: {report['path']}")
+            print(f"Checksum: {report['checksum']}")
+            print(
+                "Contents: "
+                f"{report['counts']['workflow_versions']} workflows, "
+                f"{report['counts']['workflow_drafts']} drafts, "
+                f"{report['counts']['runs']} runs, "
+                f"{report['counts']['artifact_payloads']} artifacts"
+            )
+            if report["backup"]:
+                print(f"Previous state backup: {report['backup']}")
             return 0
         if args.local_command == "down":
             stopped = stop_local(paths, timeout_seconds=args.timeout)

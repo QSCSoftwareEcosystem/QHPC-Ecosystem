@@ -6,11 +6,14 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import signal
 import socket
+import sqlite3
 import subprocess
 import sys
 import time
+import uuid
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
@@ -117,6 +120,10 @@ class LocalPaths:
         return self.data_root / "exports"
 
     @property
+    def backup_root(self) -> Path:
+        return self.data_root / "backups"
+
+    @property
     def update_root(self) -> Path:
         return self.state_root / "updates"
 
@@ -139,6 +146,7 @@ class LocalPaths:
             self.runtime_root,
             self.service_root,
             self.export_root,
+            self.backup_root,
         ):
             path.mkdir(parents=True, exist_ok=True)
 
@@ -152,6 +160,7 @@ class LocalPaths:
             "artifacts": str(self.artifact_root),
             "runtimes": str(self.runtime_root),
             "exports": str(self.export_root),
+            "backups": str(self.backup_root),
         }
 
     def supervisor_arguments(self) -> tuple[str, ...]:
@@ -444,10 +453,189 @@ def require_local_dependencies() -> None:
 def _file_digest(path: str) -> str:
     value = Path(path)
     try:
-        content = value.read_bytes()
+        digest = hashlib.sha256()
+        with value.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
     except OSError as error:
         raise LocalReleaseError(f"cannot read local release input {value}: {error}") from error
-    return f"sha256:{hashlib.sha256(content).hexdigest()}"
+    return f"sha256:{digest.hexdigest()}"
+
+
+def _database_schema_version(database: Path) -> int:
+    if not database.is_file():
+        return 0
+    try:
+        with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as connection:
+            table = connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='schema_migrations'"
+            ).fetchone()
+            if not table:
+                return 0
+            row = connection.execute(
+                "SELECT MAX(version) FROM schema_migrations"
+            ).fetchone()
+    except sqlite3.DatabaseError as error:
+        raise LocalReleaseError(
+            f"cannot inspect EQO Local database {database}: {error}"
+        ) from error
+    return int(row[0] or 0)
+
+
+def _database_integrity(database: Path) -> str:
+    try:
+        with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as connection:
+            row = connection.execute("PRAGMA integrity_check").fetchone()
+    except sqlite3.DatabaseError as error:
+        raise LocalReleaseError(
+            f"cannot verify EQO Local database {database}: {error}"
+        ) from error
+    return str(row[0]) if row else "no integrity result"
+
+
+def _backup_database(source: Path, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=False)
+    try:
+        with sqlite3.connect(source) as source_connection, sqlite3.connect(
+            destination
+        ) as destination_connection:
+            source_connection.backup(destination_connection)
+    except (OSError, sqlite3.DatabaseError) as error:
+        raise LocalReleaseError(
+            f"cannot create database upgrade backup {destination}: {error}"
+        ) from error
+    destination.chmod(0o600)
+
+
+def _restore_database_backup(
+    database: Path,
+    backup: Path,
+    failed_database: Path,
+) -> None:
+    for suffix in ("-wal", "-shm"):
+        Path(str(database) + suffix).unlink(missing_ok=True)
+    if database.exists():
+        os.replace(database, failed_database)
+    temporary = database.with_name(f".{database.name}.{os.getpid()}.restore")
+    try:
+        shutil.copy2(backup, temporary)
+        temporary.chmod(0o600)
+        os.replace(temporary, database)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def prepare_local_database(paths: LocalPaths) -> dict[str, Any]:
+    """Apply current migrations with a retained backup and automatic rollback."""
+
+    from .engine import DATABASE_SCHEMA_VERSION, WorkflowEngine
+
+    paths.ensure()
+    existed = paths.database.is_file()
+    source_version = _database_schema_version(paths.database) if existed else 0
+    if source_version > DATABASE_SCHEMA_VERSION:
+        raise LocalReleaseError(
+            f"EQO Local database schema {source_version} is newer than supported "
+            f"schema {DATABASE_SCHEMA_VERSION}; upgrade EQO before opening this data"
+        )
+
+    backup_directory: Path | None = None
+    backup_database: Path | None = None
+    metadata_file: Path | None = None
+    if existed and source_version < DATABASE_SCHEMA_VERSION:
+        backup_directory = (
+            paths.backup_root
+            / f"before-upgrade-{_timestamp_for_path()}-{uuid.uuid4().hex[:8]}"
+        )
+        backup_database = backup_directory / paths.database.name
+        metadata_file = backup_directory / "upgrade.json"
+        _backup_database(paths.database, backup_database)
+        _write_json(
+            metadata_file,
+            {
+                "schema_version": 1,
+                "status": "backup-created",
+                "from_database_schema": source_version,
+                "to_database_schema": DATABASE_SCHEMA_VERSION,
+                "database_checksum": _file_digest(str(backup_database)),
+                "created_at": time.time(),
+            },
+        )
+
+    try:
+        engine = WorkflowEngine(paths.database, paths.artifact_root)
+        current_version = engine.schema_version()
+        if current_version != DATABASE_SCHEMA_VERSION:
+            raise LocalReleaseError(
+                f"database migration stopped at schema {current_version}; "
+                f"expected {DATABASE_SCHEMA_VERSION}"
+            )
+        integrity = _database_integrity(paths.database)
+        if integrity != "ok":
+            raise LocalReleaseError(
+                f"database integrity check failed after migration: {integrity}"
+            )
+    except Exception as error:
+        if backup_database is None or backup_directory is None:
+            if isinstance(error, LocalReleaseError):
+                raise
+            raise LocalReleaseError(
+                f"cannot initialize EQO Local database: {error}"
+            ) from error
+        failed_database = backup_directory / "failed-workbench.sqlite"
+        try:
+            _restore_database_backup(paths.database, backup_database, failed_database)
+            restored_integrity = _database_integrity(paths.database)
+            if restored_integrity != "ok":
+                raise LocalReleaseError(
+                    f"restored database failed integrity check: {restored_integrity}"
+                )
+            _write_json(
+                metadata_file,
+                {
+                    "schema_version": 1,
+                    "status": "rolled-back",
+                    "from_database_schema": source_version,
+                    "to_database_schema": DATABASE_SCHEMA_VERSION,
+                    "database_checksum": _file_digest(str(backup_database)),
+                    "error": str(error),
+                    "updated_at": time.time(),
+                },
+            )
+        except (OSError, LocalReleaseError) as restore_error:
+            raise LocalReleaseError(
+                "EQO Local database migration failed and automatic rollback also "
+                f"failed: {restore_error}; recovery backup: {backup_database}"
+            ) from error
+        raise LocalReleaseError(
+            "EQO Local database migration failed and the previous database was "
+            f"restored; recovery details: {backup_directory}; error: {error}"
+        ) from error
+
+    if metadata_file is not None and backup_database is not None:
+        _write_json(
+            metadata_file,
+            {
+                "schema_version": 1,
+                "status": "upgraded",
+                "from_database_schema": source_version,
+                "to_database_schema": current_version,
+                "database_checksum": _file_digest(str(backup_database)),
+                "upgraded_database_checksum": _file_digest(str(paths.database)),
+                "updated_at": time.time(),
+            },
+        )
+    return {
+        "database_schema_version": current_version,
+        "upgraded": backup_directory is not None,
+        "from_database_schema_version": source_version,
+        "backup": str(backup_directory) if backup_directory is not None else None,
+    }
+
+
+def _timestamp_for_path() -> str:
+    return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
 
 
 def state_document(
@@ -459,6 +647,8 @@ def state_document(
     status: str,
     services: Mapping[str, int] | None = None,
     error: str | None = None,
+    database_schema_version: int | None = None,
+    database_backup: str | None = None,
 ) -> dict[str, Any]:
     document: dict[str, Any] = {
         "release_version": release_version,
@@ -476,6 +666,10 @@ def state_document(
         "artifact_root": str(paths.artifact_root),
         "log_file": str(paths.log_file),
     }
+    if database_schema_version is not None:
+        document["database_schema_version"] = database_schema_version
+    if database_backup:
+        document["database_backup"] = database_backup
     if error:
         document["error"] = error
     return document
@@ -718,8 +912,24 @@ def supervise_local(
         supervisor_pid=os.getpid(),
         status="starting",
     )
+    database_report: dict[str, Any] = {}
     try:
         write_local_state(paths, base_state)
+        database_report = prepare_local_database(paths)
+        write_local_state(
+            paths,
+            state_document(
+                config,
+                paths,
+                release_version=release_version,
+                supervisor_pid=os.getpid(),
+                status="starting",
+                database_schema_version=database_report[
+                    "database_schema_version"
+                ],
+                database_backup=database_report["backup"],
+            ),
+        )
         supervisor.start_api()
         supervisor.wait_for_api(f"{config.api_url}/api/v1/health")
         supervisor.start_services()
@@ -745,6 +955,10 @@ def supervise_local(
                 supervisor_pid=os.getpid(),
                 status="ready",
                 services=services,
+                database_schema_version=database_report[
+                    "database_schema_version"
+                ],
+                database_backup=database_report["backup"],
             ),
         )
         supervisor.run(stop_event)
@@ -758,6 +972,10 @@ def supervise_local(
                 supervisor_pid=os.getpid(),
                 status="failed",
                 error=str(error),
+                database_schema_version=database_report.get(
+                    "database_schema_version"
+                ),
+                database_backup=database_report.get("backup"),
             ),
         )
         raise LocalReleaseError(str(error)) from error
@@ -772,6 +990,8 @@ def supervise_local(
             release_version=release_version,
             supervisor_pid=os.getpid(),
             status="stopped",
+            database_schema_version=database_report["database_schema_version"],
+            database_backup=database_report["backup"],
         ),
     )
     return 0
@@ -803,6 +1023,10 @@ def format_status(report: Mapping[str, Any]) -> str:
         lines.append(f"Registry: {report['registry_digest']}")
     if report.get("database"):
         lines.append(f"Database: {report['database']}")
+    if report.get("database_schema_version") is not None:
+        lines.append(f"Database schema: {report['database_schema_version']}")
+    if report.get("database_backup"):
+        lines.append(f"Database backup: {report['database_backup']}")
     if report.get("artifact_root"):
         lines.append(f"Artifacts: {report['artifact_root']}")
     if report.get("log_file"):

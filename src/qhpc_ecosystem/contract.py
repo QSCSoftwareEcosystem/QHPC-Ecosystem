@@ -23,6 +23,7 @@ CONTRACT_SCHEMAS = {
     "execution-target": "execution-target-v1.schema.json",
     "hpc-acceptance": "hpc-acceptance-v1.schema.json",
     "integration-scaffold": "integration-scaffold-v1.schema.json",
+    "local-state-bundle": "local-state-bundle-v1.schema.json",
     "operation-interface": "operation-interface-v1.schema.json",
     "operation-runtime": "operation-runtime-v1.schema.json",
     "pilot-profile": "pilot-profile-v1.schema.json",
@@ -1308,6 +1309,28 @@ def _semantic_issues(kind: str, document: dict[str, Any]) -> list[ContractIssue]
         return _validate_hpc_acceptance(document)
     if kind == "integration-scaffold":
         return _validate_integration_scaffold(document)
+    if kind == "local-state-bundle":
+        artifacts = document["artifacts"]
+        issues = _duplicate_issues(
+            (artifact["id"] for artifact in artifacts),
+            "/artifacts",
+            "artifact IDs",
+        )
+        issues.extend(
+            _duplicate_issues(
+                (artifact["path"] for artifact in artifacts),
+                "/artifacts",
+                "artifact payload paths",
+            )
+        )
+        if document["counts"]["artifact_payloads"] != len(artifacts):
+            issues.append(
+                ContractIssue(
+                    "/counts/artifact_payloads",
+                    "must match the number of artifact manifest entries",
+                )
+            )
+        return issues
     if kind == "operation-interface":
         return _validate_operation_interface(document)
     if kind == "operation-runtime":

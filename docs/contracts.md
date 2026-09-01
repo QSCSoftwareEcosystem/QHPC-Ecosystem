@@ -40,6 +40,21 @@ workflow against the active deployment-filtered registry without publishing
 it. Publication succeeds only after authoritative workflow validation and uses
 the existing immutable `(workflow ID, semantic version)` registration rule.
 
+## Portable State Bundles
+
+A `PortableStateBundle` manifest describes an EQO Local `.eqo` archive. It
+pins the bundle and database schema versions, source release, registry and
+deployment-profile digests, logical record counts, state-document checksum,
+and every included artifact payload by identity, provenance, path, size, and
+SHA-256 checksum.
+
+The archive is an application-level interchange format, not a database backup
+format. SQLite files, worker heartbeats, service credentials, caches, absolute
+host paths, and installed scientific runtimes are excluded. Import validates
+the manifest and all declared payloads, reconstructs a current-schema database,
+and rewrites artifact URIs beneath the destination EQO Local data root. See
+[the EQO Local lifecycle guide](local-release.md) for operating procedures.
+
 ## Deployment Profiles
 
 A deployment profile is a versioned, deny-by-default component allowlist. It

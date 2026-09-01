@@ -233,6 +233,13 @@ npm test --prefix workbench/frontend
 npm run build --prefix workbench/frontend
 ```
 
+Release candidates must use the automated clean build so committed frontend
+assets, the Python suite, the wheel, and its checksum are verified together:
+
+```bash
+python tools/build_local_release.py
+```
+
 With `eqo dev up` running and Google Chrome installed, exercise the
 browser workflow at desktop and mobile dimensions with:
 
@@ -457,6 +464,8 @@ eqo local up
 eqo local status
 eqo local open
 eqo local down
+eqo local export
+eqo local import /path/to/eqo-local-export.eqo
 ```
 
 The services bind to loopback by default and use stable operating-system data,

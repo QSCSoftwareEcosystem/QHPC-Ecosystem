@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/local-state-bundle-v1.schema.json",
+  "title": "EQO Local Portable State Bundle Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "kind",
+    "schema_version",
+    "created_at",
+    "release_version",
+    "database_schema_version",
+    "state",
+    "artifacts",
+    "counts"
+  ],
+  "properties": {
+    "api_version": {"const": "eqo.local/v1"},
+    "kind": {"const": "PortableStateBundle"},
+    "schema_version": {"const": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "release_version": {"type": "string", "minLength": 1},
+    "database_schema_version": {"type": "integer", "minimum": 1},
+    "registry_digest": {"$ref": "#/$defs/optionalDigest"},
+    "deployment_profile_digest": {"$ref": "#/$defs/optionalDigest"},
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "checksum", "size_bytes"],
+      "properties": {
+        "path": {"const": "state.json"},
+        "checksum": {"$ref": "#/$defs/digest"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "provenance",
+          "path",
+          "name",
+          "checksum",
+          "size_bytes"
+        ],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 256},
+          "provenance": {"enum": ["input", "task-output"]},
+          "path": {
+            "type": "string",
+            "pattern": "^artifacts/(input|task-output)/[^/]+/[^/]+$"
+          },
+          "name": {"type": "string", "minLength": 1, "maxLength": 255},
+          "checksum": {"$ref": "#/$defs/digest"},
+          "size_bytes": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_versions",
+        "workflow_drafts",
+        "runs",
+        "tasks",
+        "task_attempts",
+        "execution_events",
+        "input_artifacts",
+        "output_artifacts",
+        "artifact_payloads"
+      ],
+      "properties": {
+        "workflow_versions": {"$ref": "#/$defs/count"},
+        "workflow_drafts": {"$ref": "#/$defs/count"},
+        "runs": {"$ref": "#/$defs/count"},
+        "tasks": {"$ref": "#/$defs/count"},
+        "task_attempts": {"$ref": "#/$defs/count"},
+        "execution_events": {"$ref": "#/$defs/count"},
+        "input_artifacts": {"$ref": "#/$defs/count"},
+        "output_artifacts": {"$ref": "#/$defs/count"},
+        "artifact_payloads": {"$ref": "#/$defs/count"}
+      }
+    }
+  },
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "optionalDigest": {
+      "oneOf": [
+        {"$ref": "#/$defs/digest"},
+        {"type": "null"}
+      ]
+    }
+  }
+}

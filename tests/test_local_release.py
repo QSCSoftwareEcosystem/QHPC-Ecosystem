@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
 
 from qhpc_ecosystem import cli
+from qhpc_ecosystem import engine as engine_module
 from qhpc_ecosystem import local_release
+from qhpc_ecosystem.engine import WorkflowEngine
 from qhpc_ecosystem.local_release import (
     LocalPaths,
     LocalReleaseError,
     LocalStackConfig,
     local_status,
+    prepare_local_database,
     state_document,
     stop_local,
     supervisor_command,
@@ -47,6 +51,7 @@ def test_explicit_home_keeps_all_local_state_under_one_root(tmp_path: Path) -> N
     assert paths.database == tmp_path / "data" / "workbench.sqlite"
     assert paths.artifact_root == tmp_path / "data" / "artifacts"
     assert paths.runtime_root == tmp_path / "data" / "runtimes"
+    assert paths.backup_root == tmp_path / "data" / "backups"
     assert paths.log_file == tmp_path / "logs" / "local-supervisor.log"
 
 
@@ -214,3 +219,67 @@ def test_stop_does_not_signal_an_unverified_stale_pid(
 def test_cli_local_status_uses_portable_home(tmp_path: Path, capsys) -> None:
     assert cli.main(["local", "status", "--home", str(tmp_path)]) == 0
     assert "EQO Local: stopped" in capsys.readouterr().out
+
+
+def test_database_upgrade_creates_retained_backup(tmp_path: Path) -> None:
+    paths = LocalPaths.discover(tmp_path)
+    WorkflowEngine(paths.database, paths.artifact_root)
+    with sqlite3.connect(paths.database) as connection:
+        connection.execute("DELETE FROM schema_migrations")
+        connection.execute(
+            "INSERT INTO schema_migrations(version, applied_at) VALUES (3, 'test')"
+        )
+
+    report = prepare_local_database(paths)
+    backup_root = Path(report["backup"])
+
+    assert report["upgraded"]
+    assert report["from_database_schema_version"] == 3
+    assert report["database_schema_version"] == 4
+    assert (backup_root / "workbench.sqlite").is_file()
+    assert json.loads((backup_root / "upgrade.json").read_text())["status"] == (
+        "upgraded"
+    )
+    with sqlite3.connect(backup_root / "workbench.sqlite") as connection:
+        assert connection.execute(
+            "SELECT MAX(version) FROM schema_migrations"
+        ).fetchone()[0] == 3
+
+
+def test_failed_database_upgrade_restores_previous_database(
+    tmp_path: Path, monkeypatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path)
+    WorkflowEngine(paths.database, paths.artifact_root)
+    with sqlite3.connect(paths.database) as connection:
+        connection.execute("DELETE FROM schema_migrations")
+        connection.execute(
+            "INSERT INTO schema_migrations(version, applied_at) VALUES (3, 'test')"
+        )
+
+    class FailingMigration:
+        def __init__(self, database: str | Path, _artifact_root: str | Path) -> None:
+            with sqlite3.connect(database) as connection:
+                connection.execute("DELETE FROM schema_migrations")
+                connection.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) "
+                    "VALUES (4, 'failed')"
+                )
+            raise RuntimeError("simulated migration failure")
+
+    monkeypatch.setattr(engine_module, "WorkflowEngine", FailingMigration)
+
+    with pytest.raises(LocalReleaseError, match="previous database was restored"):
+        prepare_local_database(paths)
+
+    with sqlite3.connect(paths.database) as connection:
+        assert connection.execute(
+            "SELECT MAX(version) FROM schema_migrations"
+        ).fetchone()[0] == 3
+        assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    backup_roots = list(paths.backup_root.glob("before-upgrade-*"))
+    assert len(backup_roots) == 1
+    assert (backup_roots[0] / "failed-workbench.sqlite").is_file()
+    assert json.loads((backup_roots[0] / "upgrade.json").read_text())["status"] == (
+        "rolled-back"
+    )

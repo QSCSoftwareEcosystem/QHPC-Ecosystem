@@ -1,0 +1,27 @@
+{
+  "api_version": "eqo.local/v1",
+  "kind": "PortableStateBundle",
+  "schema_version": 1,
+  "created_at": "2026-09-01T12:00:00Z",
+  "release_version": "0.1.0",
+  "database_schema_version": 4,
+  "registry_digest": null,
+  "deployment_profile_digest": null,
+  "state": {
+    "path": "state.json",
+    "checksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "size_bytes": 1
+  },
+  "artifacts": [],
+  "counts": {
+    "workflow_versions": 0,
+    "workflow_drafts": 0,
+    "runs": 0,
+    "tasks": 0,
+    "task_attempts": 0,
+    "execution_events": 0,
+    "input_artifacts": 0,
+    "output_artifacts": 0,
+    "artifact_payloads": 0
+  }
+}

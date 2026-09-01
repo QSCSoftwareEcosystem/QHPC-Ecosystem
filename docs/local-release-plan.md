@@ -108,6 +108,34 @@ release. A small launcher plus an installable browser experience keeps the
 local product close to the future server architecture and reduces the number
 of platform-specific release artifacts.
 
+## Delivery Sequence And Native Launchers
+
+EQO ecosystem completion takes priority over desktop launcher development.
+Platform-specific launcher work must not begin until the shared core is stable
+and the applicable local release gates in this plan have passed.
+
+The delivery sequence is:
+
+1. Complete and stabilize the API, Workbench, CLI, workers, workflows,
+   registry, provenance model, and Assistant integration.
+2. Complete portable-local capabilities, including export/import, offline
+   operation, migrations, recovery, diagnostics, and runtime management.
+3. Complete the container and HPC execution paths and their acceptance
+   evidence.
+4. Pass unit, contract, frontend, integration, security, clean-install, and
+   cross-platform acceptance tests.
+5. Stabilize the portable core on `dev-local`, review it, and promote the
+   releasable ecosystem code to `main`.
+6. Build and validate native launchers for Windows, macOS, and Linux against
+   the same released EQO core.
+
+Each launcher must remain a thin platform integration layer. It may install,
+start, health-check, open, diagnose, update, and stop EQO, but it must not
+contain workflow, orchestration, registry, Assistant, or runtime business
+logic. All three launchers must invoke the same tested lifecycle and preserve
+the same API, contracts, state formats, and user experience. This prevents the
+launchers from becoming three separate EQO implementations.
+
 ## Portability Requirements
 
 The first supported hosts should be current macOS and Linux systems. Windows
@@ -130,20 +158,21 @@ The local control plane must:
 
 ## Portable State Bundle
 
-`eqo local export` should create a versioned portable bundle containing:
+`eqo local export` creates a versioned portable bundle containing:
 
 - workflow drafts and immutable published workflow versions;
 - resolved registry and deployment-profile identities;
 - runs, tasks, attempts, events, logs, and provenance;
 - artifact metadata, payload checksums, and selected payloads;
-- configuration that is safe to transfer; and
 - a manifest describing the EQO release and schema versions required to import
   the bundle.
 
-Secrets, local credentials, machine-specific paths, mutable caches, and
-unapproved operation images must not be included. Import must validate the
-manifest and migrate supported older schema versions rather than copying a
-database file blindly.
+Secrets, local credentials, machine-specific paths, mutable caches, worker
+heartbeats, and unapproved operation images are not included. Import validates
+the manifest, declared archive members, logical relationships, and payload
+checksums, then rebuilds a current-schema database rather than copying a
+database file blindly. Replacement imports create a recoverable backup of the
+previous database and artifact tree.
 
 ## Scientific Runtime Boundary
 
@@ -169,7 +198,8 @@ every scientific operation runtime.
 - [x] Separate the local API, Workbench, Assistant, and local worker from the
   developer-only virtual Slurm fixture and repository-update controller.
 - [x] Prevent duplicate supervisors and refuse ambiguous stale process IDs.
-- [ ] Add `export` and `import` after the portable state schema is implemented.
+- [x] Add versioned, checksum-verified `export` and `import` commands using
+  logical application records rather than copied SQLite files.
 
 ### 2. Configuration and paths
 
@@ -190,18 +220,22 @@ every scientific operation runtime.
 - [x] Support a configurable API endpoint without embedding credentials.
 - [x] Validate an installed wheel from outside the source checkout without
   requiring Node.js on the user's machine.
-- [ ] Automate a clean frontend rebuild before producing release artifacts.
+- [x] Automate clean dependency installation, type checking, frontend tests,
+  and a reproducibility check before producing release artifacts.
 
 ### 4. Persistence and migration
 
-- Package and apply schema migrations automatically.
-- Add migration rollback or backup behavior for failed upgrades.
-- Implement portable export and import.
+- [x] Package and apply the current schema migrations automatically.
+- [x] Back up an existing older database before migration, verify the migrated
+  schema and integrity, and restore the previous database automatically after
+  a failed upgrade.
+- [x] Implement portable export and import with replacement backups and
+  corruption detection.
 - Verify restart, upgrade, backup, corruption-detection, and restore paths.
 
 ### 5. Service and runtime packaging
 
-- Produce signed or checksummed release artifacts.
+- [x] Produce the verified EQO Local wheel with a SHA-256 checksum manifest.
 - Provide Docker and Podman compatible definitions where practical.
 - Define optional runtime installation and removal.
 - Generate dependency, license, and software-inventory evidence.
@@ -221,6 +255,19 @@ every scientific operation runtime.
 - Document the local security and trust boundary.
 - State which runtimes are included, optional, unavailable, or license-blocked.
 - Provide a diagnostic report suitable for support without exposing secrets.
+
+### 8. Native launchers after ecosystem completion
+
+- [ ] Confirm that the portable core and applicable local release gates have
+  passed before beginning platform-specific implementation.
+- [ ] Define one versioned launcher-to-core lifecycle contract shared by every
+  platform.
+- [ ] Build a Windows native launcher and installer.
+- [ ] Build a macOS native launcher and signed/notarized installer.
+- [ ] Build a Linux native launcher and distribution package.
+- [ ] Verify that each launcher can install, start, health-check, open,
+  diagnose, update, and stop the same EQO core without requiring terminal use.
+- [ ] Run launcher acceptance tests on clean Windows, macOS, and Linux hosts.
 
 ## Local Release Gates
 
