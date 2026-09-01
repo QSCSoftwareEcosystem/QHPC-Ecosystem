@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import mimetypes
 import re
@@ -32,6 +33,7 @@ DRAFT_ACTION_ROUTE = re.compile(
 )
 ARTIFACT_ROUTE = re.compile(r"^/api/v1/artifacts/([^/]+)$")
 ARTIFACT_CONTENT_ROUTE = re.compile(r"^/api/v1/artifacts/([^/]+)/content$")
+DATA_OBJECT_CONTENT_ROUTE = re.compile(r"^/api/v1/data/objects/content/([^/]+)$")
 KNOWLEDGE_COMMUNITY_ROUTE = re.compile(r"^/api/v1/knowledge/communities/(\d+)$")
 KNOWLEDGE_NEIGHBORHOOD_ROUTE = re.compile(
     r"^/api/v1/knowledge/neighborhood/(.+)$"
@@ -218,6 +220,49 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                                 for item in objects
                             ],
                         },
+                    )
+                    return
+                data_object_content_match = DATA_OBJECT_CONTENT_ROUTE.fullmatch(path)
+                if data_object_content_match:
+                    if context.databucket is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "databucket/Garage is not configured",
+                        )
+                        return
+                    key = unquote(data_object_content_match.group(1))
+                    content = context.databucket.get_object(key)
+                    filename = key.rsplit("/", 1)[-1]
+                    media_type = (
+                        {".yaml": "text/plain", ".yml": "text/plain"}.get(
+                            Path(filename).suffix.lower()
+                        )
+                        or mimetypes.guess_type(filename)[0]
+                        or "application/octet-stream"
+                    )
+                    safe_inline_types = {
+                        "application/json",
+                        "text/csv",
+                        "text/plain",
+                    }
+                    query = parse_qs(request_url.query)
+                    download = query.get("download", ["0"])[-1] in {
+                        "1",
+                        "true",
+                        "yes",
+                    }
+                    disposition = (
+                        "attachment"
+                        if download or media_type not in safe_inline_types
+                        else "inline"
+                    )
+                    self._bytes_response(
+                        HTTPStatus.OK,
+                        content,
+                        content_type=media_type,
+                        disposition=disposition,
+                        filename=filename,
+                        checksum=hashlib.sha256(content).hexdigest(),
                     )
                     return
                 if path == "/api/v1/knowledge":

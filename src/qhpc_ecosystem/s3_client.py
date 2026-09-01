@@ -199,6 +199,16 @@ class S3Client:
                 f"S3 PUT {key} failed: {status} {response_body[:500]!r}"
             )
 
+    def get_object(self, key: str) -> bytes:
+        if not key or key.startswith("/") or ".." in key.split("/"):
+            raise S3ClientError(f"invalid object key: {key}")
+        status, response_body = self._signed_request("GET", key=key)
+        if status >= 300:
+            raise S3ClientError(
+                f"S3 GET {key} failed: {status} {response_body[:500]!r}"
+            )
+        return response_body
+
     def list_objects(self, prefix: str = "") -> list[ObjectSummary]:
         query = "list-type=2"
         if prefix:

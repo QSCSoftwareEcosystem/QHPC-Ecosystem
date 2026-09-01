@@ -5,7 +5,7 @@ import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 import pytest
@@ -146,6 +146,19 @@ class FakeDatabucket:
 
     def __init__(self) -> None:
         self.requested_prefixes: list[str] = []
+        self.requested_keys: list[str] = []
+        self.objects_by_key = {
+            "materials-db/materials-schema-v0.1.yaml": b"schema: {}\n",
+        }
+
+    def get_object(self, key: str) -> bytes:
+        from qhpc_ecosystem.s3_client import S3ClientError
+
+        self.requested_keys.append(key)
+        try:
+            return self.objects_by_key[key]
+        except KeyError:
+            raise S3ClientError(f"S3 GET {key!r} failed: 404") from None
 
     def list_objects(self, prefix: str = ""):
         from qhpc_ecosystem.s3_client import ObjectSummary
@@ -603,6 +616,72 @@ def test_api_data_objects_lists_bucket_contents(tmp_path: Path) -> None:
             }
         ]
         assert databucket.requested_prefixes == ["materials-db/"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_data_object_content_downloads_bytes(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    databucket = FakeDatabucket()
+    context = APIContext(
+        engine=engine,
+        registry=example_registry(),
+        databucket=databucket,
+    )
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    key = "materials-db/materials-schema-v0.1.yaml"
+    try:
+        request = Request(f"{base}/api/v1/data/objects/content/{quote(key, safe='')}")
+        with urlopen(request, timeout=3) as response:
+            assert response.status == 200
+            assert response.read() == b"schema: {}\n"
+            assert response.headers["Content-Type"] == "text/plain"
+            assert "inline" in response.headers["Content-Disposition"]
+        assert databucket.requested_keys == [key]
+
+        download_request = Request(
+            f"{base}/api/v1/data/objects/content/{quote(key, safe='')}?download=1"
+        )
+        with urlopen(download_request, timeout=3) as response:
+            assert "attachment" in response.headers["Content-Disposition"]
+
+        missing_request = Request(
+            f"{base}/api/v1/data/objects/content/{quote('materials-db/missing.yaml', safe='')}"
+        )
+        with pytest.raises(HTTPError) as error:
+            urlopen(missing_request, timeout=3)
+        assert error.value.status == 502
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_data_object_content_unavailable_without_databucket(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    context = APIContext(engine=engine, registry=example_registry())
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        request = Request(f"{base}/api/v1/data/objects/content/{quote('k', safe='')}")
+        with pytest.raises(HTTPError) as error:
+            urlopen(request, timeout=3)
+        assert error.value.status == 503
     finally:
         server.shutdown()
         server.server_close()

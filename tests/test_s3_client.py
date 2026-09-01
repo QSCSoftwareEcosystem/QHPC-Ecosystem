@@ -138,3 +138,35 @@ def test_put_object_raises_on_error_status(monkeypatch: pytest.MonkeyPatch) -> N
     )
     with pytest.raises(S3ClientError, match="PUT"):
         _client().put_object("k", b"x")
+
+
+def test_get_object_returns_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict = {}
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["method"] = request.get_method()
+        return FakeResponse(200, b"schema: {}\n")
+
+    monkeypatch.setattr(s3_client, "urlopen", fake_urlopen)
+
+    body = _client().get_object("materials-db/schema/materials-schema-v0.1.yaml")
+
+    assert body == b"schema: {}\n"
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith(
+        "/proj-materials-db/materials-db/schema/materials-schema-v0.1.yaml"
+    )
+
+
+def test_get_object_raises_on_error_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        s3_client, "urlopen", lambda request, timeout: FakeResponse(404, b"not found")
+    )
+    with pytest.raises(S3ClientError, match="GET"):
+        _client().get_object("missing-key")
+
+
+def test_get_object_rejects_unsafe_key() -> None:
+    with pytest.raises(S3ClientError, match="invalid object key"):
+        _client().get_object("../escape")
