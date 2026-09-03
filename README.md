@@ -427,10 +427,11 @@ policy. See [docs/deployment-readiness.md](docs/deployment-readiness.md).
 ## Catalog governance
 
 `ecosystem.yaml` contains one entry for every row in
-`ProjectManagement/gitlab-mirror/repositories.tsv`, plus blocked entries that
-still need a source decision. `sync-manifest` updates only the source-owned
-fields (`display_name`, `source_url`, and `notes`) and preserves curated runtime
-metadata.
+`catalog/repositories.tsv`, plus blocked entries that still need a source
+decision. This reviewed public snapshot keeps catalog validation independent of
+a developer's project-management checkout. `sync-manifest` updates only the
+source-owned fields (`display_name`, `source_url`, and `notes`) and preserves
+curated runtime metadata.
 
 Deployment admission is separate from catalog inventory. `serve` requires a
 versioned deployment profile and exposes only registry records whose catalog

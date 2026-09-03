@@ -1,6 +1,6 @@
 schema_version: 1
 catalog_updated: '2026-07-29'
-source_manifest: ../ProjectManagement/gitlab-mirror/repositories.tsv
+source_manifest: catalog/repositories.tsv
 environments:
   python-lib:
     recipe: containers/base-python.def

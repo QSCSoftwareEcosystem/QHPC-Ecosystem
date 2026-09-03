@@ -61,6 +61,9 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     ]
 
     assert catalog.repositories
+    assert catalog.source_manifest.read_bytes() == (
+        ROOT / "catalog" / "repositories.tsv"
+    ).read_bytes()
     assert registry["metadata"]["entry_count"] == len(registry["spec"]["entries"])
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"

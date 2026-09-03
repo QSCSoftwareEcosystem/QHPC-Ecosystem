@@ -40,7 +40,7 @@ def test_sync_is_idempotent_for_current_manifest(tmp_path: Path) -> None:
 
     assert not synchronize(
         catalog_path,
-        ROOT.parent / "ProjectManagement" / "gitlab-mirror" / "repositories.tsv",
+        ROOT / "catalog" / "repositories.tsv",
     )
 
 

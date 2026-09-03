@@ -1,0 +1,18 @@
+slug	display_name	source_url	notes
+OpenQEvo	OpenQEvo	https://github.com/QSCSoftwareThrust/OpenQEvo	Includes OpenQEvo context data under context/ and context/schema.json.
+spack-packages	QSCSpack	https://github.com/QSCSoftwareThrust/spack-packages	QSC Spack package repository.
+QAppsWiki	QAppsWiki	https://github.com/QSCSoftwareThrust/QAppsWiki	QSC applications/wiki context repository.
+quantum-rag	Baseline RAG	https://github.com/nhstaple/quantum-rag	Baseline RAG repository.
+chatqec	ChatQEC	https://github.com/QSCSoftwareThrust/ChatQEC	GitHub selected as the QHPC working source on 2026-07-24; internal GitLab repositories are secondary mirrors.
+AS-popular_quantum_sdk_dashboard	QuantumSDK	https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard	Quantum SDK dashboard.
+code_generation_agent	Q-Orch	https://code.ornl.gov/qsc-as/code_generation_agent	Internal GitLab source; access may require ORNL credentials.
+quantum-ai-assistants-benchmark	Q-Code Assistance	https://code.ornl.gov/pza/quantum-ai-assistants-benchmark	Internal GitLab source; access may require ORNL credentials.
+DataSchema	Platform-Hw-metadata	https://github.com/QSCSoftwareThrust/DataSchema	Also contains QSC data catalog branches and hardware information survey dataset.
+qasmtrans	QASMTrans	https://github.com/pnnl/qasmtrans	External GitHub source.
+FTCircuitBench	FTCircuitBench	https://github.com/AdrianHarkness/FTCircuitBench	External GitHub source.
+nwqec	NWQEC	https://github.com/pnnl/nwqec	External GitHub source.
+FTPrimitiveBench	FTPrimitiveBench	https://github.com/QSCSoftwareThrust/FTPrimitiveBench	QSCSoftwareThrust GitHub source selected after its main branch was verified at the admitted revision; the original upstream remains recorded as an alternate.
+STABSim	STABSim	https://github.com/QSCSoftwareThrust/STABSim	QSCSoftwareThrust GitHub source selected after its main branch was verified at the admitted revision; the original upstream remains recorded in the ecosystem catalog.
+calibration-conditioned-decoding	ML decoder	https://github.com/Samuelstein1224/calibration-conditioned-decoding	Calibration-conditioned decoding repository.
+ftqc	FTQC compiler	https://github.com/QSCSoftwareThrust/FTQC	QSCSoftwareThrust is the canonical QHPC working mirror; code.ornl.gov/qsc-ct/ftqc remains the authoritative internal upstream and recurring mirror source.
+LightStim	LightStim	https://github.com/QSCSoftwareThrust/LightStim	QSCSoftwareThrust is the canonical working repository; the current runtime retains explicit QuTone release provenance until a QSC revision is rebuilt and requalified.

@@ -34,6 +34,7 @@ include = ["qhpc_ecosystem*", "qhpc_workbench*"]
 qhpc_ecosystem = ["contracts/*.json", "openqevo_context/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js", "workbench/assets/*"]
 "qhpc_ecosystem.local_assets" = [
     "*.yaml",
+    "catalog/*.tsv",
     "workflows/*.yaml",
     "chatqec/LICENSE",
     "chatqec/SOURCE.json",
