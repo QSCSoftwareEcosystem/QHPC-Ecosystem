@@ -9,7 +9,7 @@ metadata:
   owners: [chatqec]
   source:
     url: https://github.com/QSCSoftwareThrust/ChatQEC
-    revision: 4c017510511f835001bfe5901a9d59e86cc130cd
+    revision: a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
   status: contract-valid
   evidence:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
@@ -17,6 +17,7 @@ metadata:
     - docs/chatqec-service-boundary.md
     - docs/chatqec-api-handoff.md
     - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
+    - docs/evidence/chatqec-bundled-corpus-2026-09-03.md
 spec:
   transport:
     protocol: https

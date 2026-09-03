@@ -3,7 +3,7 @@ kind: IntegrationScaffold
 metadata:
   id: lightstim
   name: LightStim
-  version: 0.1.0
+  version: 0.1.1
   project: hybrid-workflows
   role: operation-provider
   owners: [lightstim]
@@ -38,6 +38,7 @@ spec:
   evidence:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
     - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+    - docs/evidence/lightstim-oci-update-2026-09-03.md
   production_runtime:
     status: deferred
     technology: apptainer

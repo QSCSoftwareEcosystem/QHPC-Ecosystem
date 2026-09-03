@@ -67,6 +67,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#stabsim
   documentation:
     qappswiki: packages/stabsim.md
     url: https://github.com/QSCSoftwareThrust/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md

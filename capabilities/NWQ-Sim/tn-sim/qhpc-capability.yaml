@@ -41,6 +41,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/pnnl/NWQ-Sim/tree/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#tn-sim
   documentation:
     qappswiki: packages/tn-sim.md
     url: https://github.com/pnnl/NWQ-Sim/blob/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b/README.md

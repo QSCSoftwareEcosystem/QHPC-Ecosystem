@@ -36,6 +36,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/tree/e7568760747752e29397f4fcc800bd475c6011a1/src/core
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#quantum-sdk-ranking
   documentation:
     qappswiki: packages/quantum-sdk-ranking.md
     url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/blob/e7568760747752e29397f4fcc800bd475c6011a1/README.md

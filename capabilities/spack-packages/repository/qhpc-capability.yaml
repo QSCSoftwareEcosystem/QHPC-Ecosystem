@@ -36,6 +36,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/spack-packages/tree/11edfc3b95af9b4352c1554d6492b48d5977628c
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#qsc-spack-packages
   documentation:
     qappswiki: packages/qsc-spack.md
     url: https://github.com/QSCSoftwareThrust/spack-packages/blob/11edfc3b95af9b4352c1554d6492b48d5977628c/README.md

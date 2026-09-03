@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -9,8 +10,82 @@ import pytest
 import qhpc_ecosystem.local_adapters as local_adapters
 from qhpc_ecosystem.engine import TaskRequest
 from qhpc_ecosystem.local_adapters import build_local_runner
-from qhpc_ecosystem.local_runtime import build_wheel_runtime, resolve_wheel_runtime
-from qhpc_ecosystem.local_runtime import build_cpp_runtime, resolve_native_runtime
+from qhpc_ecosystem.local_runtime import (
+    build_cpp_runtime,
+    build_wheel_runtime,
+    install_local_runtime,
+    list_local_runtimes,
+    remove_local_runtime,
+    resolve_native_runtime,
+    resolve_wheel_runtime,
+)
+
+
+def test_optional_runtime_install_inventory_and_remove(tmp_path: Path) -> None:
+    artifact = tmp_path / "openqevo-0.1.0-py3-none-any.whl"
+    artifact.write_bytes(b"verified optional runtime")
+    digest = "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
+    root = tmp_path / "runtimes"
+    reference = "qhpc-runtime://wheels/" + artifact.name
+
+    installed = install_local_runtime(
+        root,
+        artifact,
+        reference=reference,
+        digest=digest,
+    )
+
+    assert installed["installed"] is True
+    assert install_local_runtime(
+        root,
+        artifact,
+        reference=reference,
+        digest=digest,
+    )["installed"] is False
+    assert list_local_runtimes(root) == [
+        {
+            "kind": "python-wheel",
+            "reference": reference,
+            "digest": digest,
+            "size": len(b"verified optional runtime"),
+        }
+    ]
+    assert remove_local_runtime(root, reference)
+    assert not remove_local_runtime(root, reference)
+    assert list_local_runtimes(root) == []
+
+
+def test_optional_runtime_install_rejects_wrong_digest_and_unsafe_reference(
+    tmp_path: Path,
+) -> None:
+    artifact = tmp_path / "runtime.whl"
+    artifact.write_bytes(b"runtime")
+
+    with pytest.raises(RuntimeError, match="digest mismatch"):
+        install_local_runtime(
+            tmp_path / "runtimes",
+            artifact,
+            reference="qhpc-runtime://wheels/runtime.whl",
+            digest="sha256:" + "0" * 64,
+        )
+    with pytest.raises(RuntimeError, match="invalid python-wheel"):
+        install_local_runtime(
+            tmp_path / "runtimes",
+            artifact,
+            reference="qhpc-runtime://wheels/../runtime.whl",
+            digest="sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest(),
+        )
+
+
+def test_missing_optional_runtime_fails_with_an_actionable_error(tmp_path: Path) -> None:
+    digest = "sha256:" + "0" * 64
+
+    with pytest.raises(RuntimeError, match="wheel runtime not installed"):
+        resolve_wheel_runtime(
+            tmp_path / "runtimes",
+            "qhpc-runtime://wheels/missing.whl",
+            digest,
+        )
 
 
 def make_openqevo_fixture(root: Path) -> str:

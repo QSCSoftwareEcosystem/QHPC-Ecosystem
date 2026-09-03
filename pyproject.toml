@@ -32,7 +32,13 @@ include = ["qhpc_ecosystem*", "qhpc_workbench*"]
 
 [tool.setuptools.package-data]
 qhpc_ecosystem = ["contracts/*.json", "openqevo_context/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js", "workbench/assets/*"]
-"qhpc_ecosystem.local_assets" = ["*.yaml", "workflows/*.yaml"]
+"qhpc_ecosystem.local_assets" = [
+    "*.yaml",
+    "workflows/*.yaml",
+    "chatqec/LICENSE",
+    "chatqec/SOURCE.json",
+    "chatqec/knowledge/canonical/*.md",
+]
 qhpc_workbench = ["templates/qhpc_workbench/*.html", "static/qhpc_workbench/*"]
 
 [tool.pytest.ini_options]

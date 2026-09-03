@@ -67,10 +67,10 @@ repository URLs track the remote `HEAD`. A remote branch move between check and
 fetch is detected and staging must be repeated.
 
 STABSim tracks `QSCSoftwareThrust/STABSim` at the same commit as its admitted
-release. LightStim tracks `QSCSoftwareThrust/LightStim`, but its active release
-retains QuTone revision `b08d4c2f9cd69531a51b658e6f88089be69f16c0`.
-Consequently, a LightStim QSC candidate is an update requiring rebuild and
-requalification, not a metadata-only source substitution.
+release. LightStim also tracks its QSC repository; revision
+`23924ee997a27af7a0aa17623357bf8bc7170625` was rebuilt and locally requalified
+on 2026-09-03. Future LightStim candidates still require rebuild and
+requalification rather than a metadata-only source substitution.
 
 ## Activation Boundary
 

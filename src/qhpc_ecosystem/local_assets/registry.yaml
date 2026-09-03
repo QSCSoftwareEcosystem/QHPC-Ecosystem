@@ -5,7 +5,7 @@ metadata:
   catalog_digest: sha256:be1d8377cb7766fe8ecb61bc20d86ac616881a479167828f230d5fb2363037cc
 spec:
   entries:
-  - descriptor_digest: sha256:6a2402c79c105bae284a637ac180d6d4f308a00fca3cb1b3a85c0ea8f2744c70
+  - descriptor_digest: sha256:6b8e1501dd38b527fc46fbe257f4195498033ddfd8bab9f88fc975e25a1ab3d2
     catalog_repository: chatqec
     validation:
       contract: valid
@@ -22,19 +22,20 @@ spec:
       - docs/chatqec-service-boundary.md
       - docs/chatqec-api-handoff.md
       - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
+      - docs/evidence/chatqec-bundled-corpus-2026-09-03.md
     capability:
       api_version: qhpc/v1
       kind: Capability
       metadata:
         id: chatqec-assistant-service
         name: ChatQEC Assistant Service Contract
-        version: 0.1.0
+        version: 0.1.1
         project: agentic-software
         owners:
         - chatqec
         repository:
           url: https://github.com/QSCSoftwareThrust/ChatQEC
-          revision: 4c017510511f835001bfe5901a9d59e86cc130cd
+          revision: a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
         integration:
           authority: ecosystem
           maintainers: *id001
@@ -68,12 +69,16 @@ spec:
           uri: integrations/chatqec/service.yaml
         - id: chatqec-source
           kind: library
-          version: 0.1.0
-          uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/4c017510511f835001bfe5901a9d59e86cc130cd
+          version: 0.1.1
+          uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#chatqec
         documentation:
           qappswiki: packages/chatqec.md
-          url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/4c017510511f835001bfe5901a9d59e86cc130cd/README.md
-  - descriptor_digest: sha256:1d34ef384a67d8f735533e1920376c6f17ede05af4f6d0a511e96ff9a23d4334
+          url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md
+  - descriptor_digest: sha256:636da0f213eb8f5f149c28461239f1e4e1a9d868d41e158cccb1d50f2dd47f68
     catalog_repository: ExaChem
     validation:
       contract: valid
@@ -160,10 +165,14 @@ spec:
           version: 0.1.0
           uri: https://github.com/ExaChem/exachem/tree/0991cb52ce687ccf35ba29f3746a6fb13a13c464
           description: Pinned public ExaChem base revision audited for this incubation record.
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#exachem-qflow
         documentation:
           qappswiki: packages/exachem-qflow.md
           url: https://github.com/ExaChem/exachem/blob/0991cb52ce687ccf35ba29f3746a6fb13a13c464/README.md
-  - descriptor_digest: sha256:b91404f39c962ac6c6e110f6ab85000ce95b1c135bc806616021010805d7d859
+  - descriptor_digest: sha256:73a3d68d1d85aa96513965cf0f766f0ca5176be21d01197364f09c34be4b543f
     catalog_repository: FTPrimitiveBench
     validation:
       contract: valid
@@ -278,10 +287,14 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/tree/ba15eba263ac6d641d225984fa074f4ee25bb462
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#ftprimitivebench
         documentation:
           qappswiki: packages/ftprimitivebench.md
           url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md
-  - descriptor_digest: sha256:23d750fe73a789f9e816eee032c9c3331c547277df626d4815fa296cc74dc4e2
+  - descriptor_digest: sha256:ffa970cbcb0122d98288316b57ce517b54b14a1e93288742586155147f0b58d7
     catalog_repository: ftqc
     validation:
       contract: valid
@@ -369,10 +382,14 @@ spec:
           uri: https://github.com/QSCSoftwareThrust/FTQC/tree/947fd0a067f15a9f9d6e7418742080cf34cfb51a
           description: Pinned source containing the IQM JSON lowering, 20-qubit topology snapshot, routing/submission
             path, and one-logical-qubit fixtures.
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#ftqc
         documentation:
           qappswiki: packages/ftqc.md
           url: https://github.com/QSCSoftwareThrust/FTQC/blob/947fd0a067f15a9f9d6e7418742080cf34cfb51a/README.md
-  - descriptor_digest: sha256:27c564cc6353f7574dda270f0d047f11b4d6f0b2a176eafd59154f410919533d
+  - descriptor_digest: sha256:332081d59e4f0c407c48cefdfb6b6650b4eb87ffd27f6a4949380783faa77b32
     catalog_repository: IRIS-QIRIS
     validation:
       contract: valid
@@ -458,10 +475,14 @@ spec:
           uri: https://github.com/ORNL/iris/tree/ff57e620a92fcf62eff3568d9c6eeaaf078f0340
           description: Pinned public IRIS/QIR-EE source; it is not represented as an already-complete
             QIRIS VQE service.
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#irisqiris
         documentation:
           qappswiki: packages/iris-qiris.md
           url: https://github.com/ORNL/iris/blob/ff57e620a92fcf62eff3568d9c6eeaaf078f0340/README.md
-  - descriptor_digest: sha256:22d129ac5c5cc3c11b57cfbe8f78078044a979d72b8f28b94844a399f1a6529e
+  - descriptor_digest: sha256:e9dd6fdb792b90fdc672ddf88ca8814b7ea3c105bf894daeddcd2bd4fd9559e6
     catalog_repository: LightStim
     validation:
       contract: valid
@@ -476,20 +497,20 @@ spec:
       evidence: &id012
       - docs/evidence/initial-component-source-audit-2026-07-22.md
       - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+      - docs/evidence/lightstim-oci-update-2026-09-03.md
     capability:
       api_version: qhpc/v1
       kind: Capability
       metadata:
         id: lightstim-simulation
         name: LightStim Logical Error Estimation
-        version: 0.1.0
+        version: 0.1.1
         project: hybrid-workflows
         owners:
         - lightstim
         repository:
-          url: https://github.com/QuTone/LightStim
-          canonical_url: https://github.com/QSCSoftwareThrust/LightStim
-          revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+          url: https://github.com/QSCSoftwareThrust/LightStim
+          revision: 23924ee997a27af7a0aa17623357bf8bc7170625
         integration:
           authority: ecosystem
           maintainers: *id011
@@ -563,8 +584,8 @@ spec:
               maximum: 256
           runtime:
             type: oci
-            reference: docker://qhpc/lightstim@sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
-            digest: sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+            reference: docker://qhpc/lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
+            digest: sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-lightstim-estimate
@@ -577,12 +598,16 @@ spec:
         resources:
         - id: lightstim-source
           kind: library
-          version: 0.1.0
-          uri: https://github.com/QuTone/LightStim/tree/b08d4c2f9cd69531a51b658e6f88089be69f16c0
+          version: 0.1.1
+          uri: https://github.com/QSCSoftwareThrust/LightStim/tree/23924ee997a27af7a0aa17623357bf8bc7170625
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#lightstim
         documentation:
           qappswiki: packages/lightstim.md
-          url: https://github.com/QuTone/LightStim/blob/b08d4c2f9cd69531a51b658e6f88089be69f16c0/README.md
-  - descriptor_digest: sha256:5815d43d6e4aef0c110ff8a0313b57000981d5495eba86d0657070f2bd373035
+          url: https://github.com/QSCSoftwareThrust/LightStim/blob/23924ee997a27af7a0aa17623357bf8bc7170625/README.md
+  - descriptor_digest: sha256:6970dae83ac494bfd553c39b14f0b589c60711355f9907998c97e1d071d51e25
     catalog_repository: nwqec
     validation:
       contract: valid
@@ -683,10 +708,14 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/pnnl/nwqec/tree/d93299c2a0fe47fb7758bff02b456acfb3ac4416
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#nwqec
         documentation:
           qappswiki: packages/nwqec.md
           url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md
-  - descriptor_digest: sha256:788042b70455533264da8705b7effd15fb0825a2eecf57afd24fc16b9e7aebc5
+  - descriptor_digest: sha256:b529f09c1278a66b9ab07cbd31e8de5abc6f53be277370502ef5aea13e28c7a6
     catalog_repository: NWQSim-QFlow
     validation:
       contract: valid
@@ -772,10 +801,14 @@ spec:
           version: 0.1.0
           uri: https://github.com/pnnl/nwq-sim/tree/b35763d846e6512ed817d3f88ac8ce79a7e82a7e
           description: Pinned public NWQSim base revision audited for this incubation record.
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#nwqsim-qflow
         documentation:
           qappswiki: packages/nwqsim-qflow.md
           url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
-  - descriptor_digest: sha256:67768633c0949474f2a7841f96b36b64598f5b8b239c29c0febb4ac64be3e067
+  - descriptor_digest: sha256:6b2a137b1f8d31eccd20d82e7f93197bac2a624c9ebc83390c1dd87f58d6cd94
     catalog_repository: OpenQEvo
     validation:
       contract: valid
@@ -975,10 +1008,14 @@ spec:
           kind: artifact-type
           version: 1.0.0
           uri: artifact-types/evolution-synthesis-report-v1.yaml
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#openqevo
         documentation:
           qappswiki: packages/openqevo.md
           url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md
-  - descriptor_digest: sha256:47623ba57c9c1fef2140813696d7907c9abd44954d59b6d8c1a0b9359371f849
+  - descriptor_digest: sha256:35eb4ffc8eccfa46f9bd05a73ce5d53b3e793607dacc34e40bcb9d0c474255d1
     catalog_repository: openqse-spec
     validation:
       contract: valid
@@ -1042,10 +1079,14 @@ spec:
           uri: https://github.com/openQSE/openqse-spec/tree/c172c716e6566bd0a7502b34896dce7467f5a474/architecture
           description: Architecture requirements, high-level design, locality, interconnect, and timing
             definitions.
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#openqse
         documentation:
           qappswiki: docs/qsc-integration.md
           url: https://github.com/openQSE/openqse-spec/blob/c172c716e6566bd0a7502b34896dce7467f5a474/README.md
-  - descriptor_digest: sha256:29f5f0f4d92e7d0d912001d9c12f63d98c6c043e85f3e97c12dc0c735869641c
+  - descriptor_digest: sha256:47ceff452da201ea453211ff4eab4dfd5b7b9092c32a2130b8cd6f6877d8081f
     catalog_repository: QAppsWiki
     validation:
       contract: valid
@@ -1115,10 +1156,14 @@ spec:
           kind: dataset
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#qappswiki
         documentation:
           qappswiki: docs/qsc-integration.md
           url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md
-  - descriptor_digest: sha256:2d5b3a1b4bf42da295597cafb4b058584501a9d301e59734416ea8ebbe94e8db
+  - descriptor_digest: sha256:e193a05f775c7100343b4ce790625043cabedd15522d9c5711f29110f5ac5635
     catalog_repository: qasmtrans
     validation:
       contract: valid
@@ -1214,10 +1259,14 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/pnnl/qasmtrans/tree/1843c98fa4bac9cf6b88412145b69457e9176124
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#qasmtrans
         documentation:
           qappswiki: packages/qasmtrans.md
           url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md
-  - descriptor_digest: sha256:93a7874c7abc54e6331bfc6f72d513a6f196540523eb55f4e1a798d18af19087
+  - descriptor_digest: sha256:f947f5d6a6cfaf5aede71c3df33362d6995d405d41670514f2de0b51ddbfe35c
     catalog_repository: DataSchema
     validation:
       contract: valid
@@ -1273,10 +1322,14 @@ spec:
           kind: dataset
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#qsc-hardware-survey
         documentation:
           qappswiki: integrations/qsc-hardware-data.md
           url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
-  - descriptor_digest: sha256:bdd11da513bacb392d0583e2f10e0d0e89625753e159b91e0bedbefa13623122
+  - descriptor_digest: sha256:b558d82a462102b7feb34c2d25277aa70533a885ca121db358b1b585a47a78e1
     catalog_repository: spack-packages
     validation:
       contract: valid
@@ -1332,10 +1385,14 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/spack-packages/tree/11edfc3b95af9b4352c1554d6492b48d5977628c
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#qsc-spack-packages
         documentation:
           qappswiki: packages/qsc-spack.md
           url: https://github.com/QSCSoftwareThrust/spack-packages/blob/11edfc3b95af9b4352c1554d6492b48d5977628c/README.md
-  - descriptor_digest: sha256:55631da54b9a11e83b5bd7adde066acbe9399819b494ed5e97aeda0846d82bb3
+  - descriptor_digest: sha256:9bb2f1a5ea209971b48189eb1e6b8dbf9e06a198096001611b27a0b3a9975c9a
     catalog_repository: AS-popular_quantum_sdk_dashboard
     validation:
       contract: valid
@@ -1392,10 +1449,14 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/tree/e7568760747752e29397f4fcc800bd475c6011a1/src/core
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#quantum-sdk-ranking
         documentation:
           qappswiki: packages/quantum-sdk-ranking.md
           url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/blob/e7568760747752e29397f4fcc800bd475c6011a1/README.md
-  - descriptor_digest: sha256:75524948f9721eedf9b608a7e15afed1a7d6593c994e8dd15a9f9a82b70cd504
+  - descriptor_digest: sha256:63fdf79b3f7ddd84eb591b47a77728d0c01c1373468559c97d656bda15120329
     catalog_repository: STABSim
     validation:
       contract: valid
@@ -1482,10 +1543,14 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/QSCSoftwareThrust/STABSim/tree/a0d8d2e2a9fdec9785857104220b8e7f0346c761
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#stabsim
         documentation:
           qappswiki: packages/stabsim.md
           url: https://github.com/QSCSoftwareThrust/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md
-  - descriptor_digest: sha256:a6cae70af0e1a65f4047f2c1a06da65235084cdc30c2c263a37ddd846ad37a64
+  - descriptor_digest: sha256:2bc8667561cf5626e9bf29f837dc36806671c8be457d0b4f44bf1429e5d0656b
     catalog_repository: NWQ-Sim
     validation:
       contract: valid
@@ -1548,6 +1613,10 @@ spec:
           kind: library
           version: 0.1.0
           uri: https://github.com/pnnl/NWQ-Sim/tree/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#tn-sim
         documentation:
           qappswiki: packages/tn-sim.md
           url: https://github.com/pnnl/NWQ-Sim/blob/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b/README.md

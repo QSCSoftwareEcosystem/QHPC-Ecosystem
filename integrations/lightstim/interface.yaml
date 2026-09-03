@@ -3,15 +3,17 @@ kind: OperationInterface
 metadata:
   id: lightstim-simulation
   name: LightStim Logical Error Estimation
-  version: 0.1.0
+  version: 0.1.1
   component: lightstim
   project: hybrid-workflows
   owners: [lightstim]
   source:
-    url: https://github.com/QuTone/LightStim
-    revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+    url: https://github.com/QSCSoftwareThrust/LightStim
+    revision: 23924ee997a27af7a0aa17623357bf8bc7170625
   status: contract-valid
-  evidence: [docs/evidence/initial-component-source-audit-2026-07-22.md]
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/lightstim-oci-update-2026-09-03.md
 spec:
   operations:
     - id: estimate-logical-error

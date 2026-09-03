@@ -32,7 +32,7 @@ Five operation images have local `oci-smoke-tested` evidence:
 | STABSim | `analyze-metrics` | [Build and smoke](evidence/stabsim-oci-smoke-2026-07-27.md) |
 | NWQEC | `count-clifford-t` | [Build and smoke](evidence/nwqec-oci-smoke-2026-07-27.md) |
 | FTPrimitiveBench | `build-memory` | [Build and smoke](evidence/ftprimitivebench-oci-smoke-2026-07-27.md) |
-| LightStim | `estimate-logical-error` | [Build and smoke](evidence/lightstim-oci-smoke-2026-07-27.md) |
+| LightStim | `estimate-logical-error` | [QSC-source rebuild and smoke](evidence/lightstim-oci-update-2026-09-03.md) |
 
 Local build evidence does not grant redistribution rights. STABSim's audited
 revision contains no license file, so its image cannot be published until the

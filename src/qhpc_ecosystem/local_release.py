@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import platform
 import shutil
 import signal
 import socket
@@ -22,11 +23,13 @@ from typing import Any, Mapping, Sequence
 from urllib.error import URLError
 from urllib.request import urlopen
 
-from .local_assets import default_workflow_paths
+from .local_assets import asset_path, assistant_source_path, default_workflow_paths
+from .local_runtime import list_local_runtimes
 
 
 LOCAL_SCHEMA_VERSION = 1
 LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
+MINIMUM_FREE_BYTES = 512 * 1024 * 1024
 
 
 class LocalReleaseError(RuntimeError):
@@ -411,6 +414,140 @@ def local_status(paths: LocalPaths) -> dict[str, Any]:
     return report
 
 
+def _available_storage(path: Path) -> dict[str, int | bool]:
+    candidate = path
+    while not candidate.exists() and candidate != candidate.parent:
+        candidate = candidate.parent
+    try:
+        usage = shutil.disk_usage(candidate)
+    except OSError:
+        return {"available": False, "free_bytes": 0}
+    return {"available": True, "free_bytes": usage.free}
+
+
+def require_storage_capacity(
+    paths: LocalPaths,
+    *,
+    minimum_free_bytes: int = MINIMUM_FREE_BYTES,
+) -> None:
+    """Refuse startup when the local data volume cannot safely hold state."""
+
+    storage = _available_storage(paths.data_root)
+    if not storage["available"]:
+        raise LocalReleaseError(
+            "cannot determine free storage for EQO Local application data"
+        )
+    free_bytes = int(storage["free_bytes"])
+    if free_bytes < minimum_free_bytes:
+        required_mib = minimum_free_bytes // (1024 * 1024)
+        available_mib = free_bytes // (1024 * 1024)
+        raise LocalReleaseError(
+            "insufficient storage for EQO Local: "
+            f"at least {required_mib} MiB is required, {available_mib} MiB is free"
+        )
+
+
+def diagnostic_report(paths: LocalPaths, *, release_version: str) -> dict[str, Any]:
+    """Collect a secret-free support report without reading logs or credentials."""
+
+    try:
+        status = local_status(paths)
+        service_status: dict[str, Any] = {
+            "status": status.get("status", "unknown"),
+            "supervisor_running": bool(status.get("supervisor_running")),
+            "services": status.get("services", {}),
+            "workers": status.get("workers", []),
+        }
+    except Exception as error:
+        service_status = {
+            "status": "unavailable",
+            "supervisor_running": False,
+            "services": {},
+            "workers": [],
+            "error_type": type(error).__name__,
+        }
+
+    database: dict[str, Any] = {
+        "present": paths.database.is_file(),
+        "size": paths.database.stat().st_size if paths.database.is_file() else 0,
+    }
+    if database["present"]:
+        try:
+            database["integrity"] = _database_integrity(paths.database)
+            database["schema_version"] = _database_schema_version(paths.database)
+        except Exception as error:
+            database["integrity"] = "unavailable"
+            database["error_type"] = type(error).__name__
+
+    assistant: dict[str, Any]
+    try:
+        from .chatqec_service import CanonicalChatQEC, ChatQECSource
+
+        source = ChatQECSource.from_contract(
+            asset_path("assistant-interface"),
+            assistant_source_path(),
+        )
+        source.verify()
+        responder = CanonicalChatQEC(
+            source.checkout,
+            source_url=source.repository,
+            source_revision=source.revision,
+        )
+        assistant = {
+            "available": True,
+            "source_revision": source.revision,
+            "corpus_revision": responder.corpus_revision,
+            "canonical_pages": len(responder.pages),
+            "tool_execution": False,
+        }
+    except Exception as error:
+        assistant = {
+            "available": False,
+            "error_type": type(error).__name__,
+        }
+
+    return {
+        "schema_version": 1,
+        "release_version": release_version,
+        "platform": {
+            "system": platform.system(),
+            "machine": platform.machine(),
+            "python": platform.python_version(),
+        },
+        "dependencies": {
+            "django": importlib.util.find_spec("django") is not None,
+        },
+        "service": service_status,
+        "state": {
+            "config_present": paths.config_file.is_file(),
+            "state_present": paths.state_file.is_file(),
+            "log_present": paths.log_file.is_file(),
+        },
+        "database": database,
+        "storage": {
+            **_available_storage(paths.data_root),
+            "minimum_free_bytes": MINIMUM_FREE_BYTES,
+        },
+        "assistant": assistant,
+        "runtimes": list_local_runtimes(paths.runtime_root),
+    }
+
+
+def write_diagnostic_report(
+    report: Mapping[str, Any],
+    destination: str | Path,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    path = Path(destination).expanduser().resolve()
+    if path.exists() and not overwrite:
+        raise LocalReleaseError(
+            f"diagnostic report already exists: {path}; use --force to replace it"
+        )
+    _write_json(path, report)
+    return path
+
+
 def _port_available(host: str, port: int) -> bool:
     family = socket.AF_INET6 if ":" in host else socket.AF_INET
     value = socket.socket(family, socket.SOCK_STREAM)
@@ -746,6 +883,7 @@ def launch_local(
             )
 
     require_available_ports(config)
+    require_storage_capacity(paths)
     paths.ensure()
     write_local_config(paths, config)
     with paths.log_file.open("ab") as log_stream:
@@ -860,14 +998,19 @@ def supervise_local(
     assistant_identity_token = ""
     if config.assistant_enabled:
         checkout = config.assistant_source_checkout
-        source_probe = ChatQECSource.from_contract(config.assistant_interface, checkout)
         if checkout is None:
-            source_probe = ChatQECSource(
-                source_probe.repository,
-                source_probe.revision,
-                paths.service_root / f"chatqec-{source_probe.revision[:12]}",
+            source_probe = ChatQECSource.from_contract(
+                config.assistant_interface,
+                assistant_source_path(),
             )
-        assistant_source_root = str(source_probe.prepare())
+            source_probe.verify()
+            assistant_source_root = str(source_probe.checkout)
+        else:
+            source_probe = ChatQECSource.from_contract(
+                config.assistant_interface,
+                checkout,
+            )
+            assistant_source_root = str(source_probe.prepare())
         import secrets
 
         assistant_identity_token = secrets.token_urlsafe(32)

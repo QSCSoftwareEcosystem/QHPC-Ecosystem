@@ -1,7 +1,7 @@
 # ChatQEC Workbench API Handoff
 
 - Status: Implemented backend contract and Workbench client
-- Last updated: 2026-07-28
+- Last updated: 2026-09-03
 - Workbench view: `?view=assistant`
 - Service boundary: [ChatQEC Service Boundary](chatqec-service-boundary.md)
 
@@ -23,7 +23,7 @@ A configured healthy service returns `200`:
   "available": true,
   "service": "chatqec",
   "mode": "canonical-extractive-development",
-  "source_revision": "4c017510511f835001bfe5901a9d59e86cc130cd",
+  "source_revision": "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977",
   "corpus_revision": "sha256:...",
   "pages": 60,
   "tool_execution": false

@@ -18,6 +18,8 @@ ASSETS = {
     "workflow-nwqec-counts": "workflows/nwqec-counts.yaml",
 }
 
+ASSISTANT_SOURCE = "chatqec"
+
 DEFAULT_WORKFLOW_ASSETS = (
     "workflow-openqevo-catalog",
     "workflow-openqevo-synthesis",
@@ -36,6 +38,16 @@ def asset_path(name: str) -> Path:
     path = Path(str(value))
     if not path.is_file():
         raise FileNotFoundError(f"packaged EQO Local asset is missing: {relative_path}")
+    return path
+
+
+def assistant_source_path() -> Path:
+    """Return the immutable ChatQEC corpus bundled with EQO Local."""
+
+    value = files(__package__).joinpath(ASSISTANT_SOURCE)
+    path = Path(str(value))
+    if not path.is_dir():
+        raise FileNotFoundError("packaged EQO Local Assistant corpus is missing")
     return path
 
 

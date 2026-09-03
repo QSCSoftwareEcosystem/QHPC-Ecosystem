@@ -3,12 +3,12 @@ kind: Capability
 metadata:
   id: chatqec-assistant-service
   name: ChatQEC Assistant Service Contract
-  version: 0.1.0
+  version: 0.1.1
   project: agentic-software
   owners: [chatqec]
   repository:
     url: https://github.com/QSCSoftwareThrust/ChatQEC
-    revision: 4c017510511f835001bfe5901a9d59e86cc130cd
+    revision: a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
   integration:
     authority: ecosystem
     maintainers: [qhpc-ecosystem]
@@ -20,6 +20,7 @@ metadata:
       - docs/chatqec-service-boundary.md
       - docs/chatqec-api-handoff.md
       - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
+      - docs/evidence/chatqec-bundled-corpus-2026-09-03.md
   visibility: internal
   maturity: pre-alpha
 spec:
@@ -43,8 +44,12 @@ spec:
       uri: integrations/chatqec/service.yaml
     - id: chatqec-source
       kind: library
-      version: 0.1.0
-      uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/4c017510511f835001bfe5901a9d59e86cc130cd
+      version: 0.1.1
+      uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#chatqec
   documentation:
     qappswiki: packages/chatqec.md
-    url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/4c017510511f835001bfe5901a9d59e86cc130cd/README.md
+    url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md

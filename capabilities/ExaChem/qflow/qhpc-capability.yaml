@@ -60,6 +60,10 @@ spec:
       version: 0.1.0
       uri: https://github.com/ExaChem/exachem/tree/0991cb52ce687ccf35ba29f3746a6fb13a13c464
       description: Pinned public ExaChem base revision audited for this incubation record.
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#exachem-qflow
   documentation:
     qappswiki: packages/exachem-qflow.md
     url: https://github.com/ExaChem/exachem/blob/0991cb52ce687ccf35ba29f3746a6fb13a13c464/README.md

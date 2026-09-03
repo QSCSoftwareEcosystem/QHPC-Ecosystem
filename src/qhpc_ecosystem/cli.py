@@ -306,7 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
     local_commands = local_parser.add_subparsers(
         dest="local_command",
         required=True,
-        metavar="{up,status,open,export,import,down}",
+        metavar="{up,status,open,export,import,diagnose,runtime,down}",
     )
     local_up = local_commands.add_parser(
         "up", help="start the Workbench, API, local worker, and Assistant"
@@ -322,6 +322,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     local_import = local_commands.add_parser(
         "import", help="restore a checksum-verified portable state bundle"
+    )
+    local_diagnose = local_commands.add_parser(
+        "diagnose", help="create a secret-free local support report"
+    )
+    local_runtime = local_commands.add_parser(
+        "runtime", help="manage optional checksum-pinned local runtimes"
+    )
+    local_runtime_commands = local_runtime.add_subparsers(
+        dest="local_runtime_command", required=True
+    )
+    local_runtime_list = local_runtime_commands.add_parser(
+        "list", help="list installed optional runtimes"
+    )
+    local_runtime_install = local_runtime_commands.add_parser(
+        "install", help="install a verified wheel or native runtime bundle"
+    )
+    local_runtime_remove = local_runtime_commands.add_parser(
+        "remove", help="remove an explicitly named optional runtime"
     )
     local_down = local_commands.add_parser(
         "down", help="stop the supervised local services"
@@ -339,8 +357,12 @@ def build_parser() -> argparse.ArgumentParser:
         local_open,
         local_export,
         local_import,
+        local_diagnose,
         local_down,
         local_supervise,
+        local_runtime_list,
+        local_runtime_install,
+        local_runtime_remove,
     ):
         command.add_argument(
             "--home",
@@ -405,6 +427,22 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="replace existing local state after creating an automatic backup",
     )
+    local_diagnose.add_argument(
+        "destination", nargs="?", help="optional JSON report destination"
+    )
+    local_diagnose.add_argument(
+        "--force", action="store_true", help="replace an existing report"
+    )
+    local_runtime_list.add_argument(
+        "--json", action="store_true", help="emit machine-readable inventory"
+    )
+    local_runtime_install.add_argument("artifact", help="wheel or native ZIP path")
+    local_runtime_install.add_argument("--reference", required=True)
+    local_runtime_install.add_argument("--digest", required=True)
+    local_runtime_install.add_argument(
+        "--replace", action="store_true", help="replace a different installed file"
+    )
+    local_runtime_remove.add_argument("reference")
     local_down.add_argument(
         "--timeout", type=float, default=15.0, help="shutdown timeout in seconds"
     )
@@ -1219,6 +1257,7 @@ def dispatch(args: argparse.Namespace) -> int:
             LocalPaths,
             LocalStackConfig,
             default_local_workflows,
+            diagnostic_report,
             format_status,
             launch_local,
             local_status,
@@ -1226,6 +1265,7 @@ def dispatch(args: argparse.Namespace) -> int:
             resolve_paths,
             stop_local,
             supervise_local,
+            write_diagnostic_report,
         )
 
         root_names = ("config_root", "data_root", "cache_root", "state_root", "log_root")
@@ -1249,6 +1289,61 @@ def dispatch(args: argparse.Namespace) -> int:
         if args.local_command == "open":
             print(f"EQO Local Workbench: {open_local(paths)}")
             return 0
+        if args.local_command == "diagnose":
+            report = diagnostic_report(paths, release_version=__version__)
+            if args.destination:
+                destination = write_diagnostic_report(
+                    report,
+                    args.destination,
+                    overwrite=args.force,
+                )
+                print(f"EQO Local diagnostic report: {destination}")
+            else:
+                print(json.dumps(report, indent=2, sort_keys=True))
+            return 0
+        if args.local_command == "runtime":
+            from .local_runtime import (
+                install_local_runtime,
+                list_local_runtimes,
+                remove_local_runtime,
+            )
+
+            if args.local_runtime_command == "list":
+                items = list_local_runtimes(paths.runtime_root)
+                if args.json:
+                    print(json.dumps(items, indent=2, sort_keys=True))
+                elif not items:
+                    print("No optional EQO Local runtimes are installed")
+                else:
+                    for item in items:
+                        print(
+                            f"{item['reference']}  {item['digest']}  "
+                            f"{item['size']} bytes"
+                        )
+                return 0
+            if args.local_runtime_command == "install":
+                item = install_local_runtime(
+                    paths.runtime_root,
+                    args.artifact,
+                    reference=args.reference,
+                    digest=args.digest,
+                    replace=args.replace,
+                )
+                action = "installed" if item["installed"] else "already installed"
+                print(f"EQO Local runtime {action}: {item['reference']}")
+                print(f"Digest: {item['digest']}")
+                return 0
+            if args.local_runtime_command == "remove":
+                removed = remove_local_runtime(paths.runtime_root, args.reference)
+                print(
+                    f"EQO Local runtime removed: {args.reference}"
+                    if removed
+                    else f"EQO Local runtime is not installed: {args.reference}"
+                )
+                return 0
+            raise LocalReleaseError(
+                f"unsupported local runtime command: {args.local_runtime_command}"
+            )
         if args.local_command == "export":
             from .local_bundle import export_local_state
 

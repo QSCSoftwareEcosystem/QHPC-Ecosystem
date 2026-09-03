@@ -90,6 +90,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/tree/ba15eba263ac6d641d225984fa074f4ee25bb462
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#ftprimitivebench
   documentation:
     qappswiki: packages/ftprimitivebench.md
     url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md

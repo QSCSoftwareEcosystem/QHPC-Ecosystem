@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "release": {
+    "name": "EQO Local",
+    "package": "qhpc-ecosystem",
+    "version": "0.1.0",
+    "python": ">=3.10",
+    "review_status": "project-review-required",
+    "inventory_scope": "included software, direct runtime dependencies, and candidate scientific runtimes"
+  },
+  "included_software": [
+    {
+      "name": "QHPC Ecosystem and EQO Workbench",
+      "version": "0.1.0",
+      "license": "MIT",
+      "distribution": "release-wheel"
+    },
+    {
+      "name": "ChatQEC canonical corpus",
+      "version": "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977",
+      "license": "Apache-2.0",
+      "distribution": "release-wheel",
+      "corpus_revision": "sha256:95e43b52660f4789457ef54b0b5c3ffc557b0610e24fc4780ed709c800928330",
+      "canonical_pages": 60,
+      "source": "https://github.com/QSCSoftwareThrust/ChatQEC"
+    }
+  ],
+  "required_dependencies": [
+    {
+      "name": "Django",
+      "constraint": ">=5.2.15,<5.3",
+      "license": "BSD-3-Clause",
+      "distribution": "external-python-package"
+    },
+    {
+      "name": "jsonschema",
+      "constraint": ">=4.19",
+      "license": "MIT",
+      "distribution": "external-python-package"
+    },
+    {
+      "name": "PyYAML",
+      "constraint": ">=6",
+      "license": "MIT",
+      "distribution": "external-python-package"
+    }
+  ],
+  "optional_scientific_runtimes": [
+    {
+      "name": "OpenQEvo",
+      "license": "unresolved (upstream declares TBD)",
+      "release_state": "optional-not-bundled",
+      "reason": "upstream redistribution license remains unresolved"
+    },
+    {
+      "name": "STABSim",
+      "license": "unresolved (no license file at pinned revision)",
+      "release_state": "optional-not-bundled",
+      "reason": "local OCI verified; upstream publication license remains unresolved"
+    },
+    {
+      "name": "QASMTrans",
+      "license": "BSD-2-Clause",
+      "release_state": "optional-not-bundled",
+      "reason": "local OCI verified; immutable registry publication remains pending"
+    },
+    {
+      "name": "NWQEC",
+      "license": "MIT",
+      "release_state": "optional-not-bundled",
+      "reason": "local OCI verified; immutable registry publication remains pending"
+    },
+    {
+      "name": "FTPrimitiveBench",
+      "license": "MIT",
+      "release_state": "optional-not-bundled",
+      "reason": "local OCI verified; immutable registry publication remains pending"
+    },
+    {
+      "name": "LightStim",
+      "license": "Apache-2.0",
+      "release_state": "optional-not-bundled",
+      "reason": "local OCI verified; immutable registry publication remains pending"
+    },
+    {
+      "name": "TN-Sim",
+      "license": "project review pending",
+      "release_state": "unavailable",
+      "reason": "reproducible iTensor, C++17, and BLAS build remains pending"
+    },
+    {
+      "name": "FTQC",
+      "license": "unresolved (no license file at pinned revision)",
+      "release_state": "unavailable",
+      "reason": "license clearance and reproducible LLVM/MLIR 22 runtime remain pending"
+    }
+  ]
+}

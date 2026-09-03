@@ -169,6 +169,12 @@ def test_openqse_and_qappswiki_publish_only_pinned_resources() -> None:
     assert all(
         openqse_revision in resource["uri"]
         for resource in openqse_capability["spec"]["resources"]
+        if resource["id"] != "developer-attribution"
+    )
+    assert any(
+        resource["id"] == "developer-attribution"
+        and resource["uri"] == "docs/tool-attribution.md#openqse"
+        for resource in openqse_capability["spec"]["resources"]
     )
 
     qappswiki = find_integration_scaffold(scaffolds, "qappswiki").document

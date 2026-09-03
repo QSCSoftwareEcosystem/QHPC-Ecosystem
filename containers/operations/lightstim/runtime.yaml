@@ -3,19 +3,20 @@ kind: OperationRuntime
 metadata:
   id: lightstim-estimate-logical-error-linux-amd64
   name: LightStim logical-error Linux runtime
-  version: 0.1.0
+  version: 0.1.1
   component: lightstim
   capability: lightstim-simulation
   operation: estimate-logical-error
   project: hybrid-workflows
   owners: [qhpc-ecosystem]
   source:
-    url: https://github.com/QuTone/LightStim
-    revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+    url: https://github.com/QSCSoftwareThrust/LightStim
+    revision: 23924ee997a27af7a0aa17623357bf8bc7170625
   status: oci-smoke-tested
   evidence:
     - docs/evidence/initial-component-source-audit-2026-07-22.md
     - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+    - docs/evidence/lightstim-oci-update-2026-09-03.md
 spec:
   packaging: oci-to-apptainer
   platform:
@@ -24,12 +25,12 @@ spec:
   build:
     recipe:
       path: containers/operations/lightstim/Containerfile
-      digest: sha256:0203651b2ebc400ad0c41a4f7ce005cfa79d0b90f3f1ad80cd3e91023a3854c9
+      digest: sha256:9fbd503aea49873f7d8d0db9bb623bf1028ad154ab62511df95ba1e822b04d19
     source_archive:
       filename: source.tar
       format: git-archive-tar
-      digest: sha256:9310d79639685697937dd971113030e33cbe2846a5918287c31c67b7f06ea8ac
-      source_date_epoch: 1784655175
+      digest: sha256:042ba4c8bc4b189967eb1e2bc4ff286b716d0275ebefa2dabb1eab21ecfb2b4d
+      source_date_epoch: 1788403837
     context_files:
       - source: containers/operations/lightstim/entrypoint.py
         destination: entrypoint.py

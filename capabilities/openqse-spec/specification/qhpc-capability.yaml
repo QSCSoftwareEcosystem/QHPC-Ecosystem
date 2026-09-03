@@ -43,6 +43,10 @@ spec:
       version: 0.1.0
       uri: https://github.com/openQSE/openqse-spec/tree/c172c716e6566bd0a7502b34896dce7467f5a474/architecture
       description: Architecture requirements, high-level design, locality, interconnect, and timing definitions.
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#openqse
   documentation:
     qappswiki: docs/qsc-integration.md
     url: https://github.com/openQSE/openqse-spec/blob/c172c716e6566bd0a7502b34896dce7467f5a474/README.md

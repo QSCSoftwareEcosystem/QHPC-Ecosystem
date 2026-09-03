@@ -32,6 +32,145 @@ class NativeRuntime:
     digest: str
 
 
+def _runtime_destination(
+    runtime_root: str | Path,
+    reference: str,
+) -> tuple[str, Path]:
+    root = Path(runtime_root).expanduser().resolve()
+    options = (
+        ("python-wheel", "qhpc-runtime://wheels/", "wheels", ".whl"),
+        ("native", "qhpc-runtime://native/", "native", ".zip"),
+    )
+    for kind, prefix, directory, suffix in options:
+        if not reference.startswith(prefix):
+            continue
+        name = reference[len(prefix) :]
+        if not name or Path(name).name != name or not name.endswith(suffix):
+            raise RuntimeError(f"invalid {kind} runtime reference: {reference}")
+        return kind, root / directory / name
+    raise RuntimeError(f"unsupported local runtime reference: {reference}")
+
+
+def _artifact_digest(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def install_local_runtime(
+    runtime_root: str | Path,
+    artifact: str | Path,
+    *,
+    reference: str,
+    digest: str,
+    replace: bool = False,
+) -> dict[str, object]:
+    """Install one checksum-pinned wheel or native bundle atomically."""
+
+    source = Path(artifact).expanduser().resolve()
+    if not source.is_file():
+        raise RuntimeError(f"runtime artifact not found: {source}")
+    if (
+        not digest.startswith("sha256:")
+        or len(digest) != 71
+        or any(character not in "0123456789abcdef" for character in digest[7:])
+    ):
+        raise RuntimeError("runtime digest must be a sha256 value")
+    actual = _artifact_digest(source)
+    if actual != digest:
+        raise RuntimeError(
+            f"runtime artifact digest mismatch: expected {digest}, found {actual}"
+        )
+    kind, destination = _runtime_destination(runtime_root, reference)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists():
+        installed_digest = _artifact_digest(destination)
+        if installed_digest == digest:
+            return {
+                "kind": kind,
+                "reference": reference,
+                "digest": digest,
+                "size": destination.stat().st_size,
+                "installed": False,
+            }
+        if not replace:
+            raise RuntimeError(
+                "a different runtime artifact is already installed; use --replace"
+            )
+    with tempfile.NamedTemporaryFile(
+        prefix=f".{destination.name}.",
+        suffix=".tmp",
+        dir=destination.parent,
+        delete=False,
+    ) as temporary:
+        temporary_path = Path(temporary.name)
+        with source.open("rb") as stream:
+            shutil.copyfileobj(stream, temporary)
+        temporary.flush()
+        os.fsync(temporary.fileno())
+    try:
+        if _artifact_digest(temporary_path) != digest:
+            raise RuntimeError("runtime artifact changed while it was being installed")
+        os.replace(temporary_path, destination)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+    return {
+        "kind": kind,
+        "reference": reference,
+        "digest": digest,
+        "size": destination.stat().st_size,
+        "installed": True,
+    }
+
+
+def remove_local_runtime(runtime_root: str | Path, reference: str) -> bool:
+    """Remove one explicitly named local runtime and its verified extraction."""
+
+    kind, destination = _runtime_destination(runtime_root, reference)
+    if not destination.exists():
+        return False
+    digest = _artifact_digest(destination)
+    destination.unlink()
+    if kind == "native":
+        extracted = (
+            Path(runtime_root).expanduser().resolve()
+            / "extracted"
+            / digest.removeprefix("sha256:")
+        )
+        if extracted.is_dir():
+            shutil.rmtree(extracted)
+    return True
+
+
+def list_local_runtimes(runtime_root: str | Path) -> list[dict[str, object]]:
+    """Inventory installed optional runtimes without executing them."""
+
+    root = Path(runtime_root).expanduser().resolve()
+    result: list[dict[str, object]] = []
+    for kind, directory, suffix, prefix in (
+        ("python-wheel", "wheels", ".whl", "qhpc-runtime://wheels/"),
+        ("native", "native", ".zip", "qhpc-runtime://native/"),
+    ):
+        runtime_directory = root / directory
+        if not runtime_directory.is_dir():
+            continue
+        for path in sorted(runtime_directory.glob(f"*{suffix}")):
+            if not path.is_file():
+                continue
+            result.append(
+                {
+                    "kind": kind,
+                    "reference": prefix + path.name,
+                    "digest": _artifact_digest(path),
+                    "size": path.stat().st_size,
+                }
+            )
+    return result
+
+
 def _git(source: Path, *arguments: str) -> str:
     completed = subprocess.run(
         ["git", "-C", str(source), *arguments],

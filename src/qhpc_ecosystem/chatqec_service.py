@@ -201,7 +201,8 @@ class ChatQECSource:
 
     def verify(self) -> None:
         if not (self.checkout / ".git").is_dir():
-            raise ChatQECServiceError("ChatQEC checkout is not prepared")
+            self._verify_bundle()
+            return
         head = self._checked(self._git("rev-parse", "HEAD"), "ChatQEC revision check")
         if head != self.revision:
             raise ChatQECServiceError(
@@ -220,6 +221,51 @@ class ChatQECSource:
         canonical = self.checkout / "knowledge" / "canonical"
         if not canonical.is_dir() or not any(canonical.glob("*.md")):
             raise ChatQECServiceError("ChatQEC canonical corpus is missing")
+
+    def _verify_bundle(self) -> None:
+        manifest_path = self.checkout / "SOURCE.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as error:
+            raise ChatQECServiceError(
+                "ChatQEC checkout is not prepared and no bundled SOURCE.json is present"
+            ) from error
+        except (OSError, json.JSONDecodeError) as error:
+            raise ChatQECServiceError(
+                f"cannot read bundled ChatQEC source manifest: {error}"
+            ) from error
+        if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
+            raise ChatQECServiceError("bundled ChatQEC source manifest is invalid")
+        if _repository_identity(str(manifest.get("repository", ""))) != (
+            _repository_identity(self.repository)
+        ):
+            raise ChatQECServiceError("bundled ChatQEC repository identity differs")
+        if manifest.get("revision") != self.revision:
+            raise ChatQECServiceError("bundled ChatQEC revision differs")
+        if manifest.get("license") != "Apache-2.0":
+            raise ChatQECServiceError("bundled ChatQEC license identity is invalid")
+
+        license_path = self.checkout / "LICENSE"
+        try:
+            license_digest = "sha256:" + hashlib.sha256(
+                license_path.read_bytes()
+            ).hexdigest()
+        except OSError as error:
+            raise ChatQECServiceError(
+                f"cannot read bundled ChatQEC license: {error}"
+            ) from error
+        if license_digest != manifest.get("license_digest"):
+            raise ChatQECServiceError("bundled ChatQEC license checksum differs")
+
+        responder = CanonicalChatQEC(
+            self.checkout,
+            source_url=self.repository,
+            source_revision=self.revision,
+        )
+        if len(responder.pages) != manifest.get("canonical_pages"):
+            raise ChatQECServiceError("bundled ChatQEC page count differs")
+        if responder.corpus_revision != manifest.get("corpus_revision"):
+            raise ChatQECServiceError("bundled ChatQEC corpus checksum differs")
 
 
 def _parse_page(path: Path, root: Path) -> CanonicalPage:

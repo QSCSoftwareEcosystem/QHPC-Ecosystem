@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -20,6 +21,7 @@ GENERATED_ASSETS = (
     ROOT / "src" / "qhpc_workbench" / "static" / "qhpc_workbench" / "composer.js",
     ROOT / "src" / "qhpc_workbench" / "static" / "qhpc_workbench" / "composer.css",
 )
+SOFTWARE_INVENTORY = ROOT / "release" / "eqo-local-software-inventory.json"
 
 
 class ReleaseBuildError(RuntimeError):
@@ -42,6 +44,12 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _git_blob_digest(path: Path) -> str:
+    content = path.read_bytes()
+    header = f"blob {len(content)}\0".encode("ascii")
+    return hashlib.sha1(header + content).hexdigest()
+
+
 def _require_reproducible_frontend() -> None:
     missing = [str(path.relative_to(ROOT)) for path in GENERATED_ASSETS if not path.is_file()]
     if missing:
@@ -51,24 +59,40 @@ def _require_reproducible_frontend() -> None:
     result = subprocess.run(
         [
             "git",
-            "diff",
-            "--quiet",
+            "ls-files",
+            "--stage",
             "--",
             *(str(path.relative_to(ROOT)) for path in GENERATED_ASSETS),
         ],
         cwd=ROOT,
+        capture_output=True,
+        text=True,
         check=False,
     )
-    if result.returncode not in {0, 1}:
-        raise ReleaseBuildError("cannot verify generated frontend assets with git")
-    if result.returncode == 1:
+    if result.returncode != 0:
+        raise ReleaseBuildError(
+            "cannot verify generated frontend assets with the Git index"
+        )
+    indexed: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        metadata, separator, name = line.partition("\t")
+        fields = metadata.split()
+        if separator and len(fields) >= 2:
+            indexed[name] = fields[1]
+    changed = [
+        str(path.relative_to(ROOT))
+        for path in GENERATED_ASSETS
+        if indexed.get(str(path.relative_to(ROOT))) != _git_blob_digest(path)
+    ]
+    if changed:
         raise ReleaseBuildError(
             "the clean frontend build changed committed assets; review and commit "
-            "the generated Workbench before producing a release artifact"
+            "the generated Workbench before producing a release artifact: "
+            + ", ".join(changed)
         )
 
 
-def build_local_release(output_dir: Path) -> tuple[Path, Path]:
+def build_local_release(output_dir: Path) -> tuple[Path, Path, Path]:
     npm = shutil.which("npm")
     if npm is None:
         raise ReleaseBuildError("npm is required to build the EQO Workbench")
@@ -110,14 +134,46 @@ def build_local_release(output_dir: Path) -> tuple[Path, Path]:
         resolved_output.mkdir(parents=True, exist_ok=True)
         target = resolved_output / wheels[0].name
         os.replace(wheels[0], target)
+        try:
+            inventory_document = json.loads(
+                SOFTWARE_INVENTORY.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as error:
+            raise ReleaseBuildError(
+                f"cannot read EQO Local software inventory: {error}"
+            ) from error
+        if inventory_document.get("release", {}).get("version") != "0.1.0":
+            raise ReleaseBuildError("EQO Local software inventory version differs")
+        if inventory_document.get("release", {}).get("review_status") not in {
+            "approved",
+            "project-review-required",
+        }:
+            raise ReleaseBuildError("EQO Local software inventory review status is invalid")
+        for section in (
+            "included_software",
+            "required_dependencies",
+            "optional_scientific_runtimes",
+        ):
+            entries = inventory_document.get(section)
+            if not isinstance(entries, list) or not entries:
+                raise ReleaseBuildError(
+                    f"EQO Local software inventory section is empty: {section}"
+                )
+            if any(not item.get("name") or not item.get("license") for item in entries):
+                raise ReleaseBuildError(
+                    f"EQO Local software inventory lacks a name or license: {section}"
+                )
+        inventory = resolved_output / "EQO_LOCAL_SOFTWARE_INVENTORY.json"
+        shutil.copyfile(SOFTWARE_INVENTORY, inventory)
         checksum_file = resolved_output / "SHA256SUMS"
         temporary_checksum = temporary / "SHA256SUMS"
         temporary_checksum.write_text(
-            f"{_sha256(target)}  {target.name}\n",
+            f"{_sha256(target)}  {target.name}\n"
+            f"{_sha256(inventory)}  {inventory.name}\n",
             encoding="utf-8",
         )
         os.replace(temporary_checksum, checksum_file)
-    return target, checksum_file
+    return target, checksum_file, inventory
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -135,12 +191,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     try:
-        wheel, checksums = build_local_release(args.output_dir)
+        wheel, checksums, inventory = build_local_release(args.output_dir)
     except ReleaseBuildError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
     print(f"EQO Local wheel: {wheel}")
     print(f"Checksums: {checksums}")
+    print(f"Software inventory: {inventory}")
     return 0
 
 

@@ -466,12 +466,17 @@ eqo local open
 eqo local down
 eqo local export
 eqo local import /path/to/eqo-local-export.eqo
+eqo local diagnose
+eqo local runtime list
 ```
 
 The services bind to loopback by default and use stable operating-system data,
 configuration, cache, state, and log locations. See
-[the EQO Local lifecycle preview](docs/local-release.md) for path overrides,
-the current Assistant boundary, and the remaining release work.
+[the EQO Local guide](docs/local-release.md) for release installation, path
+overrides, backup and restore, upgrades, optional runtime management,
+diagnostics, uninstall, the security boundary, and the remaining publication
+gates. Verified developer and author evidence is listed in
+[the tool attribution record](docs/tool-attribution.md).
 
 ## Development
 

@@ -14,13 +14,16 @@ from qhpc_ecosystem.local_release import (
     LocalPaths,
     LocalReleaseError,
     LocalStackConfig,
+    diagnostic_report,
     local_status,
     prepare_local_database,
+    require_storage_capacity,
     state_document,
     stop_local,
     supervisor_command,
     write_local_config,
     write_local_state,
+    write_diagnostic_report,
 )
 
 
@@ -86,6 +89,27 @@ def test_dependency_preflight_explains_how_to_install_workbench(monkeypatch) -> 
 
     with pytest.raises(LocalReleaseError, match=r"qhpc-ecosystem\[local\]"):
         local_release.require_local_dependencies()
+
+
+def test_storage_preflight_rejects_unknown_or_insufficient_capacity(
+    tmp_path: Path, monkeypatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path / "local-home")
+    monkeypatch.setattr(
+        local_release,
+        "_available_storage",
+        lambda _path: {"available": False, "free_bytes": 0},
+    )
+    with pytest.raises(LocalReleaseError, match="cannot determine free storage"):
+        require_storage_capacity(paths)
+
+    monkeypatch.setattr(
+        local_release,
+        "_available_storage",
+        lambda _path: {"available": True, "free_bytes": 1024},
+    )
+    with pytest.raises(LocalReleaseError, match="insufficient storage"):
+        require_storage_capacity(paths)
 
 
 def test_config_and_state_files_contain_no_runtime_identity_token(tmp_path: Path) -> None:
@@ -219,6 +243,66 @@ def test_stop_does_not_signal_an_unverified_stale_pid(
 def test_cli_local_status_uses_portable_home(tmp_path: Path, capsys) -> None:
     assert cli.main(["local", "status", "--home", str(tmp_path)]) == 0
     assert "EQO Local: stopped" in capsys.readouterr().out
+
+
+def test_diagnostic_report_is_portable_and_secret_free(tmp_path: Path) -> None:
+    paths = LocalPaths.discover(tmp_path / "private-user-location")
+    report = diagnostic_report(paths, release_version="0.1.0")
+
+    payload = json.dumps(report)
+    assert report["assistant"]["available"] is True
+    assert report["assistant"]["canonical_pages"] == 60
+    assert report["service"]["status"] == "stopped"
+    assert report["runtimes"] == []
+    assert str(tmp_path) not in payload
+    assert "token" not in payload.lower()
+
+    destination = tmp_path / "support" / "diagnostic.json"
+    assert write_diagnostic_report(report, destination) == destination.resolve()
+    assert destination.stat().st_mode & 0o077 == 0
+    with pytest.raises(LocalReleaseError, match="already exists"):
+        write_diagnostic_report(report, destination)
+
+
+def test_cli_manages_optional_runtime_and_writes_diagnostics(
+    tmp_path: Path, capsys
+) -> None:
+    home = tmp_path / "home"
+    artifact = tmp_path / "runtime.whl"
+    artifact.write_bytes(b"optional runtime")
+    digest = "sha256:" + __import__("hashlib").sha256(artifact.read_bytes()).hexdigest()
+    reference = "qhpc-runtime://wheels/runtime.whl"
+
+    assert cli.main(
+        [
+            "local",
+            "runtime",
+            "install",
+            str(artifact),
+            "--reference",
+            reference,
+            "--digest",
+            digest,
+            "--home",
+            str(home),
+        ]
+    ) == 0
+    assert "runtime installed" in capsys.readouterr().out
+    assert cli.main(
+        ["local", "runtime", "list", "--json", "--home", str(home)]
+    ) == 0
+    assert json.loads(capsys.readouterr().out)[0]["reference"] == reference
+    assert cli.main(
+        ["local", "runtime", "remove", reference, "--home", str(home)]
+    ) == 0
+    assert "runtime removed" in capsys.readouterr().out
+
+    report = tmp_path / "diagnostic.json"
+    assert cli.main(
+        ["local", "diagnose", str(report), "--home", str(home)]
+    ) == 0
+    assert "diagnostic report" in capsys.readouterr().out
+    assert json.loads(report.read_text(encoding="utf-8"))["schema_version"] == 1
 
 
 def test_database_upgrade_creates_retained_backup(tmp_path: Path) -> None:

@@ -3,13 +3,12 @@ kind: Capability
 metadata:
   id: lightstim-simulation
   name: LightStim Logical Error Estimation
-  version: 0.1.0
+  version: 0.1.1
   project: hybrid-workflows
   owners: [lightstim]
   repository:
-    url: https://github.com/QuTone/LightStim
-    canonical_url: https://github.com/QSCSoftwareThrust/LightStim
-    revision: b08d4c2f9cd69531a51b658e6f88089be69f16c0
+    url: https://github.com/QSCSoftwareThrust/LightStim
+    revision: 23924ee997a27af7a0aa17623357bf8bc7170625
   integration:
     authority: ecosystem
     maintainers: [qhpc-ecosystem]
@@ -19,6 +18,7 @@ metadata:
     evidence:
       - docs/evidence/initial-component-source-audit-2026-07-22.md
       - docs/evidence/lightstim-oci-smoke-2026-07-27.md
+      - docs/evidence/lightstim-oci-update-2026-09-03.md
   visibility: public
   maturity: alpha
 spec:
@@ -79,8 +79,8 @@ spec:
           maximum: 256
       runtime:
         type: oci
-        reference: docker://qhpc/lightstim@sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
-        digest: sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+        reference: docker://qhpc/lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
+        digest: sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-lightstim-estimate]
       resources:
@@ -91,8 +91,12 @@ spec:
   resources:
     - id: lightstim-source
       kind: library
-      version: 0.1.0
-      uri: https://github.com/QuTone/LightStim/tree/b08d4c2f9cd69531a51b658e6f88089be69f16c0
+      version: 0.1.1
+      uri: https://github.com/QSCSoftwareThrust/LightStim/tree/23924ee997a27af7a0aa17623357bf8bc7170625
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#lightstim
   documentation:
     qappswiki: packages/lightstim.md
-    url: https://github.com/QuTone/LightStim/blob/b08d4c2f9cd69531a51b658e6f88089be69f16c0/README.md
+    url: https://github.com/QSCSoftwareThrust/LightStim/blob/23924ee997a27af7a0aa17623357bf8bc7170625/README.md

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -146,6 +147,44 @@ def test_source_prepare_recovers_an_interrupted_empty_worktree(
         encoding="utf-8",
     )
     with pytest.raises(ChatQECServiceError, match="tracked or untracked"):
+        source.verify()
+
+
+def test_bundled_source_rejects_tampered_corpus(tmp_path: Path) -> None:
+    root = _source(tmp_path)
+    responder = CanonicalChatQEC(
+        root,
+        source_url="https://github.com/QSCSoftwareThrust/ChatQEC",
+        source_revision=SOURCE_REVISION,
+    )
+    license_payload = (root / "LICENSE").read_bytes()
+    (root / "SOURCE.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "repository": "https://github.com/QSCSoftwareThrust/ChatQEC",
+                "revision": SOURCE_REVISION,
+                "license": "Apache-2.0",
+                "license_digest": "sha256:"
+                + hashlib.sha256(license_payload).hexdigest(),
+                "canonical_pages": 2,
+                "corpus_revision": responder.corpus_revision,
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = ChatQECSource(
+        "https://github.com/QSCSoftwareThrust/ChatQEC",
+        SOURCE_REVISION,
+        root,
+    )
+    source.verify()
+
+    with (root / "knowledge/canonical/surface-code.md").open(
+        "a", encoding="utf-8"
+    ) as stream:
+        stream.write("\nTampered.\n")
+    with pytest.raises(ChatQECServiceError, match="corpus checksum differs"):
         source.verify()
 
 

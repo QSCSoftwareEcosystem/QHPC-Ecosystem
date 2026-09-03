@@ -49,6 +49,10 @@ spec:
       kind: dataset
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#qappswiki
   documentation:
     qappswiki: docs/qsc-integration.md
     url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md

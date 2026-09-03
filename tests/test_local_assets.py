@@ -5,8 +5,9 @@ from pathlib import Path
 import pytest
 
 from qhpc_ecosystem.catalog import load_catalog
+from qhpc_ecosystem.chatqec_service import CanonicalChatQEC, ChatQECSource
 from qhpc_ecosystem.contract import validate_contract
-from qhpc_ecosystem.local_assets import ASSETS, asset_path
+from qhpc_ecosystem.local_assets import ASSETS, assistant_source_path, asset_path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,3 +65,21 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"
     assert len(workflows) == 5
+
+
+def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> None:
+    interface = asset_path("assistant-interface")
+    source = ChatQECSource.from_contract(interface, assistant_source_path())
+
+    source.verify()
+    responder = CanonicalChatQEC(
+        source.checkout,
+        source_url=source.repository,
+        source_revision=source.revision,
+    )
+
+    assert source.revision == "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977"
+    assert len(responder.pages) == 60
+    assert responder.corpus_revision == (
+        "sha256:95e43b52660f4789457ef54b0b5c3ffc557b0610e24fc4780ed709c800928330"
+    )

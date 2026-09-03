@@ -51,9 +51,9 @@ spec:
       digest: sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
     - runtime_id: lightstim-estimate-logical-error-linux-amd64
       runtime_manifest: containers/operations/lightstim/runtime.yaml
-      registry_reference: docker://qhpc/lightstim@sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
-      local_reference: qhpc/lightstim:b08d4c2-linux-amd64
-      digest: sha256:0787bba8b32fe251dcc82ab8bf1e6ced21e78281bf350813dfe3426adb73984f
+      registry_reference: docker://qhpc/lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
+      local_reference: qhpc/lightstim:23924ee-linux-amd64
+      digest: sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
   compose:
     project_name: qhpc-slurm-test
     compose_file: docker-compose.yml

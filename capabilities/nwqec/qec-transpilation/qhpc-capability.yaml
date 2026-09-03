@@ -77,6 +77,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/pnnl/nwqec/tree/d93299c2a0fe47fb7758bff02b456acfb3ac4416
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#nwqec
   documentation:
     qappswiki: packages/nwqec.md
     url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md

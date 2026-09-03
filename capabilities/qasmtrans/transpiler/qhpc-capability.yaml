@@ -73,6 +73,10 @@ spec:
       kind: library
       version: 0.1.0
       uri: https://github.com/pnnl/qasmtrans/tree/1843c98fa4bac9cf6b88412145b69457e9176124
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#qasmtrans
   documentation:
     qappswiki: packages/qasmtrans.md
     url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md

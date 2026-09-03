@@ -1,4 +1,4 @@
-ARG SOURCE_DATE_EPOCH=1784655175
+ARG SOURCE_DATE_EPOCH=1788403837
 
 FROM docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49 AS build
 ARG SOURCE_DATE_EPOCH
@@ -26,8 +26,8 @@ RUN tar -xf /tmp/source.tar -C /src \
 FROM docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
 LABEL org.opencontainers.image.title="QHPC LightStim logical-error operation runtime" \
       org.opencontainers.image.description="Controlled PyMatching logical-error estimator" \
-      org.opencontainers.image.source="https://github.com/QuTone/LightStim" \
-      org.opencontainers.image.revision="b08d4c2f9cd69531a51b658e6f88089be69f16c0" \
+      org.opencontainers.image.source="https://github.com/QSCSoftwareThrust/LightStim" \
+      org.opencontainers.image.revision="23924ee997a27af7a0aa17623357bf8bc7170625" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.qscsoftware.capability="lightstim-simulation" \
       org.qscsoftware.operation="estimate-logical-error"

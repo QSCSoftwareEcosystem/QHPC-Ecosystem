@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   id: qec-memory-estimation
   name: Build and estimate a fault-tolerant memory circuit
-  version: 0.1.0
+  version: 0.1.1
   owner: qhpc-ecosystem
   visibility: internal
   description: Connect FTPrimitiveBench circuit generation to LightStim logical-error estimation on the virtual Slurm target.
@@ -23,7 +23,7 @@ spec:
     - id: estimate
       operation:
         capability: lightstim-simulation
-        version: 0.1.0
+        version: 0.1.1
         operation: estimate-logical-error
       parameters:
         decoder: pymatching

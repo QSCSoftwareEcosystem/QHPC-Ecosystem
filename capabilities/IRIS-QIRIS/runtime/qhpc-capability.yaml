@@ -59,6 +59,10 @@ spec:
       version: 3.0.1
       uri: https://github.com/ORNL/iris/tree/ff57e620a92fcf62eff3568d9c6eeaaf078f0340
       description: Pinned public IRIS/QIR-EE source; it is not represented as an already-complete QIRIS VQE service.
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#irisqiris
   documentation:
     qappswiki: packages/iris-qiris.md
     url: https://github.com/ORNL/iris/blob/ff57e620a92fcf62eff3568d9c6eeaaf078f0340/README.md

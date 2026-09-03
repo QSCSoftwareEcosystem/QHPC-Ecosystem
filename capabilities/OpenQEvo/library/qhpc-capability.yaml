@@ -160,6 +160,10 @@ spec:
       kind: artifact-type
       version: 1.0.0
       uri: artifact-types/evolution-synthesis-report-v1.yaml
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#openqevo
   documentation:
     qappswiki: packages/openqevo.md
     url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md

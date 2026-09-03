@@ -60,6 +60,10 @@ spec:
       version: 0.1.0
       uri: https://github.com/pnnl/nwq-sim/tree/b35763d846e6512ed817d3f88ac8ce79a7e82a7e
       description: Pinned public NWQSim base revision audited for this incubation record.
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#nwqsim-qflow
   documentation:
     qappswiki: packages/nwqsim-qflow.md
     url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md

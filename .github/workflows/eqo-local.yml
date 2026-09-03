@@ -1,0 +1,46 @@
+name: EQO Local release gates
+
+on:
+  push:
+    branches: [main, dev-local]
+  pull_request:
+    branches: [main, dev-local]
+
+permissions:
+  contents: read
+
+jobs:
+  portable-release:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: workbench/frontend/package-lock.json
+      - name: Install release-build dependencies
+        run: python -m pip install --upgrade pip wheel '.[dev,local]'
+      - name: Build and verify release candidate
+        run: python tools/build_local_release.py
+      - name: Verify installed lifecycle outside the checkout
+        run: python tools/verify_installed_local_release.py dist/qhpc_ecosystem-0.1.0-py3-none-any.whl
+      - name: Verify release checksums
+        working-directory: dist
+        run: shasum -a 256 -c SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eqo-local-${{ matrix.os }}-py${{ matrix.python }}
+          path: |
+            dist/qhpc_ecosystem-*.whl
+            dist/SHA256SUMS
+            dist/EQO_LOCAL_SOFTWARE_INVENTORY.json

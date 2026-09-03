@@ -3,7 +3,7 @@ kind: IntegrationScaffold
 metadata:
   id: chatqec
   name: ChatQEC
-  version: 0.3.0
+  version: 0.3.1
   project: agentic-software
   role: assistant-service
   owners: [chatqec]
@@ -40,6 +40,7 @@ spec:
     - docs/chatqec-service-boundary.md
     - docs/chatqec-api-handoff.md
     - docs/evidence/chatqec-local-service-smoke-2026-07-28.md
+    - docs/evidence/chatqec-bundled-corpus-2026-09-03.md
   production_runtime:
     status: deferred
     technology: oci

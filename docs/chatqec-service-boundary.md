@@ -1,10 +1,10 @@
 # ChatQEC Service Boundary
 
 - Status: Accepted design baseline
-- Local implementation: Functional canonical-corpus development service
+- Local implementation: Functional bundled canonical-corpus service
 - Accepted: 2026-07-24
 - Working source: [QSCSoftwareThrust/ChatQEC](https://github.com/QSCSoftwareThrust/ChatQEC)
-- Pinned revision: `4c017510511f835001bfe5901a9d59e86cc130cd`
+- Pinned revision: `a1ddc2e4916b1f4152fba4c94c9c7512eea0d977`
 - Formal decision: [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
 - Service contract: [`integrations/chatqec/service.yaml`](../integrations/chatqec/service.yaml)
 - Client adapter: [`service_adapters.py`](../src/qhpc_ecosystem/service_adapters.py)
@@ -13,6 +13,8 @@
 - Workbench API handoff: [ChatQEC Workbench API Handoff](chatqec-api-handoff.md)
 - Local smoke evidence:
   [2026-07-28 ChatQEC service smoke](evidence/chatqec-local-service-smoke-2026-07-28.md)
+- Local bundle evidence:
+  [2026-09-03 bundled corpus verification](evidence/chatqec-bundled-corpus-2026-09-03.md)
 - Source evidence:
   [initial component source audit](evidence/initial-component-source-audit-2026-07-22.md#chatqec)
 
@@ -39,10 +41,13 @@ exact-revision canonical Markdown corpus owned by ChatQEC. It returns
 deterministic extractive answers or an explicit refusal, validates the same
 request and response contracts, attaches immutable source citations, accepts
 only a server-supplied bearer workload identity, disables tool execution, and
-retains no conversation state. `eqo dev up` prepares the pinned
-source and supervises this process independently from the QHPC API. This makes
-the local Workbench assistant functional without claiming that a generative
-model, Qdrant deployment, or production identity service has been approved.
+retains no conversation state. `eqo local up` verifies and serves the licensed,
+checksum-pinned corpus bundled in the installed EQO wheel, so its first start
+requires no network access or source checkout. `eqo dev up` may still prepare a
+Git checkout for integration development. Both supervise the Assistant process
+independently from the QHPC API. This makes the local Workbench assistant
+functional without claiming that a generative model, Qdrant deployment, or
+production identity service has been approved.
 
 ## Topology
 

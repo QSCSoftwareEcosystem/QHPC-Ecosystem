@@ -56,6 +56,10 @@ spec:
       version: 0.1.0
       uri: https://github.com/QSCSoftwareThrust/FTQC/tree/947fd0a067f15a9f9d6e7418742080cf34cfb51a
       description: Pinned source containing the IQM JSON lowering, 20-qubit topology snapshot, routing/submission path, and one-logical-qubit fixtures.
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#ftqc
   documentation:
     qappswiki: packages/ftqc.md
     url: https://github.com/QSCSoftwareThrust/FTQC/blob/947fd0a067f15a9f9d6e7418742080cf34cfb51a/README.md

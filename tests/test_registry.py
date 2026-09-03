@@ -35,6 +35,14 @@ def test_published_capabilities_separate_tool_and_integration_identity() -> None
     for descriptor in descriptors:
         capability = validate_contract("capability", descriptor)
         assert capability["spec"]["component"]["name"]
+        attribution = [
+            resource
+            for resource in capability["spec"]["resources"]
+            if resource["id"] == "developer-attribution"
+        ]
+        assert len(attribution) == 1
+        assert attribution[0]["kind"] == "documentation"
+        assert attribution[0]["uri"].startswith("docs/tool-attribution.md#")
 
     lightstim = validate_contract(
         "capability",

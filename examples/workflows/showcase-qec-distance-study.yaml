@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   id: showcase-qec-distance-study
   name: Compare QEC memory protection
-  version: 0.1.0
+  version: 0.1.1
   owner: qhpc-ecosystem
   visibility: internal
   description: Build distance-three and distance-five surface-code memories with the same physical error model, then estimate both logical error rates with LightStim.
@@ -23,7 +23,7 @@ spec:
     - id: estimate-distance-3
       operation:
         capability: lightstim-simulation
-        version: 0.1.0
+        version: 0.1.1
         operation: estimate-logical-error
       parameters:
         decoder: pymatching
@@ -45,7 +45,7 @@ spec:
     - id: estimate-distance-5
       operation:
         capability: lightstim-simulation
-        version: 0.1.0
+        version: 0.1.1
         operation: estimate-logical-error
       parameters:
         decoder: pymatching
