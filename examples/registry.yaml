@@ -2,7 +2,7 @@ api_version: qhpc/v1
 kind: Registry
 metadata:
   entry_count: 17
-  catalog_digest: sha256:be1d8377cb7766fe8ecb61bc20d86ac616881a479167828f230d5fb2363037cc
+  catalog_digest: sha256:ef2e19e2f815ef181ff2e8056149a7503d3f374a6c8c1adc35e142d9fce54807
 spec:
   entries:
   - descriptor_digest: sha256:6b8e1501dd38b527fc46fbe257f4195498033ddfd8bab9f88fc975e25a1ab3d2
