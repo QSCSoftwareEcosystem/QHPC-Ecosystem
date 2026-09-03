@@ -404,6 +404,9 @@ def build_parser() -> argparse.ArgumentParser:
         local_supervise.add_argument(
             f"--{name}-root", help=argparse.SUPPRESS
         )
+    local_supervise.add_argument(
+        "--startup-timeout", type=float, default=30.0, help=argparse.SUPPRESS
+    )
     local_up.add_argument(
         "--timeout", type=float, default=30.0, help="startup timeout in seconds"
     )
@@ -1414,7 +1417,12 @@ def dispatch(args: argparse.Namespace) -> int:
             restart_delay_seconds=args.restart_delay,
         )
         if args.local_command == "_supervise":
-            return supervise_local(config, paths, release_version=__version__)
+            return supervise_local(
+                config,
+                paths,
+                release_version=__version__,
+                startup_timeout_seconds=args.startup_timeout,
+            )
 
         report = launch_local(
             config,

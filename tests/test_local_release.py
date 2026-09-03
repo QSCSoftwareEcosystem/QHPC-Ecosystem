@@ -212,6 +212,19 @@ def test_supervisor_command_preserves_distinct_os_paths(tmp_path: Path) -> None:
         assert command[command.index(option) + 1] == str(value)
     assert "--no-assistant" in command
     assert "slurm" not in " ".join(command).lower()
+    assert command[command.index("--startup-timeout") + 1] == "30.0"
+
+
+def test_supervisor_command_uses_the_requested_startup_timeout(tmp_path: Path) -> None:
+    paths = LocalPaths.discover(tmp_path)
+
+    command = supervisor_command(
+        config(assistant_enabled=False),
+        paths,
+        startup_timeout_seconds=75.5,
+    )
+
+    assert command[command.index("--startup-timeout") + 1] == "75.5"
 
 
 def test_stop_does_not_signal_an_unverified_stale_pid(

@@ -817,6 +817,7 @@ def supervisor_command(
     paths: LocalPaths,
     *,
     python_executable: str = sys.executable,
+    startup_timeout_seconds: float = 30.0,
 ) -> tuple[str, ...]:
     command = [
         python_executable,
@@ -849,6 +850,8 @@ def supervisor_command(
         str(config.worker_stale_after_seconds),
         "--restart-delay",
         str(config.restart_delay_seconds),
+        "--startup-timeout",
+        str(startup_timeout_seconds),
     ]
     if config.assistant_source_checkout:
         command.extend(
@@ -889,7 +892,11 @@ def launch_local(
     with paths.log_file.open("ab") as log_stream:
         try:
             process = subprocess.Popen(
-                supervisor_command(config, paths),
+                supervisor_command(
+                    config,
+                    paths,
+                    startup_timeout_seconds=timeout_seconds,
+                ),
                 stdin=subprocess.DEVNULL,
                 stdout=log_stream,
                 stderr=subprocess.STDOUT,
@@ -978,6 +985,7 @@ def supervise_local(
     paths: LocalPaths,
     *,
     release_version: str,
+    startup_timeout_seconds: float = 30.0,
 ) -> int:
     """Run the release supervisor in the detached child process."""
 
@@ -985,6 +993,8 @@ def supervise_local(
     from .dev_stack import DevStackConfig, DevStackSupervisor, build_service_specs
 
     config.validate()
+    if startup_timeout_seconds <= 0:
+        raise LocalReleaseError("local startup timeout must be greater than zero")
     paths.ensure()
     stop_event = Event()
 
@@ -1056,6 +1066,16 @@ def supervise_local(
         status="starting",
     )
     database_report: dict[str, Any] = {}
+    startup_deadline = time.monotonic() + startup_timeout_seconds
+
+    def remaining_startup_time() -> float:
+        remaining = startup_deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(
+                "EQO Local exceeded its startup timeout before all services became ready"
+            )
+        return remaining
+
     try:
         write_local_state(paths, base_state)
         database_report = prepare_local_database(paths)
@@ -1074,17 +1094,26 @@ def supervise_local(
             ),
         )
         supervisor.start_api()
-        supervisor.wait_for_api(f"{config.api_url}/api/v1/health")
+        supervisor.wait_for_api(
+            f"{config.api_url}/api/v1/health",
+            timeout_seconds=remaining_startup_time(),
+        )
         supervisor.start_services()
         if config.assistant_enabled and config.assistant_url:
             supervisor.wait_for_service(
                 "chatqec",
                 f"{config.assistant_url}/v1/health",
+                timeout_seconds=remaining_startup_time(),
             )
-        supervisor.wait_for_service("workbench", f"{config.workbench_url}/health")
+        supervisor.wait_for_service(
+            "workbench",
+            f"{config.workbench_url}/health",
+            timeout_seconds=remaining_startup_time(),
+        )
         supervisor.wait_for_workers(
             f"{config.api_url}/api/v1/workers",
             {"eqo-local-worker"},
+            timeout_seconds=remaining_startup_time(),
         )
         services = {
             name: process.pid for name, process in supervisor.processes.items()
