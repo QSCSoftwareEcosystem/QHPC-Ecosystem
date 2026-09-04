@@ -83,37 +83,53 @@ runtime gates. It deliberately has no Run action: live QIRIS submission,
 circuit emission, QFlow amplitude application, restart equivalence, and the
 FTQC LLVM/MLIR runtime are not yet accepted.
 
-## FTQC logical-qubit IQM blueprint
+## FTQC–IQM flagship showcase
 
-Compose exposes **One logical qubit on IQM** as a dedicated non-executable
-hardware-evidence blueprint. It makes the reported FTQC path inspectable
-without presenting the result as verified:
+Select **Showcases** in the Workbench to follow one specimen from authored
+OpenQASM through the explicit IQM hardware boundary. The page makes the
+scientific result, software handoffs, runtime state, and claim boundary visible
+before asking a visitor to operate the workflow composer.
 
-1. Load the tracked one-logical-qubit OpenQASM 3 fixtures.
-2. Lower the circuit to logical FTQC MLIR.
-3. Expand the logical qubit with the Steane `[[7,1,3]]` code.
-4. Lower to IQM-native JSON and route against the tracked topology.
-5. Submit 512 shots to the ORNL IQM backend.
-6. Recover raw and syndrome-corrected logical outcomes.
+Two preparation workflows are runnable when the optional local FTQC runtime
+and compatible worker are available:
 
-The first four stages are source-backed. Hardware submission is
-developer-reported, and the result stage remains pending because no job
-receipt, confirmed device identity, routed layout, raw counts, or corrected
-logical histogram is preserved in the repository.
+1. **Prepare one Steane logical qubit for IQM** lowers either the tracked
+   `logical0.qasm` or `logical0-H.qasm` input through the pinned FTQC C API,
+   expands one logical qubit to seven Steane data-qubit loci, and emits typed
+   FTQC MLIR, IQM JSON, and a preparation report.
+2. **Prepare a two-device-qubit Bell circuit for IQM** lowers the measured Bell
+   fixture directly to two IQM loci. It deliberately makes no Steane-expansion
+   claim.
 
-The blueprint therefore keeps **Run unavailable** and shows the exact evidence
-packet required for promotion. It also states that running an encoded circuit
-does not by itself demonstrate error suppression or fault-tolerant
-performance. The supporting record is
-[`docs/evidence/ftqc-iqm-logical-qubit-candidate-2026-07-29.md`](evidence/ftqc-iqm-logical-qubit-candidate-2026-07-29.md).
+The accepted local smoke produced 58 IQM instructions for `logical0`, 114 for
+the four-H logical variant, and 9 for the Bell circuit. Every run preserves the
+input and output digests, exact FTQC source revision, preparation mode, circuit
+width, instruction count, gate counts, and an explicit record that routing and
+submission were not performed. See the
+[local preparation evidence](evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md).
+
+Calibration-aware topology routing and hardware submission remain a separate
+credentialed stage. Its `quantum-backend` contract and mock adapter now preserve
+the selected device/calibration identity, routed layout, job receipt, raw
+counts, and Steane Z-basis logical result while keeping the token inside the
+worker. This is interface evidence, not a hardware run; see the
+[mock backend acceptance record](evidence/ftqc-iqm-mock-backend-2026-09-04.md).
+
+Promotion of that stage still requires a real qiskit-iqm client, confirmed
+site policy, developer-approved hardware packet, and an approved comparison
+rule. The earlier
+[hardware candidate record](evidence/ftqc-iqm-logical-qubit-candidate-2026-07-29.md)
+documents those gaps. Until that packet exists, the showcase does not claim
+verified hardware execution, error suppression, or fault-tolerant advantage.
 
 ## Beyond executable workflows
 
 Not every ecosystem capability should be represented as an executable workflow
 node. QAppsWiki's knowledge graph and ChatQEC support evidence-led exploration
-in Knowledge and Assistant. ExaChem, QIRIS, NWQSim QFlow, and FTQC are visible
-in the H6 Compose blueprint while remaining explicitly non-executable until
-their runtime and HPC acceptance gates pass.
+in Knowledge and Assistant. ExaChem, QIRIS, and NWQSim QFlow are visible in the
+H6 Compose blueprint while remaining explicitly non-executable until their
+runtime and HPC acceptance gates pass. FTQC is executable for credential-free
+local IQM preparation; only its routing and hardware stage remains gated.
 
 These are development showcases. Their admitted local and virtual-Slurm
 targets demonstrate orchestration and artifact interoperability; they do not

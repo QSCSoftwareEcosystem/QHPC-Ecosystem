@@ -257,6 +257,10 @@ def test_ftqc_uses_private_ecosystem_source_and_local_preparation_runtime() -> N
         "artifact-types/ftqc-mlir-v1.yaml",
         "artifact-types/iqm-circuit-v1.yaml",
         "artifact-types/ftqc-iqm-preparation-report-v1.yaml",
+        "artifact-types/iqm-routed-layout-v1.yaml",
+        "artifact-types/iqm-job-receipt-v1.yaml",
+        "artifact-types/iqm-raw-counts-v1.yaml",
+        "artifact-types/ftqc-logical-result-v1.yaml",
     ]
     assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
     resources = {
@@ -280,11 +284,29 @@ def test_ftqc_uses_private_ecosystem_source_and_local_preparation_runtime() -> N
     assert capability["metadata"]["integration"]["evidence"] == [
         "docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md",
         "docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md",
+        "docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md",
     ]
-    operation = capability["spec"]["operations"][0]
-    assert operation["id"] == "prepare-iqm"
-    assert operation["runtime"]["type"] == "native-bundle"
-    assert operation["execution_targets"] == ["local-development"]
+    operations = {
+        operation["id"]: operation
+        for operation in capability["spec"]["operations"]
+    }
+    assert set(operations) == {"prepare-iqm", "route-submit-collect"}
+    assert operations["prepare-iqm"]["runtime"]["type"] == "native-bundle"
+    assert operations["prepare-iqm"]["execution_targets"] == [
+        "local-development"
+    ]
+    backend = operations["route-submit-collect"]
+    assert backend["runtime"]["type"] == "python-wheel"
+    assert backend["parameters"]["shots"]["maximum"] == 4096
+    assert backend["parameters"]["credential_reference"]["default"] == (
+        "secret://env/IQM_TOKEN"
+    )
+    assert set(backend["outputs"]) == {
+        "layout",
+        "receipt",
+        "counts",
+        "logical_result",
+    }
     assert any(
         "FTQC IQM preparation" in step
         for step in capability["spec"]["guidance"]["quick_start"]
@@ -302,8 +324,12 @@ def test_draft_cross_project_artifact_types_are_valid() -> None:
         "evolution-method-context-v1.yaml",
         "evolution-synthesis-report-v1.yaml",
         "ftqc-iqm-preparation-report-v1.yaml",
+        "ftqc-logical-result-v1.yaml",
         "ftqc-mlir-v1.yaml",
         "iqm-circuit-v1.yaml",
+        "iqm-job-receipt-v1.yaml",
+        "iqm-raw-counts-v1.yaml",
+        "iqm-routed-layout-v1.yaml",
         "logical-error-estimate-v1.yaml",
         "measurement-counts-v1.yaml",
         "pauli-hamiltonian-v1.yaml",

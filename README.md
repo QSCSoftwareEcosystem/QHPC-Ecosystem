@@ -42,9 +42,11 @@ C API is available to EQO Local on macOS arm64 as a locally built native bundle.
 Two Workbench examples prepare either a measured two-device-qubit Bell circuit
 or one Steane logical qubit as typed FTQC MLIR, IQM JSON, and claim-boundary
 artifacts. Calibration-aware routing and hardware submission are separate,
-credentialed stages. The local binary is not distributed; a portable LLVM/MLIR
-22 runtime, license clearance, immutable release, and target acceptance remain
-pending.
+credentialed stages. Their typed route, receipt, count, and logical-result
+contracts now have a restart-safe mock backend acceptance path, but no real
+qiskit-iqm client or hardware packet is admitted. The local binary is not
+distributed; a portable LLVM/MLIR 22 runtime, license clearance, immutable
+release, and target acceptance remain pending.
 
 OpenQSE is resolved to the pinned `openQSE/openqse-spec` glossary and
 architecture repository and is published only as non-executable documentation
@@ -206,16 +208,22 @@ outside the active registry and runtime cache until their component-specific
 rebuild, tests, evidence, and promotion are complete. See
 [docs/repository-updates.md](docs/repository-updates.md).
 
-Open the printed URL and select **Compose**. The default **Guided** mode
-presents eight runnable scientific showcases and one evidence-backed H6
-incubation blueprint. The two runnable cross-tool studies take a
-Hamiltonian through evolution synthesis, mapping, structural analysis, and
-fault-tolerant resource counting, or compare two surface-code memory distances.
-Six focused examples teach each boundary independently, including FTQC
-preparation of a two-device-qubit circuit and one Steane logical qubit. The H6
-blueprint shows the proposed ExaChem → QIRIS → NWQSim chemistry cycle and an
-optional FTQC circuit-lowering branch without publishing a false Run action for
-that still-incomplete application path. Circuit
+Open the printed URL and select **Showcases** for the flagship FTQC–IQM story:
+one logical OpenQASM qubit becomes seven Steane data-qubit loci and an
+IQM-native circuit with inspectable provenance. The page links directly to the
+two runnable preparation workflows while separating local evidence from the
+pending credentialed hardware stage.
+
+Select **Compose**. The portable local profile's default **Guided** mode
+presents six runnable scientific paths and one evidence-backed H6 incubation
+blueprint. Two flagship FTQC examples prepare a two-device-qubit circuit or one
+Steane logical qubit; four focused examples cover circuit mapping and metrics,
+QEC memory estimation, Clifford/T resource counting, and Hamiltonian evolution
+synthesis. The broader development suite also defines two cross-tool studies
+that combine those boundaries. The H6 blueprint shows the proposed ExaChem →
+QIRIS → NWQSim chemistry cycle and an optional FTQC circuit-lowering branch
+without publishing a false Run action for that still-incomplete application
+path. Circuit
 paths accept pasted OpenQASM 2 text, a local `.qasm` file, or the included
 fixtures and submit the immutable published workflow directly. Generated
 circuits, estimates, metrics, counts, and provenance are available through

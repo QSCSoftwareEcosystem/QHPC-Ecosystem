@@ -1,0 +1,119 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.iqm-routed-layout
+  name: IQM Routed Layout
+  version: 1
+  project: compilation-tools
+  owners: [ftqc, qhpc-ecosystem]
+  status: draft
+spec:
+  description: Calibration-aware IQM circuit routing, selected physical layout, and bounded routing metrics without credentials.
+  media_type: application/vnd.qsc.iqm-routed-layout+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - schema
+      - source_circuit_checksum
+      - device
+      - circuit
+      - initial_layout
+      - final_layout
+      - metrics
+    properties:
+      schema:
+        const: qhpc.iqm-routed-layout.v1
+      source_circuit_checksum:
+        type: string
+        pattern: "^sha256:[0-9a-f]{64}$"
+      device:
+        $ref: "#/$defs/device"
+      circuit:
+        $ref: "#/$defs/circuit"
+      initial_layout:
+        $ref: "#/$defs/layout"
+      final_layout:
+        $ref: "#/$defs/layout"
+      metrics:
+        type: object
+        additionalProperties: false
+        required:
+          - total_operation_count
+          - two_qubit_gate_count
+          - move_count
+          - explicit_swap_count
+        properties:
+          total_operation_count:
+            type: integer
+            minimum: 1
+          two_qubit_gate_count:
+            type: integer
+            minimum: 0
+          move_count:
+            type: integer
+            minimum: 0
+          explicit_swap_count:
+            type: integer
+            minimum: 0
+    $defs:
+      component:
+        type: string
+        pattern: "^(?:QB[1-9][0-9]*|COMP_R[1-9][0-9]*)$"
+      device:
+        type: object
+        additionalProperties: false
+        required: [provider, alias, quantum_computer_id, calibration_id]
+        properties:
+          provider:
+            const: iqm
+          alias:
+            type: string
+            minLength: 1
+          quantum_computer_id:
+            type: string
+            minLength: 1
+          calibration_id:
+            type: string
+            minLength: 1
+      layout:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [source, target]
+          properties:
+            source:
+              $ref: "#/$defs/component"
+            target:
+              $ref: "#/$defs/component"
+      circuit:
+        type: object
+        additionalProperties: false
+        required: [name, instructions]
+        properties:
+          name:
+            type: string
+            minLength: 1
+          instructions:
+            type: array
+            minItems: 1
+            items:
+              type: object
+              additionalProperties: false
+              required: [name, locus, args]
+              properties:
+                name:
+                  enum: [prx, cz, measure, move, reset, swap]
+                locus:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/$defs/component"
+                args:
+                  type: object
+  compatibility:
+    accepts_versions: [1]

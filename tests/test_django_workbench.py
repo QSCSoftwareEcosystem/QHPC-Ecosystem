@@ -42,6 +42,7 @@ def test_django_workbench_serves_existing_design_and_health() -> None:
     assert response.status_code == 200
     assert b"QHPC Workbench" in response.content
     assert b'data-view="overview"' in response.content
+    assert b'data-view="showcases"' in response.content
     assert b'data-view="tools"' in response.content
     assert b'data-view="knowledge"' in response.content
     assert b'data-view="assistant"' in response.content

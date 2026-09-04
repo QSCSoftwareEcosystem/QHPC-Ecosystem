@@ -294,7 +294,7 @@ spec:
         documentation:
           qappswiki: packages/ftprimitivebench.md
           url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md
-  - descriptor_digest: sha256:d8949b1f27f56de07ab69b9329f9c9c3de4abb0116b21a2c6e9e69e3de998082
+  - descriptor_digest: sha256:177561c7954de69023aad268a3dc3b0d852bc2eff7419836cafffa2720223993
     catalog_repository: ftqc
     validation:
       contract: valid
@@ -303,19 +303,20 @@ spec:
       curated_by: &id007
       - qhpc-ecosystem
       project_reviewed: false
-      runtime: verified
+      runtime: declared
       documentation: linked
       status: integration-tested
       evidence: &id008
       - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
       - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
+      - docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md
     capability:
       api_version: qhpc/v1
       kind: Capability
       metadata:
         id: ftqc-compiler
         name: FTQC Fault-Tolerant Compiler
-        version: 0.2.0
+        version: 0.3.0
         project: compilation-tools
         owners:
         - ftqc
@@ -326,7 +327,7 @@ spec:
           authority: ecosystem
           maintainers: *id007
           project_reviewed: false
-          runtime_status: verified
+          runtime_status: declared
           validation_status: integration-tested
           evidence: *id008
         visibility: internal
@@ -341,6 +342,8 @@ spec:
           - Prepare an IQM-native circuit from a measured two-device-qubit OpenQASM Bell circuit.
           - Expand one Steane logical qubit to seven data-qubit IQM loci before credentialed routing and
             submission.
+          - Exercise the credential-isolated IQM route, submit, poll, collect, and decode boundary against
+            a mock backend.
           quick_start:
           - Open the FTQC Tool Record and read the IQM one-logical-qubit hardware demonstration candidate,
             including its evidence gaps.
@@ -352,6 +355,8 @@ spec:
           - Inspect the published compiler-interface resource and pinned source revision from this record.
           - Inspect the FTQC MLIR, IQM JSON, and preparation report outputs; routing and hardware submission
             remain separate stages.
+          - Treat the route-submit-collect operation as unavailable until a locally configured quantum-backend
+            worker reports compatible readiness.
           example_workflows:
           - ftqc-iqm-bell-preparation
           - ftqc-iqm-steane-preparation
@@ -362,6 +367,8 @@ spec:
             shared library, or a container image.
           - The preparation operation does not query live calibration, route the circuit, submit to IQM,
             or collect results.
+          - The route-submit-collect operation is contract- and mock-tested, but its real qiskit-iqm provider
+            client and site credential configuration are not yet accepted.
           - The one-logical-qubit IQM run is developer-reported and source-supported, but the repository
             does not preserve a job receipt, exact QPU identity, raw counts, corrected logical histogram,
             or acceptance comparison; it is not verified hardware evidence.
@@ -379,13 +386,13 @@ spec:
             candidate, with the exact promotion evidence still required.
         - id: ftqc-compiler-interface
           kind: adapter
-          version: 0.2.0
+          version: 0.3.0
           uri: integrations/ftqc/interface.yaml
           description: Controlled OpenQASM-to-FTQC-MLIR-and-IQM-preparation contract; routing and hardware
             submission are excluded.
         - id: ftqc-source
           kind: library
-          version: 0.2.0
+          version: 0.3.0
           uri: https://github.com/QSCSoftwareEcosystem/FTQC/tree/779216de8805ea0c1d473c640eaf17d6cbfa04e8
           description: Pinned private source containing the C API, IQM JSON lowering, physical Steane
             expansion, routing/submission path, and demonstration fixtures.
@@ -439,6 +446,67 @@ spec:
             cpu: 1
             memory_mb: 2048
             walltime_seconds: 120
+          execution_targets:
+          - local-development
+        - id: route-submit-collect
+          title: Route and execute a prepared circuit on IQM
+          description: Resolve a worker-local credential, route against an exact device calibration, submit
+            and poll one bounded IQM job, then preserve its layout, receipt, raw counts, and logical readout.
+          inputs:
+            circuit:
+              artifact_type: qhpc.iqm-circuit@1
+              description: Credential-free IQM-native circuit emitted by the preparation stage.
+            report:
+              artifact_type: qhpc.ftqc-iqm-preparation-report@1
+              description: FTQC preparation and claim-boundary record used to select the valid readout
+                interpretation.
+          outputs:
+            layout:
+              artifact_type: qhpc.iqm-routed-layout@1
+              description: Routed IQM circuit, selected physical layout, device/calibration identity,
+                and routing metrics.
+            receipt:
+              artifact_type: qhpc.iqm-job-receipt@1
+              description: Non-secret job receipt linked to the routed-layout digest.
+            counts:
+              artifact_type: qhpc.iqm-raw-counts@1
+              description: Raw computational-basis counts in explicit Qiskit bit order.
+            logical_result:
+              artifact_type: qhpc.ftqc-logical-result@1
+              description: Logical-readout status or Steane Z-basis syndrome-corrected histogram with
+                its claim boundary.
+          parameters:
+            device_alias:
+              type: string
+              title: Worker-admitted IQM device alias
+              default: default
+            shots:
+              type: integer
+              title: Measurement shots
+              default: 512
+              minimum: 1
+              maximum: 4096
+            credential_reference:
+              type: string
+              title: Worker-local secret reference
+              default: secret://env/IQM_TOKEN
+            max_wait_seconds:
+              type: integer
+              title: Maximum backend wait
+              default: 1800
+              minimum: 30
+              maximum: 7200
+          runtime:
+            type: python-wheel
+            reference: qhpc-runtime://wheels/qhpc_ecosystem-0.1.0-py3-none-any.whl
+            digest: sha256:718119bf215316c3b09c825203a30c2f9868490302f36f5e6fba303244f45413
+          invocation:
+            entrypoint:
+            - qhpc-iqm-worker
+          resources:
+            cpu: 1
+            memory_mb: 2048
+            walltime_seconds: 7200
           execution_targets:
           - local-development
   - descriptor_digest: sha256:332081d59e4f0c407c48cefdfb6b6650b4eb87ffd27f6a4949380783faa77b32

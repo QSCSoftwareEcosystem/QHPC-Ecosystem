@@ -1,0 +1,94 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.ftqc-logical-result
+  name: FTQC Logical Result
+  version: 1
+  project: compilation-tools
+  owners: [ftqc, qhpc-ecosystem]
+  status: draft
+spec:
+  description: Explicit logical-readout status and optional Steane Z-basis syndrome correction derived from IQM raw counts.
+  media_type: application/vnd.qsc.ftqc-logical-result+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - schema
+      - job_id
+      - preparation
+      - shots
+      - status
+      - decoder
+      - raw_logical_counts
+      - corrected_logical_counts
+      - claim_boundary
+    properties:
+      schema:
+        const: qhpc.ftqc-logical-result.v1
+      job_id:
+        type: string
+        minLength: 1
+        maxLength: 128
+      preparation:
+        enum: [device, steane-logical]
+      shots:
+        type: integer
+        minimum: 1
+        maximum: 4096
+      status:
+        enum: [not-applicable, decoded]
+      decoder:
+        enum: [none, steane-z-syndrome-pauli-frame-v1]
+      raw_logical_counts:
+        $ref: "#/$defs/logicalCounts"
+      corrected_logical_counts:
+        $ref: "#/$defs/logicalCounts"
+      claim_boundary:
+        type: string
+        minLength: 1
+    allOf:
+      - if:
+          properties:
+            preparation:
+              const: device
+        then:
+          properties:
+            status:
+              const: not-applicable
+            decoder:
+              const: none
+            raw_logical_counts:
+              type: "null"
+            corrected_logical_counts:
+              type: "null"
+      - if:
+          properties:
+            preparation:
+              const: steane-logical
+        then:
+          properties:
+            status:
+              const: decoded
+            decoder:
+              const: steane-z-syndrome-pauli-frame-v1
+            raw_logical_counts:
+              type: object
+            corrected_logical_counts:
+              type: object
+    $defs:
+      logicalCounts:
+        type: [object, "null"]
+        additionalProperties: false
+        properties:
+          "0":
+            type: integer
+            minimum: 0
+          "1":
+            type: integer
+            minimum: 0
+        required: ["0", "1"]
+  compatibility:
+    accepts_versions: [1]

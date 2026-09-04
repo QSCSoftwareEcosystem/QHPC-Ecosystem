@@ -3,7 +3,7 @@ kind: OperationInterface
 metadata:
   id: ftqc-compiler
   name: FTQC Fault-Tolerant Compiler
-  version: 0.2.0
+  version: 0.3.0
   component: ftqc
   project: compilation-tools
   owners: [ftqc]
@@ -68,3 +68,42 @@ spec:
           type: string
           title: MLIR and IQM circuit name
           default: circuit
+    - id: route-submit-collect
+      title: Route and execute a prepared circuit on IQM
+      description: Route against the selected device calibration, execute through a credential-isolated quantum-backend worker, and preserve the hardware result packet.
+      behavior: stochastic
+      inputs:
+        circuit:
+          artifact_type: qhpc.iqm-circuit@1
+        report:
+          artifact_type: qhpc.ftqc-iqm-preparation-report@1
+      outputs:
+        layout:
+          artifact_type: qhpc.iqm-routed-layout@1
+        receipt:
+          artifact_type: qhpc.iqm-job-receipt@1
+        counts:
+          artifact_type: qhpc.iqm-raw-counts@1
+        logical_result:
+          artifact_type: qhpc.ftqc-logical-result@1
+      parameters:
+        device_alias:
+          type: string
+          title: Worker-admitted IQM device alias
+          default: default
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 512
+          minimum: 1
+          maximum: 4096
+        credential_reference:
+          type: string
+          title: Worker-local secret reference
+          default: secret://env/IQM_TOKEN
+        max_wait_seconds:
+          type: integer
+          title: Maximum backend wait
+          default: 1800
+          minimum: 30
+          maximum: 7200

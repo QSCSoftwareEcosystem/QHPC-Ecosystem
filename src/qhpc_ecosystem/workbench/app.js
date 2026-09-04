@@ -40,6 +40,7 @@ function stateMeta(status) {
 
 const VIEW_META = {
   overview: ["QSC / QHPC ECOSYSTEM", "EQO-QSC"],
+  showcases: ["SCIENCE / SHOWCASES", "Scientific showcases"],
   tools: ["ECOSYSTEM / TOOLS", "Integrated software"],
   knowledge: ["KNOWLEDGE / QAPPSWIKI", "Knowledge Explorer"],
   assistant: ["ASSISTANCE / CHATQEC", "ChatQEC"],
@@ -393,6 +394,7 @@ function renderOverview() {
         <p class="command-lede">Compose typed pipelines that coordinate quantum and classical stages across HPC resources and quantum runtimes, with exact provenance throughout the QSC software ecosystem.</p>
         <div class="command-actions">
           <button class="button command-primary" id="overview-compose" type="button">Compose a workflow <span aria-hidden="true">→</span></button>
+          <button class="command-link" id="overview-showcases" type="button">Explore showcases</button>
           <button class="command-link" id="overview-runs" type="button">Inspect all runs</button>
         </div>
         <div class="workflow-launcher">
@@ -441,6 +443,7 @@ function renderOverview() {
       </div>
     </section>`;
   document.querySelector("#overview-compose").addEventListener("click", () => switchView("compose"));
+  document.querySelector("#overview-showcases").addEventListener("click", () => switchView("showcases"));
   document.querySelector("#overview-runs").addEventListener("click", () => switchView("runs"));
   document.querySelector("#overview-runs-inline").addEventListener("click", () => switchView("runs"));
   workspace.querySelectorAll("[data-overview-workflow]").forEach(button => button.addEventListener("click", () => {
@@ -454,6 +457,99 @@ function renderOverview() {
     });
   });
   mountQuantumAsciiAnimation();
+}
+
+function openShowcaseWorkflow(workflowId) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("workflow", workflowId);
+  window.history.replaceState({}, "", url);
+  switchView("compose");
+}
+
+function renderShowcases() {
+  quantumAsciiCleanup();
+  const ftqc = state.capabilities.find(item => item.id === "ftqc-compiler");
+  const operation = ftqc?.operations?.find(item => item.id === "prepare-iqm");
+  const runtimeDigest = operation?.runtime?.digest;
+  const readyWorker = Boolean(runtimeDigest && state.workers.some(worker => {
+    const detail = workerDetail(worker);
+    return worker.available
+      && detail.targets.includes("local-development")
+      && detail.classes.includes("interactive-local")
+      && detail.runtimes.includes(runtimeDigest);
+  }));
+  const bellWorkflow = state.workflows.find(item => item.id === "ftqc-iqm-bell-preparation");
+  const steaneWorkflow = state.workflows.find(item => item.id === "ftqc-iqm-steane-preparation");
+  const localStatus = readyWorker ? "Runnable now" : "Runtime not ready";
+  const localStatusClass = readyWorker ? "is-ready" : "is-waiting";
+  const sourceRevision = ftqc?.repository?.revision?.slice(0, 12) || "779216de8805";
+
+  workspace.innerHTML = `
+    <section class="showcase-hero" aria-labelledby="ftqc-showcase-title">
+      <div class="showcase-hero-copy">
+        <span class="showcase-kicker"><i class="hex" aria-hidden="true"></i>FLAGSHIP SHOWCASE · FTQC × IQM</span>
+        <p class="showcase-sequence" aria-hidden="true">01 / LOGICAL&nbsp;&nbsp;→&nbsp;&nbsp;07 / PHYSICAL&nbsp;&nbsp;→&nbsp;&nbsp;IQM / NATIVE</p>
+        <h2 id="ftqc-showcase-title">Prepare a fault-tolerant logical qubit for an IQM quantum computer</h2>
+        <p class="showcase-lede">EQO turns an authored OpenQASM circuit into typed FTQC MLIR, expands one logical qubit through the Steane <strong>[[7,1,3]]</strong> code, and emits an IQM-native circuit—while preserving the exact compiler revision and every artifact handoff.</p>
+        <div class="showcase-actions">
+          <button class="button command-primary" type="button" data-showcase-workflow="ftqc-iqm-steane-preparation" ${steaneWorkflow ? "" : "disabled"}>Run logical-qubit preparation <span aria-hidden="true">→</span></button>
+          <button class="command-link" type="button" data-showcase-workflow="ftqc-iqm-bell-preparation" ${bellWorkflow ? "" : "disabled"}>Run Bell preparation</button>
+        </div>
+      </div>
+      <aside class="showcase-readout" aria-label="FTQC IQM showcase status">
+        <span class="showcase-readout-label">DEMONSTRATION STATUS</span>
+        <strong class="showcase-local-status ${localStatusClass}"><i aria-hidden="true"></i>${escapeHtml(localStatus)}</strong>
+        <dl>
+          <div><dt>Local preparation</dt><dd>Verified</dd></div>
+          <div><dt>Source revision</dt><dd>${escapeHtml(sourceRevision)}</dd></div>
+          <div><dt>Logical encoding</dt><dd>Steane [[7,1,3]]</dd></div>
+          <div><dt>Hardware stage</dt><dd>Pending evidence</dd></div>
+        </dl>
+        <p>The FTQC runtime is locally installed and is not distributed by EQO until its license permits publication.</p>
+      </aside>
+    </section>
+
+    <section class="showcase-trace" aria-labelledby="showcase-trace-title">
+      <header>
+        <div><span class="panel-label">EXECUTION TRACE</span><h2 id="showcase-trace-title">One workflow, explicit scientific boundaries</h2></div>
+        <p>Solid stages run locally. The open stage requires current IQM calibration and backend credentials.</p>
+      </header>
+      <ol>
+        <li class="is-complete"><span>01</span><div><strong>Author circuit</strong><small>OpenQASM 3 · one logical qubit</small></div></li>
+        <li class="is-complete"><span>02</span><div><strong>Compile with FTQC</strong><small>Pinned C API · typed MLIR</small></div></li>
+        <li class="is-complete"><span>03</span><div><strong>Expand the code block</strong><small>1 logical → 7 data qubits</small></div></li>
+        <li class="is-complete"><span>04</span><div><strong>Emit IQM instructions</strong><small>PRX · CZ · measurement</small></div></li>
+        <li class="is-boundary"><span>05</span><div><strong>Route and submit</strong><small>Live calibration · secured worker</small></div></li>
+      </ol>
+    </section>
+
+    <section class="showcase-evidence-grid">
+      <article class="showcase-proof" aria-labelledby="showcase-proof-title">
+        <span class="panel-label">WHAT THE SHOWCASE PROVES</span>
+        <h2 id="showcase-proof-title">Interoperability you can inspect</h2>
+        <ul>
+          <li><strong>Real compiler path</strong><span>EQO invokes FTQC through its constrained, pinned C API rather than replacing it with a mock.</span></li>
+          <li><strong>Typed handoffs</strong><span>OpenQASM, FTQC MLIR, IQM JSON, and the preparation report are preserved as normal EQO artifacts.</span></li>
+          <li><strong>Reproducible provenance</strong><span>The run records input and output digests, compiler revision, circuit width, instruction counts, and gate counts.</span></li>
+          <li><strong>Secure hardware boundary</strong><span>IQM credentials never enter the browser or workflow document; submission belongs to an admitted backend worker.</span></li>
+        </ul>
+      </article>
+      <aside class="showcase-result" aria-labelledby="showcase-result-title">
+        <span class="panel-label">ACCEPTED LOCAL EVIDENCE</span>
+        <h2 id="showcase-result-title">The output is concrete</h2>
+        <div class="showcase-result-primary"><strong>7</strong><span>IQM loci from<br>one logical qubit</span></div>
+        <dl>
+          <div><dt>Logical |0⟩</dt><dd>58 instructions</dd></div>
+          <div><dt>Four-H variant</dt><dd>114 instructions</dd></div>
+          <div><dt>Bell circuit</dt><dd>2 loci · 9 instructions</dd></div>
+        </dl>
+        <div class="showcase-claim-boundary"><strong>Not yet claimed</strong><span>Hardware execution, decoded results, error suppression, or fault-tolerant advantage.</span></div>
+      </aside>
+    </section>`;
+
+  workspace.querySelectorAll("[data-showcase-workflow]").forEach(button => {
+    button.addEventListener("click", () => openShowcaseWorkflow(button.dataset.showcaseWorkflow));
+  });
 }
 
 function repositoryDisplay(item) {
@@ -1330,7 +1426,7 @@ function render() {
   renderSummary();
   if (state.view !== "compose") window.QHPCComposer?.unmount();
   if (state.view !== "knowledge") window.QHPCKnowledge?.unmount();
-  ({ overview: renderOverview, tools: renderTools, knowledge: renderKnowledge, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
+  ({ overview: renderOverview, showcases: renderShowcases, tools: renderTools, knowledge: renderKnowledge, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
 }
 
 function switchView(view) {
@@ -1343,6 +1439,7 @@ function switchView(view) {
   } else if (view !== "knowledge") {
     url.searchParams.delete("knowledge_node");
   }
+  if (view !== "compose") url.searchParams.delete("workflow");
   if (view !== "tools") url.searchParams.delete("capability");
   window.history.replaceState({}, "", url);
   document.querySelectorAll(".nav-item").forEach(item => {
@@ -1710,7 +1807,7 @@ function enhancePrimaryNavigation() {
   const navigation = document.querySelector("#primary-nav");
   if (!navigation || navigation.querySelector(".nav-group")) return;
   const groups = [
-    ["workspace", "Workspace", ["overview", "tools", "knowledge", "assistant", "compose"]],
+    ["workspace", "Workspace", ["overview", "showcases", "tools", "knowledge", "assistant", "compose"]],
     ["execution", "Execution", ["runs", "artifacts"]],
     ["system", "System", ["environments", "updates"]],
   ];

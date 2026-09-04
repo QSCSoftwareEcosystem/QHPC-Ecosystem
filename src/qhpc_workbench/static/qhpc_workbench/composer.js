@@ -17110,7 +17110,7 @@ var kp = {
 		workflowId: "ftqc-iqm-bell-preparation",
 		code: "F1",
 		shortName: "Prepare a two-qubit Bell circuit",
-		kind: "Focused example",
+		kind: "Flagship showcase",
 		toolChain: ["FTQC", "IQM JSON"],
 		inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
 		inputFileLabel: "Choose .qasm",
@@ -17124,7 +17124,7 @@ var kp = {
 		workflowId: "ftqc-iqm-steane-preparation",
 		code: "F2",
 		shortName: "Prepare one Steane logical qubit",
-		kind: "Focused example",
+		kind: "Flagship showcase",
 		toolChain: [
 			"FTQC",
 			"Steane [[7,1,3]]",
@@ -17301,7 +17301,10 @@ function Xp() {
 		x: 0,
 		y: 0,
 		zoom: 1
-	}), [_, v] = (0, y.useState)(null), [b, S] = (0, y.useState)(null), [C, w] = (0, y.useState)(null), [T, E] = (0, y.useState)(null), [D, O] = (0, y.useState)("operations"), [k, A] = (0, y.useState)(""), [j, M] = (0, y.useState)(!0), [N, P] = (0, y.useState)(!0), [F, I] = (0, y.useState)(!0), [L, R] = (0, y.useState)("idle"), [z, B] = (0, y.useState)("Unsaved draft"), [V, H] = (0, y.useState)(0), [U, W] = (0, y.useState)(null), [G, K] = (0, y.useState)({}), [q, J] = (0, y.useState)(!1), [ee, te] = (0, y.useState)(!1), [ne, re] = (0, y.useState)(null), [ie, ae] = (0, y.useState)(Np[0].workflowId), [oe, se] = (0, y.useState)({}), [ce, le] = (0, y.useState)({}), [ue, de] = (0, y.useState)(!1), [fe, pe] = (0, y.useState)("Select a path and provide its inputs"), [me, he] = (0, y.useState)(!1), [ge, _e] = (0, y.useState)(null), [ve, ye] = (0, y.useState)({
+	}), [_, v] = (0, y.useState)(null), [b, S] = (0, y.useState)(null), [C, w] = (0, y.useState)(null), [T, E] = (0, y.useState)(null), [D, O] = (0, y.useState)("operations"), [k, A] = (0, y.useState)(""), [j, M] = (0, y.useState)(!0), [N, P] = (0, y.useState)(!0), [F, I] = (0, y.useState)(!0), [L, R] = (0, y.useState)("idle"), [z, B] = (0, y.useState)("Unsaved draft"), [V, H] = (0, y.useState)(0), [U, W] = (0, y.useState)(null), [G, K] = (0, y.useState)({}), [q, J] = (0, y.useState)(!1), [ee, te] = (0, y.useState)(!1), [ne, re] = (0, y.useState)(null), [ie, ae] = (0, y.useState)(() => {
+		let e = new URLSearchParams(window.location.search).get("workflow");
+		return Np.some((t) => t.workflowId === e) ? e : Np[0].workflowId;
+	}), [oe, se] = (0, y.useState)({}), [ce, le] = (0, y.useState)({}), [ue, de] = (0, y.useState)(!1), [fe, pe] = (0, y.useState)("Select a path and provide its inputs"), [me, he] = (0, y.useState)(!1), [ge, _e] = (0, y.useState)(null), [ve, ye] = (0, y.useState)({
 		status: "idle",
 		message: "Select a published workflow to check its runtime"
 	}), be = (0, y.useRef)([]), xe = (0, y.useRef)([]), Se = (0, y.useRef)(null), Ce = (0, y.useRef)(null), we = (0, y.useRef)({

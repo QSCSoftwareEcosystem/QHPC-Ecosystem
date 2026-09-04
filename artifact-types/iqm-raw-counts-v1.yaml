@@ -1,0 +1,64 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.iqm-raw-counts
+  name: IQM Raw Counts
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Raw computational-basis counts returned for a preserved IQM job and device calibration.
+  media_type: application/vnd.qsc.iqm-raw-counts+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [schema, job_id, device, shots, bit_order, counts, completed_at]
+    properties:
+      schema:
+        const: qhpc.iqm-raw-counts.v1
+      job_id:
+        type: string
+        minLength: 1
+        maxLength: 128
+      device:
+        $ref: "#/$defs/device"
+      shots:
+        type: integer
+        minimum: 1
+        maximum: 4096
+      bit_order:
+        const: qiskit-little-endian
+      counts:
+        type: object
+        minProperties: 1
+        maxProperties: 4096
+        propertyNames:
+          pattern: "^[01]{1,64}$"
+        additionalProperties:
+          type: integer
+          minimum: 1
+      completed_at:
+        type: string
+        format: date-time
+    $defs:
+      device:
+        type: object
+        additionalProperties: false
+        required: [provider, alias, quantum_computer_id, calibration_id]
+        properties:
+          provider:
+            const: iqm
+          alias:
+            type: string
+            minLength: 1
+          quantum_computer_id:
+            type: string
+            minLength: 1
+          calibration_id:
+            type: string
+            minLength: 1
+  compatibility:
+    accepts_versions: [1]

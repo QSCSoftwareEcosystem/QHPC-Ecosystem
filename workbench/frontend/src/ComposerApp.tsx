@@ -154,7 +154,7 @@ interface ScientificPathDefinition {
   code: string;
   shortName: string;
   toolChain: string[];
-  kind: "Cross-tool study" | "Focused example" | "Incubation blueprint";
+  kind: "Cross-tool study" | "Flagship showcase" | "Focused example" | "Incubation blueprint";
   blueprint?: IncubationBlueprint;
   inputLabel?: string;
   inputFileLabel?: string;
@@ -408,7 +408,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "ftqc-iqm-bell-preparation",
     code: "F1",
     shortName: "Prepare a two-qubit Bell circuit",
-    kind: "Focused example",
+    kind: "Flagship showcase",
     toolChain: ["FTQC", "IQM JSON"],
     inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
     inputFileLabel: "Choose .qasm",
@@ -424,7 +424,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "ftqc-iqm-steane-preparation",
     code: "F2",
     shortName: "Prepare one Steane logical qubit",
-    kind: "Focused example",
+    kind: "Flagship showcase",
     toolChain: ["FTQC", "Steane [[7,1,3]]", "IQM JSON"],
     inputLabel: "One-logical-qubit OpenQASM 3 circuit",
     inputFileLabel: "Choose .qasm",
@@ -763,9 +763,12 @@ function ComposerSurface(): React.JSX.Element {
   const [publishing, setPublishing] = useState(false);
   const [queueing, setQueueing] = useState(false);
   const [lastRunId, setLastRunId] = useState<string | null>(null);
-  const [guidedWorkflowId, setGuidedWorkflowId] = useState(
-    SCIENTIFIC_PATHS[0].workflowId,
-  );
+  const [guidedWorkflowId, setGuidedWorkflowId] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get("workflow");
+    return SCIENTIFIC_PATHS.some((path) => path.workflowId === requested)
+      ? requested as string
+      : SCIENTIFIC_PATHS[0].workflowId;
+  });
   const [guidedInputs, setGuidedInputs] = useState<
     Record<string, Record<string, string>>
   >({});

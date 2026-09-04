@@ -3,7 +3,7 @@ kind: IntegrationScaffold
 metadata:
   id: ftqc
   name: FTQC
-  version: 0.2.0
+  version: 0.3.0
   project: compilation-tools
   role: operation-provider
   owners: [ftqc]
@@ -23,7 +23,7 @@ spec:
   interfaces: [qasm, mlir, qir, cli]
   scope:
     status: defined
-    summary: Import OpenQASM and prepare constrained IQM-native circuits through the pinned FTQC C API, without routing or hardware submission.
+    summary: Import OpenQASM and prepare constrained IQM-native circuits through the pinned FTQC C API; define a credential-isolated, mock-accepted boundary for later IQM routing and hardware execution.
   deliverables:
     source_audit: complete
     interface_contract: complete
@@ -37,9 +37,14 @@ spec:
     - artifact-types/ftqc-mlir-v1.yaml
     - artifact-types/iqm-circuit-v1.yaml
     - artifact-types/ftqc-iqm-preparation-report-v1.yaml
+    - artifact-types/iqm-routed-layout-v1.yaml
+    - artifact-types/iqm-job-receipt-v1.yaml
+    - artifact-types/iqm-raw-counts-v1.yaml
+    - artifact-types/ftqc-logical-result-v1.yaml
   evidence:
     - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
     - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
+    - docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md
   production_runtime:
     status: deferred
     technology: apptainer

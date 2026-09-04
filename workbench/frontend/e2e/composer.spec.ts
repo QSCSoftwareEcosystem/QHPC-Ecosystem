@@ -169,6 +169,36 @@ test("animates the QEC and QHPC control loop and offers a reduced-motion state",
 });
 
 
+test("presents FTQC IQM as a runnable flagship showcase", async ({ page }) => {
+  await page.goto("/?view=showcases");
+
+  await expect(
+    page.getByRole("button", { name: "Showcases", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("heading", {
+      name: "Prepare a fault-tolerant logical qubit for an IQM quantum computer",
+    }),
+  ).toBeVisible();
+  await expect(page.locator(".showcase-trace li")).toHaveCount(5);
+  await expect(page.getByText("1 logical → 7 data qubits")).toBeVisible();
+  await expect(page.getByText("58 instructions")).toBeVisible();
+  await expect(page.getByText("114 instructions")).toBeVisible();
+  await expect(page.getByText("Not yet claimed")).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Run logical-qubit preparation" })
+    .click();
+  await expect(page).toHaveURL(/view=compose/);
+  await expect(page).toHaveURL(/workflow=ftqc-iqm-steane-preparation/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Prepare one Steane logical qubit for IQM",
+    }),
+  ).toBeVisible();
+});
+
+
 test("renders a static high-resolution QSC binary canvas", async ({ page }) => {
   await page.goto("/");
 
@@ -348,7 +378,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   await expect(
     page
       .getByLabel("Scientific showcases")
-      .getByText("6 runnable · 2 blueprints"),
+      .getByText("6 runnable · 1 blueprint"),
   ).toBeVisible();
   await expect(
     page.getByText(
@@ -401,40 +431,21 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   ).toHaveCount(0);
 
   await page
-    .getByRole("button", { name: /One logical qubit on IQM/ })
+    .getByRole("button", { name: /Prepare one Steane logical qubit/ })
     .click();
+  await expect(page.getByText("Flagship showcase · FTQC + Steane [[7,1,3]] + IQM JSON")).toBeVisible();
   await expect(
     page.getByRole("heading", {
-      name: "FTQC logical-qubit IQM path",
+      name: "Prepare one Steane logical qubit for IQM",
     }),
   ).toBeVisible();
-  await expect(page.locator(".composer-blueprint-pipeline li")).toHaveCount(6);
+  await page.getByRole("button", { name: "Load logical |0⟩" }).click();
   await expect(
-    page.locator(".composer-blueprint-status.is-source-verified"),
-  ).toHaveCount(4);
-  await expect(page.getByText("Developer reported", { exact: true })).toBeVisible();
-  await expect(page.getByText("Result pending", { exact: true })).toBeVisible();
-  await expect(page.getByText("Steane [[7,1,3]]", { exact: true })).toBeVisible();
-  await expect(page.getByText("7 data qubits", { exact: true })).toBeVisible();
-  const ftqcEvidenceLedger = page.getByRole("region", {
-    name: "FTQC IQM hardware evidence ledger",
-  });
-  await expect(ftqcEvidenceLedger).toContainText(
-    "Device identity, job ID, timestamps, terminal state",
+    page.getByLabel("One-logical-qubit OpenQASM 3 circuit", { exact: true }),
+  ).toHaveValue(/qubit\[1\] q/);
+  await expect(page.locator(".composer-guided-outputs")).toContainText(
+    "FTQC preparation report",
   );
-  await expect(ftqcEvidenceLedger).toContainText(
-    "Physical counts and corrected logical histogram",
-  );
-  await expect(page.getByText("Not a fault-tolerance claim.")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Open FTQC tool record" }),
-  ).toHaveAttribute(
-    "href",
-    "?view=tools&capability=ftqc-compiler",
-  );
-  await expect(
-    page.getByRole("button", { name: "Run unavailable" }),
-  ).toBeDisabled();
 
   await page
     .getByRole("button", { name: /Compare QEC memory protection/ })
