@@ -1095,12 +1095,16 @@ def supervise_local(
                 database_backup=database_report["backup"],
             ),
         )
+        # Start independent services together so a slow first import on one
+        # host does not consume the entire bounded startup window before the
+        # other services have even been launched. Workers already retry while
+        # the API is becoming available.
         supervisor.start_api()
+        supervisor.start_services()
         supervisor.wait_for_api(
             f"{config.api_url}/api/v1/health",
             timeout_seconds=remaining_startup_time(),
         )
-        supervisor.start_services()
         if config.assistant_enabled and config.assistant_url:
             supervisor.wait_for_service(
                 "chatqec",

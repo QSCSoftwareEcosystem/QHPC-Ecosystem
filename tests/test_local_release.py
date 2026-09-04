@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from qhpc_ecosystem import cli
+from qhpc_ecosystem import dev_stack
 from qhpc_ecosystem import engine as engine_module
 from qhpc_ecosystem import local_release
 from qhpc_ecosystem.engine import WorkflowEngine
@@ -226,6 +227,58 @@ def test_supervisor_command_uses_the_requested_startup_timeout(tmp_path: Path) -
     )
 
     assert command[command.index("--startup-timeout") + 1] == "75.5"
+
+
+def test_supervisor_launches_services_before_waiting_for_api(
+    tmp_path: Path, monkeypatch
+) -> None:
+    events: list[str] = []
+
+    class RecordingSupervisor:
+        processes: dict[str, object] = {}
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def start_api(self) -> None:
+            events.append("start_api")
+
+        def start_services(self) -> None:
+            events.append("start_services")
+
+        def wait_for_api(self, *_args, **_kwargs) -> None:
+            events.append("wait_for_api")
+
+        def wait_for_service(self, name, *_args, **_kwargs) -> None:
+            events.append(f"wait_for_service:{name}")
+
+        def wait_for_workers(self, *_args, **_kwargs) -> None:
+            events.append("wait_for_workers")
+
+        def run(self, _stop_event) -> None:
+            events.append("run")
+
+        def stop(self) -> None:
+            events.append("stop")
+
+    monkeypatch.setattr(dev_stack, "build_service_specs", lambda _config: ())
+    monkeypatch.setattr(dev_stack, "DevStackSupervisor", RecordingSupervisor)
+    monkeypatch.setattr(local_release.signal, "signal", lambda *_args: None)
+
+    assert local_release.supervise_local(
+        config(assistant_enabled=False),
+        LocalPaths.discover(tmp_path / "local-home"),
+        release_version="0.1.0",
+    ) == 0
+    assert events == [
+        "start_api",
+        "start_services",
+        "wait_for_api",
+        "wait_for_service:workbench",
+        "wait_for_workers",
+        "run",
+        "stop",
+    ]
 
 
 def test_stop_does_not_signal_an_unverified_stale_pid(
