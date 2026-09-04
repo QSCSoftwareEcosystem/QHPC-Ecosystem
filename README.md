@@ -10,12 +10,17 @@ attributed capability registry, persistent workflow engine, controlled runners,
 versioned API, and browser workbench. Scientific source repositories remain
 independent.
 
-[![Figure 1 — QHPC-Ecosystem system map](.github/assets/qhpc-ecosystem-architecture.png)](.github/assets/qhpc-ecosystem-architecture.html)
+<p align="center">
+  <a href=".github/assets/qhpc-ecosystem-architecture-sandbox.html">
+    <img src=".github/assets/qhpc-ecosystem-architecture-launcher.png" alt="Figure 1 — Open the QHPC-Ecosystem architecture sandbox" width="920">
+  </a>
+</p>
 
 *Figure 1. QHPC-Ecosystem connects independent QSC scientific software to
 attributed capabilities, durable run control, compatible workers, and
-reproducible local or HPC execution. The [interactive system map](.github/assets/qhpc-ecosystem-architecture.html)
-adds guided views, source references, search, focus, and theme controls.*
+reproducible local or HPC execution. [Open the architecture sandbox](.github/assets/qhpc-ecosystem-architecture-sandbox.html)
+for the complete interactive map, including guided views, source references,
+search, focus, and route tracing.*
 
 Remaining deployment dependencies are tracked in
 [docs/deployment-readiness.md](docs/deployment-readiness.md). The target

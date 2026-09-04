@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="520" viewBox="0 0 1600 520" role="img" aria-labelledby="title description">
+  <title id="title">Explore the QHPC-Ecosystem architecture sandbox</title>
+  <desc id="description">A compact EQO-QSC styled launch card for the interactive system architecture sandbox.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#020406"/><stop offset="1" stop-color="#101c29"/></linearGradient>
+    <radialGradient id="wash" cx="88%" cy="6%" r="72%"><stop offset="0" stop-color="#aa1e2e" stop-opacity=".23"/><stop offset=".48" stop-color="#131e29" stop-opacity=".35"/><stop offset="1" stop-color="#020406" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1600" height="520" fill="url(#background)"/>
+  <rect width="1600" height="520" fill="url(#wash)"/>
+  <rect width="286" height="520" fill="#080f16"/>
+  <path d="M286 0V520" stroke="#2a3846"/>
+  <image x="42" y="38" width="190" height="64" preserveAspectRatio="xMinYMid meet" xlink:href="qsc-logo-white.png" href="qsc-logo-white.png"/>
+  <text x="42" y="153" fill="#91a2af" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.65">EQO-QSC</text>
+  <text x="42" y="184" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="22" font-weight="700">Figure 01</text>
+  <path d="M42 214H242" stroke="#2a3846"/>
+  <text x="42" y="250" fill="#91a2af" font-family="Open Sans, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="1.4">ARCHITECTURE</text>
+  <text x="42" y="278" fill="#cfd2d3" font-family="Open Sans, Arial, sans-serif" font-size="14">Interactive system map</text>
+  <circle cx="49" cy="439" r="6" fill="#3dbf87" filter="url(#glow)"/>
+  <text x="65" y="444" fill="#91a2af" font-family="Open Sans, Arial, sans-serif" font-size="12">ARCHIFY EXPLORER</text>
+
+  <text x="354" y="105" fill="#91a2af" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" letter-spacing="1.7">QHPC / SYSTEM MAP</text>
+  <text x="354" y="170" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="46" font-weight="700" letter-spacing="-1">Explore the architecture</text>
+  <text x="354" y="211" fill="#cfd2d3" font-family="Open Sans, Arial, sans-serif" font-size="20">Guided views, focusable nodes, source references, and route tracing.</text>
+  <rect x="354" y="270" width="240" height="52" rx="6" fill="#aa1e2e"/>
+  <text x="378" y="302" fill="#fff" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing=".45">OPEN SANDBOX  ↗</text>
+  <text x="354" y="365" fill="#8b9ba8" font-family="Open Sans, Arial, sans-serif" font-size="14">The README keeps a compact entry point; the full map lives in its own interactive workspace.</text>
+
+  <g transform="translate(1020 82)">
+    <rect width="500" height="350" rx="10" fill="#0c141c" stroke="#35485a"/>
+    <rect width="500" height="43" rx="10" fill="#131e29"/>
+    <path d="M0 43H500" stroke="#35485a"/>
+    <circle cx="24" cy="22" r="5" fill="#aa1e2e"/>
+    <text x="40" y="26" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="12" font-weight="700">ARCHITECTURE SANDBOX</text>
+    <g fill="none" stroke="#4fa3e3" stroke-opacity=".7" stroke-width="2">
+      <path d="M67 116H156V185H245V254H337"/>
+      <path d="M156 116H245" stroke="#35485a"/>
+      <path d="M245 185H386" stroke="#35485a"/>
+    </g>
+    <g font-family="Open Sans, Arial, sans-serif" font-size="11" font-weight="700">
+      <rect x="35" y="85" width="110" height="54" rx="5" fill="#131e29" stroke="#35485a"/>
+      <text x="50" y="116" fill="#e7edf1">SOURCES</text>
+      <rect x="156" y="154" width="110" height="54" rx="5" fill="#182635" stroke="#4fa3e3"/>
+      <text x="172" y="185" fill="#e7edf1">REGISTRY</text>
+      <rect x="277" y="223" width="110" height="54" rx="5" fill="#182635" stroke="#35485a"/>
+      <text x="293" y="254" fill="#e7edf1">WORKERS</text>
+      <rect x="370" y="154" width="95" height="54" rx="5" fill="#131e29" stroke="#35485a"/>
+      <text x="386" y="185" fill="#e7edf1">HPC</text>
+    </g>
+    <circle cx="67" cy="116" r="5" fill="#3dbf87"/>
+    <circle cx="211" cy="185" r="5" fill="#4fa3e3"/>
+    <circle cx="332" cy="254" r="5" fill="#3dbf87"/>
+    <circle cx="420" cy="185" r="5" fill="#aa1e2e"/>
+    <text x="28" y="321" fill="#8b9ba8" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11">SELECT A VIEW · FOLLOW A PATH · INSPECT EVIDENCE</text>
+  </g>
+</svg>
