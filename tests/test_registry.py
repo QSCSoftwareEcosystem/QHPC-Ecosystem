@@ -197,7 +197,7 @@ def test_registry_requires_pinned_revision_and_qappswiki(tmp_path: Path) -> None
         ),
         (
             "compilation-tools",
-            "https://github.com/QSCSoftwareThrust/FTQC",
+            "https://github.com/QSCSoftwareEcosystem/FTQC",
             "ftqc",
         ),
     ],

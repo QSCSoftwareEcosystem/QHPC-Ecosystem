@@ -16,6 +16,8 @@ ASSETS = {
     "workflow-qasm-analysis": "workflows/ct-hw-qasm-analysis.yaml",
     "workflow-qec-memory": "workflows/qec-memory-estimation.yaml",
     "workflow-nwqec-counts": "workflows/nwqec-counts.yaml",
+    "workflow-ftqc-iqm-bell": "workflows/ftqc-iqm-bell-preparation.yaml",
+    "workflow-ftqc-iqm-steane": "workflows/ftqc-iqm-steane-preparation.yaml",
 }
 
 ASSISTANT_SOURCE = "chatqec"
@@ -26,6 +28,8 @@ DEFAULT_WORKFLOW_ASSETS = (
     "workflow-qasm-analysis",
     "workflow-qec-memory",
     "workflow-nwqec-counts",
+    "workflow-ftqc-iqm-bell",
+    "workflow-ftqc-iqm-steane",
 )
 
 

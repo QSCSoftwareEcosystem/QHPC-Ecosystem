@@ -16349,6 +16349,13 @@ var Zf = {
 				created_by: "workbench-user"
 			})
 		});
+	},
+	readiness(e, t, n) {
+		let r = new URLSearchParams({
+			execution_target: e,
+			execution_class: t
+		});
+		return n.forEach((e) => r.append("runtime_digest", e)), Xf(`/readiness?${r}`);
 	}
 }, Qf = {
 	summary() {
@@ -17100,180 +17107,40 @@ var kp = {
 		}
 	},
 	{
-		workflowId: "blueprint-ftqc-iqm-logical-qubit",
-		code: "FT",
-		shortName: "One logical qubit on IQM",
-		kind: "Incubation blueprint",
+		workflowId: "ftqc-iqm-bell-preparation",
+		code: "F1",
+		shortName: "Prepare a two-qubit Bell circuit",
+		kind: "Focused example",
+		toolChain: ["FTQC", "IQM JSON"],
+		inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
+		inputFileLabel: "Choose .qasm",
+		examples: [{
+			name: "ftqc-bell.qasm",
+			label: "Load Bell input",
+			content: "OPENQASM 3.0;\ninclude \"stdgates.inc\";\n\nqubit[2] q;\nbit[2] result;\n\nh q[0];\ncx q[0], q[1];\nresult[0] = measure q[0];\nresult[1] = measure q[1];\n"
+		}]
+	},
+	{
+		workflowId: "ftqc-iqm-steane-preparation",
+		code: "F2",
+		shortName: "Prepare one Steane logical qubit",
+		kind: "Focused example",
 		toolChain: [
 			"FTQC",
-			"MLIR",
-			"qiskit-iqm",
-			"IQM"
+			"Steane [[7,1,3]]",
+			"IQM JSON"
 		],
-		blueprint: {
-			name: "FTQC logical-qubit IQM path",
-			description: "A source-backed view of the reported one-logical-qubit path from OpenQASM through Steane encoding, IQM routing, hardware submission, and logical-result recovery. The hardware result remains a candidate until its run packet is preserved.",
-			metrics: [
-				{
-					label: "STATUS",
-					value: "Hardware candidate"
-				},
-				{
-					label: "EVIDENCE",
-					value: "Source-backed"
-				},
-				{
-					label: "RUN",
-					value: "Disabled"
-				}
-			],
-			pipelineTitle: "Logical-to-hardware pipeline",
-			stages: [
-				{
-					name: "Load one-logical-qubit OpenQASM 3",
-					tool: "FTQC integration fixtures",
-					status: "Source verified",
-					handoff: "logical0.qasm / logical0-H.qasm",
-					detail: "The tracked fixtures initialize one logical qubit, optionally apply four logical Hadamard gates, and measure it."
-				},
-				{
-					name: "Lower OpenQASM to logical FTQC MLIR",
-					tool: "qasm3-import / ftqc-opt",
-					status: "Source verified",
-					handoff: "qhpc.quantum-circuit@1 → qhpc.ftqc-mlir@1",
-					detail: "The pinned source implements the logical dialect path, and EQO-QSC has accepted an exact-revision standalone import smoke."
-				},
-				{
-					name: "Expand the logical qubit with Steane [[7,1,3]]",
-					tool: "FTQC physical lowering",
-					status: "Source verified",
-					handoff: "1 logical qubit → 7 data qubits",
-					detail: "Physical mode expands the logical qubit and prepares syndrome-aware logical-bit post-processing."
-				},
-				{
-					name: "Lower to IQM-native gates and route",
-					tool: "FTQC + qiskit-iqm",
-					status: "Source verified",
-					handoff: "IQM JSON + selected physical layout",
-					detail: "The source contains IQM JSON lowering and topology-aware routing against a 20-qubit, 30-edge topology snapshot."
-				},
-				{
-					name: "Submit 512 shots to the ORNL IQM backend",
-					tool: "qiskit-iqm client",
-					status: "Developer reported",
-					handoff: "Hardware job receipt",
-					detail: "Developers report this stage completed; the repository does not retain the job identifier, timestamps, or confirmed device identity."
-				},
-				{
-					name: "Recover raw and corrected logical outcomes",
-					tool: "FTQC logical post-processing",
-					status: "Result pending",
-					handoff: "Raw counts → corrected logical result",
-					detail: "The analysis code path exists, but the reported run's physical counts and corrected logical histogram are not preserved."
-				}
-			],
-			factsTitle: "Source-backed candidate",
-			facts: [
-				{
-					label: "Logical width",
-					value: "1 logical qubit"
-				},
-				{
-					label: "Encoding",
-					value: "Steane [[7,1,3]]"
-				},
-				{
-					label: "Physical width",
-					value: "7 data qubits"
-				},
-				{
-					label: "Shot plan",
-					value: "512 shots per fixture"
-				},
-				{
-					label: "Topology snapshot",
-					value: "Crystal · 20 qubits · 30 edges"
-				},
-				{
-					label: "Admitted revision",
-					value: "947fd0a067f1"
-				}
-			],
-			evidenceTable: {
-				ariaLabel: "FTQC IQM hardware evidence ledger",
-				columns: [
-					"Evidence layer",
-					"Present",
-					"Still required"
-				],
-				rows: [
-					[
-						"Compiler",
-						"Exact FTQC revision and source path",
-						"Reproducible admitted LLVM/MLIR runtime"
-					],
-					[
-						"Input",
-						"Logical fixtures and content digests",
-						"Generated IQM JSON and selected layout"
-					],
-					[
-						"Hardware",
-						"Developer report and topology snapshot",
-						"Device identity, job ID, timestamps, terminal state"
-					],
-					[
-						"Result",
-						"Raw/corrected post-processing implementation",
-						"Physical counts and corrected logical histogram"
-					]
-				],
-				note: "Promotion remains blocked until the hardware receipt and logical-result evidence are attached.",
-				noteTone: "pending"
-			},
-			artifactsTitle: "Evidence handoffs",
-			artifacts: [
-				{
-					name: "Logical circuit input",
-					reference: "qhpc.quantum-circuit@1",
-					status: "Tracked fixtures present"
-				},
-				{
-					name: "FTQC logical MLIR",
-					reference: "qhpc.ftqc-mlir@1",
-					status: "Contract and import smoke present"
-				},
-				{
-					name: "IQM request and routed layout",
-					reference: "Project-native IQM JSON",
-					status: "Generation path present · run artifact missing"
-				},
-				{
-					name: "Hardware and logical-result packet",
-					reference: "Job receipt + raw counts + corrected histogram",
-					status: "Not preserved"
-				}
-			],
-			gatesTitle: "Evidence required before Run can be enabled",
-			remainingGates: [
-				"Package and admit the pinned FTQC LLVM/MLIR runtime without distributing unlicensed binaries.",
-				"Confirm the IQM device identity; the repository's Crystal/default name is not assumed to be Pathfinder.",
-				"Preserve the input digest, generated IQM JSON, compiler flags, routed physical layout, and calibration identifier.",
-				"Attach the hardware job identifier, timestamps, terminal state, raw physical counts, and corrected logical histogram.",
-				"Define the acceptance rule and add a physical baseline before making any fault-tolerance or error-suppression claim."
-			],
-			callout: {
-				title: "Not a fault-tolerance claim.",
-				detail: "Running an encoded one-logical-qubit circuit does not by itself demonstrate error suppression, logical advantage, or fault-tolerant performance.",
-				tone: "warning"
-			},
-			footerStatus: "Hardware evidence candidate · result packet pending",
-			evidenceAction: {
-				label: "Open FTQC tool record",
-				href: "?view=tools&capability=ftqc-compiler"
-			},
-			runDisabledTitle: "Run becomes available after the FTQC runtime, IQM identity, credentials, and evidence-capture gates pass."
-		}
+		inputLabel: "One-logical-qubit OpenQASM 3 circuit",
+		inputFileLabel: "Choose .qasm",
+		examples: [{
+			name: "logical0.qasm",
+			label: "Load logical |0⟩",
+			content: "OPENQASM 3.0;\ninclude \"stdgates.inc\";\n\nqubit[1] q;\nbit[1] result;\nresult[0] = measure q[0];\n"
+		}, {
+			name: "logical0-H.qasm",
+			label: "Load four-H variant",
+			content: "OPENQASM 3.0;\ninclude \"stdgates.inc\";\n\nqubit[1] q;\nbit[1] result;\nh q[0];\nh q[0];\nh q[0];\nh q[0];\nresult[0] = measure q[0];\n"
+		}]
 	},
 	{
 		workflowId: "ct-hw-qasm-analysis",
@@ -17325,7 +17192,10 @@ var kp = {
 	"qhpc.evolution-synthesis-report@1": "Evolution synthesis report",
 	"qhpc.stim-circuit@1": "Stim circuit",
 	"qhpc.logical-error-estimate@1": "Logical error estimate",
-	"qhpc.clifford-t-counts@1": "Clifford and T counts"
+	"qhpc.clifford-t-counts@1": "Clifford and T counts",
+	"qhpc.ftqc-mlir@1": "FTQC MLIR program",
+	"qhpc.iqm-circuit@1": "IQM-native circuit",
+	"qhpc.ftqc-iqm-preparation-report@1": "FTQC preparation report"
 };
 function Fp(e) {
 	return `${e} blueprint${e === 1 ? "" : "s"}`;
@@ -17340,7 +17210,7 @@ function Lp(e) {
 	return Pp[e] ?? e;
 }
 function Rp(e) {
-	return e.includes("circuit") ? "qasm" : e.includes("hamiltonian") || e.includes("context") || e.includes("report") || e.includes("estimate") || e.includes("counts") || e.includes("metrics") ? "json" : "txt";
+	return e === "qhpc.iqm-circuit@1" ? "json" : e === "qhpc.ftqc-mlir@1" ? "mlir" : e.includes("circuit") ? "qasm" : e.includes("hamiltonian") || e.includes("context") || e.includes("report") || e.includes("estimate") || e.includes("counts") || e.includes("metrics") ? "json" : "txt";
 }
 function zp(e) {
 	return e.split("_").map((e) => e.charAt(0).toUpperCase() + e.slice(1)).join(" ");
@@ -17431,7 +17301,10 @@ function Xp() {
 		x: 0,
 		y: 0,
 		zoom: 1
-	}), [_, v] = (0, y.useState)(null), [b, S] = (0, y.useState)(null), [C, w] = (0, y.useState)(null), [T, E] = (0, y.useState)(null), [D, O] = (0, y.useState)("operations"), [k, A] = (0, y.useState)(""), [j, M] = (0, y.useState)(!0), [N, P] = (0, y.useState)(!0), [F, I] = (0, y.useState)(!0), [L, R] = (0, y.useState)("idle"), [z, B] = (0, y.useState)("Unsaved draft"), [V, H] = (0, y.useState)(0), [U, W] = (0, y.useState)(null), [G, K] = (0, y.useState)({}), [q, J] = (0, y.useState)(!1), [ee, te] = (0, y.useState)(!1), [ne, re] = (0, y.useState)(null), [ie, ae] = (0, y.useState)(Np[0].workflowId), [oe, se] = (0, y.useState)({}), [ce, le] = (0, y.useState)({}), [ue, de] = (0, y.useState)(!1), [fe, pe] = (0, y.useState)("Select a path and provide its inputs"), [me, he] = (0, y.useState)(!1), [ge, _e] = (0, y.useState)(null), ve = (0, y.useRef)([]), ye = (0, y.useRef)([]), be = (0, y.useRef)(null), xe = (0, y.useRef)(null), Se = (0, y.useRef)({
+	}), [_, v] = (0, y.useState)(null), [b, S] = (0, y.useState)(null), [C, w] = (0, y.useState)(null), [T, E] = (0, y.useState)(null), [D, O] = (0, y.useState)("operations"), [k, A] = (0, y.useState)(""), [j, M] = (0, y.useState)(!0), [N, P] = (0, y.useState)(!0), [F, I] = (0, y.useState)(!0), [L, R] = (0, y.useState)("idle"), [z, B] = (0, y.useState)("Unsaved draft"), [V, H] = (0, y.useState)(0), [U, W] = (0, y.useState)(null), [G, K] = (0, y.useState)({}), [q, J] = (0, y.useState)(!1), [ee, te] = (0, y.useState)(!1), [ne, re] = (0, y.useState)(null), [ie, ae] = (0, y.useState)(Np[0].workflowId), [oe, se] = (0, y.useState)({}), [ce, le] = (0, y.useState)({}), [ue, de] = (0, y.useState)(!1), [fe, pe] = (0, y.useState)("Select a path and provide its inputs"), [me, he] = (0, y.useState)(!1), [ge, _e] = (0, y.useState)(null), [ve, ye] = (0, y.useState)({
+		status: "idle",
+		message: "Select a published workflow to check its runtime"
+	}), be = (0, y.useRef)([]), xe = (0, y.useRef)([]), Se = (0, y.useRef)(null), Ce = (0, y.useRef)(null), we = (0, y.useRef)({
 		nodes: [],
 		edges: [],
 		metadata: gp().metadata,
@@ -17441,9 +17314,9 @@ function Xp() {
 			zoom: 1
 		},
 		changeVersion: 0
-	}), Ce = (0, y.useRef)(null);
+	}), Te = (0, y.useRef)(null);
 	(0, y.useEffect)(() => {
-		Se.current = {
+		we.current = {
 			nodes: l,
 			edges: d,
 			metadata: p,
@@ -17457,22 +17330,69 @@ function Xp() {
 		h,
 		V
 	]), (0, y.useEffect)(() => {
-		Ce.current = _;
+		Te.current = _;
 	}, [_]);
-	let we = (0, y.useMemo)(() => Np.map((e) => ({
+	let Ee = (0, y.useMemo)(() => Np.map((e) => ({
 		definition: e,
 		workflow: a.find((t) => t.id === e.workflowId)
-	})), [a]), Te = we.find((e) => e.definition.workflowId === ie) ?? we.find((e) => e.workflow) ?? we[0], Ee = (0, y.useCallback)(() => {
+	})), [a]), De = Ee.find((e) => e.definition.workflowId === ie) ?? Ee.find((e) => e.workflow) ?? Ee[0], Oe = De?.workflow;
+	(0, y.useEffect)(() => {
+		if (!Oe) {
+			ye({
+				status: "idle",
+				message: "No published runtime is attached to this path"
+			});
+			return;
+		}
+		let e = !1;
+		return ye({
+			status: "checking",
+			message: "Checking workers against pinned runtime digests"
+		}), (async () => {
+			try {
+				let t = qp(Oe.definition, r), n = ip(r), i = /* @__PURE__ */ new Map();
+				for (let e of Oe.definition.spec.nodes) {
+					let r = n.get(`${e.operation.capability}@${e.operation.version}/${e.operation.operation}`);
+					if (!r) throw Error(`Operation ${e.id} is missing from the registry.`);
+					let a = e.execution_class ?? (t === "local-development" ? "interactive-local" : "batch-hpc"), o = i.get(a) ?? /* @__PURE__ */ new Set();
+					o.add(r.operation.runtime.digest), i.set(a, o);
+				}
+				let a = await Promise.all([...i].map(([e, n]) => Zf.readiness(t, e, [...n])));
+				if (e) return;
+				if (a.every((e) => e.ready)) {
+					let e = new Set(a.flatMap((e) => e.requirements.map((e) => e.runtime_digest))).size;
+					ye({
+						status: "ready",
+						message: `Compatible worker available for ${e} pinned runtime${e === 1 ? "" : "s"}`
+					});
+					return;
+				}
+				ye({
+					status: "unavailable",
+					message: a.filter((e) => !e.ready).map((e) => e.reason).join(" · ")
+				});
+			} catch (t) {
+				if (e) return;
+				ye({
+					status: "error",
+					message: `Readiness check failed: ${Vp(t)}`
+				});
+			}
+		})(), () => {
+			e = !0;
+		};
+	}, [r, Oe]);
+	let ke = (0, y.useCallback)(() => {
 		S(null), W(null), re(null), R("dirty"), B("Unsaved changes"), H((e) => e + 1);
-	}, []), De = (0, y.useCallback)((e, t, n = !0) => {
-		n && (ve.current.push(Ip(l, d)), ve.current.length > 80 && ve.current.shift(), ye.current = []), u(e), f(t), w(null), E(null), Ee();
+	}, []), Ae = (0, y.useCallback)((e, t, n = !0) => {
+		n && (be.current.push(Ip(l, d)), be.current.length > 80 && be.current.shift(), xe.current = []), u(e), f(t), w(null), E(null), ke();
 	}, [
 		d,
-		Ee,
+		ke,
 		l
-	]), Oe = (0, y.useCallback)((t, n, i, a) => {
+	]), je = (0, y.useCallback)((t, n, i, a) => {
 		let o = dp(t, n, r);
-		u(o.nodes), f(o.edges), m(structuredClone(t.metadata)), g(o.viewport), v(i), S(a), w(null), E(null), W(null), K({}), re(null), ve.current = [], ye.current = [], H((e) => e + 1), R(i ? "saved" : "idle"), B(i ? `Draft r${i.metadata.revision}` : a ? "Published workflow" : "Unsaved draft"), requestAnimationFrame(() => e.fitView({
+		u(o.nodes), f(o.edges), m(structuredClone(t.metadata)), g(o.viewport), v(i), S(a), w(null), E(null), W(null), K({}), re(null), be.current = [], xe.current = [], H((e) => e + 1), R(i ? "saved" : "idle"), B(i ? `Draft r${i.metadata.revision}` : a ? "Published workflow" : "Unsaved draft"), requestAnimationFrame(() => e.fitView({
 			padding: .18,
 			duration: 220
 		}));
@@ -17496,95 +17416,95 @@ function Xp() {
 			e = !1;
 		};
 	}, []);
-	let ke = (0, y.useCallback)(async () => {
-		if (xe.current) return xe.current;
-		let e = Se.current, t = mp(e.metadata, e.nodes, e.edges), n = hp(e.nodes, e.viewport), r = Ce.current;
+	let Me = (0, y.useCallback)(async () => {
+		if (Ce.current) return Ce.current;
+		let e = we.current, t = mp(e.metadata, e.nodes, e.edges), n = hp(e.nodes, e.viewport), r = Te.current;
 		R("saving"), B("Saving draft");
 		let i = r ? Zf.updateDraft(r.metadata.id, r.metadata.revision, t, n) : Zf.createDraft(t, n);
-		xe.current = i;
+		Ce.current = i;
 		try {
 			let t = await i;
-			return Ce.current = t, v(t), c((e) => [t, ...e.filter((e) => e.metadata.id !== t.metadata.id)]), Se.current.changeVersion === e.changeVersion && (R("saved"), B(`Draft r${t.metadata.revision}`)), t;
+			return Te.current = t, v(t), c((e) => [t, ...e.filter((e) => e.metadata.id !== t.metadata.id)]), we.current.changeVersion === e.changeVersion && (R("saved"), B(`Draft r${t.metadata.revision}`)), t;
 		} catch (e) {
 			throw R("error"), B(Vp(e)), e;
 		} finally {
-			xe.current = null;
+			Ce.current = null;
 		}
 	}, []);
 	(0, y.useEffect)(() => {
 		if (!_ || L !== "dirty") return;
 		let e = window.setTimeout(() => {
-			ke().catch(() => void 0);
+			Me().catch(() => void 0);
 		}, 1400);
 		return () => window.clearTimeout(e);
 	}, [
 		V,
 		_,
-		ke,
+		Me,
 		L
 	]);
-	let Ae = (0, y.useCallback)(() => {
-		Oe(gp(), void 0, null, null), window.matchMedia("(max-width: 980px)").matches && M(!1);
-	}, [Oe]), je = (0, y.useCallback)((e) => {
+	let Ne = (0, y.useCallback)(() => {
+		je(gp(), void 0, null, null), window.matchMedia("(max-width: 980px)").matches && M(!1);
+	}, [je]), Pe = (0, y.useCallback)((e) => {
 		let t = structuredClone(e.definition);
-		t.metadata = Up(t, a), Oe(t, void 0, null, null), window.matchMedia("(max-width: 980px)").matches && M(!1);
-	}, [Oe, a]), Me = (0, y.useCallback)((e) => {
-		Oe(e.spec.workflow, e.spec.layout, e, null), window.matchMedia("(max-width: 980px)").matches && M(!1);
-	}, [Oe]), Ne = (0, y.useCallback)((e, t, n) => {
+		t.metadata = Up(t, a), je(t, void 0, null, null), window.matchMedia("(max-width: 980px)").matches && M(!1);
+	}, [je, a]), Fe = (0, y.useCallback)((e) => {
+		je(e.spec.workflow, e.spec.layout, e, null), window.matchMedia("(max-width: 980px)").matches && M(!1);
+	}, [je]), Ie = (0, y.useCallback)((e, t, n) => {
 		let r = _p(e, t, Cp(t.id, l), n ?? {
 			x: 140 + l.length * 32,
 			y: 100 + l.length * 28
 		}, l.filter((e) => e.data.kind === "operation").length);
-		De([...l, r], d), w(r.id), window.matchMedia("(max-width: 980px)").matches && M(!1);
+		Ae([...l, r], d), w(r.id), window.matchMedia("(max-width: 980px)").matches && M(!1);
 	}, [
 		d,
 		l,
-		De
-	]), Pe = (0, y.useCallback)((e) => {
+		Ae
+	]), Le = (0, y.useCallback)((e) => {
 		let t = bp(e, l, d);
 		if (!t.valid) {
 			R("error"), B(t.message ?? "Invalid connection");
 			return;
 		}
 		let n = xp(e, l, d.length);
-		De(l, [...d, n]);
+		Ae(l, [...d, n]);
 	}, [
 		d,
 		l,
-		De
-	]), Fe = (0, y.useCallback)((e) => {
+		Ae
+	]), Re = (0, y.useCallback)((e) => {
 		u((t) => Xc(e, t));
-	}, []), Ie = (0, y.useCallback)((e) => {
+	}, []), ze = (0, y.useCallback)((e) => {
 		f((t) => Zc(e, t));
-	}, []), Le = (0, y.useCallback)(({ nodes: e, edges: t }) => {
+	}, []), Be = (0, y.useCallback)(({ nodes: e, edges: t }) => {
 		w(e[0]?.id ?? null), E(t[0]?.id ?? null);
-	}, []), Re = (0, y.useCallback)(() => {
-		let e = ve.current.pop();
-		e && (ye.current.push(Ip(l, d)), u(e.nodes), f(e.edges), Ee());
+	}, []), Ve = (0, y.useCallback)(() => {
+		let e = be.current.pop();
+		e && (xe.current.push(Ip(l, d)), u(e.nodes), f(e.edges), ke());
 	}, [
 		d,
-		Ee,
+		ke,
 		l
-	]), ze = (0, y.useCallback)(() => {
-		let e = ye.current.pop();
-		e && (ve.current.push(Ip(l, d)), u(e.nodes), f(e.edges), Ee());
+	]), He = (0, y.useCallback)(() => {
+		let e = xe.current.pop();
+		e && (be.current.push(Ip(l, d)), u(e.nodes), f(e.edges), ke());
 	}, [
 		d,
-		Ee,
+		ke,
 		l
-	]), Be = (0, y.useCallback)(() => {
+	]), Ue = (0, y.useCallback)(() => {
 		if (C) {
-			De(l.filter((e) => e.id !== C), d.filter((e) => e.source !== C && e.target !== C));
+			Ae(l.filter((e) => e.id !== C), d.filter((e) => e.source !== C && e.target !== C));
 			return;
 		}
-		T && De(l, d.filter((e) => e.id !== T));
+		T && Ae(l, d.filter((e) => e.id !== T));
 	}, [
 		d,
 		l,
-		De,
+		Ae,
 		T,
 		C
-	]), Ve = l.find((e) => e.id === C), He = (0, y.useMemo)(() => Sp(l, d), [d, l]), Ue = (0, y.useCallback)(() => {
+	]), We = l.find((e) => e.id === C), Ge = (0, y.useMemo)(() => Sp(l, d), [d, l]), Ke = (0, y.useCallback)(() => {
 		P(!0), w(null), E(null), requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
 				document.getElementById("advanced-run-panel")?.scrollIntoView({
@@ -17593,41 +17513,41 @@ function Xp() {
 				});
 			});
 		});
-	}, []), We = (0, y.useCallback)(async () => {
-		if (He.length) {
-			R("error"), B(`${He.length} composition issue${He.length === 1 ? "" : "s"}`);
+	}, []), qe = (0, y.useCallback)(async () => {
+		if (Ge.length) {
+			R("error"), B(`${Ge.length} composition issue${Ge.length === 1 ? "" : "s"}`);
 			return;
 		}
 		try {
-			let e = await ke(), t = await Zf.validateDraft(e.metadata.id, e.metadata.revision);
+			let e = await Me(), t = await Zf.validateDraft(e.metadata.id, e.metadata.revision);
 			W(t), R(t.valid ? "saved" : "error"), B(t.valid ? `Valid · ${t.digest?.slice(0, 15)}` : `${t.issues.length} contract issue${t.issues.length === 1 ? "" : "s"}`);
 		} catch (e) {
 			R("error"), B(Vp(e));
 		}
-	}, [He.length, ke]), Ge = (0, y.useCallback)(async () => {
-		if (He.length) {
-			R("error"), B(`${He.length} composition issue${He.length === 1 ? "" : "s"}`);
+	}, [Ge.length, Me]), Je = (0, y.useCallback)(async () => {
+		if (Ge.length) {
+			R("error"), B(`${Ge.length} composition issue${Ge.length === 1 ? "" : "s"}`);
 			return;
 		}
 		J(!0);
 		try {
-			let e = await ke(), t = await Zf.validateDraft(e.metadata.id, e.metadata.revision);
+			let e = await Me(), t = await Zf.validateDraft(e.metadata.id, e.metadata.revision);
 			if (W(t), !t.valid) {
 				R("error"), B(`${t.issues.length} contract issues`);
 				return;
 			}
 			let n = await Zf.publishDraft(e.metadata.id, e.metadata.revision);
-			S(n.workflow), o((e) => [n.workflow, ...e.filter((e) => !(e.id === n.workflow.id && e.version === n.workflow.version))]), K(Object.fromEntries(Object.keys(n.workflow.definition.spec.inputs).map((e) => [e, ""]))), R("saved"), B(`Published · ${n.workflow.digest.slice(0, 15)}`), Ue();
+			S(n.workflow), o((e) => [n.workflow, ...e.filter((e) => !(e.id === n.workflow.id && e.version === n.workflow.version))]), K(Object.fromEntries(Object.keys(n.workflow.definition.spec.inputs).map((e) => [e, ""]))), R("saved"), B(`Published · ${n.workflow.digest.slice(0, 15)}`), Ke();
 		} catch (e) {
 			R("error"), B(Vp(e));
 		} finally {
 			J(!1);
 		}
 	}, [
-		He.length,
-		Ue,
-		ke
-	]), Ke = (0, y.useCallback)(async (e, t, n = {}) => {
+		Ge.length,
+		Ke,
+		Me
+	]), Ye = (0, y.useCallback)(async (e, t, n = {}) => {
 		let i = {};
 		for (let [r, a] of Object.entries(e.definition.spec.inputs)) {
 			let e = t[r]?.trim() ?? "";
@@ -17637,11 +17557,11 @@ function Xp() {
 			i[r] = (await Zf.createArtifact(a.artifact_type, n[r] || `${r}.${o}`, e)).id;
 		}
 		return Zf.submitRun(e.id, e.version, i, qp(e.definition, r));
-	}, [r]), qe = (0, y.useCallback)(async () => {
+	}, [r]), Xe = (0, y.useCallback)(async () => {
 		if (b) {
 			te(!0);
 			try {
-				let e = await Ke(b, G);
+				let e = await Ye(b, G);
 				re(e.id), B(`Queued · ${e.id}`);
 			} catch (e) {
 				R("error"), B(Vp(e));
@@ -17652,16 +17572,20 @@ function Xp() {
 	}, [
 		b,
 		G,
-		Ke
-	]), Je = (0, y.useCallback)(async () => {
-		let e = Te?.workflow;
+		Ye
+	]), Ze = (0, y.useCallback)(async () => {
+		let e = De?.workflow;
 		if (!e) {
 			he(!0), pe("This published workflow is unavailable");
 			return;
 		}
+		if (ve.status !== "ready") {
+			he(!0), pe(ve.message);
+			return;
+		}
 		de(!0), he(!1), _e(null), pe("Submitting workflow");
 		try {
-			let t = await Ke(e, oe[e.id] ?? {}, ce[e.id] ?? {});
+			let t = await Ye(e, oe[e.id] ?? {}, ce[e.id] ?? {});
 			_e(t.id), pe(`Queued · ${t.id}`);
 		} catch (e) {
 			he(!0), pe(Vp(e));
@@ -17671,11 +17595,12 @@ function Xp() {
 	}, [
 		ce,
 		oe,
-		Te,
-		Ke
-	]), Ye = (0, y.useCallback)((e) => {
+		ve,
+		De,
+		Ye
+	]), Qe = (0, y.useCallback)((e) => {
 		ae(e), he(!1), _e(null), pe("Ready to configure");
-	}, []), Xe = (0, y.useCallback)((e, t, n, r) => {
+	}, []), $e = (0, y.useCallback)((e, t, n, r) => {
 		se((r) => ({
 			...r,
 			[e]: {
@@ -17689,28 +17614,28 @@ function Xp() {
 				[t]: r
 			}
 		})), he(!1), _e(null), pe(n.trim() ? "Input ready" : "Input required");
-	}, []), Ze = (0, y.useCallback)(() => {
-		Te?.workflow && (je(Te.workflow), O("templates"), n("advanced"));
-	}, [je, Te]), Qe = (0, y.useCallback)(async () => {
+	}, []), et = (0, y.useCallback)(() => {
+		De?.workflow && (Pe(De.workflow), O("templates"), n("advanced"));
+	}, [Pe, De]), tt = (0, y.useCallback)(async () => {
 		if (_) try {
-			await Zf.deleteDraft(_.metadata.id, _.metadata.revision), c((e) => e.filter((e) => e.metadata.id !== _.metadata.id)), Ae();
+			await Zf.deleteDraft(_.metadata.id, _.metadata.revision), c((e) => e.filter((e) => e.metadata.id !== _.metadata.id)), Ne();
 		} catch (e) {
 			R("error"), B(Vp(e));
 		}
-	}, [_, Ae]), $e = (0, y.useCallback)((e, t) => {
+	}, [_, Ne]), nt = (0, y.useCallback)((e, t) => {
 		m((n) => ({
 			...n,
 			[e]: t
-		})), Ee();
-	}, [Ee]), et = (0, y.useCallback)((e, t) => {
-		ve.current.push(Ip(l, d)), ye.current = [], u((n) => n.map((n) => n.id === e && n.type === "operation" ? t(n) : n)), Ee();
+		})), ke();
+	}, [ke]), rt = (0, y.useCallback)((e, t) => {
+		be.current.push(Ip(l, d)), xe.current = [], u((n) => n.map((n) => n.id === e && n.type === "operation" ? t(n) : n)), ke();
 	}, [
 		d,
-		Ee,
+		ke,
 		l
-	]), tt = (0, y.useCallback)((e, t) => {
+	]), it = (0, y.useCallback)((e, t) => {
 		let n = t.trim();
-		n === e || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(n) || l.some((e) => e.id === n) || (ve.current.push(Ip(l, d)), ye.current = [], u((t) => t.map((t) => t.id !== e || t.type !== "operation" ? t : {
+		n === e || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(n) || l.some((e) => e.id === n) || (be.current.push(Ip(l, d)), xe.current = [], u((t) => t.map((t) => t.id !== e || t.type !== "operation" ? t : {
 			...t,
 			id: n,
 			data: {
@@ -17724,38 +17649,38 @@ function Xp() {
 			...t,
 			source: t.source === e ? n : t.source,
 			target: t.target === e ? n : t.target
-		}))), w(n), Ee());
+		}))), w(n), ke());
 	}, [
 		d,
-		Ee,
+		ke,
 		l
-	]), nt = (0, y.useCallback)((e, t, n) => {
+	]), at = (0, y.useCallback)((e, t, n) => {
 		let r = Tp(e, t, n, l, d.length);
-		De([...l, r.node], [...d, r.edge]);
+		Ae([...l, r.node], [...d, r.edge]);
 	}, [
 		d,
 		l,
-		De
-	]), rt = (0, y.useMemo)(() => {
+		Ae
+	]), ot = (0, y.useMemo)(() => {
 		let e = k.trim().toLowerCase();
 		return r.flatMap((t) => t.operations.filter((n) => !e || Wp(t, n).includes(e)).map((e) => ({
 			capability: t,
 			operation: e
 		})));
-	}, [r, k]), it = (0, y.useCallback)((t) => {
+	}, [r, k]), st = (0, y.useCallback)((t) => {
 		t.preventDefault();
 		let n = t.dataTransfer.getData("application/qhpc-operation");
 		if (!n) return;
 		let [i, a, o] = n.split("\0"), s = r.find((e) => e.id === i && e.version === a), c = s?.operations.find((e) => e.id === o);
-		!s || !c || Ne(s, c, e.screenToFlowPosition({
+		!s || !c || Ie(s, c, e.screenToFlowPosition({
 			x: t.clientX,
 			y: t.clientY
 		}));
 	}, [
-		Ne,
+		Ie,
 		r,
 		e
-	]), at = N && Ve?.type === "operation";
+	]), ct = N && We?.type === "operation";
 	return F ? /* @__PURE__ */ (0, x.jsxs)("div", {
 		className: "composer-loading",
 		children: [/* @__PURE__ */ (0, x.jsx)(Mf, {
@@ -17789,22 +17714,23 @@ function Xp() {
 				})]
 			}), /* @__PURE__ */ (0, x.jsxs)("span", {
 				className: "composer-mode-context",
-				children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: t === "guided" ? "Scientific showcases" : "Workflow graph" }), /* @__PURE__ */ (0, x.jsx)("small", { children: t === "guided" ? `${we.filter((e) => e.workflow).length} runnable · ${Fp(we.filter((e) => e.definition.blueprint).length)}` : `${l.filter((e) => e.type === "operation").length} operations` })]
+				children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: t === "guided" ? "Scientific showcases" : "Workflow graph" }), /* @__PURE__ */ (0, x.jsx)("small", { children: t === "guided" ? `${Ee.filter((e) => e.workflow).length} runnable · ${Fp(Ee.filter((e) => e.definition.blueprint).length)}` : `${l.filter((e) => e.type === "operation").length} operations` })]
 			})]
 		}), t === "guided" ? /* @__PURE__ */ (0, x.jsx)(Qp, {
-			paths: we,
-			selectedPath: Te,
+			paths: Ee,
+			selectedPath: De,
 			capabilities: r,
-			inputs: Te?.workflow ? oe[Te.workflow.id] ?? {} : {},
-			inputNames: Te?.workflow ? ce[Te.workflow.id] ?? {} : {},
+			inputs: De?.workflow ? oe[De.workflow.id] ?? {} : {},
+			inputNames: De?.workflow ? ce[De.workflow.id] ?? {} : {},
 			queueing: ue,
 			statusMessage: fe,
 			hasError: me,
 			lastRunId: ge,
-			onSelect: Ye,
-			onInput: Xe,
-			onQueue: () => void Je(),
-			onOpenAdvanced: Ze
+			readiness: ve,
+			onSelect: Qe,
+			onInput: $e,
+			onQueue: () => void Ze(),
+			onOpenAdvanced: et
 		}) : /* @__PURE__ */ (0, x.jsxs)(x.Fragment, { children: [/* @__PURE__ */ (0, x.jsxs)("header", {
 			className: "composer-commandbar",
 			children: [
@@ -17825,25 +17751,25 @@ function Xp() {
 					children: [
 						/* @__PURE__ */ (0, x.jsx)(Yp, {
 							label: "New workflow",
-							onClick: Ae,
+							onClick: Ne,
 							children: /* @__PURE__ */ (0, x.jsx)(wf, { size: 16 })
 						}),
 						/* @__PURE__ */ (0, x.jsx)(Yp, {
 							label: "Undo",
-							disabled: !ve.current.length,
-							onClick: Re,
+							disabled: !be.current.length,
+							onClick: Ve,
 							children: /* @__PURE__ */ (0, x.jsx)(Gf, { size: 16 })
 						}),
 						/* @__PURE__ */ (0, x.jsx)(Yp, {
 							label: "Redo",
-							disabled: !ye.current.length,
-							onClick: ze,
+							disabled: !xe.current.length,
+							onClick: He,
 							children: /* @__PURE__ */ (0, x.jsx)(zf, { size: 16 })
 						}),
 						/* @__PURE__ */ (0, x.jsx)(Yp, {
 							label: "Delete selection",
 							disabled: !C && !T,
-							onClick: Be,
+							onClick: Ue,
 							children: /* @__PURE__ */ (0, x.jsx)(Wf, { size: 16 })
 						}),
 						/* @__PURE__ */ (0, x.jsx)(Yp, {
@@ -17866,7 +17792,7 @@ function Xp() {
 						/* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-secondary",
-							onClick: () => void ke(),
+							onClick: () => void Me(),
 							disabled: L === "saving",
 							children: [/* @__PURE__ */ (0, x.jsx)(Vf, {
 								size: 14,
@@ -17876,7 +17802,7 @@ function Xp() {
 						/* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-secondary",
-							onClick: () => void We(),
+							onClick: () => void qe(),
 							disabled: L === "saving",
 							children: [/* @__PURE__ */ (0, x.jsx)(Ef, {
 								size: 14,
@@ -17886,7 +17812,7 @@ function Xp() {
 						b ? /* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-primary",
-							onClick: Ue,
+							onClick: Ke,
 							children: [/* @__PURE__ */ (0, x.jsx)(Rf, {
 								size: 14,
 								"aria-hidden": "true"
@@ -17894,7 +17820,7 @@ function Xp() {
 						}) : /* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-primary",
-							onClick: () => void Ge(),
+							onClick: () => void Je(),
 							disabled: q || L === "saving" || !l.length,
 							children: [q ? /* @__PURE__ */ (0, x.jsx)(Mf, {
 								size: 14,
@@ -17952,7 +17878,7 @@ function Xp() {
 						/* @__PURE__ */ (0, x.jsxs)("div", {
 							className: "composer-library-list",
 							children: [
-								D === "operations" && rt.map(({ capability: e, operation: t }) => /* @__PURE__ */ (0, x.jsxs)("button", {
+								D === "operations" && ot.map(({ capability: e, operation: t }) => /* @__PURE__ */ (0, x.jsxs)("button", {
 									type: "button",
 									className: "composer-library-item",
 									draggable: !0,
@@ -17963,7 +17889,7 @@ function Xp() {
 											t.id
 										].join("\0"));
 									},
-									onClick: () => Ne(e, t),
+									onClick: () => Ie(e, t),
 									children: [
 										/* @__PURE__ */ (0, x.jsx)("span", {
 											className: "composer-item-glyph",
@@ -17988,7 +17914,7 @@ function Xp() {
 								D === "templates" && a.map((e) => /* @__PURE__ */ (0, x.jsxs)("button", {
 									type: "button",
 									className: "composer-library-item",
-									onClick: () => je(e),
+									onClick: () => Pe(e),
 									children: [
 										/* @__PURE__ */ (0, x.jsx)("span", {
 											className: "composer-item-glyph is-template",
@@ -18009,7 +17935,7 @@ function Xp() {
 								D === "drafts" && s.map((e) => /* @__PURE__ */ (0, x.jsxs)("button", {
 									type: "button",
 									className: `composer-library-item${_?.metadata.id === e.metadata.id ? " is-current" : ""}`,
-									onClick: () => Me(e),
+									onClick: () => Fe(e),
 									children: [
 										/* @__PURE__ */ (0, x.jsx)("span", {
 											className: "composer-item-glyph is-draft",
@@ -18028,7 +17954,7 @@ function Xp() {
 										})
 									]
 								}, e.metadata.id)),
-								D === "operations" && !rt.length && /* @__PURE__ */ (0, x.jsx)("p", {
+								D === "operations" && !ot.length && /* @__PURE__ */ (0, x.jsx)("p", {
 									className: "composer-empty-list",
 									children: "No matching operations"
 								}),
@@ -18046,7 +17972,7 @@ function Xp() {
 				}),
 				/* @__PURE__ */ (0, x.jsxs)("div", {
 					className: "composer-canvas",
-					onDrop: it,
+					onDrop: st,
 					onDragOver: (e) => {
 						e.preventDefault(), e.dataTransfer.dropEffect = "copy";
 					},
@@ -18055,24 +17981,24 @@ function Xp() {
 							nodes: l,
 							edges: d,
 							nodeTypes: kp,
-							onNodesChange: Fe,
-							onEdgesChange: Ie,
-							onConnect: Pe,
+							onNodesChange: Re,
+							onEdgesChange: ze,
+							onConnect: Le,
 							isValidConnection: (e) => bp({
 								source: e.source,
 								sourceHandle: e.sourceHandle ?? null,
 								target: e.target,
 								targetHandle: e.targetHandle ?? null
 							}, l, d).valid,
-							onSelectionChange: Le,
+							onSelectionChange: Be,
 							onNodeDragStart: () => {
-								be.current = Ip(l, d);
+								Se.current = Ip(l, d);
 							},
 							onNodeDragStop: () => {
-								be.current && (ve.current.push(be.current), ye.current = [], be.current = null, Ee());
+								Se.current && (be.current.push(Se.current), xe.current = [], Se.current = null, ke());
 							},
 							onMoveEnd: (e, t) => {
-								(t.x !== h.x || t.y !== h.y || t.zoom !== h.zoom) && (g(t), Ee());
+								(t.x !== h.x || t.y !== h.y || t.zoom !== h.zoom) && (g(t), ke());
 							},
 							defaultViewport: h,
 							minZoom: .25,
@@ -18098,14 +18024,14 @@ function Xp() {
 						/* @__PURE__ */ (0, x.jsxs)("div", {
 							className: "composer-validation-strip",
 							children: [/* @__PURE__ */ (0, x.jsxs)("span", {
-								className: He.length ? "has-issues" : "is-valid",
-								children: [He.length ? /* @__PURE__ */ (0, x.jsx)(bf, {
+								className: Ge.length ? "has-issues" : "is-valid",
+								children: [Ge.length ? /* @__PURE__ */ (0, x.jsx)(bf, {
 									size: 13,
 									"aria-hidden": "true"
 								}) : /* @__PURE__ */ (0, x.jsx)(vf, {
 									size: 13,
 									"aria-hidden": "true"
-								}), He.length ? `${He.length} local issue${He.length === 1 ? "" : "s"}` : `${l.filter((e) => e.type === "operation").length} operations · ${d.length} connections`]
+								}), Ge.length ? `${Ge.length} local issue${Ge.length === 1 ? "" : "s"}` : `${l.filter((e) => e.type === "operation").length} operations · ${d.length} connections`]
 							}), _ && /* @__PURE__ */ (0, x.jsxs)("span", { children: ["revision ", _.metadata.revision] })]
 						})
 					]
@@ -18115,7 +18041,7 @@ function Xp() {
 					"aria-label": "Workflow inspector",
 					children: [/* @__PURE__ */ (0, x.jsxs)("div", {
 						className: "composer-inspector-header",
-						children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("small", { children: at ? "OPERATION" : "WORKFLOW" }), /* @__PURE__ */ (0, x.jsx)("strong", { children: at && Ve ? Ve.id : p.name })] }), C && /* @__PURE__ */ (0, x.jsx)(Yp, {
+						children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("small", { children: ct ? "OPERATION" : "WORKFLOW" }), /* @__PURE__ */ (0, x.jsx)("strong", { children: ct && We ? We.id : p.name })] }), C && /* @__PURE__ */ (0, x.jsx)(Yp, {
 							label: "Clear selection",
 							onClick: () => {
 								w(null), E(null), e.setNodes((e) => e.map((e) => ({
@@ -18125,12 +18051,12 @@ function Xp() {
 							},
 							children: /* @__PURE__ */ (0, x.jsx)(qf, { size: 15 })
 						})]
-					}), at && Ve?.type === "operation" ? /* @__PURE__ */ (0, x.jsx)(tm, {
-						node: Ve,
-						operation: Kp(Ve, r),
+					}), ct && We?.type === "operation" ? /* @__PURE__ */ (0, x.jsx)(tm, {
+						node: We,
+						operation: Kp(We, r),
 						edges: d,
-						onRename: (e) => tt(Ve.id, e),
-						onParameter: (e, t) => et(Ve.id, (n) => ({
+						onRename: (e) => it(We.id, e),
+						onParameter: (e, t) => rt(We.id, (n) => ({
 							...n,
 							data: {
 								...n.data,
@@ -18140,25 +18066,25 @@ function Xp() {
 								}
 							}
 						})),
-						onExpose: (e, t) => nt(Ve, e, t)
+						onExpose: (e, t) => at(We, e, t)
 					}) : /* @__PURE__ */ (0, x.jsx)(nm, {
 						metadata: p,
 						draft: _,
 						published: b,
 						validation: U,
-						clientIssues: He,
+						clientIssues: Ge,
 						runInputs: G,
 						publishing: q,
 						queueing: ee,
 						lastRunId: ne,
-						onMetadata: $e,
+						onMetadata: nt,
 						onRunInput: (e, t) => K((n) => ({
 							...n,
 							[e]: t
 						})),
-						onPublish: () => void Ge(),
-						onQueue: () => void qe(),
-						onDeleteDraft: () => void Qe()
+						onPublish: () => void Je(),
+						onQueue: () => void Xe(),
+						onDeleteDraft: () => void tt()
 					})]
 				})
 			]
@@ -18302,16 +18228,20 @@ function Zp({ definition: e }) {
 		})
 	] });
 }
-function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames: i, queueing: a, statusMessage: o, hasError: s, lastRunId: c, onSelect: l, onInput: u, onQueue: d, onOpenAdvanced: f }) {
-	let [p, m] = (0, y.useState)(null), h = (0, y.useMemo)(() => ip(n), [n]), g = t?.workflow, _ = t?.definition, v = g ? Object.entries(g.definition.spec.inputs) : [], b = g ? g.definition.spec.nodes.flatMap((e) => {
-		let t = h.get(`${e.operation.capability}@${e.operation.version}/${e.operation.operation}`);
+function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames: i, queueing: a, statusMessage: o, hasError: s, lastRunId: c, readiness: l, onSelect: u, onInput: d, onQueue: f, onOpenAdvanced: p }) {
+	let [m, h] = (0, y.useState)(null), g = (0, y.useMemo)(() => ip(n), [n]), _ = t?.workflow, v = t?.definition, b = v?.examples ?? (v?.exampleContent && v.exampleName ? [{
+		name: v.exampleName,
+		label: v.exampleLabel ?? "Load example",
+		content: v.exampleContent
+	}] : []), S = _ ? Object.entries(_.definition.spec.inputs) : [], C = _ ? _.definition.spec.nodes.flatMap((e) => {
+		let t = g.get(`${e.operation.capability}@${e.operation.version}/${e.operation.operation}`);
 		return Object.entries(e.parameters).map(([n, r]) => ({
 			nodeId: e.id,
 			name: n,
 			label: t?.operation.parameters?.[n]?.title ?? zp(n),
 			value: r
 		}));
-	}) : [], S = !!g && v.every(([e, t]) => !(t.required ?? !0) || !!r[e]?.trim()), C = g ? Bp(g.definition, n) : "Unavailable", w = e.filter((e) => e.workflow).length, T = e.filter((e) => e.definition.blueprint).length;
+	}) : [], w = !!_ && S.every(([e, t]) => !(t.required ?? !0) || !!r[e]?.trim()), T = _ ? Bp(_.definition, n) : "Unavailable", E = e.filter((e) => e.workflow).length, D = e.filter((e) => e.definition.blueprint).length;
 	return /* @__PURE__ */ (0, x.jsxs)("div", {
 		className: "composer-guided-workspace",
 		children: [/* @__PURE__ */ (0, x.jsxs)("aside", {
@@ -18320,20 +18250,20 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			children: [/* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "composer-path-index-header",
 				children: [/* @__PURE__ */ (0, x.jsx)("span", { children: "SCIENTIFIC SHOWCASES" }), /* @__PURE__ */ (0, x.jsxs)("strong", { children: [
-					w,
+					E,
 					" runnable · ",
-					Fp(T)
+					Fp(D)
 				] })]
 			}), /* @__PURE__ */ (0, x.jsx)("div", {
 				className: "composer-path-list",
 				children: e.map((e) => {
-					let t = _?.workflowId === e.definition.workflowId;
+					let t = v?.workflowId === e.definition.workflowId;
 					return /* @__PURE__ */ (0, x.jsxs)("button", {
 						type: "button",
 						className: `composer-path-item${t ? " is-selected" : ""}${e.definition.blueprint ? " is-blueprint" : ""}`,
 						"aria-pressed": t,
 						onClick: () => {
-							m(null), l(e.definition.workflowId);
+							h(null), u(e.definition.workflowId);
 						},
 						children: [
 							/* @__PURE__ */ (0, x.jsx)("span", {
@@ -18362,7 +18292,7 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			})]
 		}), /* @__PURE__ */ (0, x.jsx)("main", {
 			className: "composer-guided-detail",
-			children: _?.blueprint ? /* @__PURE__ */ (0, x.jsx)(Zp, { definition: _ }) : !g || !_ ? /* @__PURE__ */ (0, x.jsxs)("div", {
+			children: v?.blueprint ? /* @__PURE__ */ (0, x.jsx)(Zp, { definition: v }) : !_ || !v ? /* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "composer-guided-unavailable",
 				children: [/* @__PURE__ */ (0, x.jsx)(bf, {
 					size: 20,
@@ -18375,20 +18305,20 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 						/* @__PURE__ */ (0, x.jsx)("span", {
 							className: "composer-guided-glyph",
 							"aria-hidden": "true",
-							children: _.code
+							children: v.code
 						}),
 						/* @__PURE__ */ (0, x.jsxs)("span", { children: [
-							/* @__PURE__ */ (0, x.jsx)("small", { children: _.shortName }),
-							/* @__PURE__ */ (0, x.jsx)("h2", { children: g.definition.metadata.name }),
-							/* @__PURE__ */ (0, x.jsx)("p", { children: g.definition.metadata.description })
+							/* @__PURE__ */ (0, x.jsx)("small", { children: v.shortName }),
+							/* @__PURE__ */ (0, x.jsx)("h2", { children: _.definition.metadata.name }),
+							/* @__PURE__ */ (0, x.jsx)("p", { children: _.definition.metadata.description })
 						] }),
 						/* @__PURE__ */ (0, x.jsxs)("dl", { children: [
 							/* @__PURE__ */ (0, x.jsx)("dt", { children: "VERSION" }),
-							/* @__PURE__ */ (0, x.jsx)("dd", { children: g.version }),
+							/* @__PURE__ */ (0, x.jsx)("dd", { children: _.version }),
 							/* @__PURE__ */ (0, x.jsx)("dt", { children: "TARGET" }),
-							/* @__PURE__ */ (0, x.jsx)("dd", { children: C }),
+							/* @__PURE__ */ (0, x.jsx)("dd", { children: T }),
 							/* @__PURE__ */ (0, x.jsx)("dt", { children: "DIGEST" }),
-							/* @__PURE__ */ (0, x.jsx)("dd", { children: g.digest.slice(0, 15) })
+							/* @__PURE__ */ (0, x.jsx)("dd", { children: _.digest.slice(0, 15) })
 						] })
 					]
 				}),
@@ -18397,28 +18327,50 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 					children: [
 						/* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-guided-section",
-							children: [/* @__PURE__ */ (0, x.jsx)("h3", { children: "Connected pipeline" }), /* @__PURE__ */ (0, x.jsx)("ol", {
-								className: "composer-guided-pipeline",
-								children: g.definition.spec.nodes.map((e, t) => {
-									let n = h.get(`${e.operation.capability}@${e.operation.version}/${e.operation.operation}`), r = g.definition.spec.edges.find((t) => t.to.node === e.id);
-									return /* @__PURE__ */ (0, x.jsxs)("li", { children: [
-										/* @__PURE__ */ (0, x.jsx)("span", {
-											className: "composer-pipeline-sequence",
-											children: String(t + 1).padStart(2, "0")
-										}),
-										/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: n?.operation.title ?? e.operation.operation }), /* @__PURE__ */ (0, x.jsx)("small", { children: n?.capability.name ?? e.operation.capability })] }),
-										/* @__PURE__ */ (0, x.jsx)("span", {
-											className: "composer-pipeline-contract",
-											children: r ? Lp(r.to.artifact_type) : t === 0 && v.length ? Lp(v[0][1].artifact_type) : "Generated in workflow"
-										})
-									] }, e.id);
+							children: [
+								/* @__PURE__ */ (0, x.jsx)("h3", { children: "Connected pipeline" }),
+								/* @__PURE__ */ (0, x.jsx)("ol", {
+									className: "composer-guided-pipeline",
+									children: _.definition.spec.nodes.map((e, t) => {
+										let n = g.get(`${e.operation.capability}@${e.operation.version}/${e.operation.operation}`), r = _.definition.spec.edges.find((t) => t.to.node === e.id);
+										return /* @__PURE__ */ (0, x.jsxs)("li", { children: [
+											/* @__PURE__ */ (0, x.jsx)("span", {
+												className: "composer-pipeline-sequence",
+												children: String(t + 1).padStart(2, "0")
+											}),
+											/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: n?.operation.title ?? e.operation.operation }), /* @__PURE__ */ (0, x.jsx)("small", { children: n?.capability.name ?? e.operation.capability })] }),
+											/* @__PURE__ */ (0, x.jsx)("span", {
+												className: "composer-pipeline-contract",
+												children: r ? Lp(r.to.artifact_type) : t === 0 && S.length ? Lp(S[0][1].artifact_type) : "Generated in workflow"
+											})
+										] }, e.id);
+									})
+								}),
+								/* @__PURE__ */ (0, x.jsxs)("div", {
+									className: `composer-runtime-readiness is-${l.status}`,
+									role: "status",
+									"aria-live": "polite",
+									children: [l.status === "checking" ? /* @__PURE__ */ (0, x.jsx)(Mf, {
+										size: 16,
+										className: "composer-spin",
+										"aria-hidden": "true"
+									}) : l.status === "ready" ? /* @__PURE__ */ (0, x.jsx)(vf, {
+										size: 16,
+										"aria-hidden": "true"
+									}) : l.status === "idle" ? /* @__PURE__ */ (0, x.jsx)(Kf, {
+										size: 16,
+										"aria-hidden": "true"
+									}) : /* @__PURE__ */ (0, x.jsx)(bf, {
+										size: 16,
+										"aria-hidden": "true"
+									}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: l.status === "ready" ? "Runtime ready" : l.status === "checking" ? "Checking runtime" : "Runtime unavailable" }), /* @__PURE__ */ (0, x.jsx)("small", { children: l.message })] })]
 								})
-							})]
+							]
 						}),
 						/* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-guided-section",
-							children: [/* @__PURE__ */ (0, x.jsx)("h3", { children: v.length ? "Scientific input" : "Published configuration" }), v.map(([e, t]) => {
-								let n = r[e] ?? "", a = _.inputLabel ?? Lp(t.artifact_type);
+							children: [/* @__PURE__ */ (0, x.jsx)("h3", { children: S.length ? "Scientific input" : "Published configuration" }), S.map(([e, t]) => {
+								let n = r[e] ?? "", a = v.inputLabel ?? Lp(t.artifact_type);
 								return /* @__PURE__ */ (0, x.jsxs)("div", {
 									className: "composer-guided-input",
 									children: [
@@ -18431,54 +18383,54 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 														size: 14,
 														"aria-hidden": "true"
 													}),
-													_.inputFileLabel ?? "Choose .qasm",
+													v.inputFileLabel ?? "Choose .qasm",
 													/* @__PURE__ */ (0, x.jsx)("input", {
 														type: "file",
-														accept: _.inputAccept ?? ".qasm,.txt,text/plain",
+														accept: v.inputAccept ?? ".qasm,.txt,text/plain",
 														"aria-label": `Upload ${a} file`,
 														onChange: (t) => {
 															let n = t.currentTarget.files?.[0];
-															n && (m(null), n.text().then((t) => u(g.id, e, t, n.name)).catch((e) => m(Vp(e))), t.currentTarget.value = "");
+															n && (h(null), n.text().then((t) => d(_.id, e, t, n.name)).catch((e) => h(Vp(e))), t.currentTarget.value = "");
 														}
 													})
 												]
-											}), _.exampleContent && _.exampleName && /* @__PURE__ */ (0, x.jsxs)("button", {
+											}), b.map((t) => /* @__PURE__ */ (0, x.jsxs)("button", {
 												type: "button",
 												className: "composer-button is-secondary",
 												onClick: () => {
-													m(null), u(g.id, e, _.exampleContent ?? "", _.exampleName);
+													h(null), d(_.id, e, t.content, t.name);
 												},
 												children: [/* @__PURE__ */ (0, x.jsx)(Cf, {
 													size: 14,
 													"aria-hidden": "true"
-												}), _.exampleLabel ?? "Bell example"]
-											})] })]
+												}), t.label]
+											}, t.name))] })]
 										}),
 										/* @__PURE__ */ (0, x.jsx)("textarea", {
 											rows: 10,
 											"aria-label": a,
 											spellCheck: !1,
 											value: n,
-											placeholder: _.inputPlaceholder ?? "OPENQASM 2.0;",
-											onChange: (t) => u(g.id, e, t.target.value)
+											placeholder: v.inputPlaceholder ?? "OPENQASM 2.0;",
+											onChange: (t) => d(_.id, e, t.target.value)
 										}),
 										/* @__PURE__ */ (0, x.jsxs)("div", {
 											className: "composer-guided-input-meta",
 											children: [/* @__PURE__ */ (0, x.jsx)("span", { children: i[e] || "Pasted text" }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [n.length.toLocaleString(), " characters"] })]
 										}),
-										p && /* @__PURE__ */ (0, x.jsx)("p", {
+										m && /* @__PURE__ */ (0, x.jsx)("p", {
 											className: "composer-guided-input-error",
-											children: p
+											children: m
 										})
 									]
 								}, e);
 							})]
 						}),
-						!!b.length && /* @__PURE__ */ (0, x.jsxs)("section", {
+						!!C.length && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-guided-section",
 							children: [/* @__PURE__ */ (0, x.jsx)("h3", { children: "Published configuration" }), /* @__PURE__ */ (0, x.jsx)("dl", {
 								className: "composer-guided-parameters",
-								children: b.map(({ nodeId: e, name: t, label: n, value: r }) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [
+								children: C.map(({ nodeId: e, name: t, label: n, value: r }) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [
 									/* @__PURE__ */ (0, x.jsx)("dt", { children: n }),
 									/* @__PURE__ */ (0, x.jsx)("dd", { children: String(r) }),
 									/* @__PURE__ */ (0, x.jsxs)("small", { children: [
@@ -18493,7 +18445,7 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							className: "composer-guided-section",
 							children: [/* @__PURE__ */ (0, x.jsx)("h3", { children: "Produced artifacts" }), /* @__PURE__ */ (0, x.jsx)("div", {
 								className: "composer-guided-outputs",
-								children: Object.entries(g.definition.spec.outputs).map(([e, t]) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)(Cf, {
+								children: Object.entries(_.definition.spec.outputs).map(([e, t]) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)(Cf, {
 									size: 15,
 									"aria-hidden": "true"
 								}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: Lp(t.artifact_type) }), /* @__PURE__ */ (0, x.jsxs)("small", { children: [
@@ -18530,7 +18482,7 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 						/* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-secondary",
-							onClick: f,
+							onClick: p,
 							children: [/* @__PURE__ */ (0, x.jsx)(Af, {
 								size: 14,
 								"aria-hidden": "true"
@@ -18539,8 +18491,9 @@ function Qp({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 						/* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-primary",
-							disabled: !S || a || C === "No compatible target",
-							onClick: d,
+							disabled: !w || a || T === "No compatible target" || l.status !== "ready",
+							title: l.status === "ready" ? "Run this published workflow" : l.message,
+							onClick: f,
 							children: [a ? /* @__PURE__ */ (0, x.jsx)(Mf, {
 								size: 14,
 								className: "composer-spin",

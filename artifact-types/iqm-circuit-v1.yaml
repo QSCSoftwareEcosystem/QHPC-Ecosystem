@@ -1,0 +1,42 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.iqm-circuit
+  name: IQM Native Circuit
+  version: 1
+  project: compilation-tools
+  owners: [ftqc, qhpc-ecosystem]
+  status: draft
+spec:
+  description: IQM-native prx, cz, and measure instructions prepared for later calibration-aware routing and submission.
+  media_type: application/vnd.qsc.iqm-circuit+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [name, instructions]
+    properties:
+      name:
+        type: string
+        minLength: 1
+      instructions:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [name, locus, args]
+          properties:
+            name:
+              enum: [prx, cz, measure]
+            locus:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                pattern: "^QB[1-9][0-9]*$"
+            args:
+              type: object
+  compatibility:
+    accepts_versions: [1]

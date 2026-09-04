@@ -14,11 +14,13 @@ from urllib.parse import unquote, urlparse
 
 from .engine import ArtifactResult, FunctionRunner, TaskRequest, TaskResult
 from .local_runtime import resolve_native_runtime, resolve_wheel_runtime
+from .project_adapters import prepare_ftqc_iqm
 
 
 OPENQEVO_CONTEXT_ROOT = Path(__file__).with_name("openqevo_context")
 OPENQEVO_REPOSITORY = "https://github.com/QSCSoftwareThrust/OpenQEvo"
 OPENQEVO_REVISION = "250550a3992bd57c032d4066843c2b03055c4b9d"
+FTQC_REVISION = "779216de8805ea0c1d473c640eaf17d6cbfa04e8"
 
 
 def _load_openqevo(root: Path, request: TaskRequest) -> Any:
@@ -420,4 +422,56 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
         )
 
     runner.register("stabsim-simulator", "analyze-metrics", analyze_stabsim_metrics)
+
+    def prepare_ftqc_iqm_circuit(request: TaskRequest) -> TaskResult:
+        runtime = resolve_native_runtime(
+            root, request.runtime_reference, request.runtime_digest
+        )
+        libraries = sorted(
+            path
+            for path in (runtime / "lib").glob("libftqc.*")
+            if path.is_file() and path.suffix in {".dylib", ".so", ".dll"}
+        )
+        if len(libraries) != 1:
+            raise RuntimeError(
+                "FTQC local runtime must contain exactly one compiler library"
+            )
+        result = prepare_ftqc_iqm(
+            libraries[0],
+            _input_file(request, "circuit"),
+            request.parameters,
+            source_revision=FTQC_REVISION,
+        )
+        program = request.work_directory / "program.mlir"
+        program.write_text(result["program"], encoding="utf-8")
+        iqm_circuit = request.work_directory / "iqm-circuit.json"
+        iqm_circuit.write_text(
+            json.dumps(result["circuit"], indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        report = request.work_directory / "preparation-report.json"
+        report.write_text(
+            json.dumps(result["report"], indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        return TaskResult(
+            {
+                "program": ArtifactResult.from_path(
+                    request.output_types["program"], program
+                ),
+                "circuit": ArtifactResult.from_path(
+                    request.output_types["circuit"], iqm_circuit
+                ),
+                "report": ArtifactResult.from_path(
+                    request.output_types["report"], report
+                ),
+            },
+            (
+                "FTQC prepared "
+                f"{result['report']['device_qubits']} IQM loci; "
+                "routing and hardware submission were not performed"
+            ),
+        )
+
+    runner.register("ftqc-compiler", "prepare-iqm", prepare_ftqc_iqm_circuit)
     return runner

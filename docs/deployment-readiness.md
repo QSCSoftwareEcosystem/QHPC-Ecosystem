@@ -52,17 +52,17 @@ interface contracts, adapters, fixtures, and integration tests are completed
 first; each executable operation still requires a pinned descriptor and
 target-accepted immutable Linux runtime before production execution.
 
-FTQC's private QSC working mirror matches all seven branches in its
-authoritative internal GitLab upstream. Its admitted revision has a typed QASM
-import contract, FTQC MLIR artifact contract, controlled adapter, fixtures, and
-standalone source smoke evidence. The admitted source also contains an ORNL IQM
-submission path, a saved 20-qubit topology snapshot, and one-logical-qubit
-Steane fixtures. Developers report that this path ran one logical qubit on the
-ORNL IQM system, but the job receipt, exact device identity, counts, corrected
-logical histogram, and acceptance comparison are not preserved; the Workbench
-therefore labels it a hardware demonstration candidate rather than verified
-evidence. The full LLVM/MLIR 22 runtime, license clearance, immutable release,
-and target acceptance remain required.
+FTQC's private QSC ecosystem repository is admitted at an exact revision. Its
+stable C API has been built locally on macOS arm64 and exercised through the EQO
+worker for two Workbench workflows: a measured two-device-qubit Bell circuit
+and one Steane logical-qubit preparation. Both produce typed FTQC MLIR, IQM
+JSON, and an explicit preparation report. The preparation stops before
+calibration-aware routing or IQM submission and makes no fault-tolerance or
+hardware-execution claim. The source also contains the historical ORNL IQM path,
+but its job receipt, exact device identity, counts, corrected logical histogram,
+and acceptance comparison are not preserved. License clearance, a portable
+reproducible LLVM/MLIR 22 Linux runtime, immutable release publication, and
+target acceptance remain required.
 
 Production-shaped containerization is locally complete for STABSim, QASMTrans,
 NWQEC, FTPrimitiveBench, and LightStim. Their exact source revisions, source
@@ -76,7 +76,7 @@ open.
 
 The machine-readable initial HPC acceptance profile covers all fourteen
 deployment components. It reports five OCI-verified batch runtimes, TN-Sim and
-FTQC as runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, ChatQEC, plus the
+FTQC as production-runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, ChatQEC, plus the
 three non-executable QFlow/QIRIS incubation records as outside the Slurm batch
 gate in their current roles. Its gate remains closed
 while the target and storage profiles are planned and no runtime is
@@ -84,7 +84,8 @@ target-accepted.
 
 TN-Sim still needs a corrected reproducible iTensor/BLAS source build and
 source-backed correctness evidence. FTQC still needs license clearance and a
-reproducible full LLVM/MLIR 22 build. STABSim's local image cannot be published
+reproducible, portable LLVM/MLIR 22 Linux build despite its verified local
+macOS development bundle. STABSim's local image cannot be published
 until its upstream project supplies explicit license terms. OpenQEvo packaging
 is blocked because the audited source declares its license as `TBD` and
 provides no license file. ChatQEC remains a separately governed service rather

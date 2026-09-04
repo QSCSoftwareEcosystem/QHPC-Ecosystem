@@ -3,20 +3,21 @@ kind: Capability
 metadata:
   id: ftqc-compiler
   name: FTQC Fault-Tolerant Compiler
-  version: 0.1.0
+  version: 0.2.0
   project: compilation-tools
   owners: [ftqc]
   repository:
-    url: https://github.com/QSCSoftwareThrust/FTQC
-    revision: 947fd0a067f15a9f9d6e7418742080cf34cfb51a
+    url: https://github.com/QSCSoftwareEcosystem/FTQC
+    revision: 779216de8805ea0c1d473c640eaf17d6cbfa04e8
   integration:
     authority: ecosystem
     maintainers: [qhpc-ecosystem]
     project_reviewed: false
-    runtime_status: not-applicable
+    runtime_status: verified
     validation_status: integration-tested
     evidence:
       - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
+      - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
   visibility: internal
   maturity: pre-alpha
 spec:
@@ -25,18 +26,22 @@ spec:
     description: C++ and LLVM/MLIR compiler project for fault-tolerant quantum operations, resource estimation, and QASM 3, Stim, QIR, and IQM lowerings.
   guidance:
     use_when:
-      - Review or integrate against the pinned FTQC MLIR compiler and controlled QASM importer interface.
-      - Inspect the source-supported candidate for a one-logical-qubit execution on an ORNL IQM system and the evidence required to verify it.
+      - Prepare an IQM-native circuit from a measured two-device-qubit OpenQASM Bell circuit.
+      - Expand one Steane logical qubit to seven data-qubit IQM loci before credentialed routing and submission.
     quick_start:
       - Open the FTQC Tool Record and read the IQM one-logical-qubit hardware demonstration candidate, including its evidence gaps.
-      - Open Compose and choose One logical qubit on IQM to inspect the complete OpenQASM-to-logical-result pipeline and its hardware evidence gates.
+      - Open Compose and choose either FTQC IQM preparation example.
+      - Load the authored input, confirm that the local FTQC compiler runtime is ready, and run the credential-free preparation stage.
       - Open Compose and choose H6 QFlow chemistry cycle to inspect where optional FTQC circuit lowering would attach after a QIRIS-selected backend emits OpenQASM.
       - Inspect the published compiler-interface resource and pinned source revision from this record.
-      - Use the interface contract for integration work while the executable runtime remains pending.
-    example_workflows: []
+      - Inspect the FTQC MLIR, IQM JSON, and preparation report outputs; routing and hardware submission remain separate stages.
+    example_workflows:
+      - ftqc-iqm-bell-preparation
+      - ftqc-iqm-steane-preparation
     limitations:
-      - EQO currently publishes source, interface, and hardware-evidence resources rather than the full compiler as an executable capability.
-      - EQO-QSC does not publish an executable FTQC operation until a reproducible LLVM and MLIR runtime is accepted.
+      - The admitted native bundle is locally built for macOS arm64 against Homebrew LLVM/MLIR 20.1.2; it is not distributed by this repository.
+      - FTQC does not publish distributable license terms, so EQO does not publish the compiler binary, shared library, or a container image.
+      - The preparation operation does not query live calibration, route the circuit, submit to IQM, or collect results.
       - The one-logical-qubit IQM run is developer-reported and source-supported, but the repository does not preserve a job receipt, exact QPU identity, raw counts, corrected logical histogram, or acceptance comparison; it is not verified hardware evidence.
       - The repository names the live 20-qubit backend Crystal/default while the public ORNL announcement names Pathfinder; EQO-QSC does not assert that they are the same device without developer confirmation.
       - The validated H6 QFlow evidence does not emit an OpenQASM circuit, so its FTQC branch is an explicit future extension rather than a completed handoff.
@@ -48,18 +53,57 @@ spec:
       description: Developer-reported and source-supported one-logical-qubit ORNL IQM demonstration candidate, with the exact promotion evidence still required.
     - id: ftqc-compiler-interface
       kind: adapter
-      version: 0.1.0
+      version: 0.2.0
       uri: integrations/ftqc/interface.yaml
-      description: Controlled OpenQASM-to-FTQC-MLIR contract; it does not publish the IQM hardware submission path as an executable operation.
+      description: Controlled OpenQASM-to-FTQC-MLIR-and-IQM-preparation contract; routing and hardware submission are excluded.
     - id: ftqc-source
       kind: library
-      version: 0.1.0
-      uri: https://github.com/QSCSoftwareThrust/FTQC/tree/947fd0a067f15a9f9d6e7418742080cf34cfb51a
-      description: Pinned source containing the IQM JSON lowering, 20-qubit topology snapshot, routing/submission path, and one-logical-qubit fixtures.
+      version: 0.2.0
+      uri: https://github.com/QSCSoftwareEcosystem/FTQC/tree/779216de8805ea0c1d473c640eaf17d6cbfa04e8
+      description: Pinned private source containing the C API, IQM JSON lowering, physical Steane expansion, routing/submission path, and demonstration fixtures.
     - id: developer-attribution
       kind: documentation
       version: 1.0.0
       uri: docs/tool-attribution.md#ftqc
   documentation:
     qappswiki: packages/ftqc.md
-    url: https://github.com/QSCSoftwareThrust/FTQC/blob/947fd0a067f15a9f9d6e7418742080cf34cfb51a/README.md
+    url: https://github.com/QSCSoftwareEcosystem/FTQC/blob/779216de8805ea0c1d473c640eaf17d6cbfa04e8/README.md
+  operations:
+    - id: prepare-iqm
+      title: Prepare an IQM-native circuit
+      description: Compile OpenQASM through the pinned FTQC C API and emit logical MLIR, IQM JSON, and an explicit no-routing/no-submission report.
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: UTF-8 OpenQASM 2.0 or 3.0 source for one admitted demonstration shape.
+      outputs:
+        program:
+          artifact_type: qhpc.ftqc-mlir@1
+          description: FTQC logical MLIR with the generated IQM JSON module attribute.
+        circuit:
+          artifact_type: qhpc.iqm-circuit@1
+          description: IQM-native prx, cz, and measure instructions in radians; not routed against live calibration.
+        report:
+          artifact_type: qhpc.ftqc-iqm-preparation-report@1
+          description: Compiler provenance, widths, gate counts, and routing/submission claim boundaries.
+      parameters:
+        preparation:
+          type: string
+          title: Preparation boundary
+          default: device
+          enum: [device, steane-logical]
+        function_name:
+          type: string
+          title: MLIR and IQM circuit name
+          default: circuit
+      runtime:
+        type: native-bundle
+        reference: qhpc-runtime://native/ftqc-779216de8805-darwin-arm64.zip
+        digest: sha256:ab1b34d6a0a86a3d522061b00b4efdea253e2c77d64b5d27a52260e0740ba215
+      invocation:
+        entrypoint: [qhpc-ftqc-prepare-iqm]
+      resources:
+        cpu: 1
+        memory_mb: 2048
+        walltime_seconds: 120
+      execution_targets: [local-development]

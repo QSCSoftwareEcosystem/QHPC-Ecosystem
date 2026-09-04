@@ -11,6 +11,7 @@ import type {
   PublishedDraft,
   PublishedWorkflow,
   RunRecord,
+  RuntimeReadiness,
   Workflow,
   WorkflowDraft,
 } from "./types";
@@ -172,6 +173,19 @@ export const composerApi = {
         created_by: "workbench-user",
       }),
     });
+  },
+
+  readiness(
+    executionTarget: string,
+    executionClass: string,
+    runtimeDigests: string[],
+  ): Promise<RuntimeReadiness> {
+    const params = new URLSearchParams({
+      execution_target: executionTarget,
+      execution_class: executionClass,
+    });
+    runtimeDigests.forEach((digest) => params.append("runtime_digest", digest));
+    return request(`/readiness?${params}`);
   },
 };
 

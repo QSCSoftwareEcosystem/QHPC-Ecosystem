@@ -231,7 +231,7 @@ def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
     assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
 
 
-def test_ftqc_uses_synchronized_private_github_mirror_and_pins_interface() -> None:
+def test_ftqc_uses_private_ecosystem_source_and_local_preparation_runtime() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
     scaffold = find_integration_scaffold(scaffolds, "ftqc").document
     capability = validate_contract(
@@ -243,7 +243,7 @@ def test_ftqc_uses_synchronized_private_github_mirror_and_pins_interface() -> No
     assert scaffold["metadata"]["integration_status"] == "published"
     assert scaffold["spec"]["source"] == {
         "kind": "repository",
-        "url": "https://github.com/QSCSoftwareThrust/FTQC",
+        "url": "https://github.com/QSCSoftwareEcosystem/FTQC",
         "catalog_repository": "ftqc",
     }
     assert scaffold["spec"]["mirror"] == {
@@ -255,6 +255,8 @@ def test_ftqc_uses_synchronized_private_github_mirror_and_pins_interface() -> No
         "capabilities/FTQC/compiler/qhpc-capability.yaml",
         "integrations/ftqc/interface.yaml",
         "artifact-types/ftqc-mlir-v1.yaml",
+        "artifact-types/iqm-circuit-v1.yaml",
+        "artifact-types/ftqc-iqm-preparation-report-v1.yaml",
     ]
     assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
     resources = {
@@ -276,11 +278,15 @@ def test_ftqc_uses_synchronized_private_github_mirror_and_pins_interface() -> No
         ),
     }
     assert capability["metadata"]["integration"]["evidence"] == [
-        "docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md"
+        "docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md",
+        "docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md",
     ]
-    assert not capability["spec"].get("operations")
+    operation = capability["spec"]["operations"][0]
+    assert operation["id"] == "prepare-iqm"
+    assert operation["runtime"]["type"] == "native-bundle"
+    assert operation["execution_targets"] == ["local-development"]
     assert any(
-        "One logical qubit on IQM" in step
+        "FTQC IQM preparation" in step
         for step in capability["spec"]["guidance"]["quick_start"]
     )
     assert any(
@@ -295,7 +301,9 @@ def test_draft_cross_project_artifact_types_are_valid() -> None:
         "clifford-t-counts-v1.yaml",
         "evolution-method-context-v1.yaml",
         "evolution-synthesis-report-v1.yaml",
+        "ftqc-iqm-preparation-report-v1.yaml",
         "ftqc-mlir-v1.yaml",
+        "iqm-circuit-v1.yaml",
         "logical-error-estimate-v1.yaml",
         "measurement-counts-v1.yaml",
         "pauli-hamiltonian-v1.yaml",

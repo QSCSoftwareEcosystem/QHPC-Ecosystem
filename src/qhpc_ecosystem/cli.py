@@ -767,6 +767,8 @@ def build_parser() -> argparse.ArgumentParser:
     native_build.add_argument("--target", required=True)
     native_build.add_argument("--executable", required=True)
     native_build.add_argument("--asset", action="append", default=[])
+    native_build.add_argument("--library", action="append", default=[])
+    native_build.add_argument("--cmake-argument", action="append", default=[])
     native_build.add_argument("--source-subdirectory", default=".")
     native_build.add_argument("--runtime-root", default=".qhpc/runtimes")
     cpp_build = local_runtime_commands.add_parser(
@@ -2182,6 +2184,8 @@ def dispatch(args: argparse.Namespace) -> int:
                 executable=args.executable,
                 assets=tuple(args.asset),
                 source_subdirectory=args.source_subdirectory,
+                cmake_arguments=tuple(args.cmake_argument),
+                libraries=tuple(args.library),
             )
         else:
             runtime_artifact = build_cpp_runtime(

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ctypes
 import importlib
+import json
 import os
 import re
 import subprocess
@@ -27,6 +29,53 @@ _FTQC_QASM_HEADER = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 _FTQC_FUNCTION_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_FTQC_IQM_JSON_ATTRIBUTE = re.compile(
+    r'ftqc\.iqm_json\s*=\s*"((?:[^"\\]|\\.)*)"'
+)
+
+
+class _FTQCCfg(ctypes.Structure):
+    """Exact layout of FTQC's pinned, fixed-storage C API configuration."""
+
+    _fields_ = [
+        ("ecc_kind", ctypes.c_char * 64),
+        ("ecc_dist", ctypes.c_int),
+        ("func_name", ctypes.c_char * 64),
+        ("run_steane_pipeline", ctypes.c_int),
+        ("run_surface_pipeline", ctypes.c_int),
+        ("run_distill_pipeline", ctypes.c_int),
+        ("steane_encode", ctypes.c_int),
+        ("surface_encode", ctypes.c_int),
+        ("use_lattice", ctypes.c_int),
+        ("color_encode", ctypes.c_int),
+        ("insert_syndrome", ctypes.c_int),
+        ("syndrome_method", ctypes.c_char * 32),
+        ("syndrome_rounds", ctypes.c_int),
+        ("insert_correction", ctypes.c_int),
+        ("pauli_frame_opt", ctypes.c_int),
+        ("magic_distill", ctypes.c_int),
+        ("distill_protocol", ctypes.c_char * 32),
+        ("distill_levels", ctypes.c_int),
+        ("distill_target_error", ctypes.c_double),
+        ("transversal_gates", ctypes.c_int),
+        ("decompose_non_transversal", ctypes.c_int),
+        ("lower_to_quantum", ctypes.c_int),
+        ("lower_to_stim", ctypes.c_int),
+        ("lower_to_qir", ctypes.c_int),
+        ("lower_to_qasm3", ctypes.c_int),
+        ("lower_to_iqm_json", ctypes.c_int),
+        ("lower_to_lattice_surgery", ctypes.c_int),
+        ("lower_to_iqs", ctypes.c_int),
+        ("resource_estimate", ctypes.c_int),
+        ("print_report", ctypes.c_int),
+        ("fault_path", ctypes.c_int),
+        ("fault_path_max_order", ctypes.c_int),
+        ("threshold_analysis", ctypes.c_int),
+        ("physical_error_rate", ctypes.c_double),
+        ("target_error_rate", ctypes.c_double),
+        ("lower_to_iqm_json_radians", ctypes.c_int),
+        ("lower_to_iqm_json_physical", ctypes.c_int),
+    ]
 
 
 def _integer(
@@ -398,3 +447,234 @@ def import_ftqc_qasm(
             "FTQC importer output lacks an FTQC MLIR function"
         )
     return output + "\n"
+
+
+def _mlir_string_value(value: str) -> str:
+    """Decode the escape form used by MLIR string attributes."""
+
+    output = bytearray()
+    index = 0
+    while index < len(value):
+        if value[index] != "\\":
+            output.extend(value[index].encode("utf-8"))
+            index += 1
+            continue
+        if index + 2 < len(value) and re.fullmatch(
+            r"[0-9A-Fa-f]{2}", value[index + 1 : index + 3]
+        ):
+            output.append(int(value[index + 1 : index + 3], 16))
+            index += 3
+            continue
+        if index + 1 >= len(value):
+            raise ProjectAdapterError("FTQC returned an invalid MLIR string escape")
+        escaped = value[index + 1]
+        if escaped not in {'"', "\\"}:
+            raise ProjectAdapterError("FTQC returned an unsupported MLIR string escape")
+        output.extend(escaped.encode("utf-8"))
+        index += 2
+    try:
+        return output.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ProjectAdapterError("FTQC returned a non-UTF-8 MLIR string") from error
+
+
+def _validated_iqm_circuit(program: str) -> dict[str, Any]:
+    match = _FTQC_IQM_JSON_ATTRIBUTE.search(program)
+    if match is None:
+        raise ProjectAdapterError("FTQC output lacks its IQM JSON module attribute")
+    try:
+        payload = json.loads(_mlir_string_value(match.group(1)))
+    except json.JSONDecodeError as error:
+        raise ProjectAdapterError(f"FTQC emitted invalid IQM JSON: {error}") from error
+    if not isinstance(payload, dict) or set(payload) != {"name", "instructions"}:
+        raise ProjectAdapterError("FTQC IQM output must contain name and instructions")
+    if not isinstance(payload["name"], str) or not payload["name"]:
+        raise ProjectAdapterError("FTQC IQM circuit name is invalid")
+    instructions = payload["instructions"]
+    if not isinstance(instructions, list) or not 1 <= len(instructions) <= 100_000:
+        raise ProjectAdapterError("FTQC IQM circuit must contain 1 to 100000 instructions")
+    for index, instruction in enumerate(instructions):
+        if not isinstance(instruction, dict) or set(instruction) != {
+            "name",
+            "locus",
+            "args",
+        }:
+            raise ProjectAdapterError(f"FTQC IQM instruction {index} is malformed")
+        if instruction["name"] not in {"prx", "cz", "measure"}:
+            raise ProjectAdapterError(
+                f"FTQC IQM instruction {index} uses an unsupported gate"
+            )
+        locus = instruction["locus"]
+        if (
+            not isinstance(locus, list)
+            or not locus
+            or any(
+                not isinstance(qubit, str)
+                or re.fullmatch(r"QB[1-9][0-9]*", qubit) is None
+                for qubit in locus
+            )
+        ):
+            raise ProjectAdapterError(f"FTQC IQM instruction {index} has an invalid locus")
+        if not isinstance(instruction["args"], dict):
+            raise ProjectAdapterError(f"FTQC IQM instruction {index} has invalid arguments")
+    return payload
+
+
+def prepare_ftqc_iqm(
+    library_path: str | Path,
+    circuit_path: str | Path,
+    parameters: Mapping[str, Any],
+    *,
+    source_revision: str,
+) -> dict[str, Any]:
+    """Compile QASM through FTQC's C API without routing or submission."""
+
+    library_file = Path(library_path).expanduser().resolve()
+    if not library_file.is_file():
+        raise ProjectAdapterError(f"FTQC compiler library not found: {library_file}")
+
+    circuit = Path(circuit_path).expanduser().resolve()
+    if not circuit.is_file():
+        raise ProjectAdapterError(f"input circuit not found: {circuit}")
+    if circuit.stat().st_size > 1_000_000:
+        raise ProjectAdapterError("FTQC circuit input exceeds the 1 MB limit")
+    try:
+        circuit_data = circuit.read_bytes()
+        circuit_text = circuit_data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ProjectAdapterError("input circuit must be UTF-8 text") from error
+    if _FTQC_QASM_HEADER.search(circuit_text) is None:
+        raise ProjectAdapterError("input circuit must declare OPENQASM 2.0 or 3.0")
+
+    allowed_parameters = {"preparation", "function_name"}
+    unknown = sorted(str(name) for name in parameters if name not in allowed_parameters)
+    if unknown:
+        raise ProjectAdapterError(
+            f"unsupported FTQC parameters: {', '.join(unknown)}"
+        )
+    preparation = parameters.get("preparation", "device")
+    if preparation not in {"device", "steane-logical"}:
+        raise ProjectAdapterError("preparation must be device or steane-logical")
+    function_name = parameters.get("function_name", "circuit")
+    if (
+        not isinstance(function_name, str)
+        or _FTQC_FUNCTION_NAME.fullmatch(function_name) is None
+        or len(function_name.encode("utf-8")) > 63
+    ):
+        raise ProjectAdapterError(
+            "function_name must be an MLIR-compatible identifier of at most 63 bytes"
+        )
+
+    try:
+        library = ctypes.CDLL(str(library_file))
+        compiler = library.ftqc_qasm_opt
+        compiler.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+            ctypes.POINTER(_FTQCCfg),
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        compiler.restype = ctypes.c_int
+        release = library.ftqc_free
+        release.argtypes = [ctypes.c_void_p]
+        release.restype = None
+    except (AttributeError, OSError) as error:
+        raise ProjectAdapterError(f"FTQC compiler library could not be loaded: {error}") from error
+
+    configuration = _FTQCCfg()
+    configuration.ecc_kind = b"steane"
+    configuration.ecc_dist = 3
+    configuration.func_name = function_name.encode("ascii")
+    configuration.lower_to_iqm_json = 1
+    configuration.lower_to_iqm_json_radians = 1
+    configuration.lower_to_iqm_json_physical = int(preparation == "steane-logical")
+
+    output_pointer = ctypes.c_void_p()
+    output_size = ctypes.c_size_t()
+    input_buffer = ctypes.create_string_buffer(circuit_data)
+    try:
+        status = compiler(
+            input_buffer,
+            len(circuit_data),
+            ctypes.byref(configuration),
+            ctypes.byref(output_pointer),
+            ctypes.byref(output_size),
+        )
+    except (OSError, ValueError) as error:
+        raise ProjectAdapterError(f"FTQC compilation failed: {error}") from error
+    if status != 0 or not output_pointer.value or output_size.value < 1:
+        if output_pointer.value:
+            release(output_pointer)
+        raise ProjectAdapterError(f"FTQC compilation exited with status {status}")
+    try:
+        program = ctypes.string_at(output_pointer, output_size.value).decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ProjectAdapterError("FTQC compiler output must be UTF-8 text") from error
+    finally:
+        release(output_pointer)
+
+    iqm_circuit = _validated_iqm_circuit(program)
+    gate_counts: dict[str, int] = {}
+    loci: set[str] = set()
+    for instruction in iqm_circuit["instructions"]:
+        name = instruction["name"]
+        gate_counts[name] = gate_counts.get(name, 0) + 1
+        loci.update(instruction["locus"])
+
+    if preparation == "device":
+        expected_loci = {"QB1", "QB2"}
+        if loci != expected_loci or gate_counts.get("measure") != 2:
+            raise ProjectAdapterError(
+                "device preparation is restricted to a measured two-qubit circuit"
+            )
+        logical_qubits: int | None = None
+        routing_requirement = "calibration-check-required"
+        claim_boundary = (
+            "Direct two-device-qubit lowering; FTQC's intermediate retains ECC "
+            "type metadata, but no Steane block expansion is performed."
+        )
+    else:
+        expected_loci = {f"QB{index}" for index in range(1, 8)}
+        if loci != expected_loci or gate_counts.get("measure") != 7:
+            raise ProjectAdapterError(
+                "Steane logical preparation is restricted to one seven-data-qubit block"
+            )
+        logical_qubits = 1
+        routing_requirement = "required-before-hardware"
+        claim_boundary = (
+            "One Steane [[7,1,3]] logical qubit expanded to seven data qubits; "
+            "this preparation alone is not evidence of error suppression."
+        )
+
+    report = {
+        "schema": "qhpc.ftqc-iqm-preparation-report.v1",
+        "preparation": preparation,
+        "compiler_interface": "ftqc_qasm_opt",
+        "source_revision": source_revision,
+        "ecc": {"kind": "steane", "distance": 3},
+        "logical_qubits": logical_qubits,
+        "device_qubits": len(loci),
+        "instruction_count": len(iqm_circuit["instructions"]),
+        "gate_counts": dict(sorted(gate_counts.items())),
+        "loci": sorted(loci, key=lambda value: int(value[2:])),
+        "angle_units": "radians",
+        "routing": {
+            "status": "not-performed",
+            "requirement": routing_requirement,
+            "reason": (
+                "Topology routing needs qiskit-iqm and current device calibration; "
+                "it is outside this credential-free local stage."
+            ),
+        },
+        "submission": {
+            "status": "not-submitted",
+            "execution_class": "quantum-backend",
+        },
+        "claim_boundary": claim_boundary,
+    }
+    return {
+        "program": program.rstrip() + "\n",
+        "circuit": iqm_circuit,
+        "report": report,
+    }

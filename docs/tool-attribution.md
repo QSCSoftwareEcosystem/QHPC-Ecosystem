@@ -46,7 +46,7 @@ this page: **Vicente Leyton-Ortega**, as shown in the
 
 - Named repository contributors: Narasinga Rao Miniskar and Seyong Lee.
 - Current maintainer: unresolved in the pinned project documentation.
-- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareThrust/FTQC/commits/947fd0a067f15a9f9d6e7418742080cf34cfb51a) and [README](https://github.com/QSCSoftwareThrust/FTQC/blob/947fd0a067f15a9f9d6e7418742080cf34cfb51a/README.md).
+- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareEcosystem/FTQC/commits/779216de8805ea0c1d473c640eaf17d6cbfa04e8) and [README](https://github.com/QSCSoftwareEcosystem/FTQC/blob/779216de8805ea0c1d473c640eaf17d6cbfa04e8/README.md).
 
 ## IRIS/QIRIS
 

@@ -36,6 +36,14 @@ SOURCE_ASSETS = {
     / "examples"
     / "workflows"
     / "nwqec-counts.yaml",
+    "workflow-ftqc-iqm-bell": ROOT
+    / "examples"
+    / "workflows"
+    / "ftqc-iqm-bell-preparation.yaml",
+    "workflow-ftqc-iqm-steane": ROOT
+    / "examples"
+    / "workflows"
+    / "ftqc-iqm-steane-preparation.yaml",
 }
 
 
@@ -67,7 +75,7 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     assert registry["metadata"]["entry_count"] == len(registry["spec"]["entries"])
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"
-    assert len(workflows) == 5
+    assert len(workflows) == 7
 
 
 def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> None:

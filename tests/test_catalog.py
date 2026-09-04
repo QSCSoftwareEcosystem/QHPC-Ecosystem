@@ -66,7 +66,7 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
         "https://github.com/openQSE/openqse-spec"
     )
     assert catalog.repository("ftqc").source_url == (
-        "https://github.com/QSCSoftwareThrust/FTQC"
+        "https://github.com/QSCSoftwareEcosystem/FTQC"
     )
     assert catalog.repository("ftqc").alternate_sources == (
         "https://code.ornl.gov/qsc-ct/ftqc",

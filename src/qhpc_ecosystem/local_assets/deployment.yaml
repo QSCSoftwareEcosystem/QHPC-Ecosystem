@@ -70,7 +70,7 @@ spec:
       catalog_repository: ftqc
       source:
         kind: repository
-        url: https://github.com/QSCSoftwareThrust/FTQC
+        url: https://github.com/QSCSoftwareEcosystem/FTQC
     - id: openqevo
       name: OpenQEvo
       role: operation-provider

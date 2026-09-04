@@ -75,7 +75,7 @@ def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -
     )
     assert ftqc["source"] == {
         "kind": "repository",
-        "url": "https://github.com/QSCSoftwareThrust/FTQC",
+        "url": "https://github.com/QSCSoftwareEcosystem/FTQC",
     }
     tn_sim = next(
         component

@@ -14,5 +14,5 @@ nwqec	NWQEC	https://github.com/pnnl/nwqec	External GitHub source.
 FTPrimitiveBench	FTPrimitiveBench	https://github.com/QSCSoftwareThrust/FTPrimitiveBench	QSCSoftwareThrust GitHub source selected after its main branch was verified at the admitted revision; the original upstream remains recorded as an alternate.
 STABSim	STABSim	https://github.com/QSCSoftwareThrust/STABSim	QSCSoftwareThrust GitHub source selected after its main branch was verified at the admitted revision; the original upstream remains recorded in the ecosystem catalog.
 calibration-conditioned-decoding	ML decoder	https://github.com/Samuelstein1224/calibration-conditioned-decoding	Calibration-conditioned decoding repository.
-ftqc	FTQC compiler	https://github.com/QSCSoftwareThrust/FTQC	QSCSoftwareThrust is the canonical QHPC working mirror; code.ornl.gov/qsc-ct/ftqc remains the authoritative internal upstream and recurring mirror source.
+ftqc	FTQC compiler	https://github.com/QSCSoftwareEcosystem/FTQC	QSCSoftwareEcosystem is the canonical private working repository; code.ornl.gov/qsc-ct/ftqc remains an admitted internal mirror source.
 LightStim	LightStim	https://github.com/QSCSoftwareThrust/LightStim	QSCSoftwareThrust is the canonical working repository; the current runtime retains explicit QuTone release provenance until a QSC revision is rebuilt and requalified.

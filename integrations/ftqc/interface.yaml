@@ -3,13 +3,13 @@ kind: OperationInterface
 metadata:
   id: ftqc-compiler
   name: FTQC Fault-Tolerant Compiler
-  version: 0.1.0
+  version: 0.2.0
   component: ftqc
   project: compilation-tools
   owners: [ftqc]
   source:
-    url: https://github.com/QSCSoftwareThrust/FTQC
-    revision: 947fd0a067f15a9f9d6e7418742080cf34cfb51a
+    url: https://github.com/QSCSoftwareEcosystem/FTQC
+    revision: 779216de8805ea0c1d473c640eaf17d6cbfa04e8
   status: contract-valid
   evidence:
     - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
@@ -42,4 +42,29 @@ spec:
         function_name:
           type: string
           title: MLIR function name
+          default: circuit
+    - id: prepare-iqm
+      title: Prepare an IQM-native circuit
+      description: Use the project-owned C API to lower an admitted two-device-qubit or one-Steane-logical-qubit OpenQASM input to FTQC MLIR and IQM JSON without routing or submission.
+      behavior: deterministic
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: UTF-8 OpenQASM 2.0 or 3.0 circuit source.
+      outputs:
+        program:
+          artifact_type: qhpc.ftqc-mlir@1
+        circuit:
+          artifact_type: qhpc.iqm-circuit@1
+        report:
+          artifact_type: qhpc.ftqc-iqm-preparation-report@1
+      parameters:
+        preparation:
+          type: string
+          title: Preparation boundary
+          default: device
+          enum: [device, steane-logical]
+        function_name:
+          type: string
+          title: MLIR and IQM circuit name
           default: circuit

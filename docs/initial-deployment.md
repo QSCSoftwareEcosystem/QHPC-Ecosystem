@@ -16,7 +16,7 @@ presence alone does not admit a component to this deployment.
 | FTPrimitiveBench | Operation provider | [Repository](https://github.com/QSCSoftwareThrust/FTPrimitiveBench) | [Interface tested](../integrations/ftprimitivebench/integration.yaml) | OCI smoke tested; registry published |
 | LightStim | Operation provider | [QSC repository](https://github.com/QSCSoftwareThrust/LightStim) | [Interface tested](../integrations/lightstim/integration.yaml) | Registry published; QSC revision `23924ee` rebuilt, reproducibility-checked, and locally OCI-smoke-tested |
 | QASMTrans | Operation provider | [Repository](https://github.com/pnnl/qasmtrans) | [Published](../integrations/qasmtrans/integration.yaml) | Registry published; OCI smoke tested |
-| FTQC | Operation provider | [Private QSC working mirror](https://github.com/QSCSoftwareThrust/FTQC) | [Interface tested](../integrations/ftqc/integration.yaml) | Registry published; GitLab source synchronized; QASM import adapter tested; production LLVM/MLIR runtime and license pending |
+| FTQC | Operation provider | [Private QSC ecosystem repository](https://github.com/QSCSoftwareEcosystem/FTQC) | [Local IQM preparation tested](../integrations/ftqc/integration.yaml) | Two credential-free Workbench preparations admitted on the local macOS arm64 runtime; routing, submission, portable LLVM/MLIR 22 runtime, and license clearance pending |
 | OpenQEvo | Operation provider | [Repository](https://github.com/QSCSoftwareThrust/OpenQEvo) | [Published](../integrations/openqevo/integration.yaml) | Registry published; OCI blocked on license |
 | OpenQSE | Integration standard | [Specification repository](https://github.com/openQSE/openqse-spec) | [Published](../integrations/openqse/integration.yaml) | Registry published |
 | QAppsWiki | Knowledge resource | [Repository](https://github.com/QSCSoftwareThrust/QAppsWiki) | [Published](../integrations/qappswiki/integration.yaml) | Registry published |
@@ -74,11 +74,13 @@ and smoke evidence. TN-Sim's adapter fixes the documented CPU iTensor MPS path
 and parses its count format, but the external binary has not yet been
 reproducibly built or source-executed.
 
-FTQC's seven GitLab branches are synchronized to its private QSC working
-mirror. The standalone QASM importer was compiled and smoke-tested from the
-admitted source, and the Workbench publishes its QASM-to-FTQC-MLIR contract as
-a resource-only capability. The full LLVM/MLIR 22 compiler runtime has not yet
-been packaged reproducibly or accepted for execution.
+FTQC's exact private QSC ecosystem revision has been compiled on macOS arm64.
+Its stable C API and controlled local adapter prepare a measured two-device-
+qubit Bell circuit or one Steane logical qubit as typed FTQC MLIR and IQM JSON;
+both Workbench workflows have completed through the EQO worker. This is a local
+development runtime only: it does not route against live calibration data or
+submit to IQM hardware. The distributable LLVM/MLIR 22 Linux runtime, license
+clearance, immutable publication, and target acceptance remain pending.
 
 ChatQEC has a pinned source, accepted service boundary, versioned HTTPS
 JSON/SSE interface, bounded transport-injected client adapter, and contract

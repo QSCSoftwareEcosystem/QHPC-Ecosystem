@@ -288,6 +288,8 @@ def build_cmake_runtime(
     executable: str,
     assets: tuple[str, ...] = (),
     source_subdirectory: str = ".",
+    cmake_arguments: tuple[str, ...] = (),
+    libraries: tuple[str, ...] = (),
 ) -> NativeRuntime:
     """Build a pinned CMake target and package it with selected source assets."""
     source_path = Path(source).expanduser().resolve()
@@ -324,6 +326,7 @@ def build_cmake_runtime(
                 str(build),
                 "-DCMAKE_BUILD_TYPE=Release",
                 f"-DCMAKE_CXX_FLAGS={prefix_map}",
+                *cmake_arguments,
             ],
             env=environment,
             check=True,
@@ -345,12 +348,25 @@ def build_cmake_runtime(
             if checkout.resolve() not in path.parents or not path.is_file():
                 raise RuntimeError(f"invalid native runtime asset: {asset}")
             asset_paths.append((asset, path))
+        library_paths: list[Path] = []
+        library_names: set[str] = set()
+        for library in libraries:
+            path = (build / library).resolve()
+            if build.resolve() not in path.parents or not path.is_file():
+                raise RuntimeError(f"invalid native runtime library: {library}")
+            if path.name in library_names:
+                raise RuntimeError(
+                    f"duplicate native runtime library name: {path.name}"
+                )
+            library_names.add(path.name)
+            library_paths.append(path)
         manifest = {
             "name": name,
             "revision": revision,
             "platform": {"system": system, "machine": machine},
             "executable": f"bin/{Path(executable).name}",
             "assets": [asset for asset, _ in asset_paths],
+            "libraries": [f"lib/{path.name}" for path in library_paths],
         }
         with zipfile.ZipFile(output, "w") as archive:
             archive.writestr(
@@ -363,6 +379,10 @@ def build_cmake_runtime(
             )
             for asset, path in asset_paths:
                 archive.writestr(_zip_info(asset, timestamp), path.read_bytes())
+            for path in library_paths:
+                archive.writestr(
+                    _zip_info(f"lib/{path.name}", timestamp), path.read_bytes()
+                )
 
     digest = "sha256:" + sha256(output.read_bytes()).hexdigest()
     return NativeRuntime(

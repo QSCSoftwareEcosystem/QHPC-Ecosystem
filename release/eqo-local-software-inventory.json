@@ -92,7 +92,7 @@
       "name": "FTQC",
       "license": "unresolved (no license file at pinned revision)",
       "release_state": "unavailable",
-      "reason": "license clearance and reproducible LLVM/MLIR 22 runtime remain pending"
+      "reason": "local macOS arm64 development bundle verified but not distributed; license clearance and a portable reproducible LLVM/MLIR 22 runtime remain pending"
     }
   ]
 }

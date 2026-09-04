@@ -1,0 +1,42 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: ftqc-iqm-bell-preparation
+  name: Prepare a two-device-qubit Bell circuit for IQM
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Compile a measured two-qubit Bell circuit to IQM-native JSON without live routing or hardware submission.
+spec:
+  nodes:
+    - id: prepare
+      operation:
+        capability: ftqc-compiler
+        version: 0.2.0
+        operation: prepare-iqm
+      parameters:
+        preparation: device
+        function_name: bell
+  edges: []
+  inputs:
+    circuit:
+      artifact_type: qhpc.quantum-circuit@1
+      to:
+        node: prepare
+        port: circuit
+  outputs:
+    program:
+      artifact_type: qhpc.ftqc-mlir@1
+      from:
+        node: prepare
+        port: program
+    iqm_circuit:
+      artifact_type: qhpc.iqm-circuit@1
+      from:
+        node: prepare
+        port: circuit
+    preparation_report:
+      artifact_type: qhpc.ftqc-iqm-preparation-report@1
+      from:
+        node: prepare
+        port: report

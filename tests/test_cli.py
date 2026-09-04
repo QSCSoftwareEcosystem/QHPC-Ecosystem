@@ -30,7 +30,7 @@ def test_list_and_info_do_not_require_apptainer(monkeypatch, capsys) -> None:
     assert invoke("info", "ftqc") == 0
     output = capsys.readouterr().out
     assert "Canonical status:  canonical" in output
-    assert "Source:            https://github.com/QSCSoftwareThrust/FTQC" in output
+    assert "Source:            https://github.com/QSCSoftwareEcosystem/FTQC" in output
 
 
 def test_validate_checks_catalog_and_recipes(capsys) -> None:

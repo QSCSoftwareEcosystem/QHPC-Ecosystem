@@ -241,6 +241,21 @@ export interface RunRecord {
   outputs: Record<string, string>;
 }
 
+export interface RuntimeReadiness {
+  ready: boolean;
+  reason: string;
+  stale_after_seconds: number;
+  requirements: Array<{
+    node_id: string;
+    execution_target: string;
+    execution_class: string;
+    runtime_digest: string;
+    ready: boolean;
+    compatible_workers: string[];
+  }>;
+  workers: Array<Record<string, unknown>>;
+}
+
 export interface ArtifactRecord {
   id: string;
   artifact_type: string;

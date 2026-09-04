@@ -443,9 +443,9 @@ repositories:
   canonical_status: canonical
 - slug: ftqc
   display_name: FTQC compiler
-  source_url: https://github.com/QSCSoftwareThrust/FTQC
-  notes: QSCSoftwareThrust is the canonical QHPC working mirror; code.ornl.gov/qsc-ct/ftqc
-    remains the authoritative internal upstream and recurring mirror source.
+  source_url: https://github.com/QSCSoftwareEcosystem/FTQC
+  notes: QSCSoftwareEcosystem is the canonical private working repository; code.ornl.gov/qsc-ct/ftqc
+    remains an admitted internal mirror source.
   alternate_sources:
   - https://code.ornl.gov/qsc-ct/ftqc
   qsc_project: compilation-tools

@@ -37,11 +37,14 @@ TN-Sim's pinned public `tn_sim` branch now has a runtime-free CPU MPS operation
 contract and fixture-tested controlled CLI adapter. Its iTensor binary has not
 yet been built or accepted as a production runtime.
 
-FTQC uses the private `QSCSoftwareThrust/FTQC` working mirror synchronized from
-the authoritative internal `qsc-ct/ftqc` GitLab repository. Its pinned QASM
-import contract, FTQC MLIR artifact type, controlled adapter, fixtures, and
-source smoke evidence are complete. A reproducible LLVM/MLIR 22 runtime,
-license clearance, immutable release, and target acceptance remain pending.
+FTQC uses the private `QSCSoftwareEcosystem/FTQC` repository. Its exact-revision
+C API is available to EQO Local on macOS arm64 as a locally built native bundle.
+Two Workbench examples prepare either a measured two-device-qubit Bell circuit
+or one Steane logical qubit as typed FTQC MLIR, IQM JSON, and claim-boundary
+artifacts. Calibration-aware routing and hardware submission are separate,
+credentialed stages. The local binary is not distributed; a portable LLVM/MLIR
+22 runtime, license clearance, immutable release, and target acceptance remain
+pending.
 
 OpenQSE is resolved to the pinned `openQSE/openqse-spec` glossary and
 architecture repository and is published only as non-executable documentation
@@ -204,13 +207,15 @@ rebuild, tests, evidence, and promotion are complete. See
 [docs/repository-updates.md](docs/repository-updates.md).
 
 Open the printed URL and select **Compose**. The default **Guided** mode
-presents six runnable scientific showcases and one evidence-backed H6
+presents eight runnable scientific showcases and one evidence-backed H6
 incubation blueprint. The two runnable cross-tool studies take a
 Hamiltonian through evolution synthesis, mapping, structural analysis, and
 fault-tolerant resource counting, or compare two surface-code memory distances.
-Four focused examples teach each boundary independently. The H6 blueprint shows
-the proposed ExaChem → QIRIS → NWQSim chemistry cycle and an optional future
-FTQC circuit-lowering branch without publishing a false Run action. Circuit
+Six focused examples teach each boundary independently, including FTQC
+preparation of a two-device-qubit circuit and one Steane logical qubit. The H6
+blueprint shows the proposed ExaChem → QIRIS → NWQSim chemistry cycle and an
+optional FTQC circuit-lowering branch without publishing a false Run action for
+that still-incomplete application path. Circuit
 paths accept pasted OpenQASM 2 text, a local `.qasm` file, or the included
 fixtures and submit the immutable published workflow directly. Generated
 circuits, estimates, metrics, counts, and provenance are available through
@@ -287,6 +292,13 @@ eqo local-runtime build-cpp /path/to/STABSim \
   --name stabsim --executable nwq_qasm \
   --source-file qasm/nwq_qasm.cpp \
   --include-directory include --include-directory qasm
+eqo local-runtime build-native /path/to/FTQC \
+  --revision 779216de8805ea0c1d473c640eaf17d6cbfa04e8 \
+  --name ftqc --target all --executable qasm3-import \
+  --library src/libftqc.1.0.0.dylib \
+  --cmake-argument=-DMLIR_DIR=/opt/homebrew/opt/llvm/lib/cmake/mlir \
+  --cmake-argument=-DLLVM_DIR=/opt/homebrew/opt/llvm/lib/cmake/llvm \
+  --cmake-argument=-DFTQC_BUILD_TESTS=OFF
 eqo workflow publish examples/workflows/ct-hw-qasm-analysis.yaml \
   --registry examples/registry.yaml
 ```
@@ -450,9 +462,9 @@ activation gates are recorded in
 [ADR 0011](docs/adr/0011-controlled-repository-updates.md).
 
 `HeteQSys` is currently blocked because its authoritative source URL is unknown.
-The FTQC compiler uses `QSCSoftwareThrust/FTQC` as its private QHPC working
-mirror while `code.ornl.gov/qsc-ct/ftqc` remains its authoritative internal
-upstream.
+The FTQC compiler uses `QSCSoftwareEcosystem/FTQC` as its canonical private
+working repository, with `code.ornl.gov/qsc-ct/ftqc` retained as an admitted
+internal mirror source.
 
 ## Portable local lifecycle
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import platform
 import subprocess
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -11,6 +13,7 @@ import qhpc_ecosystem.local_adapters as local_adapters
 from qhpc_ecosystem.engine import TaskRequest
 from qhpc_ecosystem.local_adapters import build_local_runner
 from qhpc_ecosystem.local_runtime import (
+    build_cmake_runtime,
     build_cpp_runtime,
     build_wheel_runtime,
     install_local_runtime,
@@ -86,6 +89,68 @@ def test_missing_optional_runtime_fails_with_an_actionable_error(tmp_path: Path)
             "qhpc-runtime://wheels/missing.whl",
             digest,
         )
+
+
+def test_cmake_runtime_packages_an_explicit_shared_library(tmp_path: Path) -> None:
+    if platform.system() not in {"Darwin", "Linux"}:
+        pytest.skip("shared-library fixture currently covers Darwin and Linux")
+    source = tmp_path / "cmake-source"
+    source.mkdir()
+    (source / "CMakeLists.txt").write_text(
+        "cmake_minimum_required(VERSION 3.20)\n"
+        "project(runtime_fixture LANGUAGES CXX)\n"
+        "add_library(runtime_fixture SHARED library.cpp)\n"
+        "add_executable(runtime-tool tool.cpp)\n",
+        encoding="utf-8",
+    )
+    (source / "library.cpp").write_text(
+        'extern "C" int answer() { return 42; }\n', encoding="utf-8"
+    )
+    (source / "tool.cpp").write_text(
+        "int main() { return 0; }\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source),
+            "-c",
+            "user.name=QHPC Test",
+            "-c",
+            "user.email=qhpc@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "cmake fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(source), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    suffix = ".dylib" if platform.system() == "Darwin" else ".so"
+
+    runtime = build_cmake_runtime(
+        source,
+        tmp_path / "runtimes/native",
+        revision=revision,
+        name="runtime-fixture",
+        target="all",
+        executable="runtime-tool",
+        libraries=(f"libruntime_fixture{suffix}",),
+    )
+
+    with zipfile.ZipFile(runtime.path) as archive:
+        names = set(archive.namelist())
+        manifest = json.loads(archive.read("manifest.json"))
+    assert "bin/runtime-tool" in names
+    assert f"lib/libruntime_fixture{suffix}" in names
+    assert manifest["libraries"] == [f"lib/libruntime_fixture{suffix}"]
 
 
 def make_openqevo_fixture(root: Path) -> str:

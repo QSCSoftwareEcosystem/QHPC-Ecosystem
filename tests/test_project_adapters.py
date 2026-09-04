@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ctypes
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -354,6 +356,113 @@ def test_ftqc_adapter_requires_openqasm_input(tmp_path) -> None:
         ProjectAdapterError, match="must declare OPENQASM 2.0 or 3.0"
     ):
         project_adapters.import_ftqc_qasm(executable, circuit, {})
+
+
+def test_ftqc_iqm_preparation_uses_c_api_and_reports_unrouted_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    library_path = tmp_path / "libftqc.dylib"
+    library_path.write_bytes(b"fixture")
+    circuit_path = tmp_path / "bell.qasm"
+    circuit_path.write_text("OPENQASM 3.0;\nqubit[2] q;\n", encoding="utf-8")
+    iqm_circuit = {
+        "name": "bell",
+        "instructions": [
+            {"name": "cz", "locus": ["QB1", "QB2"], "args": {}},
+            {
+                "name": "measure",
+                "locus": ["QB1"],
+                "args": {"key": "m1"},
+            },
+            {
+                "name": "measure",
+                "locus": ["QB2"],
+                "args": {"key": "m2"},
+            },
+        ],
+    }
+    encoded = json.dumps(iqm_circuit, separators=(",", ":")).replace('"', "\\22")
+    program = (
+        f'module attributes {{ftqc.iqm_json = "{encoded}"}} '
+        "{ func.func @bell() }\n"
+    ).encode()
+    buffers = []
+    observed = {}
+
+    class Function:
+        def __init__(self, callback):
+            self.callback = callback
+
+        def __call__(self, *arguments):
+            return self.callback(*arguments)
+
+    def compile_qasm(_data, size, configuration, output, output_size):
+        observed["size"] = size
+        config = ctypes.cast(
+            configuration, ctypes.POINTER(project_adapters._FTQCCfg)
+        ).contents
+        observed["physical"] = config.lower_to_iqm_json_physical
+        observed["radians"] = config.lower_to_iqm_json_radians
+        buffer = ctypes.create_string_buffer(program)
+        buffers.append(buffer)
+        ctypes.cast(output, ctypes.POINTER(ctypes.c_void_p))[0] = ctypes.cast(
+            buffer, ctypes.c_void_p
+        )
+        ctypes.cast(output_size, ctypes.POINTER(ctypes.c_size_t))[0] = len(program)
+        return 0
+
+    fake_library = SimpleNamespace(
+        ftqc_qasm_opt=Function(compile_qasm),
+        ftqc_free=Function(lambda _pointer: None),
+    )
+    monkeypatch.setattr(project_adapters.ctypes, "CDLL", lambda _path: fake_library)
+
+    result = project_adapters.prepare_ftqc_iqm(
+        library_path,
+        circuit_path,
+        {"preparation": "device", "function_name": "bell"},
+        source_revision="7" * 40,
+    )
+
+    assert result["circuit"] == iqm_circuit
+    assert result["report"]["device_qubits"] == 2
+    assert result["report"]["routing"]["status"] == "not-performed"
+    assert result["report"]["submission"]["status"] == "not-submitted"
+    assert observed == {
+        "size": len(circuit_path.read_bytes()),
+        "physical": 0,
+        "radians": 1,
+    }
+    artifact_type = load_document(
+        ROOT / "artifact-types" / "ftqc-iqm-preparation-report-v1.yaml"
+    )
+    Draft202012Validator(artifact_type["spec"]["json_schema"]).validate(
+        result["report"]
+    )
+
+
+def test_ftqc_iqm_preparation_rejects_unknown_parameters_before_loading(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    library_path = tmp_path / "libftqc.dylib"
+    library_path.write_bytes(b"fixture")
+    circuit_path = tmp_path / "bell.qasm"
+    circuit_path.write_text("OPENQASM 3.0;\nqubit[2] q;\n", encoding="utf-8")
+    monkeypatch.setattr(
+        project_adapters.ctypes,
+        "CDLL",
+        lambda _path: (_ for _ in ()).throw(AssertionError("must not load")),
+    )
+
+    with pytest.raises(ProjectAdapterError, match="unsupported FTQC parameters: token"):
+        project_adapters.prepare_ftqc_iqm(
+            library_path,
+            circuit_path,
+            {"token": "browser-secret"},
+            source_revision="7" * 40,
+        )
 
 
 def test_adapter_outputs_match_draft_json_artifact_types(tmp_path, monkeypatch) -> None:

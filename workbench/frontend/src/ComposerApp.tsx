@@ -81,6 +81,9 @@ import type {
 type LibraryView = "operations" | "templates" | "drafts";
 type ComposerMode = "guided" | "advanced";
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+type ReadinessState =
+  | { status: "idle" | "checking"; message: string }
+  | { status: "ready" | "unavailable" | "error"; message: string };
 
 interface GraphSnapshot {
   nodes: ComposerNode[];
@@ -160,6 +163,11 @@ interface ScientificPathDefinition {
   exampleName?: string;
   exampleLabel?: string;
   exampleContent?: string;
+  examples?: Array<{
+    name: string;
+    label: string;
+    content: string;
+  }>;
 }
 
 interface ScientificPath {
@@ -209,6 +217,38 @@ const OPENQEVO_HAMILTONIAN_EXAMPLE = `{
     }
   ]
 }
+`;
+
+const FTQC_BELL_EXAMPLE = `OPENQASM 3.0;
+include "stdgates.inc";
+
+qubit[2] q;
+bit[2] result;
+
+h q[0];
+cx q[0], q[1];
+result[0] = measure q[0];
+result[1] = measure q[1];
+`;
+
+const FTQC_LOGICAL_ZERO_EXAMPLE = `OPENQASM 3.0;
+include "stdgates.inc";
+
+qubit[1] q;
+bit[1] result;
+result[0] = measure q[0];
+`;
+
+const FTQC_LOGICAL_H_EXAMPLE = `OPENQASM 3.0;
+include "stdgates.inc";
+
+qubit[1] q;
+bit[1] result;
+h q[0];
+h q[0];
+h q[0];
+h q[0];
+result[0] = measure q[0];
 `;
 
 const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
@@ -365,154 +405,41 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     },
   },
   {
-    workflowId: "blueprint-ftqc-iqm-logical-qubit",
-    code: "FT",
-    shortName: "One logical qubit on IQM",
-    kind: "Incubation blueprint",
-    toolChain: ["FTQC", "MLIR", "qiskit-iqm", "IQM"],
-    blueprint: {
-      name: "FTQC logical-qubit IQM path",
-      description:
-        "A source-backed view of the reported one-logical-qubit path from OpenQASM through Steane encoding, IQM routing, hardware submission, and logical-result recovery. The hardware result remains a candidate until its run packet is preserved.",
-      metrics: [
-        { label: "STATUS", value: "Hardware candidate" },
-        { label: "EVIDENCE", value: "Source-backed" },
-        { label: "RUN", value: "Disabled" },
-      ],
-      pipelineTitle: "Logical-to-hardware pipeline",
-      stages: [
-        {
-          name: "Load one-logical-qubit OpenQASM 3",
-          tool: "FTQC integration fixtures",
-          status: "Source verified",
-          handoff: "logical0.qasm / logical0-H.qasm",
-          detail:
-            "The tracked fixtures initialize one logical qubit, optionally apply four logical Hadamard gates, and measure it.",
-        },
-        {
-          name: "Lower OpenQASM to logical FTQC MLIR",
-          tool: "qasm3-import / ftqc-opt",
-          status: "Source verified",
-          handoff: "qhpc.quantum-circuit@1 → qhpc.ftqc-mlir@1",
-          detail:
-            "The pinned source implements the logical dialect path, and EQO-QSC has accepted an exact-revision standalone import smoke.",
-        },
-        {
-          name: "Expand the logical qubit with Steane [[7,1,3]]",
-          tool: "FTQC physical lowering",
-          status: "Source verified",
-          handoff: "1 logical qubit → 7 data qubits",
-          detail:
-            "Physical mode expands the logical qubit and prepares syndrome-aware logical-bit post-processing.",
-        },
-        {
-          name: "Lower to IQM-native gates and route",
-          tool: "FTQC + qiskit-iqm",
-          status: "Source verified",
-          handoff: "IQM JSON + selected physical layout",
-          detail:
-            "The source contains IQM JSON lowering and topology-aware routing against a 20-qubit, 30-edge topology snapshot.",
-        },
-        {
-          name: "Submit 512 shots to the ORNL IQM backend",
-          tool: "qiskit-iqm client",
-          status: "Developer reported",
-          handoff: "Hardware job receipt",
-          detail:
-            "Developers report this stage completed; the repository does not retain the job identifier, timestamps, or confirmed device identity.",
-        },
-        {
-          name: "Recover raw and corrected logical outcomes",
-          tool: "FTQC logical post-processing",
-          status: "Result pending",
-          handoff: "Raw counts → corrected logical result",
-          detail:
-            "The analysis code path exists, but the reported run's physical counts and corrected logical histogram are not preserved.",
-        },
-      ],
-      factsTitle: "Source-backed candidate",
-      facts: [
-        { label: "Logical width", value: "1 logical qubit" },
-        { label: "Encoding", value: "Steane [[7,1,3]]" },
-        { label: "Physical width", value: "7 data qubits" },
-        { label: "Shot plan", value: "512 shots per fixture" },
-        { label: "Topology snapshot", value: "Crystal · 20 qubits · 30 edges" },
-        { label: "Admitted revision", value: "947fd0a067f1" },
-      ],
-      evidenceTable: {
-        ariaLabel: "FTQC IQM hardware evidence ledger",
-        columns: ["Evidence layer", "Present", "Still required"],
-        rows: [
-          [
-            "Compiler",
-            "Exact FTQC revision and source path",
-            "Reproducible admitted LLVM/MLIR runtime",
-          ],
-          [
-            "Input",
-            "Logical fixtures and content digests",
-            "Generated IQM JSON and selected layout",
-          ],
-          [
-            "Hardware",
-            "Developer report and topology snapshot",
-            "Device identity, job ID, timestamps, terminal state",
-          ],
-          [
-            "Result",
-            "Raw/corrected post-processing implementation",
-            "Physical counts and corrected logical histogram",
-          ],
-        ],
-        note:
-          "Promotion remains blocked until the hardware receipt and logical-result evidence are attached.",
-        noteTone: "pending",
+    workflowId: "ftqc-iqm-bell-preparation",
+    code: "F1",
+    shortName: "Prepare a two-qubit Bell circuit",
+    kind: "Focused example",
+    toolChain: ["FTQC", "IQM JSON"],
+    inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
+    inputFileLabel: "Choose .qasm",
+    examples: [
+      {
+        name: "ftqc-bell.qasm",
+        label: "Load Bell input",
+        content: FTQC_BELL_EXAMPLE,
       },
-      artifactsTitle: "Evidence handoffs",
-      artifacts: [
-        {
-          name: "Logical circuit input",
-          reference: "qhpc.quantum-circuit@1",
-          status: "Tracked fixtures present",
-        },
-        {
-          name: "FTQC logical MLIR",
-          reference: "qhpc.ftqc-mlir@1",
-          status: "Contract and import smoke present",
-        },
-        {
-          name: "IQM request and routed layout",
-          reference: "Project-native IQM JSON",
-          status: "Generation path present · run artifact missing",
-        },
-        {
-          name: "Hardware and logical-result packet",
-          reference: "Job receipt + raw counts + corrected histogram",
-          status: "Not preserved",
-        },
-      ],
-      gatesTitle: "Evidence required before Run can be enabled",
-      remainingGates: [
-        "Package and admit the pinned FTQC LLVM/MLIR runtime without distributing unlicensed binaries.",
-        "Confirm the IQM device identity; the repository's Crystal/default name is not assumed to be Pathfinder.",
-        "Preserve the input digest, generated IQM JSON, compiler flags, routed physical layout, and calibration identifier.",
-        "Attach the hardware job identifier, timestamps, terminal state, raw physical counts, and corrected logical histogram.",
-        "Define the acceptance rule and add a physical baseline before making any fault-tolerance or error-suppression claim.",
-      ],
-      callout: {
-        title: "Not a fault-tolerance claim.",
-        detail:
-          "Running an encoded one-logical-qubit circuit does not by itself demonstrate error suppression, logical advantage, or fault-tolerant performance.",
-        tone: "warning",
+    ],
+  },
+  {
+    workflowId: "ftqc-iqm-steane-preparation",
+    code: "F2",
+    shortName: "Prepare one Steane logical qubit",
+    kind: "Focused example",
+    toolChain: ["FTQC", "Steane [[7,1,3]]", "IQM JSON"],
+    inputLabel: "One-logical-qubit OpenQASM 3 circuit",
+    inputFileLabel: "Choose .qasm",
+    examples: [
+      {
+        name: "logical0.qasm",
+        label: "Load logical |0⟩",
+        content: FTQC_LOGICAL_ZERO_EXAMPLE,
       },
-      footerStatus: "Hardware evidence candidate · result packet pending",
-      evidenceAction: {
-        label: "Open FTQC tool record",
-        href: "?view=tools&capability=ftqc-compiler",
+      {
+        name: "logical0-H.qasm",
+        label: "Load four-H variant",
+        content: FTQC_LOGICAL_H_EXAMPLE,
       },
-      runDisabledTitle:
-        "Run becomes available after the FTQC runtime, IQM identity, credentials, and evidence-capture gates pass.",
-    },
+    ],
   },
   {
     workflowId: "ct-hw-qasm-analysis",
@@ -567,6 +494,9 @@ const ARTIFACT_LABELS: Record<string, string> = {
   "qhpc.stim-circuit@1": "Stim circuit",
   "qhpc.logical-error-estimate@1": "Logical error estimate",
   "qhpc.clifford-t-counts@1": "Clifford and T counts",
+  "qhpc.ftqc-mlir@1": "FTQC MLIR program",
+  "qhpc.iqm-circuit@1": "IQM-native circuit",
+  "qhpc.ftqc-iqm-preparation-report@1": "FTQC preparation report",
 };
 
 
@@ -588,6 +518,8 @@ function artifactLabel(artifactType: string): string {
 
 
 function artifactExtension(artifactType: string): string {
+  if (artifactType === "qhpc.iqm-circuit@1") return "json";
+  if (artifactType === "qhpc.ftqc-mlir@1") return "mlir";
   if (artifactType.includes("circuit")) return "qasm";
   if (
     artifactType.includes("hamiltonian") ||
@@ -846,6 +778,10 @@ function ComposerSurface(): React.JSX.Element {
   );
   const [guidedError, setGuidedError] = useState(false);
   const [guidedRunId, setGuidedRunId] = useState<string | null>(null);
+  const [guidedReadiness, setGuidedReadiness] = useState<ReadinessState>({
+    status: "idle",
+    message: "Select a published workflow to check its runtime",
+  });
 
   const history = useRef<GraphSnapshot[]>([]);
   const future = useRef<GraphSnapshot[]>([]);
@@ -884,6 +820,83 @@ function ComposerSurface(): React.JSX.Element {
     ) ??
     guidedPaths.find((item) => item.workflow) ??
     guidedPaths[0];
+  const selectedGuidedWorkflow = selectedGuidedPath?.workflow;
+
+  useEffect(() => {
+    if (!selectedGuidedWorkflow) {
+      setGuidedReadiness({
+        status: "idle",
+        message: "No published runtime is attached to this path",
+      });
+      return;
+    }
+    let cancelled = false;
+    setGuidedReadiness({
+      status: "checking",
+      message: "Checking workers against pinned runtime digests",
+    });
+    const check = async () => {
+      try {
+        const target = executionTarget(
+          selectedGuidedWorkflow.definition,
+          capabilities,
+        );
+        const index = capabilityOperationIndex(capabilities);
+        const groups = new Map<string, Set<string>>();
+        for (const node of selectedGuidedWorkflow.definition.spec.nodes) {
+          const resolved = index.get(
+            `${node.operation.capability}@${node.operation.version}/${node.operation.operation}`,
+          );
+          if (!resolved) {
+            throw new Error(`Operation ${node.id} is missing from the registry.`);
+          }
+          const executionClass =
+            node.execution_class ??
+            (target === "local-development"
+              ? "interactive-local"
+              : "batch-hpc");
+          const digests = groups.get(executionClass) ?? new Set<string>();
+          digests.add(resolved.operation.runtime.digest);
+          groups.set(executionClass, digests);
+        }
+        const checks = await Promise.all(
+          [...groups].map(([executionClass, digests]) =>
+            composerApi.readiness(target, executionClass, [...digests]),
+          ),
+        );
+        if (cancelled) return;
+        if (checks.every((result) => result.ready)) {
+          const runtimeCount = new Set(
+            checks.flatMap((result) =>
+              result.requirements.map((item) => item.runtime_digest),
+            ),
+          ).size;
+          setGuidedReadiness({
+            status: "ready",
+            message: `Compatible worker available for ${runtimeCount} pinned runtime${runtimeCount === 1 ? "" : "s"}`,
+          });
+          return;
+        }
+        setGuidedReadiness({
+          status: "unavailable",
+          message: checks
+            .filter((result) => !result.ready)
+            .map((result) => result.reason)
+            .join(" · "),
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setGuidedReadiness({
+          status: "error",
+          message: `Readiness check failed: ${toMessage(error)}`,
+        });
+      }
+    };
+    void check();
+    return () => {
+      cancelled = true;
+    };
+  }, [capabilities, selectedGuidedWorkflow]);
 
   const markChanged = useCallback(() => {
     setPublished(null);
@@ -1311,6 +1324,11 @@ function ComposerSurface(): React.JSX.Element {
       setGuidedMessage("This published workflow is unavailable");
       return;
     }
+    if (guidedReadiness.status !== "ready") {
+      setGuidedError(true);
+      setGuidedMessage(guidedReadiness.message);
+      return;
+    }
     setGuidedQueueing(true);
     setGuidedError(false);
     setGuidedRunId(null);
@@ -1332,6 +1350,7 @@ function ComposerSurface(): React.JSX.Element {
   }, [
     guidedInputNames,
     guidedInputs,
+    guidedReadiness,
     selectedGuidedPath,
     submitPublishedWorkflow,
   ]);
@@ -1596,6 +1615,7 @@ function ComposerSurface(): React.JSX.Element {
           statusMessage={guidedMessage}
           hasError={guidedError}
           lastRunId={guidedRunId}
+          readiness={guidedReadiness}
           onSelect={selectGuidedPath}
           onInput={updateGuidedInput}
           onQueue={() => void queueGuidedRun()}
@@ -2179,6 +2199,7 @@ function GuidedComposer({
   statusMessage,
   hasError,
   lastRunId,
+  readiness,
   onSelect,
   onInput,
   onQueue,
@@ -2193,6 +2214,7 @@ function GuidedComposer({
   statusMessage: string;
   hasError: boolean;
   lastRunId: string | null;
+  readiness: ReadinessState;
   onSelect: (workflowId: string) => void;
   onInput: (
     workflowId: string,
@@ -2210,6 +2232,16 @@ function GuidedComposer({
   );
   const workflow = selectedPath?.workflow;
   const definition = selectedPath?.definition;
+  const examples = definition?.examples ??
+    (definition?.exampleContent && definition.exampleName
+      ? [
+          {
+            name: definition.exampleName,
+            label: definition.exampleLabel ?? "Load example",
+            content: definition.exampleContent,
+          },
+        ]
+      : []);
   const workflowInputs = workflow
     ? Object.entries(workflow.definition.spec.inputs)
     : [];
@@ -2366,6 +2398,35 @@ function GuidedComposer({
                     );
                   })}
                 </ol>
+                <div
+                  className={`composer-runtime-readiness is-${readiness.status}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {readiness.status === "checking" ? (
+                    <LoaderCircle
+                      size={16}
+                      className="composer-spin"
+                      aria-hidden="true"
+                    />
+                  ) : readiness.status === "ready" ? (
+                    <Check size={16} aria-hidden="true" />
+                  ) : readiness.status === "idle" ? (
+                    <Unplug size={16} aria-hidden="true" />
+                  ) : (
+                    <CircleAlert size={16} aria-hidden="true" />
+                  )}
+                  <span>
+                    <strong>
+                      {readiness.status === "ready"
+                        ? "Runtime ready"
+                        : readiness.status === "checking"
+                          ? "Checking runtime"
+                          : "Runtime unavailable"}
+                    </strong>
+                    <small>{readiness.message}</small>
+                  </span>
+                </div>
               </section>
 
               <section className="composer-guided-section">
@@ -2418,25 +2479,25 @@ function GuidedComposer({
                               }}
                             />
                           </label>
-                          {definition.exampleContent &&
-                            definition.exampleName && (
+                          {examples.map((example) => (
                               <button
                                 type="button"
                                 className="composer-button is-secondary"
+                                key={example.name}
                                 onClick={() => {
                                   setFileError(null);
                                   onInput(
                                     workflow.id,
                                     name,
-                                    definition.exampleContent ?? "",
-                                    definition.exampleName,
+                                    example.content,
+                                    example.name,
                                   );
                                 }}
                               >
                                 <FileCode2 size={14} aria-hidden="true" />
-                                {definition.exampleLabel ?? "Bell example"}
+                                {example.label}
                               </button>
-                            )}
+                          ))}
                         </div>
                       </div>
                       <textarea
@@ -2542,7 +2603,17 @@ function GuidedComposer({
                 <button
                   type="button"
                   className="composer-button is-primary"
-                  disabled={!inputReady || queueing || target === "No compatible target"}
+                  disabled={
+                    !inputReady ||
+                    queueing ||
+                    target === "No compatible target" ||
+                    readiness.status !== "ready"
+                  }
+                  title={
+                    readiness.status === "ready"
+                      ? "Run this published workflow"
+                      : readiness.message
+                  }
                   onClick={onQueue}
                 >
                   {queueing ? (
