@@ -317,7 +317,7 @@ def process_is_local_supervisor(pid: int) -> bool:
         return False
     try:
         result = subprocess.run(
-            ("ps", "-p", str(pid), "-o", "command="),
+            ("ps", "-ww", "-p", str(pid), "-o", "command="),
             capture_output=True,
             text=True,
             check=False,
@@ -901,6 +901,7 @@ def launch_local(
                 stdin=subprocess.DEVNULL,
                 stdout=log_stream,
                 stderr=subprocess.STDOUT,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
                 start_new_session=True,
             )
         except OSError as error:

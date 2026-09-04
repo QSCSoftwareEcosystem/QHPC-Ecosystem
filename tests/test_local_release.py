@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -251,6 +252,23 @@ def test_stop_does_not_signal_an_unverified_stale_pid(
 
     assert not stop_local(paths)
     assert local_release.read_local_state(paths)["status"] == "stopped"
+
+
+def test_supervisor_identity_uses_untruncated_process_command(monkeypatch) -> None:
+    captured: list[tuple[str, ...]] = []
+
+    def run(command, **_kwargs):
+        captured.append(tuple(command))
+        return SimpleNamespace(
+            returncode=0,
+            stdout="python -m qhpc_ecosystem.cli local _supervise",
+        )
+
+    monkeypatch.setattr(local_release, "process_alive", lambda _pid: True)
+    monkeypatch.setattr(local_release.subprocess, "run", run)
+
+    assert local_release.process_is_local_supervisor(4321)
+    assert captured == [("ps", "-ww", "-p", "4321", "-o", "command=")]
 
 
 def test_cli_local_status_uses_portable_home(tmp_path: Path, capsys) -> None:
