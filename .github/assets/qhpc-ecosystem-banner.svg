@@ -1,85 +1,156 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="560" viewBox="0 0 1600 560" role="img" aria-labelledby="title description">
-  <title id="title">QHPC-Ecosystem — Ecosystem for Quantum Orchestration</title>
-  <desc id="description">A Quantum Science Center and EQO-QSC branded system overview for QHPC-Ecosystem.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="630" viewBox="0 0 1600 630" role="img" aria-labelledby="title description">
+  <title id="title">QHPC-Ecosystem in the EQO-QSC Workbench</title>
+  <desc id="description">A faithful compact rendering of the QHPC-Ecosystem EQO-QSC Workbench: QSC navigation rail, overview top bar, operating metrics, live orchestration workspace, QEC-by-QHPC instrument, and event stream.</desc>
   <defs>
-    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#020406"/>
-      <stop offset=".54" stop-color="#0a131c"/>
+    <linearGradient id="canvas" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c141c"/>
+      <stop offset=".6" stop-color="#070d13"/>
       <stop offset="1" stop-color="#020406"/>
     </linearGradient>
-    <radialGradient id="nebula" cx="84%" cy="8%" r="70%">
-      <stop offset="0" stop-color="#aa1e2e" stop-opacity=".28"/>
-      <stop offset=".27" stop-color="#5b0d18" stop-opacity=".18"/>
-      <stop offset=".7" stop-color="#131e29" stop-opacity=".15"/>
-      <stop offset="1" stop-color="#020406" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#182635" stop-opacity=".92"/>
-      <stop offset="1" stop-color="#0c141c" stop-opacity=".94"/>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#182635"/>
+      <stop offset=".74" stop-color="#091017"/>
+      <stop offset="1" stop-color="#05090d"/>
     </linearGradient>
-    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
-      <path d="M42 0H0V42" fill="none" stroke="#cfd2d3" stroke-opacity=".055" stroke-width="1"/>
+    <linearGradient id="instrument" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111d29"/>
+      <stop offset="1" stop-color="#080f16"/>
+    </linearGradient>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#cfd2d3" stroke-opacity=".045"/>
     </pattern>
-    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="shadow" x="-8%" y="-12%" width="116%" height="130%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity=".36"/>
     </filter>
   </defs>
 
-  <rect width="1600" height="560" fill="url(#base)"/>
-  <rect width="1600" height="560" fill="url(#grid)"/>
-  <rect width="1600" height="560" fill="url(#nebula)"/>
-  <rect x="0" y="0" width="10" height="560" fill="#aa1e2e"/>
-  <path d="M0 482C240 423 457 563 745 479S1206 359 1600 433" fill="none" stroke="#cfd2d3" stroke-opacity=".10" stroke-width="1"/>
-  <path d="M0 518C266 458 503 579 782 510S1226 395 1600 465" fill="none" stroke="#cfd2d3" stroke-opacity=".06" stroke-width="1"/>
+  <rect width="1600" height="630" fill="url(#canvas)"/>
+  <rect x="175" width="1425" height="630" fill="url(#grid)"/>
 
-  <image x="80" y="52" width="330" height="110" preserveAspectRatio="xMinYMid meet" xlink:href="qsc-logo-white.png" href="qsc-logo-white.png"/>
-  <text x="82" y="210" fill="#91a2af" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="1.9">EQO-QSC / QHPC OVERVIEW</text>
-  <rect x="82" y="229" width="64" height="4" rx="2" fill="#aa1e2e"/>
-  <text x="80" y="313" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="64" font-weight="700" letter-spacing="-2">QHPC-Ecosystem</text>
-  <text x="82" y="358" fill="#cfd2d3" font-family="Open Sans, Arial, sans-serif" font-size="25" font-weight="400">Ecosystem for Quantum Orchestration</text>
-  <text x="82" y="405" fill="#91a2af" font-family="Open Sans, Arial, sans-serif" font-size="17">Scientific software · admitted capabilities · accountable execution</text>
-  <line x1="82" y1="455" x2="692" y2="455" stroke="#2a3846" stroke-width="1"/>
+  <!-- Persistent Workbench rail -->
+  <rect width="175" height="630" fill="#080f16"/>
+  <path d="M174.5 0V630" stroke="#1e2c3a"/>
+  <image x="25" y="28" width="126" height="42" preserveAspectRatio="xMinYMid meet" xlink:href="qsc-logo-white.png" href="qsc-logo-white.png"/>
+  <text x="25" y="104" fill="#91a0ac" font-family="ui-monospace, SFMono-Regular, monospace" font-size="9" font-weight="700" letter-spacing="1.4">EQO-QSC</text>
+  <path d="M25 118H150" stroke="#2a3846"/>
+
   <g font-family="Open Sans, Arial, sans-serif">
-    <text x="82" y="492" fill="#8293a1" font-size="12" font-weight="700" letter-spacing="1.55">CONTROL PLANE</text>
-    <text x="82" y="519" fill="#e7edf1" font-size="18" font-weight="600">Registry · workflow engine · workers</text>
+    <text x="25" y="145" fill="#7e8f9d" font-size="9" font-weight="700" letter-spacing="1.3">WORKSPACE</text>
+    <rect x="16" y="156" width="143" height="34" rx="6" fill="#1c2c3c"/>
+    <rect x="16" y="156" width="3" height="34" rx="1.5" fill="#aa1e2e"/>
+    <text x="34" y="178" fill="#f2f5f6" font-size="12" font-weight="700">Overview</text>
+    <text x="34" y="213" fill="#a9b8c3" font-size="12">Tools</text>
+    <text x="34" y="245" fill="#a9b8c3" font-size="12">Knowledge</text>
+    <text x="34" y="277" fill="#a9b8c3" font-size="12">Compose</text>
+    <text x="25" y="324" fill="#7e8f9d" font-size="9" font-weight="700" letter-spacing="1.3">EXECUTION</text>
+    <text x="34" y="357" fill="#a9b8c3" font-size="12">Runs</text>
+    <text x="34" y="389" fill="#a9b8c3" font-size="12">Artifacts</text>
+  </g>
+  <g transform="translate(16 551)" font-family="Open Sans, Arial, sans-serif">
+    <rect width="143" height="56" rx="7" fill="#0c141c" stroke="#2a3846"/>
+    <circle cx="17" cy="20" r="4" fill="#3dbf87"/>
+    <text x="29" y="24" fill="#e7edf1" font-size="10" font-weight="700">CONTROL PLANE</text>
+    <text x="16" y="43" fill="#7e8f9d" font-size="9">Connected workspace</text>
   </g>
 
-  <g transform="translate(862 62)">
-    <rect width="658" height="406" rx="12" fill="url(#panel)" stroke="#2a3846" stroke-width="1.2"/>
-    <rect width="658" height="54" rx="12" fill="#131e29"/>
-    <path d="M0 54H658" stroke="#2a3846" stroke-width="1"/>
-    <circle cx="32" cy="27" r="7" fill="#aa1e2e" filter="url(#softGlow)"/>
-    <text x="52" y="32" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing=".45">SYSTEM / EXECUTION STATUS</text>
-    <text x="610" y="32" text-anchor="end" fill="#91a2af" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12">EQO</text>
+  <!-- Exact Workbench top bar -->
+  <rect x="175" y="0" width="1425" height="76" fill="#060c12" fill-opacity=".92"/>
+  <path d="M175 75.5H1600" stroke="#2a3846" stroke-opacity=".65"/>
+  <g font-family="Open Sans, Arial, sans-serif">
+    <text x="205" y="27" fill="#91a0ac" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700" letter-spacing="1.2">QHPC / OVERVIEW</text>
+    <text x="205" y="53" fill="#f4f7f8" font-size="22" font-weight="650">QHPC-Ecosystem</text>
+  </g>
+  <g transform="translate(1200 18)" font-family="Open Sans, Arial, sans-serif">
+    <rect width="196" height="40" rx="6" fill="#ffffff" fill-opacity=".055" stroke="#cfd2d3" stroke-opacity=".22"/>
+    <circle cx="19" cy="19" r="5" fill="none" stroke="#91a0ac" stroke-width="1.4"/>
+    <path d="M23 23L27 27" stroke="#91a0ac" stroke-width="1.4"/>
+    <text x="38" y="25" fill="#91a0ac" font-size="12">Search workspace</text>
+    <rect x="208" width="150" height="40" rx="6" fill="#aa1e2e" fill-opacity=".18" stroke="#aa1e2e"/>
+    <path d="M223 12l6-4 6 4v8l-6 4-6-4z" fill="#aa1e2e"/>
+    <text x="244" y="25" fill="#fff" font-size="12" font-weight="700">Ask ChatQEC</text>
+  </g>
 
-    <path d="M90 125H508" fill="none" stroke="#35485a" stroke-width="2"/>
-    <path d="M90 204H508" fill="none" stroke="#35485a" stroke-width="2"/>
-    <path d="M90 283H508" fill="none" stroke="#35485a" stroke-width="2"/>
-    <path d="M117 125V204H278V283H440" fill="none" stroke="#4fa3e3" stroke-opacity=".7" stroke-width="2"/>
-
-    <g font-family="Open Sans, Arial, sans-serif">
-      <rect x="44" y="94" width="174" height="62" rx="7" fill="#131e29" stroke="#35485a"/>
-      <text x="63" y="120" fill="#91a2af" font-size="11" font-weight="700" letter-spacing="1.3">REPOSITORIES</text>
-      <text x="63" y="141" fill="#e7edf1" font-size="15" font-weight="600">Scientific software</text>
-      <circle cx="198" cy="110" r="5" fill="#3dbf87"/>
-
-      <rect x="257" y="173" width="174" height="62" rx="7" fill="#131e29" stroke="#4fa3e3" stroke-width="1.4"/>
-      <text x="276" y="199" fill="#91a2af" font-size="11" font-weight="700" letter-spacing="1.3">CAPABILITIES</text>
-      <text x="276" y="220" fill="#e7edf1" font-size="15" font-weight="600">Pinned &amp; admitted</text>
-      <circle cx="411" cy="189" r="5" fill="#4fa3e3"/>
-
-      <rect x="440" y="252" width="174" height="62" rx="7" fill="#131e29" stroke="#35485a"/>
-      <text x="459" y="278" fill="#91a2af" font-size="11" font-weight="700" letter-spacing="1.3">EXECUTION</text>
-      <text x="459" y="299" fill="#e7edf1" font-size="15" font-weight="600">Local or HPC target</text>
-      <circle cx="594" cy="268" r="5" fill="#3dbf87"/>
+  <!-- Workbench summary strip -->
+  <rect x="175" y="76" width="1425" height="72" fill="#04080c" fill-opacity=".82"/>
+  <path d="M175 147.5H1600" stroke="#2a3846" stroke-opacity=".65"/>
+  <g transform="translate(205 0)" font-family="Open Sans, Arial, sans-serif">
+    <g>
+      <text x="0" y="106" fill="#f2f5f6" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" font-weight="700">QSC</text>
+      <text x="0" y="128" fill="#aeb9c1" font-size="10">source software</text>
+      <rect x="0" y="137" width="184" height="3" rx="1.5" fill="#2a3846"/><rect x="0" y="137" width="116" height="3" rx="1.5" fill="#4fa3e3"/>
     </g>
-
-    <g transform="translate(44 342)" font-family="ui-monospace, SFMono-Regular, monospace">
-      <rect width="570" height="36" rx="6" fill="#080f16" stroke="#2a3846"/>
-      <text x="16" y="23" fill="#8293a1" font-size="12">QHPC</text>
-      <text x="88" y="23" fill="#e7edf1" font-size="12">provenance retained across every attempt</text>
-      <text x="546" y="23" text-anchor="end" fill="#e46472" font-size="12">● LIVE</text>
+    <g transform="translate(232 0)">
+      <text x="0" y="106" fill="#f2f5f6" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" font-weight="700">TYPED</text>
+      <text x="0" y="128" fill="#aeb9c1" font-size="10">workflow contracts</text>
+      <rect x="0" y="137" width="184" height="3" rx="1.5" fill="#2a3846"/><rect x="0" y="137" width="134" height="3" rx="1.5" fill="#aa1e2e"/>
     </g>
+    <g transform="translate(464 0)">
+      <text x="0" y="106" fill="#f2f5f6" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" font-weight="700">GATED</text>
+      <text x="0" y="128" fill="#aeb9c1" font-size="10">worker admission</text>
+      <rect x="0" y="137" width="184" height="3" rx="1.5" fill="#2a3846"/><rect x="0" y="137" width="104" height="3" rx="1.5" fill="#c9963f"/>
+    </g>
+    <g transform="translate(696 0)">
+      <text x="0" y="106" fill="#f2f5f6" font-family="ui-monospace, SFMono-Regular, monospace" font-size="20" font-weight="700">TRACE</text>
+      <text x="0" y="128" fill="#aeb9c1" font-size="10">results provenance</text>
+      <rect x="0" y="137" width="184" height="3" rx="1.5" fill="#2a3846"/><rect x="0" y="137" width="150" height="3" rx="1.5" fill="#3dbf87"/>
+    </g>
+  </g>
+
+  <!-- Command deck, modeled on the actual Overview -->
+  <g filter="url(#shadow)">
+    <rect x="205" y="176" width="1365" height="410" rx="16" fill="#04080c" fill-opacity=".94" stroke="#cfd2d3" stroke-opacity=".18"/>
+    <path d="M1000 176V586" stroke="#cfd2d3" stroke-opacity=".14"/>
+    <rect x="206" y="177" width="793" height="408" rx="15" fill="url(#core)"/>
+  </g>
+  <g transform="translate(250 226)" font-family="Open Sans, Arial, sans-serif">
+    <rect x="0" y="-8" width="10" height="11" fill="#aa1e2e"/>
+    <text x="20" y="2" fill="#e8b8be" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700" letter-spacing="1.25">EQO-QSC / LIVE ORCHESTRATION</text>
+    <text x="0" y="73" fill="#fff" font-size="42" font-weight="600" letter-spacing="-1.8">Integrate quantum–classical</text>
+    <text x="0" y="118" fill="#fff" font-size="42" font-weight="600" letter-spacing="-1.8">workflows across QHPC systems</text>
+    <text x="0" y="156" fill="#bcc7ce" font-size="14">Compose typed pipelines across quantum runtimes and HPC resources,</text>
+    <text x="0" y="178" fill="#bcc7ce" font-size="14">with explicit admission and provenance throughout the QSC ecosystem.</text>
+    <rect x="0" y="206" width="192" height="45" rx="6" fill="#aa1e2e"/>
+    <text x="17" y="234" fill="#fff" font-size="13" font-weight="700">Compose a workflow</text>
+    <text x="169" y="234" fill="#fff" font-size="17">→</text>
+    <text x="218" y="234" fill="#dce3e7" font-size="13" font-weight="700">Explore showcases</text>
+    <path d="M218 243H358" stroke="#cfd2d3" stroke-opacity=".4"/>
+    <text x="0" y="288" fill="#aeb9c1" font-size="10" font-weight="700" letter-spacing="1.1">QUICK COMPOSE</text>
+    <text x="0" y="314" fill="#f4f7f8" font-size="15" font-weight="700">Published starting points</text>
+    <text x="602" y="314" text-anchor="end" fill="#8d9aa5" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10">WORKBENCH</text>
+    <path d="M0 332H705" stroke="#cfd2d3" stroke-opacity=".18"/>
+    <text x="0" y="359" fill="#b86470" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700">01</text>
+    <text x="38" y="356" fill="#f4f7f8" font-size="13" font-weight="700">Capability-aware quantum–HPC run</text>
+    <text x="38" y="374" fill="#aeb9c1" font-size="10">pinned contract · compatible worker · declared outputs</text>
+    <text x="680" y="358" text-anchor="end" fill="#e7edf1" font-size="17">↗</text>
+  </g>
+
+  <!-- QEC × QHPC instrument -->
+  <g transform="translate(1030 204)" font-family="Open Sans, Arial, sans-serif">
+    <text x="0" y="12" fill="#aeb9c1" font-size="10" font-weight="700" letter-spacing="1.1">QEC × QHPC INSTRUMENT</text>
+    <text x="0" y="38" fill="#f4f7f8" font-size="16" font-weight="700">Logical-qubit control loop</text>
+    <rect x="0" y="59" width="510" height="154" rx="9" fill="url(#instrument)" stroke="#35485a"/>
+    <g font-family="ui-monospace, SFMono-Regular, monospace" font-size="10">
+      <text x="22" y="87" fill="#91a0ac">ENCODE</text><text x="168" y="87" fill="#91a0ac">ORCHESTRATE</text><text x="359" y="87" fill="#91a0ac">DECODE</text>
+      <path d="M38 113H458" stroke="#35485a" stroke-width="2"/>
+      <path d="M110 113H171M265 113H359" stroke="#4fa3e3" stroke-width="2"/>
+      <path d="M151 109l8 4-8 4M345 109l8 4-8 4" fill="none" stroke="#4fa3e3" stroke-width="1.5"/>
+      <rect x="26" y="100" width="82" height="27" rx="4" fill="#182635" stroke="#4fa3e3"/>
+      <rect x="171" y="100" width="94" height="27" rx="4" fill="#182635" stroke="#aa1e2e"/>
+      <rect x="359" y="100" width="82" height="27" rx="4" fill="#182635" stroke="#3dbf87"/>
+      <text x="67" y="118" text-anchor="middle" fill="#e7edf1">QEC</text><text x="218" y="118" text-anchor="middle" fill="#e7edf1">QHPC</text><text x="400" y="118" text-anchor="middle" fill="#e7edf1">QPU</text>
+      <text x="25" y="153" fill="#7e8f9d">logical state</text><text x="153" y="153" fill="#e46472">admitted task</text><text x="328" y="153" fill="#3dbf87">syndrome + result</text>
+      <path d="M40 174H433" stroke="#2a3846"/>
+      <circle cx="48" cy="174" r="4" fill="#3dbf87"/><text x="62" y="178" fill="#aeb9c1">Explanatory sequence · not live telemetry</text>
+    </g>
+  </g>
+
+  <!-- Event stream -->
+  <g transform="translate(1030 455)" font-family="Open Sans, Arial, sans-serif">
+    <text x="0" y="10" fill="#aeb9c1" font-size="10" font-weight="700" letter-spacing="1.1">EVENT STREAM</text>
+    <text x="0" y="35" fill="#f4f7f8" font-size="16" font-weight="700">Recent runs</text>
+    <text x="509" y="35" text-anchor="end" fill="#aeb9c1" font-size="11">View all</text>
+    <path d="M0 51H510" stroke="#cfd2d3" stroke-opacity=".16"/>
+    <circle cx="7" cy="74" r="4" fill="#3dbf87"/><text x="22" y="78" fill="#e7edf1" font-size="12" font-weight="700">run / capability-aware</text><text x="510" y="78" text-anchor="end" fill="#3dbf87" font-size="10" font-weight="700">READY</text>
+    <circle cx="7" cy="102" r="4" fill="#4fa3e3"/><text x="22" y="106" fill="#e7edf1" font-size="12" font-weight="700">contract / workflow-v1</text><text x="510" y="106" text-anchor="end" fill="#aeb9c1" font-size="10">PINNED</text>
   </g>
 </svg>

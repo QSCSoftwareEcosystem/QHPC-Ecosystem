@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="520" viewBox="0 0 1600 520" role="img" aria-labelledby="title description">
+  <title id="title">Open the QHPC-Ecosystem workflow sandbox</title>
+  <desc id="description">A compact EQO-QSC Workbench launch card for the interactive controlled scientific-run workflow.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#020406"/><stop offset=".62" stop-color="#0c141c"/><stop offset="1" stop-color="#070d13"/></linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#182635"/><stop offset="1" stop-color="#080f16"/></linearGradient>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#cfd2d3" stroke-opacity=".045"/></pattern>
+  </defs>
+  <rect width="1600" height="520" fill="url(#background)"/>
+  <rect x="250" width="1350" height="520" fill="url(#grid)"/>
+
+  <rect width="250" height="520" fill="#080f16"/>
+  <path d="M249.5 0V520" stroke="#2a3846"/>
+  <image x="34" y="34" width="175" height="58" preserveAspectRatio="xMinYMid meet" xlink:href="qsc-logo-white.png" href="qsc-logo-white.png"/>
+  <text x="34" y="138" fill="#91a2af" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" letter-spacing="1.6">EQO-QSC</text>
+  <path d="M34 158H215" stroke="#2a3846"/>
+  <text x="34" y="205" fill="#91a2af" font-family="Open Sans, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="1.4">WORKFLOW</text>
+  <text x="34" y="239" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="23" font-weight="700">Figure 01</text>
+  <text x="34" y="274" fill="#cfd2d3" font-family="Open Sans, Arial, sans-serif" font-size="14">Controlled scientific run</text>
+  <text x="34" y="332" fill="#8b9ba8" font-family="Open Sans, Arial, sans-serif" font-size="13">An interactive Archify workflow</text>
+  <text x="34" y="352" fill="#8b9ba8" font-family="Open Sans, Arial, sans-serif" font-size="13">inside an EQO-QSC frame.</text>
+  <circle cx="42" cy="460" r="5" fill="#3dbf87"/>
+  <text x="58" y="465" fill="#aeb9c1" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11">INTERACTIVE</text>
+
+  <text x="298" y="82" fill="#91a2af" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" letter-spacing="1.5">QHPC / CONTROLLED RUN</text>
+  <text x="298" y="142" fill="#f2f5f6" font-family="Open Sans, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="-1">Explore the workflow</text>
+  <text x="298" y="181" fill="#cfd2d3" font-family="Open Sans, Arial, sans-serif" font-size="18">Discover, compose, admit, execute, and inspect accountable results.</text>
+  <rect x="298" y="230" width="226" height="50" rx="6" fill="#aa1e2e"/>
+  <text x="322" y="261" fill="#fff" font-family="Open Sans, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing=".3">OPEN SANDBOX  ↗</text>
+  <text x="298" y="333" fill="#8b9ba8" font-family="Open Sans, Arial, sans-serif" font-size="14">Guided views show the admission gate, execution policy, and returned evidence.</text>
+
+  <g transform="translate(1052 68)" font-family="Open Sans, Arial, sans-serif">
+    <rect width="478" height="377" rx="11" fill="url(#panel)" stroke="#35485a"/>
+    <rect width="478" height="47" rx="11" fill="#131e29"/>
+    <path d="M0 47H478" stroke="#35485a"/>
+    <circle cx="23" cy="24" r="5" fill="#aa1e2e"/>
+    <text x="39" y="28" fill="#f2f5f6" font-size="12" font-weight="700" letter-spacing=".5">WORKFLOW SANDBOX</text>
+    <text x="445" y="28" text-anchor="end" fill="#8b9ba8" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10">FIG 01</text>
+
+    <g transform="translate(25 78)" font-family="ui-monospace, SFMono-Regular, monospace">
+      <text x="0" y="0" fill="#91a2af" font-size="10" font-weight="700">SCIENTIFIC INTENT</text>
+      <path d="M39 48H395" stroke="#35485a" stroke-width="2"/>
+      <path d="M106 48H129M215 48H238M324 48H347" stroke="#4fa3e3" stroke-width="2"/>
+      <path d="M119 44l8 4-8 4M228 44l8 4-8 4M337 44l8 4-8 4" fill="none" stroke="#4fa3e3" stroke-width="1.4"/>
+      <g font-size="9" font-weight="700">
+        <rect x="0" y="29" width="74" height="38" rx="5" fill="#131e29" stroke="#4fa3e3"/><text x="37" y="52" text-anchor="middle" fill="#e7edf1">DISCOVER</text>
+        <rect x="109" y="29" width="74" height="38" rx="5" fill="#131e29" stroke="#4fa3e3"/><text x="146" y="52" text-anchor="middle" fill="#e7edf1">COMPOSE</text>
+        <rect x="218" y="29" width="74" height="38" rx="5" fill="#33161b" stroke="#e46472"/><text x="255" y="52" text-anchor="middle" fill="#fff">ADMIT</text>
+        <rect x="327" y="29" width="74" height="38" rx="5" fill="#103124" stroke="#3dbf87"/><text x="364" y="52" text-anchor="middle" fill="#fff">EXECUTE</text>
+      </g>
+      <text x="0" y="104" fill="#91a2af" font-size="10" font-weight="700">EVIDENCE RETURN</text>
+      <path d="M37 144H361" stroke="#5c3db5" stroke-width="2" stroke-dasharray="5 4"/>
+      <path d="M350 140l9 4-9 4" fill="none" stroke="#9b6dff" stroke-width="1.4"/>
+      <rect x="304" y="125" width="97" height="38" rx="5" fill="#251448" stroke="#9b6dff"/>
+      <text x="352" y="148" text-anchor="middle" fill="#f2f5f6" font-size="9" font-weight="700">INSPECT</text>
+      <path d="M37 198H401" stroke="#2a3846"/>
+      <circle cx="7" cy="217" r="4" fill="#aa1e2e"/>
+      <text x="21" y="221" fill="#e46472" font-size="10">STOP before queueing if no compatible worker</text>
+    </g>
+  </g>
+</svg>

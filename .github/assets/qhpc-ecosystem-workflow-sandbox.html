@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>EQO-QSC · QHPC Workflow Sandbox</title>
+  <style>
+    :root { --red:#aa1e2e; --blue:#131e29; --paper:#0c141c; --rail:#080f16; --ink:#e7edf1; --muted:#8b9ba8; --line:#253444; --focus:#4fa3e3; --ok:#3dbf87; color:var(--ink); background:#020406; font-family:"Open Sans","Segoe UI",Arial,sans-serif; }
+    * { box-sizing:border-box; }
+    body { min-width:320px; min-height:100vh; margin:0; background:linear-gradient(145deg,#0c141c,#020406 72%); }
+    a:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+    .shell { display:grid; grid-template-columns:178px minmax(0,1fr); min-height:100vh; }
+    .rail { display:flex; flex-direction:column; gap:20px; padding:22px 16px 18px; border-right:1px solid var(--line); background:var(--rail); }
+    .brand { padding:2px 4px 16px; border-bottom:1px solid var(--line); }
+    .brand img { display:block; width:142px; height:auto; }
+    .product { margin:13px 0 3px; color:#fff; font-size:14px; font-weight:700; }
+    .product-detail,.rail-copy { margin:0; color:var(--muted); font-size:11px; line-height:1.5; }
+    .rail-label,.eyebrow { margin:0; color:#91a2af; font:700 10px/1.2 ui-monospace,"SFMono-Regular",monospace; letter-spacing:.12em; }
+    .figure-number { margin:7px 0 5px; color:#fff; font-size:20px; font-weight:700; }
+    .nav { display:grid; gap:4px; }
+    .nav span { padding:8px 10px; color:#a9b8c3; border-radius:6px; font-size:12px; }
+    .nav .active { border-left:3px solid var(--red); border-radius:0 6px 6px 0; background:#1c2c3c; color:#fff; font-weight:700; }
+    .status { display:grid; grid-template-columns:9px 1fr; gap:9px; align-items:start; margin-top:auto; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; line-height:1.45; }
+    .status-dot { width:9px; height:9px; margin-top:3px; background:var(--ok); clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%); }
+    .status strong { display:block; color:var(--ink); font-size:12px; }
+    .workspace { min-width:0; padding:22px 24px 24px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:20px; min-height:62px; margin-bottom:16px; }
+    .topbar h1 { margin:4px 0 0; color:#fff; font-size:24px; line-height:1.15; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; }
+    .action { display:inline-flex; align-items:center; min-height:36px; padding:0 13px; border:1px solid #35485a; border-radius:6px; color:var(--ink); background:rgba(19,30,41,.84); font-size:12px; font-weight:700; text-decoration:none; transition:background 140ms ease,border-color 140ms ease; }
+    .action:hover { border-color:#4fa3e3; background:#182635; }
+    .action.primary { border-color:var(--red); background:var(--red); color:#fff; }
+    .action.primary:hover { border-color:#bc2638; background:#bc2638; }
+    .frame { position:relative; min-height:620px; height:calc(100vh - 124px); overflow:hidden; border:1px solid #35485a; border-radius:10px; background:var(--paper); box-shadow:0 18px 42px rgba(0,0,0,.3); }
+    iframe { display:block; width:100%; height:100%; border:0; background:var(--paper); }
+    .frame-note { position:absolute; z-index:2; right:14px; bottom:12px; margin:0; padding:7px 10px; border:1px solid rgba(207,210,211,.14); border-radius:5px; color:var(--muted); background:rgba(8,15,22,.82); font:11px/1.2 ui-monospace,"SFMono-Regular",monospace; pointer-events:none; }
+    @media (max-width:800px) { .shell { display:block; } .rail { display:grid; grid-template-columns:146px 1fr; gap:14px 22px; padding:16px; border-right:0; border-bottom:1px solid var(--line); } .brand { grid-row:span 2; padding:2px 12px 2px 0; border-right:1px solid var(--line); border-bottom:0; } .brand img { width:132px; } .status { display:none; } .workspace { padding:16px; } .topbar { align-items:flex-start; } .frame { height:680px; min-height:0; } }
+    @media (max-width:540px) { .rail { display:block; } .brand { padding:2px 0 14px; border-right:0; border-bottom:1px solid var(--line); } .rail > *+* { margin-top:14px; } .topbar { display:block; } .actions { margin-top:14px; } .frame { height:620px; } .frame-note { display:none; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <aside class="rail" aria-label="EQO-QSC workflow sandbox context">
+      <section class="brand">
+        <img src="qsc-logo-white.png" alt="Quantum Science Center">
+        <p class="product">EQO-QSC</p>
+        <p class="product-detail">Ecosystem for Quantum Orchestration</p>
+      </section>
+      <nav class="nav" aria-label="Workbench sections">
+        <span>Overview</span><span>Compose</span><span class="active">Workflow · Figure 01</span><span>Runs</span>
+      </nav>
+      <section aria-labelledby="figure-label">
+        <p class="rail-label" id="figure-label">CONTROLLED RUN</p>
+        <p class="figure-number">Figure 01</p>
+        <p class="rail-copy">Trace a scientific operation from discovery through admission, execution, and inspectable evidence.</p>
+      </section>
+      <div class="status" aria-label="Workflow explorer status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span><strong>Interactive workflow</strong>Use the native views, focus, trace, and export controls in the embedded explorer.</span>
+      </div>
+    </aside>
+    <section class="workspace" aria-label="QHPC workflow explorer">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">QHPC / CONTROLLED RUN</p>
+          <h1>Workflow sandbox</h1>
+        </div>
+        <nav class="actions" aria-label="Workflow explorer actions">
+          <a class="action" href="../../README.md">README</a>
+          <a class="action primary" href="qhpc-ecosystem-workflow.html" target="_blank" rel="noopener">Open full window ↗</a>
+        </nav>
+      </header>
+      <div class="frame">
+        <iframe src="qhpc-ecosystem-workflow.html" title="Interactive QHPC-Ecosystem controlled-run workflow">
+          <p>Your browser cannot display the explorer. <a href="qhpc-ecosystem-workflow.html">Open the full interactive workflow.</a></p>
+        </iframe>
+        <p class="frame-note" aria-hidden="true">Native Archify workflow · interactive</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/qhpc-ecosystem-banner.png" alt="QHPC-Ecosystem — QSC scientific software, pinned capabilities, and accountable HPC runs" width="100%">
+  <img src=".github/assets/qhpc-ecosystem-banner.png" alt="QHPC-Ecosystem in the EQO-QSC Workbench" width="100%">
 </p>
 
 # QHPC-Ecosystem
@@ -11,16 +11,16 @@ versioned API, and browser workbench. Scientific source repositories remain
 independent.
 
 <p align="center">
-  <a href=".github/assets/qhpc-ecosystem-architecture-sandbox.html">
-    <img src=".github/assets/qhpc-ecosystem-architecture-launcher.png" alt="Figure 1 — Open the QHPC-Ecosystem architecture sandbox" width="920">
+  <a href=".github/assets/qhpc-ecosystem-workflow-sandbox.html">
+    <img src=".github/assets/qhpc-ecosystem-workflow-launcher.png" alt="Figure 1 — Open the QHPC-Ecosystem controlled-run workflow sandbox" width="920">
   </a>
 </p>
 
-*Figure 1. QHPC-Ecosystem connects independent QSC scientific software to
-attributed capabilities, durable run control, compatible workers, and
-reproducible local or HPC execution. [Open the architecture sandbox](.github/assets/qhpc-ecosystem-architecture-sandbox.html)
-for the complete interactive map, including guided views, source references,
-search, focus, and route tracing.*
+*Figure 1. A QHPC-Ecosystem scientific run proceeds from QSC software discovery
+and typed composition through pinned-capability admission, worker leasing, and
+policy-controlled execution to inspectable artifacts and provenance. [Open the
+workflow sandbox](.github/assets/qhpc-ecosystem-workflow-sandbox.html) for
+guided views, focus, trace, and export controls.*
 
 Remaining deployment dependencies are tracked in
 [docs/deployment-readiness.md](docs/deployment-readiness.md). The target

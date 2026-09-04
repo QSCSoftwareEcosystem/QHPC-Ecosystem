@@ -1,0 +1,147 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "QHPC-Ecosystem | From scientific intent to accountable result",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "prepare-and-admit",
+        "label": "Prepare and admit",
+        "focus": ["discover", "compose", "registry", "admit"],
+        "note": "A scientific operation becomes runnable only after its pinned capability and execution requirements are resolved."
+      },
+      {
+        "id": "controlled-execution",
+        "label": "Controlled execution",
+        "focus": ["admit", "lease", "policy", "execute"],
+        "note": "Healthy compatible workers receive persistent leases and follow the declared local, pilot, or batch policy."
+      },
+      {
+        "id": "evidence-return",
+        "label": "Evidence and return",
+        "focus": ["execute", "collect", "inspect"],
+        "note": "Outputs, attempt metadata, and provenance return to the scientific workspace for inspection."
+      }
+    ]
+  },
+  "lanes": [
+    { "id": "scientist", "label": "Scientist / Workbench" },
+    { "id": "registry", "label": "Capability governance" },
+    { "id": "control", "label": "QHPC control plane" },
+    { "id": "execution", "label": "Controlled execution and evidence" }
+  ],
+  "phases": [
+    { "id": "intent", "label": "Scientific intent", "fromCol": 0, "toCol": 1 },
+    { "id": "admission", "label": "Admission", "fromCol": 2, "toCol": 2, "variant": "security" },
+    { "id": "dispatch", "label": "Dispatch and execute", "fromCol": 3, "toCol": 4, "variant": "emphasis" },
+    { "id": "evidence", "label": "Inspect evidence", "fromCol": 5, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "admission-gate", "label": "Compatibility gate", "lane": "control", "fromCol": 2, "toCol": 3, "variant": "security" },
+    { "id": "execution-policy", "label": "Declared target policy", "lane": "execution", "fromCol": 3, "toCol": 4, "variant": "emphasis" }
+  ],
+  "mainPath": ["discover", "compose", "registry", "admit", "lease", "policy", "execute", "collect", "inspect"],
+  "semanticChecks": {
+    "allowedRoots": ["discover"],
+    "allowedTerminals": ["inspect", "unavailable"],
+    "requiredPaths": [
+      { "from": "discover", "to": "inspect" },
+      { "from": "admit", "to": "unavailable" }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "discover",
+      "lane": "scientist",
+      "col": 0,
+      "type": "external",
+      "label": "Discover",
+      "sublabel": "QSC software"
+    },
+    {
+      "id": "compose",
+      "lane": "scientist",
+      "col": 1,
+      "type": "frontend",
+      "label": "Compose",
+      "sublabel": "Workbench"
+    },
+    {
+      "id": "registry",
+      "lane": "registry",
+      "col": 1,
+      "type": "database",
+      "label": "Resolve",
+      "sublabel": "Pinned contract"
+    },
+    {
+      "id": "admit",
+      "lane": "control",
+      "col": 2,
+      "type": "security",
+      "label": "Admit run",
+      "sublabel": "Target + worker",
+      "tag": "before queueing"
+    },
+    {
+      "id": "lease",
+      "lane": "control",
+      "col": 3,
+      "type": "backend",
+      "label": "Lease worker",
+      "sublabel": "Persistent lease"
+    },
+    {
+      "id": "policy",
+      "lane": "execution",
+      "col": 3,
+      "type": "cloud",
+      "label": "Apply policy",
+      "sublabel": "Run policy"
+    },
+    {
+      "id": "execute",
+      "lane": "execution",
+      "col": 4,
+      "type": "backend",
+      "label": "Run operation",
+      "sublabel": "Container / Slurm"
+    },
+    {
+      "id": "collect",
+      "lane": "execution",
+      "col": 5,
+      "type": "database",
+      "label": "Collect",
+      "sublabel": "Artifacts"
+    },
+    {
+      "id": "inspect",
+      "lane": "scientist",
+      "col": 5,
+      "type": "frontend",
+      "label": "Inspect",
+      "sublabel": "Results"
+    },
+    {
+      "id": "unavailable",
+      "lane": "control",
+      "col": 5,
+      "type": "security",
+      "label": "Stop run",
+      "sublabel": "No worker"
+    }
+  ],
+  "edges": [
+    { "id": "choose-operation", "from": "discover", "to": "compose", "label": "select operation", "role": "main", "variant": "emphasis" },
+    { "id": "resolve-capability", "from": "compose", "to": "registry", "label": "resolve capability", "role": "main" },
+    { "id": "check-admission", "from": "registry", "to": "admit", "label": "validate requirements", "role": "main", "variant": "security" },
+    { "id": "assign-attempt", "from": "admit", "to": "lease", "label": "create task attempt", "role": "main", "variant": "emphasis" },
+    { "id": "choose-policy", "from": "lease", "to": "policy", "label": "dispatch", "role": "main" },
+    { "id": "execute-operation", "from": "policy", "to": "execute", "label": "run controlled operation", "role": "main", "variant": "emphasis" },
+    { "id": "collect-outputs", "from": "execute", "to": "collect", "label": "collect declared outputs", "role": "main" },
+    { "id": "review-evidence", "from": "collect", "to": "inspect", "label": "return results and provenance", "role": "return", "variant": "dashed", "fromSide": "top", "toSide": "top", "via": [[1052.4, 440], [30, 440], [30, 60], [1052.4, 60]], "labelSegment": 3 },
+    { "id": "reject-unavailable", "from": "admit", "to": "unavailable", "label": "incompatible or unhealthy", "role": "error", "variant": "security" }
+  ]
+}
