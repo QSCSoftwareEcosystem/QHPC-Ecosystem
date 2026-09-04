@@ -10,6 +10,16 @@ permissions:
   contents: read
 
 jobs:
+  dependency-audit:
+    name: Audit Workbench dependency graph
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
+    with:
+      scan-args: |-
+        --lockfile=./workbench/frontend/package-lock.json
+      fail-on-vuln: true
+      upload-sarif: false
+      runs-on: ubuntu-24.04
+
   portable-release:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
@@ -32,12 +42,6 @@ jobs:
         run: python -m pip install --upgrade pip setuptools wheel '.[dev,local]'
       - name: Build and verify release candidate
         run: python tools/build_local_release.py
-      - name: Audit Workbench dependency graph
-        if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.12'
-        timeout-minutes: 2
-        run: >-
-          npm audit --audit-level=high --prefix workbench/frontend
-          --fetch-retries=0 --fetch-timeout=30000
       - name: Verify installed lifecycle outside the checkout
         run: python tools/verify_installed_local_release.py dist/qhpc_ecosystem-0.1.0-py3-none-any.whl
       - name: Verify release checksums

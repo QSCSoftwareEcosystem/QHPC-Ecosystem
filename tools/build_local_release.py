@@ -97,7 +97,10 @@ def build_local_release(output_dir: Path) -> tuple[Path, Path, Path]:
     if npm is None:
         raise ReleaseBuildError("npm is required to build the EQO Workbench")
 
-    _run((npm, "ci", "--prefix", str(FRONTEND)))
+    # Vulnerability scanning is a separate release gate.  Suppress npm's
+    # implicit audit request here so a package-registry advisory outage cannot
+    # stall an otherwise reproducible install and build.
+    _run((npm, "ci", "--no-audit", "--prefix", str(FRONTEND)))
     _run((npm, "run", "check", "--prefix", str(FRONTEND)))
     _run((npm, "test", "--prefix", str(FRONTEND)))
     _run((npm, "run", "build", "--prefix", str(FRONTEND)))

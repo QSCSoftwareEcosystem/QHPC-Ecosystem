@@ -37,8 +37,8 @@ def test_release_builder_runs_clean_frontend_and_python_gates(
         tmp_path / "dist"
     )
 
-    assert [command[1:3] for command in commands[:4]] == [
-        ("ci", "--prefix"),
+    assert commands[0][1:4] == ("ci", "--no-audit", "--prefix")
+    assert [command[1:3] for command in commands[1:4]] == [
         ("run", "check"),
         ("test", "--prefix"),
         ("run", "build"),
