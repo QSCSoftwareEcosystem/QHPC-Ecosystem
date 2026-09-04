@@ -12,13 +12,21 @@ permissions:
 jobs:
   dependency-audit:
     name: Audit Workbench dependency graph
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
-    with:
-      scan-args: |-
-        --lockfile=./workbench/frontend/package-lock.json
-      fail-on-vuln: true
-      upload-sarif: false
-      runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Scan the Workbench lockfile with OSV-Scanner 2.5.0
+        env:
+          OSV_SCANNER_SHA256: edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c
+        run: |
+          curl --fail --location --retry 3 \
+            --output "${RUNNER_TEMP}/osv-scanner" \
+            https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-scanner_linux_amd64
+          echo "${OSV_SCANNER_SHA256}  ${RUNNER_TEMP}/osv-scanner" | sha256sum --check --
+          chmod +x "${RUNNER_TEMP}/osv-scanner"
+          "${RUNNER_TEMP}/osv-scanner" scan source \
+            --lockfile=workbench/frontend/package-lock.json
 
   portable-release:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
