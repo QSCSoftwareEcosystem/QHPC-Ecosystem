@@ -21,7 +21,7 @@ from pathlib import Path
 from threading import Event
 from typing import Any, Mapping, Sequence
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import ProxyHandler, build_opener
 
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
 from .local_runtime import list_local_runtimes
@@ -30,6 +30,7 @@ from .local_runtime import list_local_runtimes
 LOCAL_SCHEMA_VERSION = 1
 LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
 MINIMUM_FREE_BYTES = 512 * 1024 * 1024
+_DIRECT_OPENER = build_opener(ProxyHandler({}))
 
 
 class LocalReleaseError(RuntimeError):
@@ -334,7 +335,7 @@ def process_is_local_supervisor(pid: int) -> bool:
 
 
 def _fetch_json(url: str, *, timeout_seconds: float = 0.75) -> Any:
-    with urlopen(url, timeout=timeout_seconds) as response:
+    with _DIRECT_OPENER.open(url, timeout=timeout_seconds) as response:
         if response.status != 200:
             raise LocalReleaseError(f"health endpoint returned {response.status}: {url}")
         return json.load(response)
@@ -817,7 +818,7 @@ def supervisor_command(
     paths: LocalPaths,
     *,
     python_executable: str = sys.executable,
-    startup_timeout_seconds: float = 30.0,
+    startup_timeout_seconds: float = 60.0,
 ) -> tuple[str, ...]:
     command = [
         python_executable,
@@ -869,7 +870,7 @@ def launch_local(
     paths: LocalPaths,
     *,
     release_version: str,
-    timeout_seconds: float = 30.0,
+    timeout_seconds: float = 60.0,
     open_browser: bool = False,
 ) -> dict[str, Any]:
     config.validate()
@@ -985,7 +986,7 @@ def supervise_local(
     paths: LocalPaths,
     *,
     release_version: str,
-    startup_timeout_seconds: float = 30.0,
+    startup_timeout_seconds: float = 60.0,
 ) -> int:
     """Run the release supervisor in the detached child process."""
 

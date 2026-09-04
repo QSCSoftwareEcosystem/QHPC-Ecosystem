@@ -212,7 +212,7 @@ def test_supervisor_command_preserves_distinct_os_paths(tmp_path: Path) -> None:
         assert command[command.index(option) + 1] == str(value)
     assert "--no-assistant" in command
     assert "slurm" not in " ".join(command).lower()
-    assert command[command.index("--startup-timeout") + 1] == "30.0"
+    assert command[command.index("--startup-timeout") + 1] == "60.0"
 
 
 def test_supervisor_command_uses_the_requested_startup_timeout(tmp_path: Path) -> None:

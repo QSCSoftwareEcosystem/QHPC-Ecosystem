@@ -12,7 +12,10 @@ import sys
 import tempfile
 import venv
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import ProxyHandler, build_opener
+
+
+_DIRECT_OPENER = build_opener(ProxyHandler({}))
 
 
 def _run(command: list[str], *, cwd: Path, environment: dict[str, str]) -> str:
@@ -42,6 +45,15 @@ def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.bind(("127.0.0.1", 0))
         return int(listener.getsockname()[1])
+
+
+def _supervisor_log_tail(home: Path, maximum_characters: int = 20_000) -> str:
+    log = home / "logs" / "local-supervisor.log"
+    try:
+        content = log.read_text(encoding="utf-8", errors="replace")
+    except OSError as error:
+        return f"supervisor log unavailable: {error}"
+    return content[-maximum_characters:] or "supervisor log is empty"
 
 
 def verify(wheel: Path) -> None:
@@ -81,7 +93,7 @@ def verify(wheel: Path) -> None:
             "--assistant-port",
             ports[2],
             "--timeout",
-            "30",
+            "60",
         ]
         down = [*base, "down", "--home", str(home)]
         try:
@@ -92,9 +104,19 @@ def verify(wheel: Path) -> None:
                         **environment,
                         "HTTP_PROXY": "http://127.0.0.1:9",
                         "HTTPS_PROXY": "http://127.0.0.1:9",
-                        "NO_PROXY": "127.0.0.1,localhost",
+                        "ALL_PROXY": "http://127.0.0.1:9",
+                        "http_proxy": "http://127.0.0.1:9",
+                        "https_proxy": "http://127.0.0.1:9",
+                        "all_proxy": "http://127.0.0.1:9",
+                        "NO_PROXY": "",
+                        "no_proxy": "",
                     }
-                _run(up, cwd=work, environment=lifecycle_environment)
+                try:
+                    _run(up, cwd=work, environment=lifecycle_environment)
+                except RuntimeError as error:
+                    raise RuntimeError(
+                        f"{error}\nSupervisor log tail:\n{_supervisor_log_tail(home)}"
+                    ) from error
                 status = json.loads(
                     _run(
                         [*base, "status", "--home", str(home), "--json"],
@@ -104,7 +126,7 @@ def verify(wheel: Path) -> None:
                 )
                 if status.get("status") != "ready":
                     raise RuntimeError("installed EQO Local stack is not ready")
-                with urlopen(
+                with _DIRECT_OPENER.open(
                     f"http://127.0.0.1:{ports[2]}/v1/health", timeout=5
                 ) as response:
                     assistant = json.load(response)

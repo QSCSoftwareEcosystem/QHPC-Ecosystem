@@ -405,10 +405,10 @@ def build_parser() -> argparse.ArgumentParser:
             f"--{name}-root", help=argparse.SUPPRESS
         )
     local_supervise.add_argument(
-        "--startup-timeout", type=float, default=30.0, help=argparse.SUPPRESS
+        "--startup-timeout", type=float, default=60.0, help=argparse.SUPPRESS
     )
     local_up.add_argument(
-        "--timeout", type=float, default=30.0, help="startup timeout in seconds"
+        "--timeout", type=float, default=60.0, help="startup timeout in seconds"
     )
     local_up.add_argument(
         "--open", action="store_true", help="open the Workbench after startup"

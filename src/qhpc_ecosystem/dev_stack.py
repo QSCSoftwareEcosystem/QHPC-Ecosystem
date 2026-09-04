@@ -11,7 +11,10 @@ from dataclasses import dataclass
 from threading import Event
 from typing import Callable, Sequence
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import ProxyHandler, build_opener
+
+
+_DIRECT_OPENER = build_opener(ProxyHandler({}))
 
 
 @dataclass(frozen=True)
@@ -249,7 +252,7 @@ class DevStackSupervisor:
             if api is None or api.poll() is not None:
                 raise RuntimeError("QHPC API exited before becoming ready")
             try:
-                with urlopen(url, timeout=1) as response:
+                with _DIRECT_OPENER.open(url, timeout=1) as response:
                     if response.status == 200:
                         return
             except (OSError, URLError):
@@ -270,7 +273,7 @@ class DevStackSupervisor:
         available: set[str] = set()
         while time.monotonic() < deadline:
             try:
-                with urlopen(url, timeout=1) as response:
+                with _DIRECT_OPENER.open(url, timeout=1) as response:
                     workers = json.load(response)
                 available = {
                     worker["id"] for worker in workers if worker.get("available")
@@ -296,7 +299,7 @@ class DevStackSupervisor:
             if process is None or process.poll() is not None:
                 raise RuntimeError(f"QHPC {name} exited before becoming ready")
             try:
-                with urlopen(url, timeout=1) as response:
+                with _DIRECT_OPENER.open(url, timeout=1) as response:
                     if response.status == 200:
                         return
             except (OSError, URLError):
