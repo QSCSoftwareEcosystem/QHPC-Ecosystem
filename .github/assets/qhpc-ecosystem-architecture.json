@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "QHPC-Ecosystem | Scientific software to accountable execution",
+    "quality_profile": "showcase",
+    "viewBox": [1300, 600],
+    "repository": {
+      "url": "https://github.com/QSCSoftwareEcosystem/QHPC-Ecosystem",
+      "revision": "2cb21f18912f337bbec7870c164cc32014b3a12c"
+    },
+    "views": [
+      {
+        "id": "scientist-path",
+        "label": "Scientific run path",
+        "focus": ["scientist", "workbench", "api", "engine", "runner", "target", "evidence"],
+        "note": "A browser request becomes an admitted, controlled operation with inspectable results."
+      },
+      {
+        "id": "capability-governance",
+        "label": "Capability governance",
+        "focus": ["repositories", "registry", "api", "engine", "runner"],
+        "note": "Repository evidence and pinned capability contracts are kept distinct from execution policy."
+      },
+      {
+        "id": "execution-choice",
+        "label": "Execution choices",
+        "focus": ["engine", "runner", "runtime", "target", "evidence"],
+        "note": "The same control plane can select compatible local or Slurm-backed execution."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "repositories",
+      "type": "external",
+      "label": "QSC source repositories",
+      "sublabel": "Independent scientific software",
+      "tag": "OpenQEvo · FTQC · ChatQEC · QFlow/QIRIS",
+      "pos": [40, 92],
+      "size": [170, 76],
+      "sources": [{ "path": "README.md", "line": 70, "end_line": 80, "label": "Integrated projects" }]
+    },
+    {
+      "id": "registry",
+      "type": "database",
+      "label": "Capability registry",
+      "sublabel": "Pinned contracts & attribution",
+      "tag": "Evidence before admission",
+      "pos": [240, 92],
+      "size": [165, 76],
+      "sources": [{ "path": "README.md", "line": 3, "end_line": 6, "label": "Integration layer" }]
+    },
+    {
+      "id": "scientist",
+      "type": "external",
+      "label": "Scientist or automation",
+      "sublabel": "Compose a scientific run",
+      "pos": [40, 286],
+      "size": [170, 70]
+    },
+    {
+      "id": "workbench",
+      "type": "frontend",
+      "label": "QHPC Workbench",
+      "sublabel": "Browser workspace",
+      "tag": "CSRF-protected origin",
+      "pos": [240, 286],
+      "size": [165, 70],
+      "sources": [{ "path": "README.md", "line": 82, "end_line": 89, "label": "Target separation" }]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Versioned QHPC API",
+      "sublabel": "Admission & orchestration",
+      "pos": [450, 286],
+      "size": [165, 70],
+      "sources": [{ "path": "README.md", "line": 82, "end_line": 89, "label": "API control plane" }]
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "Persistent workflow engine",
+      "sublabel": "Leases · attempts · health",
+      "tag": "Durable control plane",
+      "pos": [660, 286],
+      "size": [175, 70],
+      "sources": [{ "path": "docs/deployment-readiness.md", "line": 106, "end_line": 113, "label": "Durable execution" }]
+    },
+    {
+      "id": "runner",
+      "type": "backend",
+      "label": "Controlled runners",
+      "sublabel": "Compatible healthy workers",
+      "pos": [880, 286],
+      "size": [170, 70],
+      "sources": [{ "path": "README.md", "line": 82, "end_line": 100, "label": "Workers & policy" }]
+    },
+    {
+      "id": "runtime",
+      "type": "cloud",
+      "label": "Reproducible runtime",
+      "sublabel": "Apptainer environment",
+      "pos": [880, 92],
+      "size": [170, 76],
+      "sources": [{ "path": "README.md", "line": 3, "end_line": 6, "label": "Reusable environments" }]
+    },
+    {
+      "id": "target",
+      "type": "cloud",
+      "label": "Local or HPC target",
+      "sublabel": "Interactive · batch · Slurm pilot",
+      "tag": "Site-governed policy",
+      "pos": [1080, 286],
+      "size": [175, 70],
+      "sources": [{ "path": "README.md", "line": 93, "end_line": 100, "label": "Target policy" }]
+    },
+    {
+      "id": "evidence",
+      "type": "database",
+      "label": "Results & provenance",
+      "sublabel": "Artifacts · attempts · evidence",
+      "pos": [1080, 92],
+      "size": [175, 76],
+      "sources": [{ "path": "docs/deployment-readiness.md", "line": 127, "end_line": 131, "label": "Persistent state" }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "QHPC-Ecosystem integration layer",
+      "wraps": ["registry", "workbench", "api", "engine", "runner"],
+      "pad": 34
+    },
+    {
+      "kind": "region",
+      "label": "Verified execution plane",
+      "wraps": ["runtime", "target", "evidence"],
+      "pad": 34
+    }
+  ],
+  "connections": [
+    {
+      "id": "publish-capability",
+      "from": "repositories",
+      "to": "registry",
+      "label": "publish pinned capability evidence",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 62
+    },
+    {
+      "id": "open-workbench",
+      "from": "scientist",
+      "to": "workbench",
+      "label": "compose & inspect",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 59
+    },
+    {
+      "id": "submit-api",
+      "from": "workbench",
+      "to": "api",
+      "label": "authenticated request",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 59
+    },
+    {
+      "id": "admit-run",
+      "from": "api",
+      "to": "engine",
+      "label": "admit compatible run",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 59
+    },
+    {
+      "id": "select-worker",
+      "from": "engine",
+      "to": "runner",
+      "label": "lease to healthy worker",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 59
+    },
+    {
+      "id": "execute-target",
+      "from": "runner",
+      "to": "target",
+      "label": "controlled execution",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 59
+    },
+    {
+      "id": "resolve-contract",
+      "from": "api",
+      "to": "registry",
+      "label": "resolve admitted capability",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "bind-runtime",
+      "from": "runner",
+      "to": "runtime",
+      "label": "select immutable runtime",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "collect-evidence",
+      "from": "target",
+      "to": "evidence",
+      "label": "collect outputs & metadata",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "return-provenance",
+      "from": "evidence",
+      "to": "workbench",
+      "label": "return results & provenance",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [[1290, 130], [1290, 430], [322.5, 430]],
+      "labelAt": [850, 450]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Integrate, do not absorb",
+      "items": [
+        "Source repositories remain independent scientific projects.",
+        "QHPC registers attributed, revision-pinned capabilities."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Make execution accountable",
+      "items": [
+        "Admission depends on compatible, healthy workers and policy.",
+        "Operations retain attempts, artifacts, and provenance."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Span workstation to HPC",
+      "items": [
+        "One control plane selects local, batch, or warm-pilot paths.",
+        "Apptainer environments support reproducible target execution."
+      ]
+    }
+  ]
+}

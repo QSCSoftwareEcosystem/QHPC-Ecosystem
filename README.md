@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/assets/qhpc-ecosystem-banner.png" alt="QHPC-Ecosystem — QSC scientific software, pinned capabilities, and accountable HPC runs" width="100%">
+</p>
+
 # QHPC-Ecosystem
 
 `QHPC-Ecosystem` is the integration layer for QSC quantum-HPC software. It
@@ -5,6 +9,13 @@ combines the repository inventory and reusable Apptainer environments with an
 attributed capability registry, persistent workflow engine, controlled runners,
 versioned API, and browser workbench. Scientific source repositories remain
 independent.
+
+[![Figure 1 — QHPC-Ecosystem system map](.github/assets/qhpc-ecosystem-architecture.png)](.github/assets/qhpc-ecosystem-architecture.html)
+
+*Figure 1. QHPC-Ecosystem connects independent QSC scientific software to
+attributed capabilities, durable run control, compatible workers, and
+reproducible local or HPC execution. The [interactive system map](.github/assets/qhpc-ecosystem-architecture.html)
+adds guided views, source references, search, focus, and theme controls.*
 
 Remaining deployment dependencies are tracked in
 [docs/deployment-readiness.md](docs/deployment-readiness.md). The target
