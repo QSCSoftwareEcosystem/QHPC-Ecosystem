@@ -4,6 +4,15 @@ from __future__ import annotations
 
 import argparse
 import os
+from socketserver import ThreadingMixIn
+from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
+
+
+class ThreadedWorkbenchServer(ThreadingMixIn, WSGIServer):
+    """Small concurrent WSGI server for the single-user loopback Workbench."""
+
+    daemon_threads = True
+    allow_reuse_address = True
 
 
 def parser() -> argparse.ArgumentParser:
@@ -20,16 +29,22 @@ def main() -> int:
     os.environ["QHPC_API_BASE"] = args.api_base.rstrip("/")
     os.environ["QHPC_WORKBENCH_HOST"] = args.host
 
-    from django.core.management import execute_from_command_line
+    from django.contrib.staticfiles.handlers import StaticFilesHandler
+    from django.core.wsgi import get_wsgi_application
 
-    execute_from_command_line(
-        [
-            "qhpc-workbench",
-            "runserver",
-            f"{args.host}:{args.port}",
-            "--noreload",
-        ]
-    )
+    application = StaticFilesHandler(get_wsgi_application())
+    with make_server(
+        args.host,
+        args.port,
+        application,
+        server_class=ThreadedWorkbenchServer,
+        handler_class=WSGIRequestHandler,
+    ) as server:
+        print(f"QHPC Workbench service: http://{args.host}:{args.port}", flush=True)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
     return 0
 
 
