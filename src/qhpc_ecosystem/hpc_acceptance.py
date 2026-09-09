@@ -158,6 +158,7 @@ def inspect_hpc_acceptance(
         "batch-operation": {"operation-provider"},
         "library-resource": {"operation-provider"},
         "service": {"assistant-service"},
+        "data-service": {"data-service"},
         "integration-standard": {"integration-standard"},
         "knowledge-resource": {"knowledge-resource"},
     }

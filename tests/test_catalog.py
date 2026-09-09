@@ -27,6 +27,7 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
         "NWQ-Sim",
         "NWQSim-QFlow",
         "openqse-spec",
+        "qsc-materials-db",
     }
     assert catalog.repository("HeteQSys").container_status == "blocked"
     assert catalog.repository("NWQ-Sim").source_url == (
@@ -72,6 +73,9 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
         "https://code.ornl.gov/qsc-ct/ftqc",
     )
     assert catalog.repository("ftqc").canonical_status == "canonical"
+    assert catalog.repository("qsc-materials-db").source_url == (
+        "https://code.ornl.gov/intersect/data/deployments"
+    )
     assert len(catalog.environments) == 5
 
 

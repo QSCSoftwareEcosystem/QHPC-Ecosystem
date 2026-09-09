@@ -1,0 +1,34 @@
+record_id: qsc-materials-db-schema
+record_version: 0.1.0
+status: static-admission
+curated_by:
+  - qhpc-ecosystem
+source_repositories:
+  - id: sdl-deployments
+    url: https://code.ornl.gov/intersect/data/deployments
+    revision: 51373be831a94cc06c669346ca5d1fccc3a6ed76
+    observed_paths:
+      - QSC/data/README.md
+      - QSC/data/repositories.json
+      - QSC/data/materials-db/README.md
+      - QSC/data/materials-db/example-json/README.md
+      - QSC/data/materials-db/example-json/KCuF3_Hamiltonian.json
+  - id: sdl-schema
+    url: https://code.ornl.gov/intersect/data/sdl-schema
+    revision: 66399f74a2419dc650ad1d8ba1036ed5d05464c3
+    observed_paths:
+      - README.md
+      - schemas/sdl.yaml
+      - schemas/modules/dcat.yaml
+      - schemas/modules/prov.yaml
+      - schemas/modules/ssn.yaml
+source_observations:
+  - The qsc-materials-db repository is declared as a draft QSC Materials Repository with bucket qsc-data and prefix materials-db/.
+  - The phase-1 model names Material, Sample, Instrument, Agent, Activity, and Result as the core classes.
+  - The KCuF3 Hamiltonian JSON is the first structured example payload.
+  - The KCuF3 neutron scattering SQW bundle is retained as raw or packaged source data.
+  - SDL schema v0.1.0 supplies the LinkML vocabulary foundation, including DCAT, PROV-O, SSN/SOSA, LDP, GeoSPARQL, vCard, ODRL, OWL-Time, and INTERSECT modules.
+integration_boundaries:
+  - QHPC records only stable source references and local static schema/provenance summaries.
+  - Object storage endpoints, credentials, and live SDL service calls stay outside this QHPC Workbench admission record.
+  - Promotion to a live data service requires a future SDL service/interface contract and target deployment review.

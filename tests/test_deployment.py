@@ -45,13 +45,14 @@ def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -
         "OpenQEvo",
         "OpenQSE",
         "QAppsWiki",
+        "QSC Materials Repository",
         "ChatQEC",
         "ExaChem QFlow",
         "QIRIS Runtime (IRIS/QIR-EE)",
         "NWQSim QFlow VQE Plugin",
     )
     assert profile["spec"]["selection_mode"] == "allowlist"
-    assert profile["metadata"]["version"] == "0.7.0"
+    assert profile["metadata"]["version"] == "0.8.0"
     stabsim = next(
         component
         for component in profile["spec"]["components"]
@@ -129,6 +130,18 @@ def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -
         "kind": "repository",
         "url": "https://github.com/openQSE/openqse-spec",
     }
+    materials = next(
+        component
+        for component in profile["spec"]["components"]
+        if component["id"] == "qsc-materials-db"
+    )
+    assert materials["role"] == "data-service"
+    assert materials["onboarding_status"] == "registry-published"
+    assert materials["catalog_repository"] == "qsc-materials-db"
+    assert materials["source"] == {
+        "kind": "repository",
+        "url": "https://code.ornl.gov/intersect/data/deployments",
+    }
 
 
 def test_deployment_registry_exposes_only_selected_published_capabilities() -> None:
@@ -148,6 +161,7 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
             "OpenQEvo",
             "openqse-spec",
             "QAppsWiki",
+            "qsc-materials-db",
             "chatqec",
             "ExaChem",
             "IRIS-QIRIS",
@@ -165,12 +179,13 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
         "OpenQEvo",
         "openqse-spec",
         "QAppsWiki",
+        "qsc-materials-db",
         "chatqec",
         "ExaChem",
         "IRIS-QIRIS",
         "NWQSim-QFlow",
     }
-    assert registry["metadata"]["entry_count"] == 14
+    assert registry["metadata"]["entry_count"] == 15
     validate_contract_data("registry", registry)
     with pytest.raises(RegistryError, match="capability not found"):
         find_registry_entry(registry, "qsc-hardware-survey")
@@ -244,6 +259,7 @@ def test_serve_applies_the_deployment_profile_before_building_api_context(
         "OpenQEvo",
         "openqse-spec",
         "QAppsWiki",
+        "qsc-materials-db",
         "chatqec",
         "ExaChem",
         "IRIS-QIRIS",
@@ -251,7 +267,7 @@ def test_serve_applies_the_deployment_profile_before_building_api_context(
     }
     assert captured["host"] == "127.0.0.1"
     assert captured["port"] == 8080
-    assert "Deployment profile: initial@0.7.0" in capsys.readouterr().out
+    assert "Deployment profile: initial@0.8.0" in capsys.readouterr().out
 
 
 def test_worker_command_uses_the_same_deployment_profile(
@@ -280,5 +296,5 @@ def test_worker_command_uses_the_same_deployment_profile(
     )
 
     output = capsys.readouterr().out
-    assert "QHPC Worker: initial@0.7.0 (14 published capabilities)" in output
+    assert "QHPC Worker: initial@0.8.0 (15 published capabilities)" in output
     assert "Worker stopped: 0 tasks processed" in output

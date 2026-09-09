@@ -44,6 +44,11 @@ class DevStackConfig:
     start_workbench: bool = True
     start_chatqec: bool = True
     start_repository_updates: bool = True
+    start_databucket: bool = True
+    databucket_s3_endpoint: str = ""
+    databucket_bucket: str = ""
+    databucket_access_key_id: str = ""
+    databucket_secret_access_key: str = ""
     local_worker_id: str = "dev-local-worker"
     target_worker_id: str = "dev-virtual-slurm-worker"
 
@@ -108,6 +113,16 @@ def build_service_specs(
         )
         api_environment = (
             ("QHPC_CHATQEC_IDENTITY_TOKEN", config.chatqec_identity_token),
+        )
+    if config.start_databucket:
+        api_environment = api_environment + (
+            ("QHPC_DATABUCKET_S3_ENDPOINT", config.databucket_s3_endpoint),
+            ("QHPC_DATABUCKET_BUCKET", config.databucket_bucket),
+            ("QHPC_DATABUCKET_ACCESS_KEY_ID", config.databucket_access_key_id),
+            (
+                "QHPC_DATABUCKET_SECRET_ACCESS_KEY",
+                config.databucket_secret_access_key,
+            ),
         )
     for workflow in config.workflows:
         api_command.extend(("--workflow", workflow))
@@ -221,6 +236,8 @@ class DevStackSupervisor:
     def _start(self, service: ServiceSpec) -> subprocess.Popen[bytes]:
         environment = os.environ.copy()
         environment.pop("QHPC_CHATQEC_IDENTITY_TOKEN", None)
+        environment.pop("QHPC_DATABUCKET_ACCESS_KEY_ID", None)
+        environment.pop("QHPC_DATABUCKET_SECRET_ACCESS_KEY", None)
         environment.update(dict(service.environment))
         process = self.process_factory(
             service.command,

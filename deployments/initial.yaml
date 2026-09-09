@@ -3,8 +3,8 @@ kind: DeploymentProfile
 metadata:
   id: initial
   name: QHPC Initial Deployment
-  version: 0.7.0
-  description: Authoritative allowlist for the first QHPC ecosystem deployment, including non-executable QFlow/QIRIS incubation records.
+  version: 0.8.0
+  description: Authoritative allowlist for the first QHPC ecosystem deployment, including non-executable QFlow/QIRIS incubation records and the static QSC materials data-service schema.
 spec:
   selection_mode: allowlist
   components:
@@ -98,6 +98,15 @@ spec:
       source:
         kind: repository
         url: https://github.com/QSCSoftwareThrust/QAppsWiki
+    - id: qsc-materials-db
+      name: QSC Materials Repository
+      role: data-service
+      onboarding_status: registry-published
+      integration_scaffold: integrations/qsc-materials-db/integration.yaml
+      catalog_repository: qsc-materials-db
+      source:
+        kind: repository
+        url: https://code.ornl.gov/intersect/data/deployments
     - id: chatqec
       name: ChatQEC
       role: assistant-service

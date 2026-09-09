@@ -1,0 +1,42 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: qsc-materials-db
+  name: QSC Materials Repository
+  version: 0.1.0
+  project: data-schema
+  role: data-service
+  owners: [qsc-materials-db]
+  visibility: internal
+  integration_status: published
+spec:
+  source:
+    kind: repository
+    url: https://code.ornl.gov/intersect/data/deployments
+    catalog_repository: qsc-materials-db
+  mirror:
+    status: not-applicable
+  development_environment:
+    status: assigned
+    class: schema-docs
+  interfaces: [json-context, metadata-bundle, markdown-source]
+  scope:
+    status: defined
+    summary: Publish the static v0.1 QSC materials-db schema, seed data references, and SDL provenance pointers as a non-executable data service record.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: not-applicable
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs:
+    - capabilities/qsc-materials-db/schema/qhpc-capability.yaml
+  evidence:
+    - docs/evidence/sdl-qsc-materials-schema-admission-2026-08-28.md
+    - data-services/qsc-materials-db/materials-schema-v0.1.yaml
+    - data-services/qsc-materials-db/provenance-v0.1.yaml
+  production_runtime:
+    status: not-applicable
+    reason: The admitted record is static schema and provenance metadata; live SDL service calls remain outside this deployment until a future service contract is approved.
+  blockers: []

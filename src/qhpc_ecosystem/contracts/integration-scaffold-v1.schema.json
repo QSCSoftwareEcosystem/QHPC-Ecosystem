@@ -35,6 +35,7 @@
         "operation-provider",
         "knowledge-resource",
         "assistant-service",
+        "data-service",
         "integration-standard"
       ]
     },
