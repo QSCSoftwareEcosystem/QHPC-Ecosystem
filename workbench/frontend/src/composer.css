@@ -1308,6 +1308,14 @@
   text-align: right;
 }
 
+.composer-port-list-input .composer-port {
+  padding-left: 20px;
+}
+
+.composer-port-list-output .composer-port {
+  padding-right: 20px;
+}
+
 .composer-port {
   position: relative;
   min-height: 31px;
@@ -1323,19 +1331,20 @@
 
 .composer-port .react-flow__handle,
 .composer-boundary-node .react-flow__handle {
-  width: 9px;
-  height: 9px;
+  width: 12px;
+  height: 12px;
   border: 2px solid var(--surface);
   background: var(--run);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--run) 32%, transparent);
 }
 
 .composer-port .react-flow__handle-left {
-  left: -5px;
+  left: 2px;
   top: 50%;
 }
 
 .composer-port .react-flow__handle-right {
-  right: -5px;
+  right: 2px;
   top: 50%;
 }
 
@@ -1397,11 +1406,11 @@
 }
 
 .composer-boundary-node .react-flow__handle-left {
-  left: -5px;
+  left: 2px;
 }
 
 .composer-boundary-node .react-flow__handle-right {
-  right: -5px;
+  right: 2px;
 }
 
 .composer-canvas-empty {

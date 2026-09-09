@@ -327,6 +327,65 @@ test("creates, saves, and validates a typed workflow draft", async ({ page }) =>
 });
 
 
+test("lays out advanced blocks for direct movement and port connections", async ({
+  page,
+}) => {
+  await page.goto("/?view=compose");
+  await page.getByRole("tab", { name: "Advanced", exact: true }).click();
+
+  await page
+    .getByRole("button", { name: /Synthesize a Trotter evolution circuit/ })
+    .click();
+  await page
+    .getByRole("button", { name: /Transpile OpenQASM circuit/ })
+    .click();
+
+  const synthesis = page
+    .locator(".react-flow__node")
+    .filter({ hasText: "Synthesize a Trotter evolution circuit" });
+  const transpiler = page
+    .locator(".react-flow__node")
+    .filter({ hasText: "Transpile OpenQASM circuit" });
+  await expect(synthesis).toBeVisible();
+  await expect(transpiler).toBeVisible();
+
+  const beforeMove = await synthesis.boundingBox();
+  const transpilerBox = await transpiler.boundingBox();
+  expect(beforeMove).not.toBeNull();
+  expect(transpilerBox).not.toBeNull();
+  if (!beforeMove || !transpilerBox) return;
+
+  const horizontalOverlap = Math.max(
+    0,
+    Math.min(beforeMove.x + beforeMove.width, transpilerBox.x + transpilerBox.width) -
+      Math.max(beforeMove.x, transpilerBox.x),
+  );
+  const verticalOverlap = Math.max(
+    0,
+    Math.min(beforeMove.y + beforeMove.height, transpilerBox.y + transpilerBox.height) -
+      Math.max(beforeMove.y, transpilerBox.y),
+  );
+  expect(horizontalOverlap * verticalOverlap).toBe(0);
+
+  await page.mouse.move(beforeMove.x + 84, beforeMove.y + 22);
+  await page.mouse.down();
+  await page.mouse.move(beforeMove.x + 34, beforeMove.y + 22, { steps: 8 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await synthesis.boundingBox())?.x, { timeout: 3_000 })
+    .not.toBe(beforeMove.x);
+
+  const source = synthesis.locator(
+    '.react-flow__handle.source[title="circuit: qhpc.quantum-circuit@1"]',
+  );
+  const target = transpiler.locator(
+    '.react-flow__handle.target[title="circuit: qhpc.quantum-circuit@1"]',
+  );
+  await source.dragTo(target);
+  await expect(page.locator(".react-flow__edge")).toHaveCount(1);
+});
+
+
 test("configures a guided scientific path from an OpenQASM file", async ({ page }) => {
   let submittedRun: Record<string, unknown> | undefined;
   await page.route("**/api/v1/artifacts", async (route) => {

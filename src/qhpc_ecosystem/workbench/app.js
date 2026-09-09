@@ -593,7 +593,18 @@ function renderTools() {
 function renderKnowledge() {
   workspace.innerHTML = `<div id="knowledge-root"><div class="loading">LOADING QAPPSWIKI KNOWLEDGE GRAPH</div></div>`;
   const root = document.querySelector("#knowledge-root");
-  if (!window.QHPCKnowledge) return;
+  if (!window.QHPCKnowledge) {
+    const mountWhenReady = () => {
+      if (state.view === "knowledge" && window.QHPCKnowledge) renderKnowledge();
+    };
+    window.addEventListener("qhpc-knowledge-ready", mountWhenReady, { once: true });
+    window.setTimeout(() => {
+      if (state.view !== "knowledge" || window.QHPCKnowledge) return;
+      root.innerHTML = `<div class="empty-state"><div><span class="empty-code">KN</span><h2>Knowledge Explorer is unavailable</h2><p>The Knowledge Explorer bundle did not finish loading. Retry the view, or refresh the Workbench if the problem persists.</p><button class="button secondary" id="knowledge-retry" type="button">Retry Knowledge Explorer</button></div></div>`;
+      document.querySelector("#knowledge-retry")?.addEventListener("click", renderKnowledge);
+    }, 1500);
+    return;
+  }
   window.QHPCKnowledge.mount(root, { initialNodeId: state.knowledgeNode });
 }
 

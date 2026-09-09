@@ -181,6 +181,22 @@ const NODE_TYPES = {
   boundary: BoundaryCanvasNode,
 };
 
+const OPERATION_GRID = {
+  columns: 2,
+  origin: { x: 56, y: 64 },
+  gap: { x: 322, y: 248 },
+};
+
+function nextOperationPosition(nodes: ComposerNode[]): { x: number; y: number } {
+  const index = nodes.filter((node) => node.data.kind === "operation").length;
+  const column = index % OPERATION_GRID.columns;
+  const row = Math.floor(index / OPERATION_GRID.columns);
+  return {
+    x: OPERATION_GRID.origin.x + column * OPERATION_GRID.gap.x,
+    y: OPERATION_GRID.origin.y + row * OPERATION_GRID.gap.y,
+  };
+}
+
 const QASMTRANS_BELL_EXAMPLE = `OPENQASM 2.0;
 include "qelib1.inc";
 
@@ -1081,7 +1097,7 @@ function ComposerSurface(): React.JSX.Element {
         capability,
         operation,
         id,
-        position ?? { x: 140 + nodes.length * 32, y: 100 + nodes.length * 28 },
+        position ?? nextOperationPosition(nodes),
         nodes.filter((node) => node.data.kind === "operation").length,
       );
       replaceGraph([...nodes, nextNode], edges);
@@ -1907,6 +1923,7 @@ function ComposerSurface(): React.JSX.Element {
             defaultViewport={viewport}
             minZoom={0.25}
             maxZoom={2}
+            fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
             deleteKeyCode={null}
             multiSelectionKeyCode="Shift"
             fitView

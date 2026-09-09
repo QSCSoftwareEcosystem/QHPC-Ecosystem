@@ -46,6 +46,21 @@ test("explores QAppsWiki as a community-first knowledge graph", async ({
 });
 
 
+test("explains how to recover when the Knowledge Explorer bundle is unavailable", async ({
+  page,
+}) => {
+  await page.route("**/composer.js?*", (route) => route.abort());
+  await page.goto("/?view=knowledge");
+
+  await expect(
+    page.getByRole("heading", { name: "Knowledge Explorer is unavailable" }),
+  ).toBeVisible({ timeout: 3_000 });
+  await expect(
+    page.getByRole("button", { name: "Retry Knowledge Explorer" }),
+  ).toBeVisible();
+});
+
+
 test("opens a tool directly in its QAppsWiki knowledge context", async ({
   page,
 }) => {
