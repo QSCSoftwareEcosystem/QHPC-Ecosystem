@@ -9,6 +9,7 @@ authors = [{ name = "QSC Software Thrust" }]
 keywords = ["apptainer", "hpc", "quantum-computing", "containers"]
 dependencies = [
     "jsonschema>=4.19",
+    "numpy>=1.23",
     "pyyaml>=6",
 ]
 
