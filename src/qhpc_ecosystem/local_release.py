@@ -27,6 +27,7 @@ from urllib.request import ProxyHandler, build_opener
 
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
 from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
+from .local_images import LocalImageError, ensure_public_images
 from .local_runtime import list_local_runtimes
 from .operation_runtime import (
     OperationRuntimeError,
@@ -1246,6 +1247,12 @@ def launch_local(
     require_available_ports(config)
     require_storage_capacity(paths)
     paths.ensure()
+    try:
+        ensure_public_images()
+    except LocalImageError as error:
+        raise LocalReleaseError(
+            f"EQO Local image installation failed: {error}"
+        ) from error
     ensure_ftqc_oci_runtime(config, paths)
     if config.assistant_enabled:
         ensure_chatqec_agent_oci_runtime()

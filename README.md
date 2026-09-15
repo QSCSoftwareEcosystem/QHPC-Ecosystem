@@ -30,10 +30,18 @@ python -m pip install -e ".[local]"
 ```
 
 This installs the **EQO Local Python profile**: the CLI, Workbench, control
-services, and bundled catalog and guidance. The reviewed OCI images are kept
-separate from the Python package; an internal installation supplies the exact
-admitted images once, and EQO verifies their digests before it uses them. It
-never replaces an unavailable tool with a host-Python substitute.
+services, and bundled catalog and guidance. The reviewed scientific OCI images
+remain separate from the Python package; EQO runs those tools in their admitted
+containers and never replaces an unavailable tool with a host-Python
+substitute.
+
+> **New: automatic image installation.** On the first `eqo local up`, EQO
+> checks the approved `linux/amd64` image set and automatically downloads only
+> images that are absent or have the wrong identity. Every download names an
+> immutable GHCR digest, is tagged to EQO's required local name, and is verified
+> before the Workbench starts. Later starts reuse the verified local images.
+> Keep Docker Desktop running; the first download can take time and several GB
+> of storage. See [public image distribution](docs/public-image-distribution.md).
 
 The primary command is `eqo`. `qhpc-ecosystem` remains available as a
 compatibility alias for existing scripts.
@@ -50,22 +58,23 @@ Workbench, use `eqo local open`.
 
 ### 3. Let EQO start the complete execution profile
 
-The first `eqo local up` starts the isolated virtual-Slurm fixture and verifies
-the exact OCI images used by the guided workflows: **QASMTrans, STABSim,
-NWQEC, FTPrimitiveBench, LightStim**, and FTQC where its workflow is selected.
-Docker Desktop is required. This is a local development scheduler—not a DOE
-HPC system—but every scientific tool runs in its own admitted container.
+The first `eqo local up` starts the isolated virtual-Slurm fixture and obtains
+or verifies the exact OCI images used by the guided workflows: **QASMTrans,
+STABSim, NWQEC, FTPrimitiveBench, LightStim, FTQC**, and the ChatQEC tool
+images. Docker Desktop is required. This is a local development scheduler—not
+a DOE HPC system—but every scientific tool runs in its own admitted container.
 
 - **Working from this source workspace:** when the pinned `FTQC` checkout is a
   sibling of this repository (`../FTQC`), EQO discovers it and the checked-in
   runtime contract automatically. If the admitted image is absent, EQO builds
   that one checksum-pinned image.
-- **Using a packaged EQO installation:** obtain the admitted OCI images through
-  the approved internal distribution path. If an image is missing or has the
-  wrong digest, startup names the exact image; it does not download an
-  arbitrary tag or substitute a host-native tool. FTQC additionally accepts a
-  separately managed source checkout and runtime contract through
-  `--ftqc-source-checkout` and `--ftqc-runtime-manifest`.
+- **Using a packaged EQO installation:** startup obtains missing admitted OCI
+  images from the fixed GHCR release manifest. If a release's images have not
+  yet been made public, authenticate Docker to GHCR with the access supplied by
+  its release owner; public release images require no GitHub login. EQO never
+  downloads an arbitrary tag or substitutes a host-native tool. FTQC
+  additionally accepts a separately managed source checkout and runtime
+  contract through `--ftqc-source-checkout` and `--ftqc-runtime-manifest`.
 
 If you only need discovery and the lightweight interactive tools, use
 `eqo local up --no-ecosystem-execution`. The default remains the complete

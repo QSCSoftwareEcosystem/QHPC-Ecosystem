@@ -8,6 +8,7 @@ from qhpc_ecosystem.catalog import load_catalog
 from qhpc_ecosystem.chatqec_service import CanonicalChatQEC, ChatQECSource
 from qhpc_ecosystem.contract import validate_contract
 from qhpc_ecosystem.local_assets import ASSETS, assistant_source_path, asset_path
+from qhpc_ecosystem.local_images import load_public_images
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -138,3 +139,20 @@ def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> No
     assert responder.corpus_revision == (
         "sha256:95e43b52660f4789457ef54b0b5c3ffc557b0610e24fc4780ed709c800928330"
     )
+
+
+def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> None:
+    images = load_public_images()
+
+    assert [image.id for image in images] == [
+        "qasmtrans",
+        "stabsim",
+        "nwqec",
+        "ftprimitivebench",
+        "lightstim",
+        "ftqc",
+        "chatqec-qec-tools",
+        "chatqec-lightstim",
+        "chatqec-tsim",
+    ]
+    assert all(image.source.startswith("ghcr.io/qscsoftwareecosystem/") for image in images)

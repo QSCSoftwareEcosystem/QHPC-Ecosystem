@@ -1,0 +1,17 @@
+{
+  "api_version": "eqo.local-images/v1",
+  "release": "0.1.0-dev-local-65dc677",
+  "commit": "65dc677",
+  "platform": "linux/amd64",
+  "images": [
+    {"id": "qasmtrans", "source": "ghcr.io/qscsoftwareecosystem/eqo-qasmtrans@sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df", "local_reference": "qhpc/qasmtrans:1843c98-linux-amd64", "local_id": "sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df"},
+    {"id": "stabsim", "source": "ghcr.io/qscsoftwareecosystem/eqo-stabsim@sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b", "local_reference": "qhpc/stabsim:a0d8d2e-linux-amd64", "local_id": "sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b"},
+    {"id": "nwqec", "source": "ghcr.io/qscsoftwareecosystem/eqo-nwqec@sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b", "local_reference": "qhpc/nwqec:d93299c-linux-amd64", "local_id": "sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b"},
+    {"id": "ftprimitivebench", "source": "ghcr.io/qscsoftwareecosystem/eqo-ftprimitivebench@sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9", "local_reference": "qhpc/ftprimitivebench:ba15eba-linux-amd64", "local_id": "sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9"},
+    {"id": "lightstim", "source": "ghcr.io/qscsoftwareecosystem/eqo-lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074", "local_reference": "qhpc/lightstim:23924ee-linux-amd64", "local_id": "sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074"},
+    {"id": "ftqc", "source": "ghcr.io/qscsoftwareecosystem/eqo-ftqc@sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96", "local_reference": "qhpc/ftqc:779216de-linux-amd64", "local_id": "sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96"},
+    {"id": "chatqec-qec-tools", "source": "ghcr.io/qscsoftwareecosystem/eqo-chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2", "local_reference": "qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2", "local_id": "sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2"},
+    {"id": "chatqec-lightstim", "source": "ghcr.io/qscsoftwareecosystem/eqo-chatqec-lightstim@sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21", "local_reference": "qhpc/chatqec-lightstim:dd19a85-linux-amd64-v3", "local_id": "sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21"},
+    {"id": "chatqec-tsim", "source": "ghcr.io/qscsoftwareecosystem/eqo-chatqec-tsim@sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0", "local_reference": "qhpc/chatqec-tsim:dd19a85-linux-amd64", "local_id": "sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0"}
+  ]
+}
