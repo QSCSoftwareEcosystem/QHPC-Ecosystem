@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+import qhpc_ecosystem.container_engine as container_engine
 import qhpc_ecosystem.local_adapters as local_adapters
 from qhpc_ecosystem.engine import TaskRequest
 from qhpc_ecosystem.local_adapters import build_local_runner
@@ -132,7 +133,7 @@ def test_ftqc_preparation_uses_only_the_admitted_oci_runtime(
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+        container_engine.shutil, "which", lambda _name: "/usr/bin/docker"
     )
     monkeypatch.setattr(local_adapters.subprocess, "run", run)
     result = build_local_runner(tmp_path / "runtimes").execute(
@@ -165,7 +166,7 @@ def test_ftqc_preparation_rejects_a_native_or_tampered_runtime(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+        container_engine.shutil, "which", lambda _name: "/usr/bin/docker"
     )
     request = TaskRequest(
         run_id="run-ftqc",
@@ -182,7 +183,7 @@ def test_ftqc_preparation_rejects_a_native_or_tampered_runtime(
     )
 
     with pytest.raises(RuntimeError, match="admitted OCI runtime"):
-        local_adapters._ftqc_container_engine(request)
+        local_adapters._ftqc_run_target(request)
 
 
 def test_chatqec_stim_simulation_uses_only_the_admitted_oci_runtime(
@@ -221,7 +222,7 @@ def test_chatqec_stim_simulation_uses_only_the_admitted_oci_runtime(
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+        container_engine.shutil, "which", lambda _name: "/usr/bin/docker"
     )
     monkeypatch.setattr(local_adapters.subprocess, "run", run)
     result = build_local_runner(tmp_path / "runtimes").execute(
@@ -273,7 +274,7 @@ def test_chatqec_stim_diagram_rejects_active_svg(
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(
-        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+        container_engine.shutil, "which", lambda _name: "/usr/bin/docker"
     )
     monkeypatch.setattr(local_adapters.subprocess, "run", run)
     request = TaskRequest(

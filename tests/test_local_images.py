@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import qhpc_ecosystem.container_engine as container_engine
 from qhpc_ecosystem.local_images import (
     LocalImageError,
     ensure_public_images,
@@ -109,3 +110,51 @@ def test_ensure_public_images_pulls_and_tags_a_missing_image(tmp_path: Path) -> 
         ["docker", "tag", source, "qhpc/test:1.0"],
         ["docker", "image", "inspect", "--format", "{{.Id}}", "qhpc/test:1.0"],
     ]
+
+
+def apptainer_runner(commands: list[list[str]]):
+    def run(command, **_kwargs):
+        commands.append(command)
+        if command[1] == "pull":
+            sif = Path(command[command.index("--arch") + 2])
+            sif.parent.mkdir(parents=True, exist_ok=True)
+            sif.write_bytes(b"pulled-sif-" + command[-1].encode())
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        raise AssertionError(f"unexpected Apptainer command: {command}")
+
+    return run
+
+
+def test_ensure_public_images_pulls_a_verified_sif_under_apptainer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+    manifest, digest = write_manifest(tmp_path)
+    commands: list[list[str]] = []
+
+    result = ensure_public_images(
+        manifest=manifest, runner=apptainer_runner(commands)
+    )
+
+    assert [(entry.id, entry.action) for entry in result] == [
+        ("test-image", "installed")
+    ]
+    source = f"ghcr.io/qscsoftwareecosystem/eqo-test@{digest}"
+    sif = container_engine.sif_path_for("test-image")
+    assert commands == [
+        ["apptainer", "pull", "--force", "--arch", "amd64", str(sif), f"docker://{source}"]
+    ]
+    assert sif.is_file()
+
+    lock = container_engine.read_locks()["qhpc/test:1.0"]
+    assert lock["source_digest"] == digest
+    assert lock["sif_sha256"] == container_engine.sha256_file(sif)
+
+    # A second call with the recorded, unmodified SIF reuses it without pulling.
+    reuse_commands: list[list[str]] = []
+    reuse = ensure_public_images(
+        manifest=manifest, runner=apptainer_runner(reuse_commands)
+    )
+    assert [(entry.id, entry.action) for entry in reuse] == [("test-image", "reused")]
+    assert reuse_commands == []

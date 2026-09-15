@@ -9,6 +9,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
+from .container_engine import (
+    apptainer_requested,
+    read_locks,
+    sha256_file,
+    sif_path_for,
+    sif_store_dir,
+    write_lock_entry,
+)
 from .local_assets import asset_path
 
 
@@ -164,18 +172,130 @@ def _local_image_id(
     return value
 
 
+def _apptainer_arch(platform: str) -> str:
+    """Map an OCI ``os/arch`` platform onto Apptainer's ``--arch`` value."""
+
+    return platform.split("/", 1)[1] if "/" in platform else platform
+
+
+def _run_apptainer(
+    command: Sequence[str],
+    *,
+    runner: Runner,
+    capture_output: bool,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        result = runner(
+            list(command),
+            check=False,
+            text=True,
+            capture_output=capture_output,
+        )
+    except OSError as error:
+        raise LocalImageError(
+            "Apptainer is required to install EQO Local SIF images "
+            "(requested via USE_APPTAINER=1); install Apptainer first"
+        ) from error
+    if result.returncode:
+        detail = (result.stderr or "").strip()
+        suffix = f": {detail}" if detail else ""
+        raise LocalImageError(f"Apptainer command failed: {' '.join(command)}{suffix}")
+    return result
+
+
+def _ensure_public_sifs(
+    *,
+    manifest: str | Path | None,
+    runner: Runner,
+    apptainer: str,
+) -> tuple[ImageInstallResult, ...]:
+    """Pull each admitted image into a verified SIF by its immutable digest.
+
+    Identity is guaranteed by pulling ``docker://…@sha256:`` by digest. The
+    resulting SIF hash is recorded in the cache-side lock so a reuse can detect
+    local tampering (a SIF is not byte-reproducible, so no fixed hash is pinned
+    in the committed manifest).
+    """
+
+    store = sif_store_dir()
+    store.mkdir(parents=True, exist_ok=True)
+    locks = read_locks()
+    results: list[ImageInstallResult] = []
+    for image in load_public_images(manifest):
+        source_digest = image.source.split("@", 1)[1]
+        sif = sif_path_for(image.id)
+        entry = locks.get(image.local_reference)
+        if (
+            sif.is_file()
+            and entry is not None
+            and entry.get("source_digest") == source_digest
+            and entry.get("sif_sha256") == sha256_file(sif)
+        ):
+            results.append(
+                ImageInstallResult(
+                    id=image.id,
+                    local_reference=image.local_reference,
+                    action="reused",
+                )
+            )
+            continue
+
+        _run_apptainer(
+            [
+                apptainer,
+                "pull",
+                "--force",
+                "--arch",
+                _apptainer_arch(image.platform),
+                str(sif),
+                f"docker://{image.source}",
+            ],
+            runner=runner,
+            capture_output=False,
+        )
+        if not sif.is_file():
+            raise LocalImageError(
+                f"Apptainer pull did not produce a SIF for {image.local_reference}"
+            )
+        digest = sha256_file(sif)
+        write_lock_entry(
+            image.local_reference,
+            image_id=image.id,
+            source=image.source,
+            source_digest=source_digest,
+            sif_path=sif,
+            sif_sha256=digest,
+        )
+        results.append(
+            ImageInstallResult(
+                id=image.id,
+                local_reference=image.local_reference,
+                action="installed",
+            )
+        )
+    return tuple(results)
+
+
 def ensure_public_images(
     *,
     manifest: str | Path | None = None,
     runner: Runner = subprocess.run,
     docker: str = "docker",
+    apptainer: str = "apptainer",
 ) -> tuple[ImageInstallResult, ...]:
     """Install only absent or mismatched admitted images, then verify all IDs.
 
     Every network request names a GHCR digest recorded in the reviewed release
-    manifest. A tag is applied locally only after that immutable payload has
-    been downloaded. No mutable tag or host-native fallback is used.
+    manifest. Under Docker (the default) a tag is applied locally only after that
+    immutable payload has been downloaded. Under ``USE_APPTAINER=1`` each image is
+    pulled by digest into a verified SIF. No mutable tag or host-native fallback
+    is used by either path.
     """
+
+    if apptainer_requested():
+        return _ensure_public_sifs(
+            manifest=manifest, runner=runner, apptainer=apptainer
+        )
 
     results: list[ImageInstallResult] = []
     for image in load_public_images(manifest):

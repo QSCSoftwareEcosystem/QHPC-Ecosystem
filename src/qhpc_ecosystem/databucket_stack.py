@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
+from .container_engine import apptainer_requested
 from .slurm import CommandResult
 
 
@@ -144,6 +145,12 @@ class GarageStack:
         return result
 
     def prepare(self) -> None:
+        if apptainer_requested():
+            raise DatabucketStackError(
+                "the databucket/Garage stack is a Docker Compose fixture and has no "
+                "Apptainer equivalent; unset USE_APPTAINER to use it, or provide an "
+                "external S3 endpoint"
+            )
         if not self.checkout.is_dir():
             raise DatabucketStackError(
                 f"databucket checkout not found: {self.checkout}"
