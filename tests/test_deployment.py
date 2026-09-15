@@ -47,6 +47,7 @@ def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -
         "QAppsWiki",
         "QSC Materials Repository",
         "ChatQEC",
+        "ChatQEC MCP Tools",
         "ExaChem QFlow",
         "QIRIS Runtime (IRIS/QIR-EE)",
         "NWQSim QFlow VQE Plugin",
@@ -96,7 +97,7 @@ def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -
     )
     assert chatqec["source"] == {
         "kind": "repository",
-        "url": "https://github.com/QSCSoftwareThrust/ChatQEC",
+        "url": "https://github.com/QSCSoftwareEcosystem/ChatQEC",
     }
     exachem = next(
         component
@@ -163,6 +164,7 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
             "QAppsWiki",
             "qsc-materials-db",
             "chatqec",
+            "chatqec-mcp-tools",
             "ExaChem",
             "IRIS-QIRIS",
             "NWQSim-QFlow",
@@ -181,11 +183,12 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
         "QAppsWiki",
         "qsc-materials-db",
         "chatqec",
+        "chatqec-mcp-tools",
         "ExaChem",
         "IRIS-QIRIS",
         "NWQSim-QFlow",
     }
-    assert registry["metadata"]["entry_count"] == 15
+    assert registry["metadata"]["entry_count"] == 16
     validate_contract_data("registry", registry)
     with pytest.raises(RegistryError, match="capability not found"):
         find_registry_entry(registry, "qsc-hardware-survey")
@@ -261,6 +264,7 @@ def test_serve_applies_the_deployment_profile_before_building_api_context(
         "QAppsWiki",
         "qsc-materials-db",
         "chatqec",
+        "chatqec-mcp-tools",
         "ExaChem",
         "IRIS-QIRIS",
         "NWQSim-QFlow",
@@ -296,5 +300,5 @@ def test_worker_command_uses_the_same_deployment_profile(
     )
 
     output = capsys.readouterr().out
-    assert "QHPC Worker: initial@0.8.0 (15 published capabilities)" in output
+    assert "QHPC Worker: initial@0.8.0 (16 published capabilities)" in output
     assert "Worker stopped: 0 tasks processed" in output

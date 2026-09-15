@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import secrets
@@ -27,6 +28,7 @@ from .contract import (
     load_schema,
     validate_contract,
 )
+from .engagement import engagement_catalog
 from .operation_runtime import OperationRuntimeError
 from .local_release import LocalReleaseError
 from .local_assets import asset_path as local_asset_path
@@ -58,6 +60,17 @@ def _assignments(values: Sequence[str]) -> dict[str, str]:
             raise ContractError(f"expected NAME=VALUE, received: {value}")
         result[name] = item
     return result
+
+
+def _prompt_iqm_token(environment_variable: str) -> str:
+    """Read an IQM token only from the invoking terminal, without echoing it."""
+    try:
+        token = getpass.getpass(f"Enter {environment_variable} for the isolated IQM worker: ")
+    except (EOFError, OSError) as error:
+        raise ContractError("unable to read the IQM token securely from this terminal") from error
+    if not token:
+        raise ContractError("an IQM token is required when --prompt-for-token is selected")
+    return token
 
 
 def _print_table(catalog: Catalog) -> None:
@@ -95,6 +108,31 @@ def _print_repository(repository: Repository) -> None:
     if repository.local_path:
         print(f"Local path:        {repository.local_path}")
     print(f"Notes:             {repository.notes}")
+
+
+def _print_engagement_resources(catalog: dict) -> None:
+    """Print public Engagement resources without treating them as capabilities."""
+
+    resources = catalog["resources"]
+    columns = ("KIND", "RESOURCE", "PROVIDER", "SOURCE")
+    rows = [
+        (
+            resource["kind"].replace("-", " "),
+            resource["title"],
+            resource["provider"],
+            resource["url"],
+        )
+        for resource in resources
+    ]
+    widths = [
+        max(len(columns[index]), *(len(row[index]) for row in rows))
+        for index in range(len(columns))
+    ]
+    print("  ".join(value.ljust(widths[index]) for index, value in enumerate(columns)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
+    print("\nRead-only external resources; no EQO tool, service, runtime, or workflow target is admitted.")
 
 
 def _require_runnable(repository: Repository) -> None:
@@ -164,6 +202,24 @@ def build_parser() -> argparse.ArgumentParser:
             help="root used to resolve scaffold paths; defaults to the profile's project root",
         )
     integration_info.add_argument("component_id")
+
+    engagement_parser = subparsers.add_parser(
+        "engagement",
+        help="list public Engagement Thrust learning and community resources",
+    )
+    engagement_commands = engagement_parser.add_subparsers(
+        dest="engagement_command", required=True
+    )
+    engagement_list = engagement_commands.add_parser(
+        "list",
+        help="list read-only external learning and community resources",
+    )
+    engagement_list.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="print the resource catalog as JSON",
+    )
 
     registry_parser = subparsers.add_parser(
         "registry", help="build and inspect the federated capability registry"
@@ -309,7 +365,11 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="{up,status,open,export,import,diagnose,runtime,down}",
     )
     local_up = local_commands.add_parser(
-        "up", help="start the Workbench, API, local worker, and Assistant"
+        "up",
+        help=(
+            "start the Workbench, API, Assistant, interactive worker, and "
+            "containerized virtual-Slurm ecosystem worker"
+        ),
     )
     local_status = local_commands.add_parser(
         "status", help="report local services, worker readiness, and storage"
@@ -382,6 +442,37 @@ def build_parser() -> argparse.ArgumentParser:
         )
         command.add_argument("--assistant-source-checkout")
         command.add_argument(
+            "--ftqc-source-checkout",
+            help="pinned FTQC Git checkout used only to build the admitted OCI image when absent",
+        )
+        command.add_argument(
+            "--ftqc-runtime-manifest",
+            help="FTQC OCI runtime contract used with --ftqc-source-checkout",
+        )
+        command.add_argument(
+            "--ftqc-dependency-cache",
+            help=(
+                "approved cache containing the checksum-pinned LLVM source archive "
+                "required to build the FTQC OCI image"
+            ),
+        )
+        command.add_argument(
+            "--no-ecosystem-execution",
+            action="store_true",
+            help=(
+                "start only interactive Local operations; by default EQO Local also "
+                "starts the containerized virtual-Slurm ecosystem worker"
+            ),
+        )
+        command.add_argument(
+            "--slurm-test-cluster",
+            help="reviewed virtual-Slurm cluster manifest; defaults to the bundled EQO fixture",
+        )
+        command.add_argument(
+            "--slurm-test-checkout",
+            help="EQO-owned checkout location for the virtual-Slurm development fixture",
+        )
+        command.add_argument(
             "--workflow",
             action="append",
             default=[],
@@ -400,6 +491,30 @@ def build_parser() -> argparse.ArgumentParser:
             action="store_true",
             help="start without the optional local Assistant service",
         )
+        command.add_argument(
+            "--iqm-simulation",
+            action="store_true",
+            help="start the safe IQM simulation worker; it never contacts IQM or reads a credential",
+        )
+        command.add_argument(
+            "--start-iqm-worker",
+            action="store_true",
+            help="start the isolated IQM worker for internal alpha use",
+        )
+        command.add_argument(
+            "--iqm-endpoint",
+            default=os.environ.get("IQM_BASE_URL"),
+            help="IQM HTTPS endpoint for the internal worker; defaults to IQM_BASE_URL",
+        )
+        command.add_argument(
+            "--iqm-device-alias",
+            help="single IQM device alias admitted to the internal worker",
+        )
+    local_up.add_argument(
+        "--prompt-for-iqm-token",
+        action="store_true",
+        help="read IQM_TOKEN without echoing it and pass it only to the IQM worker",
+    )
     for name in ("config", "data", "cache", "state", "log"):
         local_supervise.add_argument(
             f"--{name}-root", help=argparse.SUPPRESS
@@ -481,10 +596,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[
             "examples/workflows/openqevo-method-catalog.yaml",
+            "examples/workflows/openqevo-dense-reference.yaml",
             "examples/workflows/openqevo-trotter-synthesis.yaml",
             "examples/workflows/ct-hw-qasm-analysis.yaml",
             "examples/workflows/qec-memory-estimation.yaml",
             "examples/workflows/nwqec-counts.yaml",
+            "examples/workflows/ftqc-iqm-bell-preparation.yaml",
+            "examples/workflows/ftqc-iqm-steane-preparation.yaml",
+            "examples/workflows/ftqc-iqm-bell-execution.yaml",
+            "examples/workflows/ftqc-iqm-steane-execution.yaml",
         ],
     )
     dev_up.add_argument("--host", default="127.0.0.1")
@@ -523,6 +643,30 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-target-worker",
         action="store_true",
         help="do not start the virtual-Slurm worker",
+    )
+    dev_up.add_argument(
+        "--start-iqm-worker",
+        action="store_true",
+        help="start the isolated IQM worker for internal alpha use",
+    )
+    dev_up.add_argument(
+        "--start-iqm-simulation-worker",
+        action="store_true",
+        help="start the safe simulated IQM worker; it never contacts IQM or reads a credential",
+    )
+    dev_up.add_argument(
+        "--prompt-for-iqm-token",
+        action="store_true",
+        help="read IQM_TOKEN without echoing it and pass it only to the IQM worker",
+    )
+    dev_up.add_argument(
+        "--iqm-endpoint",
+        default=os.environ.get("IQM_BASE_URL"),
+        help="IQM HTTPS endpoint for --start-iqm-worker; defaults to IQM_BASE_URL",
+    )
+    dev_up.add_argument(
+        "--iqm-device-alias",
+        help="single worker-admitted IQM device alias for --start-iqm-worker",
     )
     dev_up.add_argument(
         "--no-chatqec",
@@ -589,6 +733,37 @@ def build_parser() -> argparse.ArgumentParser:
     chatqec_serve.add_argument("--host", default="127.0.0.1")
     chatqec_serve.add_argument("--port", type=int, default=8096)
 
+    chatqec_query = subparsers.add_parser(
+        "chatqec-query",
+        help="prepare or build the container-only pinned upstream ChatQEC query service",
+    )
+    chatqec_query_commands = chatqec_query.add_subparsers(
+        dest="chatqec_query_command",
+        required=True,
+    )
+    chatqec_query_prepare = chatqec_query_commands.add_parser(
+        "prepare-context",
+        help="verify the pinned source and create an offline OCI build context",
+    )
+    chatqec_query_prepare.add_argument("source", help="clean upstream ChatQEC checkout")
+    chatqec_query_prepare.add_argument("wheelhouse", help="approved offline dependency wheelhouse")
+    chatqec_query_prepare.add_argument("output", help="new destination for the build context")
+    chatqec_query_prepare.add_argument("--workspace-root")
+    chatqec_query_verify = chatqec_query_commands.add_parser(
+        "verify-context",
+        help="verify a prepared ChatQEC query OCI build context",
+    )
+    chatqec_query_verify.add_argument("context")
+    chatqec_query_verify.add_argument("--workspace-root")
+    chatqec_query_build = chatqec_query_commands.add_parser(
+        "build-oci",
+        help="build the verified query context with networking disabled",
+    )
+    chatqec_query_build.add_argument("context")
+    chatqec_query_build.add_argument("--tag", required=True)
+    chatqec_query_build.add_argument("--builder", choices=("docker", "podman"))
+    chatqec_query_build.add_argument("--workspace-root")
+
     worker_parser = subparsers.add_parser(
         "worker", help="run a separate controlled task worker"
     )
@@ -622,6 +797,66 @@ def build_parser() -> argparse.ArgumentParser:
     )
     worker_mode.add_argument(
         "--drain", action="store_true", help="process ready tasks until idle and exit"
+    )
+
+    iqm_worker = subparsers.add_parser(
+        "iqm-worker",
+        help="run the isolated IQM quantum-backend worker for internal alpha use",
+    )
+    iqm_worker.add_argument("--registry", required=True)
+    iqm_worker.add_argument(
+        "--deployment-profile",
+        required=True,
+        help="explicit component allowlist for this worker",
+    )
+    iqm_worker.add_argument("--database", default=".qhpc/workbench.sqlite")
+    iqm_worker.add_argument("--artifact-root", default=".qhpc/artifacts")
+    iqm_worker.add_argument(
+        "--endpoint",
+        default=os.environ.get("IQM_BASE_URL"),
+        help="IQM HTTPS endpoint; defaults to IQM_BASE_URL and is never supplied by a workflow",
+    )
+    iqm_worker.add_argument(
+        "--device-alias",
+        required=True,
+        help="single worker-admitted IQM device alias",
+    )
+    iqm_worker.add_argument(
+        "--credential-environment-variable",
+        default="IQM_TOKEN",
+        help="environment variable resolved only inside this worker",
+    )
+    iqm_worker.add_argument(
+        "--prompt-for-token",
+        action="store_true",
+        help="read the worker token without echoing it; never pass a token as an argument",
+    )
+    iqm_worker.add_argument("--poll-interval", type=float, default=1.0)
+    iqm_worker.add_argument("--lease-seconds", type=int, default=300)
+    iqm_worker.add_argument("--worker-id", default="qhpc-iqm-worker")
+    iqm_worker.add_argument(
+        "--once", action="store_true", help="perform at most one target transition and exit"
+    )
+
+    iqm_simulation_worker = subparsers.add_parser(
+        "iqm-simulation-worker",
+        help="run a credential-free simulated IQM quantum-backend worker",
+    )
+    iqm_simulation_worker.add_argument("--registry", required=True)
+    iqm_simulation_worker.add_argument(
+        "--deployment-profile",
+        required=True,
+        help="explicit component allowlist for this worker",
+    )
+    iqm_simulation_worker.add_argument("--database", default=".qhpc/workbench.sqlite")
+    iqm_simulation_worker.add_argument("--artifact-root", default=".qhpc/artifacts")
+    iqm_simulation_worker.add_argument("--poll-interval", type=float, default=1.0)
+    iqm_simulation_worker.add_argument("--lease-seconds", type=int, default=300)
+    iqm_simulation_worker.add_argument(
+        "--worker-id", default="qhpc-iqm-simulation-worker"
+    )
+    iqm_simulation_worker.add_argument(
+        "--once", action="store_true", help="perform at most one target transition and exit"
     )
 
     target_worker = subparsers.add_parser(
@@ -1285,6 +1520,7 @@ def dispatch(args: argparse.Namespace) -> int:
         from .local_release import (
             LocalPaths,
             LocalStackConfig,
+            default_ftqc_build_inputs,
             default_local_workflows,
             diagnostic_report,
             format_status,
@@ -1421,6 +1657,40 @@ def dispatch(args: argparse.Namespace) -> int:
             if args.assistant_source_checkout
             else None
         )
+        default_ftqc_source, default_ftqc_manifest = default_ftqc_build_inputs(
+            args.catalog
+        )
+        ftqc_source_checkout = (
+            str(Path(args.ftqc_source_checkout).expanduser().resolve())
+            if args.ftqc_source_checkout
+            else default_ftqc_source
+        )
+        ftqc_runtime_manifest = (
+            str(Path(args.ftqc_runtime_manifest).expanduser().resolve())
+            if args.ftqc_runtime_manifest
+            else default_ftqc_manifest
+        )
+        ftqc_dependency_cache = (
+            str(Path(args.ftqc_dependency_cache).expanduser().resolve())
+            if args.ftqc_dependency_cache
+            else None
+        )
+        if args.iqm_simulation and args.start_iqm_worker:
+            raise LocalReleaseError(
+                "select either --iqm-simulation or --start-iqm-worker"
+            )
+        if getattr(args, "prompt_for_iqm_token", False) and not args.start_iqm_worker:
+            raise LocalReleaseError(
+                "--prompt-for-iqm-token requires --start-iqm-worker"
+            )
+        iqm_token = ""
+        if args.start_iqm_worker:
+            if args.local_command == "up" and args.prompt_for_iqm_token:
+                iqm_token = _prompt_iqm_token("IQM_TOKEN")
+            elif args.local_command == "_supervise":
+                iqm_token = os.environ.get("EQO_LOCAL_IQM_TOKEN", "")
+            else:
+                iqm_token = os.environ.get("IQM_TOKEN", "")
         config = LocalStackConfig(
             catalog=str(Path(args.catalog).expanduser().resolve()),
             registry=str(Path(args.registry).expanduser().resolve()),
@@ -1437,6 +1707,25 @@ def dispatch(args: argparse.Namespace) -> int:
             api_port=args.api_port,
             assistant_port=args.assistant_port,
             assistant_enabled=not args.no_assistant,
+            iqm_simulation_enabled=args.iqm_simulation,
+            iqm_worker_enabled=args.start_iqm_worker,
+            iqm_endpoint=args.iqm_endpoint,
+            iqm_device_alias=args.iqm_device_alias,
+            iqm_token=iqm_token,
+            ftqc_source_checkout=ftqc_source_checkout,
+            ftqc_runtime_manifest=ftqc_runtime_manifest,
+            ftqc_dependency_cache=ftqc_dependency_cache,
+            ecosystem_execution_enabled=not args.no_ecosystem_execution,
+            slurm_test_cluster=(
+                str(Path(args.slurm_test_cluster).expanduser().resolve())
+                if args.slurm_test_cluster
+                else None
+            ),
+            slurm_test_checkout=(
+                str(Path(args.slurm_test_checkout).expanduser().resolve())
+                if args.slurm_test_checkout
+                else None
+            ),
             poll_interval_seconds=args.poll_interval,
             lease_seconds=args.lease_seconds,
             worker_stale_after_seconds=args.worker_stale_after,
@@ -1530,6 +1819,48 @@ def dispatch(args: argparse.Namespace) -> int:
             return 0
         raise ChatQECServiceError(
             f"unsupported ChatQEC service command: {args.chatqec_service_command}"
+        )
+
+    if args.subcommand == "chatqec-query":
+        from .chatqec_query_container import (
+            build_query_image,
+            prepare_query_context,
+            verify_query_context,
+        )
+
+        if args.chatqec_query_command == "prepare-context":
+            prepared = prepare_query_context(
+                args.source,
+                args.wheelhouse,
+                args.output,
+                workspace_root=args.workspace_root,
+            )
+            print(f"ChatQEC query context prepared: {prepared.path}")
+            print(f"Revision: {prepared.source_revision}")
+            print(f"Source archive: {prepared.source_archive_digest}")
+            print(f"Wheels: {len(prepared.wheels)}")
+            return 0
+        if args.chatqec_query_command == "verify-context":
+            metadata = verify_query_context(
+                args.context,
+                workspace_root=args.workspace_root,
+            )
+            print("ChatQEC query context valid")
+            print(f"Revision: {metadata['source_revision']}")
+            print(f"Wheels: {len(metadata['wheels'])}")
+            return 0
+        if args.chatqec_query_command == "build-oci":
+            image_id = build_query_image(
+                args.context,
+                args.tag,
+                builder=args.builder,
+                workspace_root=args.workspace_root,
+            )
+            print(f"ChatQEC query image: {args.tag}")
+            print(f"Image ID: {image_id}")
+            return 0
+        raise ContractError(
+            f"unsupported ChatQEC query command: {args.chatqec_query_command}"
         )
 
     if args.subcommand == "updates":
@@ -1810,6 +2141,24 @@ def dispatch(args: argparse.Namespace) -> int:
             )
             chatqec_source_root = str(chatqec_source.prepare())
             chatqec_identity_token = secrets.token_urlsafe(32)
+        if args.start_iqm_worker and not (args.iqm_endpoint and args.iqm_device_alias):
+            raise ContractError(
+                "--start-iqm-worker requires --iqm-endpoint (or IQM_BASE_URL) "
+                "and --iqm-device-alias"
+            )
+        if args.start_iqm_worker and args.start_iqm_simulation_worker:
+            raise ContractError(
+                "select either --start-iqm-worker or --start-iqm-simulation-worker"
+            )
+        if args.prompt_for_iqm_token and not args.start_iqm_worker:
+            raise ContractError("--prompt-for-iqm-token requires --start-iqm-worker")
+        iqm_token = ""
+        if args.start_iqm_worker:
+            iqm_token = (
+                _prompt_iqm_token("IQM_TOKEN")
+                if args.prompt_for_iqm_token
+                else os.environ.get("IQM_TOKEN", "")
+            )
         config = DevStackConfig(
             catalog=args.catalog,
             registry=args.registry,
@@ -1837,6 +2186,8 @@ def dispatch(args: argparse.Namespace) -> int:
             start_chatqec=not args.no_chatqec,
             start_repository_updates=not args.no_repository_updates,
             start_databucket=not args.no_databucket,
+            start_iqm_worker=args.start_iqm_worker,
+            start_iqm_simulation_worker=args.start_iqm_simulation_worker,
             databucket_s3_endpoint=(
                 databucket_credentials.endpoint if databucket_credentials else ""
             ),
@@ -1851,6 +2202,9 @@ def dispatch(args: argparse.Namespace) -> int:
                 if databucket_credentials
                 else ""
             ),
+            iqm_endpoint=args.iqm_endpoint or "",
+            iqm_device_alias=args.iqm_device_alias or "",
+            iqm_token=iqm_token,
         )
         supervisor = DevStackSupervisor(
             build_service_specs(config),
@@ -2117,6 +2471,162 @@ def dispatch(args: argparse.Namespace) -> int:
             )
             processed = worker.run_forever(stop_event)
         print(f"Worker stopped: {processed} tasks processed")
+        return 0
+
+    if args.subcommand == "iqm-worker":
+        import re
+        import signal
+        from threading import Event
+
+        from .deployment import load_deployment_profile, registry_for_deployment
+        from .engine import WorkflowEngine
+        from .iqm_provider import IQMProviderUnavailable, QiskitIQMBackendClient
+        from .iqm_runner import IQMAsyncRunner
+        from .worker import AsyncWorker, RegistryBoundAsyncRunner
+
+        if args.poll_interval <= 0:
+            raise ContractError("IQM worker poll interval must be greater than zero")
+        if args.lease_seconds <= 0:
+            raise ContractError("IQM worker lease duration must be greater than zero")
+        if not args.endpoint:
+            raise ContractError("IQM worker requires --endpoint or IQM_BASE_URL")
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}", args.credential_environment_variable) is None:
+            raise ContractError("IQM credential environment variable has an invalid name")
+        if args.prompt_for_token:
+            os.environ[args.credential_environment_variable] = _prompt_iqm_token(
+                args.credential_environment_variable
+            )
+
+        catalog = load_catalog(args.catalog)
+        profile = load_deployment_profile(args.deployment_profile, catalog)
+        registry = registry_for_deployment(
+            load_registry(args.registry, catalog), profile
+        )
+        client = QiskitIQMBackendClient(args.endpoint, args.device_alias)
+        try:
+            client.validate_environment()
+        except IQMProviderUnavailable as error:
+            raise ContractError(str(error)) from error
+        credential_reference = "secret://env/" + args.credential_environment_variable
+        delegate = IQMAsyncRunner(
+            client,
+            allowed_credential_references=(credential_reference,),
+        )
+        engine = WorkflowEngine(args.database, args.artifact_root)
+        runner = RegistryBoundAsyncRunner(delegate, registry)
+        worker = AsyncWorker(
+            engine,
+            runner,
+            poll_interval_seconds=args.poll_interval,
+            lease_seconds=args.lease_seconds,
+            worker_id=args.worker_id,
+            metadata={
+                "iqm": {
+                    "provider": "iqm-client-qiskit",
+                    "mode": "hardware",
+                    "endpoint_configured": True,
+                    "device_alias": args.device_alias,
+                    "credential_reference": credential_reference,
+                    "credential_available": bool(
+                        os.environ.get(args.credential_environment_variable)
+                    ),
+                    "access_scope": "internal-alpha",
+                }
+            },
+        )
+        metadata = profile["metadata"]
+        print(
+            f"QHPC IQM Worker: {metadata['id']}@{metadata['version']} "
+            f"(device {args.device_alias}; credential "
+            f"{'available' if os.environ.get(args.credential_environment_variable) else 'unavailable'})"
+        )
+        if args.once:
+            transitions = int(worker.run_once())
+            engine.heartbeat_worker(worker.worker_id, state="offline")
+        else:
+            stop_event = Event()
+
+            def stop_worker(_signum: int, _frame: object) -> None:
+                stop_event.set()
+
+            signal.signal(signal.SIGINT, stop_worker)
+            signal.signal(signal.SIGTERM, stop_worker)
+            print(
+                f"IQM worker polling every {args.poll_interval:g}s "
+                f"with {args.lease_seconds}s leases"
+            )
+            transitions = worker.run_forever(stop_event)
+        print(f"IQM worker stopped: {transitions} transitions processed")
+        return 0
+
+    if args.subcommand == "iqm-simulation-worker":
+        import signal
+        from threading import Event
+
+        from .deployment import load_deployment_profile, registry_for_deployment
+        from .engine import WorkflowEngine
+        from .iqm_runner import IQMAsyncRunner, SimulatedIQMBackendClient
+        from .worker import AsyncWorker, RegistryBoundAsyncRunner
+
+        if args.poll_interval <= 0:
+            raise ContractError(
+                "IQM simulation worker poll interval must be greater than zero"
+            )
+        if args.lease_seconds <= 0:
+            raise ContractError(
+                "IQM simulation worker lease duration must be greater than zero"
+            )
+        catalog = load_catalog(args.catalog)
+        profile = load_deployment_profile(args.deployment_profile, catalog)
+        registry = registry_for_deployment(
+            load_registry(args.registry, catalog), profile
+        )
+        delegate = IQMAsyncRunner(
+            SimulatedIQMBackendClient(),
+            secret_resolver=lambda _reference: "simulation-only",
+            allowed_credential_references=("secret://env/IQM_TOKEN",),
+        )
+        engine = WorkflowEngine(args.database, args.artifact_root)
+        runner = RegistryBoundAsyncRunner(delegate, registry)
+        worker = AsyncWorker(
+            engine,
+            runner,
+            poll_interval_seconds=args.poll_interval,
+            lease_seconds=args.lease_seconds,
+            worker_id=args.worker_id,
+            metadata={
+                "iqm": {
+                    "provider": "simulated-iqm",
+                    "mode": "simulation",
+                    "endpoint_configured": False,
+                    "device_alias": "default",
+                    "credential_available": False,
+                    "access_scope": "simulation-only",
+                }
+            },
+        )
+        metadata = profile["metadata"]
+        print(
+            f"QHPC IQM Simulation Worker: {metadata['id']}@{metadata['version']} "
+            "(no network; no credential; not hardware evidence)"
+        )
+        if args.once:
+            transitions = int(worker.run_once())
+            engine.heartbeat_worker(worker.worker_id, state="offline")
+        else:
+            stop_event = Event()
+
+            def stop_worker(_signum: int, _frame: object) -> None:
+                stop_event.set()
+
+            signal.signal(signal.SIGINT, stop_worker)
+            signal.signal(signal.SIGTERM, stop_worker)
+            print(
+                "IQM simulation worker polling "
+                f"every {args.poll_interval:g}s with {args.lease_seconds}s leases"
+            )
+            transitions = worker.run_forever(stop_event)
+        print(f"IQM simulation worker stopped: {transitions} transitions processed")
         return 0
 
     if args.subcommand == "target-worker":
@@ -2492,6 +3002,18 @@ def dispatch(args: argparse.Namespace) -> int:
             print(f"Contract valid: {args.kind} ({path})")
             return 0
         raise ContractError(f"unsupported contract command: {args.contract_command}")
+
+    if args.subcommand == "engagement":
+        if args.engagement_command != "list":
+            raise ContractError(
+                f"unsupported Engagement command: {args.engagement_command}"
+            )
+        catalog = engagement_catalog()
+        if args.as_json:
+            print(json.dumps(catalog, indent=2, sort_keys=True))
+        else:
+            _print_engagement_resources(catalog)
+        return 0
 
     if args.subcommand == "registry":
         if args.registry_command == "build":

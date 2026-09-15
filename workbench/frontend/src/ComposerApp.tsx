@@ -53,6 +53,7 @@ import {
   createBoundaryForPort,
   createEmptyWorkflow,
   createOperationCanvasNode,
+  createWorkflowInputCanvasNode,
   layoutFromCanvas,
   uniqueNodeId,
   validateCanvas,
@@ -63,6 +64,7 @@ import {
   BoundaryCanvasNode,
   OperationCanvasNode,
 } from "./nodes";
+import { latestWorkflowVersions } from "./workflowVersions";
 import type {
   ArtifactPort,
   CapabilitySummary,
@@ -175,11 +177,57 @@ interface ScientificPath {
   workflow?: PublishedWorkflow;
 }
 
+interface ComposerInputDefinition {
+  id: string;
+  name: string;
+  title: string;
+  detail: string;
+  artifactType: string;
+}
+
 
 const NODE_TYPES = {
   operation: OperationCanvasNode,
   boundary: BoundaryCanvasNode,
 };
+
+const COMPOSER_INPUTS: ComposerInputDefinition[] = [
+  {
+    id: "openqasm-circuit",
+    name: "circuit",
+    title: "Input OpenQASM Circuit",
+    detail: "qhpc.quantum-circuit@1",
+    artifactType: "qhpc.quantum-circuit@1",
+  },
+  {
+    id: "pauli-hamiltonian",
+    name: "hamiltonian",
+    title: "Input Pauli Hamiltonian",
+    detail: "qhpc.pauli-hamiltonian@1",
+    artifactType: "qhpc.pauli-hamiltonian@1",
+  },
+  {
+    id: "stim-circuit",
+    name: "stim_circuit",
+    title: "Input Stim Circuit",
+    detail: "qhpc.stim-circuit@1",
+    artifactType: "qhpc.stim-circuit@1",
+  },
+  {
+    id: "tsim-circuit",
+    name: "tsim_circuit",
+    title: "Input TSim Circuit",
+    detail: "qhpc.tsim-circuit@1",
+    artifactType: "qhpc.tsim-circuit@1",
+  },
+  {
+    id: "glcb-circuit-specification",
+    name: "glcb_circuit",
+    title: "Input GLCB Circuit Specification",
+    detail: "qhpc.glcb-circuit-spec@1",
+    artifactType: "qhpc.glcb-circuit-spec@1",
+  },
+];
 
 const OPERATION_GRID = {
   columns: 2,
@@ -458,6 +506,27 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     ],
   },
   {
+    workflowId: "ftqc-iqm-steane-execution",
+    code: "F3",
+    shortName: "Route and execute one Steane logical qubit",
+    kind: "Flagship showcase",
+    toolChain: ["FTQC", "IQM route", "secured worker"],
+    inputLabel: "One-logical-qubit OpenQASM 3 circuit",
+    inputFileLabel: "Choose .qasm",
+    examples: [
+      {
+        name: "logical0.qasm",
+        label: "Load logical |0⟩",
+        content: FTQC_LOGICAL_ZERO_EXAMPLE,
+      },
+      {
+        name: "logical0-H.qasm",
+        label: "Load four-H variant",
+        content: FTQC_LOGICAL_H_EXAMPLE,
+      },
+    ],
+  },
+  {
     workflowId: "ct-hw-qasm-analysis",
     code: "03",
     shortName: "Circuit transformation and metrics",
@@ -498,6 +567,20 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     exampleLabel: "Load example",
     exampleContent: OPENQEVO_HAMILTONIAN_EXAMPLE,
   },
+  {
+    workflowId: "openqevo-dense-reference",
+    code: "07",
+    shortName: "Compare dense evolution methods",
+    kind: "Focused example",
+    toolChain: ["OpenQEvo"],
+    inputLabel: "Pauli Hamiltonian",
+    inputFileLabel: "Choose .json",
+    inputAccept: ".json,application/json,text/plain",
+    inputPlaceholder: '{"qubits": 2, "terms": [...]}',
+    exampleName: "two-qubit-hamiltonian.json",
+    exampleLabel: "Load example",
+    exampleContent: OPENQEVO_HAMILTONIAN_EXAMPLE,
+  },
 ];
 
 const ARTIFACT_LABELS: Record<string, string> = {
@@ -506,13 +589,19 @@ const ARTIFACT_LABELS: Record<string, string> = {
   "qhpc.circuit-metrics@1": "Circuit metrics",
   "qhpc.pauli-hamiltonian@1": "Pauli Hamiltonian",
   "qhpc.evolution-method-context@1": "Evolution method context",
+  "qhpc.evolution-result@1": "Evolution method result",
   "qhpc.evolution-synthesis-report@1": "Evolution synthesis report",
+  "qhpc.dense-unitary@1": "Dense reference unitary",
   "qhpc.stim-circuit@1": "Stim circuit",
   "qhpc.logical-error-estimate@1": "Logical error estimate",
   "qhpc.clifford-t-counts@1": "Clifford and T counts",
   "qhpc.ftqc-mlir@1": "FTQC MLIR program",
   "qhpc.iqm-circuit@1": "IQM-native circuit",
   "qhpc.ftqc-iqm-preparation-report@1": "FTQC preparation report",
+  "qhpc.iqm-routed-layout@1": "IQM routed layout",
+  "qhpc.iqm-job-receipt@1": "IQM job receipt",
+  "qhpc.iqm-raw-counts@1": "IQM raw counts",
+  "qhpc.ftqc-logical-result@1": "FTQC logical result",
 };
 
 
@@ -673,9 +762,7 @@ function executionTarget(
     if (!explicitTargets.length) {
       throw new Error("Workflow operations do not declare an execution target.");
     }
-    return explicitTargets.includes("local-development")
-      ? "local-development"
-      : explicitTargets[0];
+    return preferredLocalTarget(explicitTargets) ?? explicitTargets[0];
   }
   if (inheritedTargetSets.some((targets) => !targets.length)) {
     throw new Error("Workflow operations do not declare a common execution target.");
@@ -689,9 +776,17 @@ function executionTarget(
   if (!common.length) {
     throw new Error("Workflow operations do not share an execution target.");
   }
-  return common.includes("local-development")
-    ? "local-development"
-    : common[0];
+  return preferredLocalTarget(common) ?? common[0];
+}
+
+function preferredLocalTarget(targets: string[]): string | undefined {
+  return ["local-container", "local-development"].find((target) =>
+    targets.includes(target),
+  );
+}
+
+function isLocalExecutionTarget(target: string): boolean {
+  return target === "local-development" || target === "local-container";
 }
 
 
@@ -781,9 +876,11 @@ function ComposerSurface(): React.JSX.Element {
   const [lastRunId, setLastRunId] = useState<string | null>(null);
   const [guidedWorkflowId, setGuidedWorkflowId] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get("workflow");
-    return SCIENTIFIC_PATHS.some((path) => path.workflowId === requested)
-      ? requested as string
-      : SCIENTIFIC_PATHS[0].workflowId;
+    return requested && SCIENTIFIC_PATHS.some(
+      (path) => path.workflowId === requested,
+    )
+      ? requested
+      : null;
   });
   const [guidedInputs, setGuidedInputs] = useState<
     Record<string, Record<string, string>>
@@ -834,9 +931,11 @@ function ComposerSurface(): React.JSX.Element {
     [workflows],
   );
   const selectedGuidedPath =
-    guidedPaths.find(
-      (item) => item.definition.workflowId === guidedWorkflowId,
-    ) ??
+    (guidedWorkflowId
+      ? guidedPaths.find(
+          (item) => item.definition.workflowId === guidedWorkflowId,
+        )
+      : undefined) ??
     guidedPaths.find((item) => item.workflow) ??
     guidedPaths[0];
   const selectedGuidedWorkflow = selectedGuidedPath?.workflow;
@@ -871,7 +970,7 @@ function ComposerSurface(): React.JSX.Element {
           }
           const executionClass =
             node.execution_class ??
-            (target === "local-development"
+            (isLocalExecutionTarget(target)
               ? "interactive-local"
               : "batch-hpc");
           const digests = groups.get(executionClass) ?? new Set<string>();
@@ -991,7 +1090,7 @@ function ComposerSurface(): React.JSX.Element {
       .then(([nextCapabilities, nextWorkflows, nextDrafts]) => {
         if (!active) return;
         setCapabilities(nextCapabilities);
-        setWorkflows(nextWorkflows);
+        setWorkflows(latestWorkflowVersions(nextWorkflows));
         setDrafts(nextDrafts);
         const blank = createEmptyWorkflow();
         setMetadata(blank.metadata);
@@ -1067,6 +1166,30 @@ function ComposerSurface(): React.JSX.Element {
     resetDocument(createEmptyWorkflow(), undefined, null, null);
     if (window.matchMedia("(max-width: 980px)").matches) setLeftOpen(false);
   }, [resetDocument]);
+
+  const addInputArtifact = useCallback((
+    input: ComposerInputDefinition,
+    position?: { x: number; y: number },
+  ) => {
+    const inputNode = createWorkflowInputCanvasNode(
+      input.name,
+      input.artifactType,
+      nodes,
+      position,
+    );
+    replaceGraph([...nodes, inputNode], edges);
+    setSelectedNodeId(inputNode.id);
+    setLibraryView("operations");
+    setLibraryQuery(input.artifactType);
+    setLeftOpen(true);
+    setStatusMessage(
+      `${input.title} added. Choose a compatible operation, then connect its input port.`,
+    );
+  }, [edges, nodes, replaceGraph]);
+
+  const startWithCircuit = useCallback(() => {
+    addInputArtifact(COMPOSER_INPUTS[0]);
+  }, [addInputArtifact]);
 
   const openTemplate = useCallback(
     (item: PublishedWorkflow) => {
@@ -1259,16 +1382,7 @@ function ComposerSurface(): React.JSX.Element {
         saved.metadata.revision,
       );
       setPublished(result.workflow);
-      setWorkflows((items) => [
-        result.workflow,
-        ...items.filter(
-          (item) =>
-            !(
-              item.id === result.workflow.id &&
-              item.version === result.workflow.version
-            ),
-        ),
-      ]);
+      setWorkflows((items) => latestWorkflowVersions([result.workflow, ...items]));
       setRunInputs(
         Object.fromEntries(
           Object.keys(result.workflow.definition.spec.inputs).map((name) => [
@@ -1538,9 +1652,29 @@ function ComposerSurface(): React.JSX.Element {
     );
   }, [capabilities, libraryQuery]);
 
+  const filteredInputs = useMemo(() => {
+    const query = libraryQuery.trim().toLowerCase();
+    return COMPOSER_INPUTS.filter((input) =>
+      !query || [input.title, input.detail, input.name]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [libraryQuery]);
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      const inputId = event.dataTransfer.getData("application/qhpc-input");
+      if (inputId) {
+        const input = COMPOSER_INPUTS.find((item) => item.id === inputId);
+        if (!input) return;
+        addInputArtifact(
+          input,
+          flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+        );
+        return;
+      }
       const key = event.dataTransfer.getData("application/qhpc-operation");
       if (!key) return;
       const [capabilityId, version, operationId] = key.split("\u0000");
@@ -1557,7 +1691,7 @@ function ComposerSurface(): React.JSX.Element {
         flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       );
     },
-    [addOperation, capabilities, flow],
+    [addInputArtifact, addOperation, capabilities, flow],
   );
 
   const showInspector = rightOpen && selectedNode?.type === "operation";
@@ -1784,6 +1918,45 @@ function ComposerSurface(): React.JSX.Element {
               </label>
             )}
             <div className="composer-library-list">
+              {libraryView === "operations" && Boolean(filteredInputs.length) && (
+                <section
+                  className="composer-library-section"
+                  aria-label="Input artifacts"
+                >
+                  <div className="composer-library-section-heading">
+                    <strong>Input artifacts</strong>
+                    <small>Add a workflow entry block</small>
+                  </div>
+                  {filteredInputs.map((input) => (
+                    <button
+                      type="button"
+                      className="composer-library-item is-input-artifact"
+                      key={input.id}
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "copy";
+                        event.dataTransfer.setData(
+                          "application/qhpc-input",
+                          input.id,
+                        );
+                      }}
+                      onClick={() => addInputArtifact(input)}
+                    >
+                      <span
+                        className="composer-item-glyph is-input"
+                        aria-hidden="true"
+                      >
+                        <FileUp size={14} />
+                      </span>
+                      <span>
+                        <strong>{input.title}</strong>
+                        <small>{input.detail}</small>
+                      </span>
+                      <ChevronRight size={14} aria-hidden="true" />
+                    </button>
+                  ))}
+                </section>
+              )}
               {libraryView === "operations" &&
                 filteredOperations.map(({ capability, operation }) => (
                   <button
@@ -1858,7 +2031,7 @@ function ComposerSurface(): React.JSX.Element {
                     <ChevronRight size={14} aria-hidden="true" />
                   </button>
                 ))}
-              {libraryView === "operations" && !filteredOperations.length && (
+              {libraryView === "operations" && !filteredInputs.length && !filteredOperations.length && (
                 <p className="composer-empty-list">No matching operations</p>
               )}
               {libraryView === "templates" && !workflows.length && (
@@ -1939,7 +2112,29 @@ function ComposerSurface(): React.JSX.Element {
           {!nodes.length && (
             <div className="composer-canvas-empty">
               <Braces size={20} aria-hidden="true" />
-              <strong>Empty workflow</strong>
+              <strong>Start with an input or a tool</strong>
+              <p>
+                Add an input block—such as a circuit or Hamiltonian—then connect
+                it to a compatible operation from the library.
+              </p>
+              <div className="composer-canvas-empty-actions">
+                <button
+                  type="button"
+                  className="composer-button is-primary"
+                  onClick={startWithCircuit}
+                >
+                  <FileCode2 size={14} aria-hidden="true" />
+                  Add Input Circuit
+                </button>
+                <button
+                  type="button"
+                  className="composer-button is-secondary"
+                  onClick={() => setComposerMode("guided")}
+                >
+                  <GitFork size={14} aria-hidden="true" />
+                  Use a guided example
+                </button>
+              </div>
             </div>
           )}
           <div className="composer-validation-strip">
@@ -2957,8 +3152,9 @@ function WorkflowInspector({
             <span>Draft</span>
           </div>
           <p className="composer-section-copy">
-            Advanced runs use a published workflow version. Publishing saves
-            and validates this draft, then unlocks its run inputs.
+            Compose the artifact handoffs first. Publishing saves and validates
+            this draft, then unlocks its run inputs—for example, the OpenQASM
+            circuit connected to your first operation.
           </p>
           <ol className="composer-execution-steps" aria-label="Execution steps">
             <li>Compose</li>

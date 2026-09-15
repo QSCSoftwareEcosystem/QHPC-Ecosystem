@@ -17,6 +17,11 @@ from urllib.parse import urlparse
 
 import yaml
 
+from .chatqec_readiness import (
+    CANONICAL_EXTRACTIVE_FALLBACK,
+    fallback_capabilities,
+    fallback_readiness,
+)
 from .contract import validate_contract
 from .service_adapters import (
     ServiceAdapterError,
@@ -391,11 +396,16 @@ class CanonicalChatQEC:
         return {
             "status": "ok",
             "service": "chatqec",
-            "mode": "canonical-extractive-development",
+            # This process is intentionally an offline deterministic fallback,
+            # not the upstream model/RAG research assistant.  Keep that product
+            # distinction visible at the first machine-readable boundary.
+            "mode": CANONICAL_EXTRACTIVE_FALLBACK,
             "source_revision": self.source_revision,
             "corpus_revision": self.corpus_revision,
             "pages": len(self.pages),
             "tool_execution": False,
+            "readiness": fallback_readiness(),
+            "capabilities": fallback_capabilities(),
         }
 
     def _rank(self, question: str) -> list[tuple[int, CanonicalPage]]:

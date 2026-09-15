@@ -53,19 +53,22 @@ first; each executable operation still requires a pinned descriptor and
 target-accepted immutable Linux runtime before production execution.
 
 FTQC's private QSC ecosystem repository is admitted at an exact revision. Its
-stable C API has been built locally on macOS arm64 and exercised through the EQO
-worker for two Workbench workflows: a measured two-device-qubit Bell circuit
+stable C API is built and exercised through a checksum-pinned Linux/amd64 OCI
+runtime for two Workbench workflows: a measured two-device-qubit Bell circuit
 and one Steane logical-qubit preparation. Both produce typed FTQC MLIR, IQM
 JSON, and an explicit preparation report. The preparation stops before
-calibration-aware routing or IQM submission and makes no fault-tolerance or
-hardware-execution claim. The source also contains the historical ORNL IQM path,
+calibration-aware routing or IQM submission when run as a preparation-only
+workflow and makes no fault-tolerance or hardware-execution claim. A separately
+configured optional IQM Client/Qiskit `quantum-backend` worker can now execute
+the typed route/submit/collect stage; its Workbench action remains gated by the
+worker, device, credential-reference, and site-policy checks. The source also
+contains the historical ORNL IQM path,
 but its job receipt, exact device identity, counts, corrected logical histogram,
-and acceptance comparison are not preserved. License clearance, a portable
-reproducible LLVM/MLIR 22 Linux runtime, immutable release publication, and
-target acceptance remain required.
+and acceptance comparison are not preserved. Immutable release publication,
+SIF conversion, supply-chain evidence, and target acceptance remain required.
 
 Production-shaped containerization is locally complete for STABSim, QASMTrans,
-NWQEC, FTPrimitiveBench, and LightStim. Their exact source revisions, source
+NWQEC, FTPrimitiveBench, LightStim, and FTQC. Their exact source revisions, source
 archives, recipes, context wrappers, dependencies, smoke boundaries, and base
 images are digest-pinned in `OperationRuntime` contracts. Each constrained
 `linux/amd64` image passed a local network-disabled, read-only OCI smoke test
@@ -75,17 +78,17 @@ signature, attestation, site storage activation, and target acceptance remain
 open.
 
 The machine-readable initial HPC acceptance profile covers all fifteen
-deployment components. It reports five OCI-verified batch runtimes, TN-Sim and
-FTQC as production-runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, QSC Materials
+deployment components. It reports six OCI-verified batch runtimes, TN-Sim as
+production-runtime-pending, and OpenQEvo, OpenQSE, QAppsWiki, QSC Materials
 Repository, ChatQEC, plus the three non-executable QFlow/QIRIS incubation records as
 outside the Slurm batch gate in their current roles. Its gate remains closed
 while the target and storage profiles are planned and no runtime is
 target-accepted.
 
 TN-Sim still needs a corrected reproducible iTensor/BLAS source build and
-source-backed correctness evidence. FTQC still needs license clearance and a
-reproducible, portable LLVM/MLIR 22 Linux build despite its verified local
-macOS development bundle. STABSim's local image cannot be published
+source-backed correctness evidence. FTQC still needs immutable release
+publication, SIF conversion, supply-chain evidence, and target acceptance.
+STABSim's local image cannot be published
 until its upstream project supplies explicit license terms. OpenQEvo packaging
 is blocked because the audited source declares its license as `TBD` and
 provides no license file. ChatQEC remains a separately governed service rather
@@ -99,7 +102,7 @@ than an operation image.
   preparation, exact offline dependency archives, constrained local OCI smoke
   verification, and immutable OCI-to-Apptainer command rendering.
 - Reproducible locally smoke-tested operation images for STABSim, QASMTrans,
-  NWQEC, FTPrimitiveBench, and LightStim.
+  NWQEC, FTPrimitiveBench, LightStim, and FTQC.
 - A deployment-aligned HPC acceptance profile and CLI status/gate checks that
   reject component, role, integration, or runtime drift.
 - Controlled local runner with an explicit operation allowlist.
@@ -129,10 +132,11 @@ than an operation image.
 - Separately deployable Django Workbench with CSRF-protected fixed-origin API
   proxy, revisioned workflow drafts, typed React Flow composition, immutable
   publication, run submission, and checksum-verified artifact retrieval.
-- A separately supervised, workload-authenticated ChatQEC development service
-  over the pinned canonical corpus, with a server-side QHPC gateway, strict
-  browser request allowlist, cited answers or explicit refusal, and no tool
-  execution or retained conversation state.
+- A separately supervised, workload-authenticated **ChatQEC canonical-corpus
+  extractive fallback** over the pinned canonical corpus, with a server-side
+  QHPC gateway, strict browser request allowlist, cited answers or explicit
+  refusal, and no tool execution or retained conversation state. It is not a
+  model-backed ChatQEC deployment.
 - Verified local OpenQEvo and QASMTrans-to-STABSim vertical slices.
 
 These are development foundations. The API does not yet enforce authoritative

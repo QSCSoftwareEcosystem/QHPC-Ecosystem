@@ -6,7 +6,9 @@ import platform
 import subprocess
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 import qhpc_ecosystem.local_adapters as local_adapters
@@ -89,6 +91,207 @@ def test_missing_optional_runtime_fails_with_an_actionable_error(tmp_path: Path)
             "qhpc-runtime://wheels/missing.whl",
             digest,
         )
+
+
+def test_ftqc_preparation_uses_only_the_admitted_oci_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "bell.qasm"
+    source.write_text("OPENQASM 3.0;\nqubit[2] q;\n", encoding="utf-8")
+    work = tmp_path / "work"
+    work.mkdir()
+    digest = "sha256:" + "f" * 64
+    calls: list[list[str]] = []
+
+    def run(command, **_options):
+        calls.append(command)
+        if command[1:3] == ["image", "inspect"]:
+            return SimpleNamespace(returncode=0, stdout=digest + "\n", stderr="")
+        assert command[:3] == ["/usr/bin/docker", "run", "--rm"]
+        assert "--network" in command
+        assert command[command.index("--network") + 1] == "none"
+        assert "--read-only" in command
+        assert "--cap-drop" in command
+        assert command[command.index("--cap-drop") + 1] == "ALL"
+        output_mount = next(
+            value
+            for index, value in enumerate(command)
+            if command[index - 1] == "--mount" and "dst=/outputs" in value
+        )
+        output = Path(output_mount.split(",")[1].removeprefix("src=")).resolve()
+        (output / "program.mlir").write_text(
+            'module attributes {ftqc.iqm_json = "{}"}\n', encoding="utf-8"
+        )
+        (output / "iqm-circuit.json").write_text(
+            '{"instructions": [], "name": "circuit"}\n', encoding="utf-8"
+        )
+        (output / "preparation-report.json").write_text(
+            '{"device_qubits": 2}\n', encoding="utf-8"
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(
+        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+    )
+    monkeypatch.setattr(local_adapters.subprocess, "run", run)
+    result = build_local_runner(tmp_path / "runtimes").execute(
+        TaskRequest(
+            run_id="run-ftqc",
+            node_id="prepare",
+            capability_id="ftqc-compiler",
+            capability_version="0.4.0",
+            operation_id="prepare-iqm",
+            runtime_reference=local_adapters.FTQC_OCI_REFERENCE,
+            runtime_digest=digest,
+            parameters={"preparation": "device", "function_name": "circuit"},
+            inputs={"circuit": {"uri": source.as_uri()}},
+            output_types={
+                "program": "qhpc.ftqc-mlir@1",
+                "circuit": "qhpc.iqm-circuit@1",
+                "report": "qhpc.ftqc-iqm-preparation-report@1",
+            },
+            work_directory=work,
+        )
+    )
+
+    assert len(calls) == 2
+    assert "admitted OCI runtime" in result.log
+    assert Path(result.outputs["report"].uri.removeprefix("file://")).is_file()
+
+
+def test_ftqc_preparation_rejects_a_native_or_tampered_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+    )
+    request = TaskRequest(
+        run_id="run-ftqc",
+        node_id="prepare",
+        capability_id="ftqc-compiler",
+        capability_version="0.4.0",
+        operation_id="prepare-iqm",
+        runtime_reference="qhpc-runtime://native/ftqc.zip",
+        runtime_digest="sha256:" + "0" * 64,
+        parameters={},
+        inputs={},
+        output_types={},
+        work_directory=tmp_path,
+    )
+
+    with pytest.raises(RuntimeError, match="admitted OCI runtime"):
+        local_adapters._ftqc_container_engine(request)
+
+
+def test_chatqec_stim_simulation_uses_only_the_admitted_oci_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "bell.stim"
+    source.write_text("H 0\nM 0\n", encoding="utf-8")
+    work = tmp_path / "work"
+    work.mkdir()
+    calls: list[list[str]] = []
+
+    def run(command, **_options):
+        calls.append(command)
+        if command[1:3] == ["image", "inspect"]:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST + "\n",
+                stderr="",
+            )
+        assert command[:3] == ["/usr/bin/docker", "run", "--rm"]
+        assert command[command.index("--network") + 1] == "none"
+        assert "--read-only" in command
+        assert command[command.index("--cap-drop") + 1] == "ALL"
+        assert command[-3:] == ["stim-simulate", "--shots", "4"]
+        output_mount = next(
+            value
+            for index, value in enumerate(command)
+            if command[index - 1] == "--mount" and "dst=/outputs" in value
+        )
+        output = Path(output_mount.split(",")[1].removeprefix("src=")).resolve()
+        (output / "samples.json").write_text(
+            '{"schema": "qhpc.stim-simulation-samples.v1", "shots": 4}\n',
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(
+        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+    )
+    monkeypatch.setattr(local_adapters.subprocess, "run", run)
+    result = build_local_runner(tmp_path / "runtimes").execute(
+        TaskRequest(
+            run_id="run-stim",
+            node_id="simulate",
+            capability_id="chatqec-qec-tools",
+            capability_version="0.1.0",
+            operation_id="stim-simulate",
+            runtime_reference=local_adapters.CHATQEC_QEC_TOOLS_OCI_REFERENCE,
+            runtime_digest=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST,
+            parameters={"shots": 4},
+            inputs={"circuit": {"uri": source.as_uri()}},
+            output_types={"samples": "qhpc.stim-simulation-samples@1"},
+            work_directory=work,
+        )
+    )
+
+    assert len(calls) == 2
+    assert "admitted OCI runtime" in result.log
+    assert Path(result.outputs["samples"].uri.removeprefix("file://")).is_file()
+
+
+def test_chatqec_stim_diagram_rejects_active_svg(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "bell.stim"
+    source.write_text("H 0\nM 0\n", encoding="utf-8")
+    work = tmp_path / "work"
+    work.mkdir()
+
+    def run(command, **_options):
+        if command[1:3] == ["image", "inspect"]:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST + "\n",
+                stderr="",
+            )
+        output_mount = next(
+            value
+            for index, value in enumerate(command)
+            if command[index - 1] == "--mount" and "dst=/outputs" in value
+        )
+        output = Path(output_mount.split(",")[1].removeprefix("src=")).resolve()
+        (output / "diagram.svg").write_text(
+            "<svg onload=\"alert(1)\"/>", encoding="utf-8"
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(
+        local_adapters.shutil, "which", lambda _name: "/usr/bin/docker"
+    )
+    monkeypatch.setattr(local_adapters.subprocess, "run", run)
+    request = TaskRequest(
+        run_id="run-stim",
+        node_id="diagram",
+        capability_id="chatqec-qec-tools",
+        capability_version="0.1.0",
+        operation_id="stim-diagram",
+        runtime_reference=local_adapters.CHATQEC_QEC_TOOLS_OCI_REFERENCE,
+        runtime_digest=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST,
+        parameters={},
+        inputs={"circuit": {"uri": source.as_uri()}},
+        output_types={"diagram": "qhpc.stim-diagram@1"},
+        work_directory=work,
+    )
+
+    with pytest.raises(RuntimeError, match="active SVG content"):
+        build_local_runner(tmp_path / "runtimes").execute(request)
 
 
 def test_cmake_runtime_packages_an_explicit_shared_library(tmp_path: Path) -> None:
@@ -260,7 +463,7 @@ def test_wheel_runtime_is_reproducible_verified_and_allowlisted(
     context = json.loads(context_output.read_text(encoding="utf-8"))
     assert context["method"]["name"] == "trotter_s2"
     assert context["context_status"] == "available"
-    assert context["context"]["complexity"]["error_scaling"].endswith("/ n^2)")
+    assert "O(t^3/n^2)" in context["context"]["complexity"]["error_scaling"]
 
     monkeypatch.setattr(
         local_adapters,
@@ -319,6 +522,121 @@ def test_wheel_runtime_is_reproducible_verified_and_allowlisted(
     first.path.write_bytes(first.path.read_bytes() + b"tamper")
     with pytest.raises(RuntimeError, match="digest mismatch"):
         resolve_wheel_runtime(tmp_path / "runtime-1", first.reference, first.digest)
+
+
+def test_openqevo_dense_reference_adapter_preserves_result_and_unitary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class PauliTerm:
+        def __init__(self, *, coefficient, pauli_word) -> None:
+            self.coefficient = coefficient
+            self.pauli_word = pauli_word
+
+    class PauliHamiltonian:
+        def __init__(self, *, terms, identifier, source) -> None:
+            self.terms = terms
+            self.identifier = identifier
+            self.source = source
+            self.n_qubits = len(terms[0].pauli_word)
+
+    class Result:
+        unitary = np.eye(2, dtype=complex)
+
+        def to_metadata(self):
+            return {
+                "schema_version": "openqevo-evolution-result/v1",
+                "representation": "unitary",
+                "method": "krylov",
+                "implementation": {
+                    "package": "openqevo",
+                    "version": "0.1.0",
+                    "source": "fixture",
+                },
+                "parameters": {"krylov_dim": 2, "tolerance": 1e-12},
+                "costs": {
+                    "formula_level_pauli_operations": None,
+                    "adjacent_merged_pauli_operations": None,
+                    "compiled_one_qubit_gates": None,
+                    "compiled_two_qubit_gates": None,
+                    "circuit_depth": None,
+                },
+                "hamiltonian": {"representation": "pauli_sum"},
+                "seed": None,
+                "sampled_sequence": None,
+                "runtime_seconds": None,
+                "environment": {},
+                "warnings": ["fixture warning"],
+                "limitations": ["fixture limitation"],
+                "output": {
+                    "python_type": "ndarray",
+                    "shape": [2, 2],
+                    "dtype": "complex128",
+                    "sha256": "0" * 64,
+                },
+            }
+
+    class Method:
+        def run(self, hamiltonian, evolution_time, **parameters):
+            assert hamiltonian.n_qubits == 1
+            assert evolution_time == 0.75
+            assert parameters == {"krylov_dim": 2, "tolerance": 1e-12}
+            return Result()
+
+    fake_openqevo = SimpleNamespace(
+        PauliTerm=PauliTerm,
+        PauliHamiltonian=PauliHamiltonian,
+        get=lambda method: Method() if method == "krylov" else None,
+        list_methods_detail=lambda: [
+            {"name": "krylov", "description": "fixture", "source": "fixture"}
+        ],
+    )
+    monkeypatch.setattr(
+        local_adapters, "_load_openqevo", lambda _root, _request: fake_openqevo
+    )
+    hamiltonian = tmp_path / "hamiltonian.json"
+    hamiltonian.write_text(
+        json.dumps(
+            {
+                "qubits": 1,
+                "terms": [{"pauli": "Z", "coefficient": 1.0}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    work = tmp_path / "dense-reference-work"
+    work.mkdir()
+    result = build_local_runner(tmp_path / "runtimes").execute(
+        TaskRequest(
+            run_id="run-dense-reference",
+            node_id="evaluate",
+            capability_id="openqevo-library",
+            capability_version="0.1.0",
+            operation_id="evaluate-dense-reference",
+            runtime_reference="qhpc-runtime://wheels/fixture.whl",
+            runtime_digest="sha256:" + "0" * 64,
+            parameters={
+                "method": "krylov",
+                "evolution_time": 0.75,
+                "steps": 32,
+                "krylov_dim": 2,
+                "tolerance": 1e-12,
+            },
+            inputs={"hamiltonian": {"uri": hamiltonian.resolve().as_uri()}},
+            output_types={
+                "result": "qhpc.evolution-result@1",
+                "unitary": "qhpc.dense-unitary@1",
+            },
+            work_directory=work,
+        )
+    )
+
+    report = Path(result.outputs["result"].uri.removeprefix("file://"))
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["method"] == "krylov"
+    assert payload["parameters"]["eqo_source_revision"] == local_adapters.OPENQEVO_REVISION
+    unitary = Path(result.outputs["unitary"].uri.removeprefix("file://"))
+    np.testing.assert_allclose(np.load(unitary, allow_pickle=False), np.eye(2))
 
 
 def test_native_runtime_is_reproducible_and_stabsim_adapter_parses_metrics(

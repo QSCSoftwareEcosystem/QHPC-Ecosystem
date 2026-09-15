@@ -1,11 +1,11 @@
 api_version: qhpc/v1
 kind: Registry
 metadata:
-  entry_count: 18
-  catalog_digest: sha256:2bc40e60bde1cec22e9b62301f38e9576da4a420a52499110688e53d363b8e37
+  entry_count: 19
+  catalog_digest: sha256:5d111390cd1f101786b64175883cf58959608234938c8d2698cad7ae3fbe0f6f
 spec:
   entries:
-  - descriptor_digest: sha256:6b8e1501dd38b527fc46fbe257f4195498033ddfd8bab9f88fc975e25a1ab3d2
+  - descriptor_digest: sha256:f43d76e3daf392b2b917125e3caa691621acce6939cff6fad6a225d3618fa173
     catalog_repository: chatqec
     validation:
       contract: valid
@@ -34,7 +34,7 @@ spec:
         owners:
         - chatqec
         repository:
-          url: https://github.com/QSCSoftwareThrust/ChatQEC
+          url: https://github.com/QSCSoftwareEcosystem/ChatQEC
           revision: a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
         integration:
           authority: ecosystem
@@ -70,16 +70,16 @@ spec:
         - id: chatqec-source
           kind: library
           version: 0.1.1
-          uri: https://github.com/QSCSoftwareThrust/ChatQEC/tree/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
+          uri: https://github.com/QSCSoftwareEcosystem/ChatQEC/tree/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
         - id: developer-attribution
           kind: documentation
           version: 1.0.0
           uri: docs/tool-attribution.md#chatqec
         documentation:
           qappswiki: packages/chatqec.md
-          url: https://github.com/QSCSoftwareThrust/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md
-  - descriptor_digest: sha256:636da0f213eb8f5f149c28461239f1e4e1a9d868d41e158cccb1d50f2dd47f68
-    catalog_repository: ExaChem
+          url: https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md
+  - descriptor_digest: sha256:c4dc18f559538b3eacd3bcef163925f05ab14fda7490c7359f213edb46cd48c6
+    catalog_repository: chatqec-mcp-tools
     validation:
       contract: valid
       attribution: valid
@@ -87,10 +87,408 @@ spec:
       curated_by: &id003
       - qhpc-ecosystem
       project_reviewed: false
-      runtime: not-applicable
+      runtime: verified
       documentation: linked
       status: integration-tested
       evidence: &id004
+      - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+      - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: chatqec-qec-tools
+        name: ChatQEC Governed QEC Tools
+        version: 0.1.0
+        project: agentic-software
+        owners:
+        - chatqec
+        repository:
+          url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+          revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+        integration:
+          authority: ecosystem
+          maintainers: *id003
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id004
+        visibility: internal
+        maturity: pre-alpha
+      spec:
+        component:
+          name: ChatQEC MCP Tools
+          description: Pinned QEC calculations from the ChatQEC tool repository, executed only as bounded
+            EQO operations rather than MCP subprocesses.
+        guidance:
+          use_when:
+          - Compute bounded QEC code parameters, Stim samples or diagrams, PyMatching decoder results,
+            LightStim-built code circuits, threshold-sweep evidence, and shareable GLCB visualization
+            links with exact source and runtime provenance.
+          quick_start:
+          - In Compose, choose a ChatQEC governed QEC operation.
+          - Review the bounded parameters and input artifact, then submit to a compatible worker.
+          example_workflows:
+          - chatqec-code-parameters
+          - chatqec-qec-toolchain
+          - chatqec-threshold-sweep
+          - chatqec-tsim-simulation
+          - chatqec-glcb-link
+          limitations:
+          - Code-parameter calculation, bounded Stim simulation, SVG diagrams, PyMatching decoding, LightStim
+            circuit construction, threshold sweeps, and GLCB link generation have local OCI smoke evidence;
+            candidate images remain unpublished.
+          - ChatQEC may propose a calculation, but an EQO user must review and confirm it before any run
+            is submitted.
+          - The candidate OCI image is unpublished and is not accepted for an HPC target.
+        operations:
+        - id: code-params
+          title: Report QEC code parameters
+          description: Return [[n,k]], stabilizer count, detector and observable counts, and Stim graphlike-distance
+            evidence for a bounded supported code family.
+          inputs: {}
+          outputs:
+            parameters:
+              artifact_type: qhpc.qec-code-parameters@1
+          parameters:
+            code_family:
+              type: string
+              title: Code family
+              default: surface_code_rotated
+              enum:
+              - surface_code_rotated
+              - repetition_code
+              - color_code
+            distance:
+              type: integer
+              title: Code distance
+              default: 3
+              minimum: 3
+              maximum: 15
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
+            - code-params
+          resources:
+            cpu: 1
+            memory_mb: 512
+            walltime_seconds: 60
+          execution_targets:
+          - development-slurm-docker
+        - id: stim-simulate
+          title: Simulate a Stim circuit
+          description: Sample a bounded Stim circuit and return a typed preview containing at most twenty
+            binary sample rows.
+          inputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          outputs:
+            samples:
+              artifact_type: qhpc.stim-simulation-samples@1
+          parameters:
+            shots:
+              type: integer
+              title: Measurement shots
+              default: 1024
+              minimum: 1
+              maximum: 1000000
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
+            - stim-simulate
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - local-container
+          - development-slurm-docker
+        - id: stim-diagram
+          title: Render a Stim circuit diagram
+          description: Render a bounded Stim circuit as a validated, non-active SVG timeline artifact.
+          inputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          outputs:
+            diagram:
+              artifact_type: qhpc.stim-diagram@1
+          parameters: {}
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
+            - stim-diagram
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - local-container
+          - development-slurm-docker
+        - id: pymatching-decode
+          title: Decode a detector-annotated Stim circuit
+          description: Decode bounded Stim detector samples with PyMatching and report the sampled logical-error
+            rate and exact error count.
+          inputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          outputs:
+            result:
+              artifact_type: qhpc.qec-decoder-result@1
+          parameters:
+            shots:
+              type: integer
+              title: Decoder shots
+              default: 1024
+              minimum: 1
+              maximum: 1000000
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
+            - pymatching-decode
+          resources:
+            cpu: 1
+            memory_mb: 2048
+            walltime_seconds: 60
+          execution_targets:
+          - development-slurm-docker
+        - id: threshold-sweep
+          title: Sweep physical error rates across code distances
+          description: Generate and PyMatching-decode bounded Stim memory experiments, returning empirical
+            logical-error rows and a sanitized logarithmic SVG plot. This is sweep evidence, not an inferred
+            threshold claim.
+          inputs: {}
+          outputs:
+            results:
+              artifact_type: qhpc.qec-threshold-sweep@1
+            plot:
+              artifact_type: qhpc.qec-threshold-plot@1
+          parameters:
+            code_family:
+              type: string
+              title: Code family
+              default: surface_code_rotated
+              enum:
+              - surface_code_rotated
+              - repetition_code
+              - color_code
+            distances:
+              type: string
+              title: Comma-separated code distances
+              default: 3,5
+            p_values:
+              type: string
+              title: Comma-separated physical error rates
+              default: 0.001,0.01
+            rounds:
+              type: integer
+              title: Syndrome-extraction rounds (zero uses the code distance)
+              default: 0
+              minimum: 0
+              maximum: 200
+            shots:
+              type: integer
+              title: Decoder shots per distance/error-rate point
+              default: 200
+              minimum: 1
+              maximum: 1000000
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
+            - threshold-sweep
+          resources:
+            cpu: 2
+            memory_mb: 4096
+            walltime_seconds: 600
+          execution_targets:
+          - development-slurm-docker
+        - id: qec-circuit-build
+          title: Build a QEC circuit with LightStim
+          description: Construct a bounded detector-annotated Stim circuit for a LightStim-supported QEC
+            family, preserving its build report and exact pinned LightStim source revision.
+          inputs: {}
+          outputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+            report:
+              artifact_type: qhpc.qec-circuit-build-report@1
+          parameters:
+            code_family:
+              type: string
+              title: QEC code family
+              default: toric_code
+              enum:
+              - toric_code
+              - color_code_666
+              - bb_code
+              - pqrm
+            distance:
+              type: integer
+              title: Code distance
+              default: 3
+              minimum: 3
+              maximum: 15
+            rounds:
+              type: integer
+              title: Memory syndrome-extraction rounds
+              default: 3
+              minimum: 1
+              maximum: 200
+            protocol:
+              type: string
+              title: Protocol
+              default: memory
+              enum:
+              - memory
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-lightstim@sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+            digest: sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-lightstim-build
+          resources:
+            cpu: 2
+            memory_mb: 4096
+            walltime_seconds: 120
+          execution_targets:
+          - development-slurm-docker
+        - id: tsim-simulate
+          title: Simulate a non-Clifford Tsim circuit
+          description: Sample bounded detector and observable outcomes from a Tsim circuit, including
+            the supported non-Clifford instructions, with the T-count and sample-preview safeguards enforced
+            by ChatQEC.
+          inputs:
+            circuit:
+              artifact_type: qhpc.tsim-circuit@1
+          outputs:
+            samples:
+              artifact_type: qhpc.tsim-simulation-samples@1
+          parameters:
+            shots:
+              type: integer
+              title: Measurement shots
+              default: 100
+              minimum: 1
+              maximum: 100000
+            use_reference_sample:
+              type: boolean
+              title: XOR outcomes against a noiseless reference sample
+              default: false
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-tsim@sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+            digest: sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-tsim
+          resources:
+            cpu: 2
+            memory_mb: 4096
+            walltime_seconds: 120
+          execution_targets:
+          - development-slurm-docker
+        - id: glcb-visualize-url
+          title: Create a Gemini Logical Circuit Builder link
+          description: Create a deterministic URL for a bounded GLCB circuit specification without contacting
+            the external service. Opening the returned link is an external circuit disclosure.
+          inputs:
+            circuit:
+              artifact_type: qhpc.glcb-circuit-spec@1
+          outputs:
+            link:
+              artifact_type: qhpc.glcb-visualization-link@1
+          parameters: {}
+          runtime:
+            type: oci
+            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
+            - glcb-visualize-url
+          resources:
+            cpu: 1
+            memory_mb: 512
+            walltime_seconds: 60
+          execution_targets:
+          - development-slurm-docker
+        resources:
+        - id: tool-interface
+          kind: adapter
+          version: 0.1.0
+          uri: integrations/chatqec-mcp-tools/interface.yaml
+        - id: code-params-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-mcp-tools/code-params.runtime.yaml
+        - id: stim-simulate-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-mcp-tools/stim-simulate.runtime.yaml
+        - id: stim-diagram-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-mcp-tools/stim-diagram.runtime.yaml
+        - id: pymatching-decode-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-mcp-tools/pymatching-decode.runtime.yaml
+        - id: threshold-sweep-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-mcp-tools/threshold-sweep.runtime.yaml
+        - id: qec-circuit-build-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-lightstim/runtime.yaml
+        - id: tsim-simulate-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-tsim/runtime.yaml
+        - id: glcb-visualize-url-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/chatqec-mcp-tools/glcb-visualize-url.runtime.yaml
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#chatqec
+        documentation:
+          qappswiki: packages/chatqec.md
+          url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
+  - descriptor_digest: sha256:636da0f213eb8f5f149c28461239f1e4e1a9d868d41e158cccb1d50f2dd47f68
+    catalog_repository: ExaChem
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id005
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id006
       - docs/evidence/qiris-qflow-incubation-2026-07-29.md
     capability:
       api_version: qhpc/v1
@@ -107,11 +505,11 @@ spec:
           revision: 0991cb52ce687ccf35ba29f3746a6fb13a13c464
         integration:
           authority: ecosystem
-          maintainers: *id003
+          maintainers: *id005
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id004
+          evidence: *id006
         visibility: public
         maturity: prototype
       spec:
@@ -178,13 +576,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id005
+      curated_by: &id007
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id006
+      evidence: &id008
       - docs/evidence/initial-component-source-audit-2026-07-22.md
       - docs/evidence/ftprimitivebench-oci-smoke-2026-07-27.md
     capability:
@@ -202,11 +600,11 @@ spec:
           revision: ba15eba263ac6d641d225984fa074f4ee25bb462
         integration:
           authority: ecosystem
-          maintainers: *id005
+          maintainers: *id007
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id006
+          evidence: *id008
         visibility: public
         maturity: alpha
       spec:
@@ -294,29 +692,30 @@ spec:
         documentation:
           qappswiki: packages/ftprimitivebench.md
           url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md
-  - descriptor_digest: sha256:177561c7954de69023aad268a3dc3b0d852bc2eff7419836cafffa2720223993
+  - descriptor_digest: sha256:27d0a65a6248bd85351ea2d614200ee7448c94af8cd9f2e898475de9a2b7a739
     catalog_repository: ftqc
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id007
+      curated_by: &id009
       - qhpc-ecosystem
       project_reviewed: false
-      runtime: declared
+      runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id008
+      evidence: &id010
       - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
       - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
       - docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md
+      - docs/evidence/ftqc-oci-smoke-2026-09-10.md
     capability:
       api_version: qhpc/v1
       kind: Capability
       metadata:
         id: ftqc-compiler
         name: FTQC Fault-Tolerant Compiler
-        version: 0.3.0
+        version: 0.4.0
         project: compilation-tools
         owners:
         - ftqc
@@ -325,11 +724,11 @@ spec:
           revision: 779216de8805ea0c1d473c640eaf17d6cbfa04e8
         integration:
           authority: ecosystem
-          maintainers: *id007
+          maintainers: *id009
           project_reviewed: false
-          runtime_status: declared
+          runtime_status: verified
           validation_status: integration-tested
-          evidence: *id008
+          evidence: *id010
         visibility: internal
         maturity: pre-alpha
       spec:
@@ -348,7 +747,7 @@ spec:
           - Open the FTQC Tool Record and read the IQM one-logical-qubit hardware demonstration candidate,
             including its evidence gaps.
           - Open Compose and choose either FTQC IQM preparation example.
-          - Load the authored input, confirm that the local FTQC compiler runtime is ready, and run the
+          - Load the authored input, confirm that the admitted FTQC OCI runtime is ready, and run the
             credential-free preparation stage.
           - Open Compose and choose H6 QFlow chemistry cycle to inspect where optional FTQC circuit lowering
             would attach after a QIRIS-selected backend emits OpenQASM.
@@ -361,10 +760,10 @@ spec:
           - ftqc-iqm-bell-preparation
           - ftqc-iqm-steane-preparation
           limitations:
-          - The admitted native bundle is locally built for macOS arm64 against Homebrew LLVM/MLIR 20.1.2;
-            it is not distributed by this repository.
-          - FTQC does not publish distributable license terms, so EQO does not publish the compiler binary,
-            shared library, or a container image.
+          - Preparation executes only in the checksum-pinned Linux/amd64 OCI runtime. The historical macOS
+            native bundle is not an EQO execution target.
+          - The OCI image has local smoke evidence only. Registry publication, immutable SIF conversion,
+            supply-chain evidence, and deployment-target acceptance remain separate release gates.
           - The preparation operation does not query live calibration, route the circuit, submit to IQM,
             or collect results.
           - The route-submit-collect operation is contract- and mock-tested, but its real qiskit-iqm provider
@@ -386,13 +785,19 @@ spec:
             candidate, with the exact promotion evidence still required.
         - id: ftqc-compiler-interface
           kind: adapter
-          version: 0.3.0
+          version: 0.4.0
           uri: integrations/ftqc/interface.yaml
           description: Controlled OpenQASM-to-FTQC-MLIR-and-IQM-preparation contract; routing and hardware
             submission are excluded.
+        - id: ftqc-iqm-operation-runtime
+          kind: documentation
+          version: 0.1.0
+          uri: containers/operations/ftqc/runtime.yaml
+          description: Pinned Linux/amd64 OCI build, execution boundary, and smoke contract for credential-free
+            FTQC IQM preparation.
         - id: ftqc-source
           kind: library
-          version: 0.3.0
+          version: 0.4.0
           uri: https://github.com/QSCSoftwareEcosystem/FTQC/tree/779216de8805ea0c1d473c640eaf17d6cbfa04e8
           description: Pinned private source containing the C API, IQM JSON lowering, physical Steane
             expansion, routing/submission path, and demonstration fixtures.
@@ -436,9 +841,9 @@ spec:
               title: MLIR and IQM circuit name
               default: circuit
           runtime:
-            type: native-bundle
-            reference: qhpc-runtime://native/ftqc-779216de8805-darwin-arm64.zip
-            digest: sha256:ab1b34d6a0a86a3d522061b00b4efdea253e2c77d64b5d27a52260e0740ba215
+            type: oci
+            reference: docker://qhpc/ftqc@sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
+            digest: sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
           invocation:
             entrypoint:
             - qhpc-ftqc-prepare-iqm
@@ -515,13 +920,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id009
+      curated_by: &id011
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id010
+      evidence: &id012
       - docs/evidence/qiris-qflow-incubation-2026-07-29.md
     capability:
       api_version: qhpc/v1
@@ -538,11 +943,11 @@ spec:
           revision: ff57e620a92fcf62eff3568d9c6eeaaf078f0340
         integration:
           authority: ecosystem
-          maintainers: *id009
+          maintainers: *id011
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id010
+          evidence: *id012
         visibility: public
         maturity: prototype
       spec:
@@ -608,13 +1013,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id011
+      curated_by: &id013
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id012
+      evidence: &id014
       - docs/evidence/initial-component-source-audit-2026-07-22.md
       - docs/evidence/lightstim-oci-smoke-2026-07-27.md
       - docs/evidence/lightstim-oci-update-2026-09-03.md
@@ -633,11 +1038,11 @@ spec:
           revision: 23924ee997a27af7a0aa17623357bf8bc7170625
         integration:
           authority: ecosystem
-          maintainers: *id011
+          maintainers: *id013
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id012
+          evidence: *id014
         visibility: public
         maturity: alpha
       spec:
@@ -733,13 +1138,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id013
+      curated_by: &id015
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id014
+      evidence: &id016
       - docs/evidence/initial-component-source-audit-2026-07-22.md
       - docs/evidence/nwqec-oci-smoke-2026-07-27.md
     capability:
@@ -757,11 +1162,11 @@ spec:
           revision: d93299c2a0fe47fb7758bff02b456acfb3ac4416
         integration:
           authority: ecosystem
-          maintainers: *id013
+          maintainers: *id015
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id014
+          evidence: *id016
         visibility: public
         maturity: alpha
       spec:
@@ -841,13 +1246,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id015
+      curated_by: &id017
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: integration-tested
-      evidence: &id016
+      evidence: &id018
       - docs/evidence/qiris-qflow-incubation-2026-07-29.md
     capability:
       api_version: qhpc/v1
@@ -864,11 +1269,11 @@ spec:
           revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
         integration:
           authority: ecosystem
-          maintainers: *id015
+          maintainers: *id017
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id016
+          evidence: *id018
         visibility: public
         maturity: prototype
       spec:
@@ -928,19 +1333,19 @@ spec:
         documentation:
           qappswiki: packages/nwqsim-qflow.md
           url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
-  - descriptor_digest: sha256:6b2a137b1f8d31eccd20d82e7f93197bac2a624c9ebc83390c1dd87f58d6cd94
+  - descriptor_digest: sha256:5dfda853047d57b6c01bf7a0cf875588a4ae500484cc25e1811e33578a8ba44f
     catalog_repository: OpenQEvo
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id017
+      curated_by: &id019
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id018
+      evidence: &id020
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/openqevo-synthesis-smoke-2026-07-29.md
     capability:
@@ -955,14 +1360,14 @@ spec:
         - openqevo
         repository:
           url: https://github.com/QSCSoftwareThrust/OpenQEvo
-          revision: 250550a3992bd57c032d4066843c2b03055c4b9d
+          revision: 7ad8ef14b9730adb200d3d0b001ec93730ec360a
         integration:
           authority: ecosystem
-          maintainers: *id017
+          maintainers: *id019
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id018
+          evidence: *id020
         visibility: public
         maturity: pre-alpha
       spec:
@@ -974,19 +1379,29 @@ spec:
           use_when:
           - Discover available quantum time-evolution methods and inspect their attributed scientific
             context.
+          - Evaluate a bounded dense exact, first- or second-order Trotter, qDRIFT, Krylov, interaction-picture,
+            or linear-annealing reference on a small Pauli Hamiltonian.
           - Convert a real-weighted Pauli Hamiltonian into an OpenQASM 2.0 Trotter circuit for a local
             development workflow.
           quick_start:
+          - Open Compose and choose the OpenQEvo dense-reference workflow to compare a small-system evolution
+            method.
           - Open Compose and choose Hamiltonian to evolution circuit.
           - Load the two-qubit example or upload a Pauli-Hamiltonian JSON artifact.
-          - Review the evolution time, Trotter steps, and Suzuki order, then run the scientific path.
+          - Review the method-specific parameters and the explicit dense-reference or circuit boundary,
+            then run the scientific path.
           example_workflows:
           - openqevo-method-catalog
+          - openqevo-method-context
+          - openqevo-dense-reference
           - openqevo-trotter-synthesis
           - showcase-evolution-readiness
           limitations:
-          - EQO currently exposes method discovery, context inspection, and development Trotter synthesis
-            rather than every OpenQEvo method and adapter.
+          - EQO exposes the full available method catalog and context snapshot, a bounded dense-reference
+            operation for all native OpenQEvo methods, and separate Qiskit circuit synthesis. Optional
+            framework adapters remain dependency-conditional.
+          - Dense-reference evaluation is limited to eight qubits and returns a local numerical reference,
+            not a scalable solver, circuit, or hardware result.
           - Circuit synthesis is a local-development OpenQEvo and Qiskit bridge, not an accepted production
             or HPC runtime.
           - Production promotion requires a project-reviewed circuit API, packaged method context, immutable
@@ -1007,7 +1422,7 @@ spec:
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
           invocation:
             entrypoint:
             - openqevo:list_methods_detail
@@ -1033,13 +1448,17 @@ spec:
               default: trotter_s2
               enum:
               - exact
-              - qiskit_trotter
               - trotter_s1
               - trotter_s2
+              - qdrift
+              - krylov
+              - interaction_picture
+              - annealing
+              - qiskit_trotter
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
           invocation:
             entrypoint:
             - qhpc-openqevo-context
@@ -1047,6 +1466,88 @@ spec:
             cpu: 1
             memory_mb: 512
             walltime_seconds: 60
+          execution_targets:
+          - local-development
+        - id: evaluate-dense-reference
+          title: Evaluate a bounded dense evolution reference
+          description: Evaluate exact, first- or second-order Trotter, qDRIFT, Lanczos-Krylov, midpoint
+            interaction-picture, or linear-annealing evolution for a small Pauli Hamiltonian and retain
+            both the structured result and dense unitary artifact.
+          inputs:
+            hamiltonian:
+              artifact_type: qhpc.pauli-hamiltonian@1
+              description: Real-weighted Pauli strings using the EQO Pauli-Hamiltonian JSON input shape;
+                bounded to eight qubits for dense evaluation.
+          outputs:
+            result:
+              artifact_type: qhpc.evolution-result@1
+              description: Structured OpenQEvo result metadata with method configuration, warnings, limitations,
+                and the pinned EQO source revision.
+            unitary:
+              artifact_type: qhpc.dense-unitary@1
+              description: Dense NumPy unitary produced by the bounded reference evaluation.
+          parameters:
+            method:
+              type: string
+              title: Dense reference method
+              description: Exact is the numerical reference; the remaining choices are bounded dense methods,
+                not hardware solvers. Use the separate Qiskit operation for a circuit artifact.
+              default: krylov
+              enum:
+              - exact
+              - trotter_s1
+              - trotter_s2
+              - qdrift
+              - krylov
+              - interaction_picture
+              - annealing
+            evolution_time:
+              type: number
+              title: Evolution time
+              description: Positive time t in exp(-iHt).
+              default: 1.0
+              minimum: 1.0e-12
+            steps:
+              type: integer
+              title: Method steps or qDRIFT samples
+              description: Used as Trotter repetitions, qDRIFT samples, or integration steps, depending
+                on the selected method.
+              default: 32
+              minimum: 1
+              maximum: 4096
+            krylov_dim:
+              type: integer
+              title: Krylov subspace dimension
+              description: Used only by the Krylov method; values above the Hilbert-space dimension are
+                capped by OpenQEvo.
+              default: 12
+              minimum: 1
+              maximum: 256
+            tolerance:
+              type: number
+              title: Krylov breakdown tolerance
+              description: Used only by the Krylov method.
+              default: 1.0e-12
+              minimum: 1.0e-16
+              maximum: 1.0
+            random_seed:
+              type: integer
+              title: qDRIFT random seed
+              description: Used only by qDRIFT to make its sampled trajectory reproducible.
+              default: 42
+              minimum: 0
+              maximum: 4294967295
+          runtime:
+            type: python-wheel
+            reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+          invocation:
+            entrypoint:
+            - qhpc-openqevo-evaluate-reference
+          resources:
+            cpu: 1
+            memory_mb: 2048
+            walltime_seconds: 120
           execution_targets:
           - local-development
         - id: synthesize-evolution
@@ -1097,7 +1598,7 @@ spec:
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
           invocation:
             entrypoint:
             - qhpc-openqevo-synthesize
@@ -1111,11 +1612,11 @@ spec:
         - id: python-library
           kind: library
           version: 0.1.0
-          uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d
+          uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/7ad8ef14b9730adb200d3d0b001ec93730ec360a
         - id: method-context
           kind: dataset
           version: 0.1.0
-          uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d/context
+          uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/7ad8ef14b9730adb200d3d0b001ec93730ec360a/context/methods
         - id: pauli-hamiltonian
           kind: artifact-type
           version: 1.0.0
@@ -1128,26 +1629,34 @@ spec:
           kind: artifact-type
           version: 1.0.0
           uri: artifact-types/evolution-synthesis-report-v1.yaml
+        - id: evolution-result
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/evolution-result-v1.yaml
+        - id: dense-unitary
+          kind: artifact-type
+          version: 1.0.0
+          uri: artifact-types/dense-unitary-v1.yaml
         - id: developer-attribution
           kind: documentation
           version: 1.0.0
           uri: docs/tool-attribution.md#openqevo
         documentation:
           qappswiki: packages/openqevo.md
-          url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md
+          url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/7ad8ef14b9730adb200d3d0b001ec93730ec360a/README.md
   - descriptor_digest: sha256:35eb4ffc8eccfa46f9bd05a73ce5d53b3e793607dacc34e40bcb9d0c474255d1
     catalog_repository: openqse-spec
     validation:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id019
+      curated_by: &id021
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id020
+      evidence: &id022
       - docs/evidence/openqse-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -1164,11 +1673,11 @@ spec:
           revision: c172c716e6566bd0a7502b34896dce7467f5a474
         integration:
           authority: ecosystem
-          maintainers: *id019
+          maintainers: *id021
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id020
+          evidence: *id022
         visibility: public
         maturity: alpha
       spec:
@@ -1212,13 +1721,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id021
+      curated_by: &id023
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id022
+      evidence: &id024
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1235,11 +1744,11 @@ spec:
           revision: d5f0248945516a4198f92edd9764a2fe5b676549
         integration:
           authority: ecosystem
-          maintainers: *id021
+          maintainers: *id023
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id022
+          evidence: *id024
         visibility: public
         maturity: alpha
       spec:
@@ -1289,13 +1798,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id023
+      curated_by: &id025
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id024
+      evidence: &id026
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/qasmtrans-oci-smoke-2026-07-27.md
     capability:
@@ -1313,11 +1822,11 @@ spec:
           revision: 1843c98fa4bac9cf6b88412145b69457e9176124
         integration:
           authority: ecosystem
-          maintainers: *id023
+          maintainers: *id025
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id024
+          evidence: *id026
         visibility: public
         maturity: alpha
       spec:
@@ -1392,13 +1901,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id025
+      curated_by: &id027
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: discovered
-      evidence: &id026
+      evidence: &id028
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1415,11 +1924,11 @@ spec:
           revision: 704c1800614b37f0909cc8e5e15438b1be06b983
         integration:
           authority: ecosystem
-          maintainers: *id025
+          maintainers: *id027
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: discovered
-          evidence: *id026
+          evidence: *id028
         visibility: public
         maturity: prototype
       spec:
@@ -1455,13 +1964,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id027
+      curated_by: &id029
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id028
+      evidence: &id030
       - docs/evidence/sdl-qsc-materials-schema-admission-2026-08-28.md
     capability:
       api_version: qhpc/v1
@@ -1478,11 +1987,11 @@ spec:
           revision: 51373be831a94cc06c669346ca5d1fccc3a6ed76
         integration:
           authority: ecosystem
-          maintainers: *id027
+          maintainers: *id029
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id028
+          evidence: *id030
         visibility: internal
         maturity: prototype
       spec:
@@ -1555,13 +2064,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id029
+      curated_by: &id031
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id030
+      evidence: &id032
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1578,11 +2087,11 @@ spec:
           revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
         integration:
           authority: ecosystem
-          maintainers: *id029
+          maintainers: *id031
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id030
+          evidence: *id032
         visibility: public
         maturity: prototype
       spec:
@@ -1618,13 +2127,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id031
+      curated_by: &id033
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id032
+      evidence: &id034
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1641,11 +2150,11 @@ spec:
           revision: e7568760747752e29397f4fcc800bd475c6011a1
         integration:
           authority: ecosystem
-          maintainers: *id031
+          maintainers: *id033
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id032
+          evidence: *id034
         visibility: public
         maturity: prototype
       spec:
@@ -1682,13 +2191,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id033
+      curated_by: &id035
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id034
+      evidence: &id036
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/stabsim-oci-smoke-2026-07-27.md
     capability:
@@ -1706,11 +2215,11 @@ spec:
           revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
         integration:
           authority: ecosystem
-          maintainers: *id033
+          maintainers: *id035
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id034
+          evidence: *id036
         visibility: public
         maturity: prototype
       spec:
@@ -1776,13 +2285,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id035
+      curated_by: &id037
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: integration-tested
-      evidence: &id036
+      evidence: &id038
       - docs/evidence/tn-sim-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -1799,11 +2308,11 @@ spec:
           revision: 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
         integration:
           authority: ecosystem
-          maintainers: *id035
+          maintainers: *id037
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id036
+          evidence: *id038
         visibility: public
         maturity: pre-alpha
       spec:

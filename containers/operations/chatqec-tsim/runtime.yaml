@@ -1,0 +1,216 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: chatqec-tsim-simulate-linux-amd64
+  name: ChatQEC Tsim simulation Linux runtime
+  version: 0.1.0
+  component: chatqec-mcp-tools
+  capability: chatqec-qec-tools
+  operation: tsim-simulate
+  project: agentic-software
+  owners: [chatqec]
+  source:
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+    - .development/CHATQEC_PLAN.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/chatqec-tsim/Containerfile
+      digest: sha256:7b45e7b507546bcb13f66b4900562471081e5a5b18755bf5099702ea19420a09
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:7fb55933bdcf668b141358b45ab0940e2b1904d2c0ba49431421af0aff274692
+      source_date_epoch: 1785324021
+    context_files:
+      - source: containers/operations/chatqec-tsim/entrypoint.py
+        destination: entrypoint.py
+        digest: sha256:7a9ba8375e0257b882794b338a535549bf688f28e27dfe2bdd9e17b5f90c839f
+        mode: "0755"
+    dependency_archives:
+      - filename: annotated_types-0.8.0-py3-none-any.whl
+        url: https://pypi.org/project/annotated-types/
+        digest: sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
+      - filename: asttokens-3.0.2-py3-none-any.whl
+        url: https://pypi.org/project/asttokens/
+        digest: sha256:9da13157f5b28becde0bd374fc677dcd3c290614264eff096f167c469cd9f933
+      - filename: bloqade_tsim-0.1.5-py3-none-any.whl
+        url: https://pypi.org/project/bloqade-tsim/
+        digest: sha256:31512e004618ad1f7d8fe531ce924d16e9ee02057b521101ac4b5fdc6a2e4d75
+      - filename: comm-0.2.3-py3-none-any.whl
+        url: https://pypi.org/project/comm/
+        digest: sha256:c615d91d75f7f04f095b30d1c1711babd43bdc6419c1be9886a85f2f4e489417
+      - filename: equinox-0.13.8-py3-none-any.whl
+        url: https://pypi.org/project/equinox/
+        digest: sha256:ca004348533cc30a63ebe8823d7dd4bb626dce17743d40bbddb89b402ef2a240
+      - filename: executing-2.2.1-py2.py3-none-any.whl
+        url: https://pypi.org/project/executing/
+        digest: sha256:760643d3452b4d777d295bb167ccc74c64a81df23fb5e08eff250c425a4b2017
+      - filename: ipython-9.17.1-py3-none-any.whl
+        url: https://pypi.org/project/ipython/
+        digest: sha256:6d1645743cfd1a07eb695d85aa2b5fa66721f8cbae9431d4049f7084bbf06509
+      - filename: ipython_pygments_lexers-1.1.1-py3-none-any.whl
+        url: https://pypi.org/project/ipython-pygments-lexers/
+        digest: sha256:a9462224a505ade19a605f71f8fa63c2048833ce50abc86768a0d81d876dc81c
+      - filename: ipywidgets-8.1.9-py3-none-any.whl
+        url: https://pypi.org/project/ipywidgets/
+        digest: sha256:f2b8cbcaae10252b809fbe4d7470db75c09b769a32cbf816d20e5ca6d3c5a79d
+      - filename: jax-0.10.2-py3-none-any.whl
+        url: https://pypi.org/project/jax/
+        digest: sha256:724d73c4678d8b06f6a6ab4db1b8a2fea8cd4f1e2c2564f99601634ec7b8d1c6
+      - filename: jaxlib-0.10.2-cp311-cp311-manylinux_2_27_x86_64.whl
+        url: https://pypi.org/project/jaxlib/
+        digest: sha256:1faca3c5d4662cb4a6130a68105d68bb520764817e165d6eebfd6786c0d1f30f
+      - filename: jaxtyping-0.3.11-py3-none-any.whl
+        url: https://pypi.org/project/jaxtyping/
+        digest: sha256:8a4bedc4e3f963fa82df41bd13c7ebc2bad925601eb48614c65798f21329d4e3
+      - filename: jedi-0.20.0-py2.py3-none-any.whl
+        url: https://pypi.org/project/jedi/
+        digest: sha256:7bdd9c2634f56713299976f4cbd59cb3fa92165cc5e05ea811fb253480728b67
+      - filename: jupyterlab_widgets-3.0.17-py3-none-any.whl
+        url: https://pypi.org/project/jupyterlab-widgets/
+        digest: sha256:40ac1e9955acf116c4d995d9bfa082d86ad9ec6d91c4f134827cf5e0a5eb75e0
+      - filename: lark-1.3.1-py3-none-any.whl
+        url: https://pypi.org/project/lark/
+        digest: sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12
+      - filename: lxml-6.1.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/lxml/
+        digest: sha256:49fbc2682a9306135b7ec49e93f97f9c26689b9b7f96ed2742d8d6497e994d13
+      - filename: matplotlib_inline-0.2.2-py3-none-any.whl
+        url: https://pypi.org/project/matplotlib-inline/
+        digest: sha256:3c821cf1c209f59fb2d2d64abbf5b23b67bcb2210d663f9918dd851c6da1fcf6
+      - filename: ml_dtypes-0.6.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/ml-dtypes/
+        digest: sha256:6c8e39b53e90afda8ce52859c93de4dba3e02b76d85dcf091cc469f9184c6dae
+      - filename: mpmath-1.3.0-py3-none-any.whl
+        url: https://pypi.org/project/mpmath/
+        digest: sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
+      - filename: numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/numpy/
+        digest: sha256:89cd468399cfd2504718f0ba50e410dca55a170b61a02ad92bb18c8a65186e93
+      - filename: opt_einsum-3.4.0-py3-none-any.whl
+        url: https://pypi.org/project/opt-einsum/
+        digest: sha256:69bb92469f86a1565195ece4ac0323943e83477171b91d24c35afe028a90d7cd
+      - filename: parso-0.8.7-py2.py3-none-any.whl
+        url: https://pypi.org/project/parso/
+        digest: sha256:a8926eb2a1b915486941fdbd31e86a4baf88fe8c210f25f2f35ecec5b574ca1c
+      - filename: pexpect-4.9.0-py2.py3-none-any.whl
+        url: https://pypi.org/project/pexpect/
+        digest: sha256:7236d1e080e4936be2dc3e326cec0af72acf9212a7e1d060210e70a47e253523
+      - filename: prompt_toolkit-3.0.53-py3-none-any.whl
+        url: https://pypi.org/project/prompt-toolkit/
+        digest: sha256:01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2
+      - filename: psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/psutil/
+        digest: sha256:076a2d2f923fd4821644f5ba89f059523da90dc9014e85f8e45a5774ca5bc6f9
+      - filename: ptyprocess-0.7.0-py2.py3-none-any.whl
+        url: https://pypi.org/project/ptyprocess/
+        digest: sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35
+      - filename: pure_eval-0.2.4-py3-none-any.whl
+        url: https://pypi.org/project/pure-eval/
+        digest: sha256:96cae060a313cfaad51bb761278bfb0e62dc0248d9315a81173752dc546cd37a
+      - filename: pydantic-2.13.4-py3-none-any.whl
+        url: https://pypi.org/project/pydantic/
+        digest: sha256:45a282cde31d808236fd7ea9d919b128653c8b38b393d1c4ab335c62924d9aba
+      - filename: pydantic_core-2.46.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/pydantic-core/
+        digest: sha256:f9fa868638bf362d3d138ea55829cefb3d5f4b0d7f142234382a15e2485dbec4
+      - filename: pygments-2.21.0-py3-none-any.whl
+        url: https://pypi.org/project/pygments/
+        digest: sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9
+      - filename: pyperclip-1.11.0-py3-none-any.whl
+        url: https://pypi.org/project/pyperclip/
+        digest: sha256:299403e9ff44581cb9ba2ffeed69c7aa96a008622ad0c46cb575ca75b5b84273
+      - filename: pyzx_param-0.9.3-py3-none-any.whl
+        url: https://pypi.org/project/pyzx-param/
+        digest: sha256:5c89e0f1f0f6a425f58b3d755eb78306554ae5ae15ea701b0dfd9eff86bcbfb7
+      - filename: scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/scipy/
+        digest: sha256:43af8d1f3bea642559019edfe64e9b11192a8978efbd1539d7bc2aaa23d92de4
+      - filename: stack_data-0.6.3-py3-none-any.whl
+        url: https://pypi.org/project/stack-data/
+        digest: sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695
+      - filename: stim-1.16.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/stim/
+        digest: sha256:bd2d28093818f981f8dedb2be160b62d818279b81748d72dc4fca6cdd160291d
+      - filename: sympy-1.14.0-py3-none-any.whl
+        url: https://pypi.org/project/sympy/
+        digest: sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
+      - filename: tqdm-4.70.1-py3-none-any.whl
+        url: https://pypi.org/project/tqdm/
+        digest: sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73
+      - filename: traitlets-5.16.1-py3-none-any.whl
+        url: https://pypi.org/project/traitlets/
+        digest: sha256:f775618166caa0396c8e337099240f2bd3e5e917d203b2e6fbe21a58d3cb1f6b
+      - filename: typing_extensions-4.16.0-py3-none-any.whl
+        url: https://pypi.org/project/typing-extensions/
+        digest: sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
+      - filename: typing_inspection-0.4.4-py3-none-any.whl
+        url: https://pypi.org/project/typing-inspection/
+        digest: sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
+      - filename: wadler_lindig-0.1.7-py3-none-any.whl
+        url: https://pypi.org/project/wadler-lindig/
+        digest: sha256:e3ec83835570fd0a9509f969162aeb9c65618f998b1f42918cfc8d45122fe953
+      - filename: wcwidth-0.8.3-py3-none-any.whl
+        url: https://pypi.org/project/wcwidth/
+        digest: sha256:d5b73dba6158a595ec9370350e7f2637bcac8d6c5e4fde34f30fcffb6103a5e4
+      - filename: widgetsnbextension-4.0.16-py3-none-any.whl
+        url: https://pypi.org/project/widgetsnbextension/
+        digest: sha256:a31a8774885b96fe825462f5d6496166f0c7cae111195b6465c801d230eb5a4e
+    builder:
+      reference: docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+      digest: sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+    runtime_base:
+      reference: docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+      digest: sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-chatqec-tsim]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: samples-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.tsim
+      outputs:
+        samples: /outputs/samples.json
+    parameters:
+      shots:
+        argument: --shots
+        type: integer
+      use_reference_sample:
+        argument: --use-reference-sample
+        type: boolean
+  verification:
+    fixture:
+      path: containers/operations/chatqec-tsim/fixtures/t-gate-detector.tsim
+      digest: sha256:a86deb206dfa401ce4f3d8bfb02ecc98ff2e995e67530819303a87c1c150b580
+      mount_path: /inputs/circuit.tsim
+    arguments: [--shots, "4", --use-reference-sample, "false"]
+    expected_outputs:
+      - path: /outputs/samples.json
+        nonempty: true
+        text_contains:
+          - '"schema": "qhpc.tsim-simulation-samples.v1"'
+          - '"shots": 4'
+    timeout_seconds: 120
+  release:
+    status: unpublished
+

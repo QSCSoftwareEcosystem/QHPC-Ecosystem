@@ -11,6 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 from urllib.parse import unquote, urlparse
+from uuid import uuid4
 
 from .engine import ArtifactResult, TaskRejectedError, TaskRequest, TaskResult
 from .security import validate_secret_reference
@@ -143,7 +144,12 @@ def _bounded_json(value: Any, name: str) -> bytes:
     return encoded
 
 
-def _device(value: Any, expected_alias: str) -> dict[str, str]:
+def _device(
+    value: Any,
+    expected_alias: str,
+    *,
+    provider: str = "iqm",
+) -> dict[str, str]:
     device = _object(
         value,
         "IQM device",
@@ -154,7 +160,7 @@ def _device(value: Any, expected_alias: str) -> dict[str, str]:
     if alias != expected_alias:
         raise IQMAdapterError("IQM response device alias does not match the request")
     return {
-        "provider": "iqm",
+        "provider": provider,
         "alias": alias,
         "quantum_computer_id": _text(
             device["quantum_computer_id"], "IQM quantum computer ID", maximum=128
@@ -524,10 +530,29 @@ class IQMAsyncRunner:
         *,
         secret_resolver: SecretResolver = resolve_environment_secret,
         clock: Clock = _utc_now,
+        allowed_credential_references: Sequence[str] | None = None,
     ) -> None:
         self.client = client
         self.secret_resolver = secret_resolver
         self.clock = clock
+        self.allowed_credential_references = (
+            frozenset(allowed_credential_references)
+            if allowed_credential_references is not None
+            else None
+        )
+        if self.allowed_credential_references is not None and not self.allowed_credential_references:
+            raise ValueError("IQM worker must allow at least one credential reference")
+
+    def _policy(self, request: TaskRequest) -> _RequestPolicy:
+        policy = _policy(request)
+        if (
+            self.allowed_credential_references is not None
+            and policy.credential_reference not in self.allowed_credential_references
+        ):
+            raise TaskRejectedError(
+                "IQM credential reference is not admitted by this worker"
+            )
+        return policy
 
     @staticmethod
     def _receipt_path(request: TaskRequest) -> Path:
@@ -547,7 +572,7 @@ class IQMAsyncRunner:
         return receipt
 
     def submit(self, request: TaskRequest) -> TargetSubmission:
-        policy = _policy(request)
+        policy = self._policy(request)
         circuit, source_checksum = _input_circuit(request)
         preparation = _preparation(request, circuit)
         token = _secret(self.secret_resolver, policy.credential_reference)
@@ -593,7 +618,11 @@ class IQMAsyncRunner:
         receipt = {
             "job_id": job_id,
             "state": state,
-            "device": _device(value["device"], policy.device_alias),
+            "device": _device(
+                value["device"],
+                policy.device_alias,
+                provider=getattr(self.client, "provider", "iqm"),
+            ),
             "shots": policy.shots,
             "preparation": preparation,
             "submitted_at": _timestamp(value["submitted_at"], "submitted_at"),
@@ -609,7 +638,7 @@ class IQMAsyncRunner:
             job_id,
             state=state,
             metadata={
-                "provider": "iqm",
+                "provider": receipt["device"]["provider"],
                 "device_alias": policy.device_alias,
                 "quantum_computer_id": receipt["device"]["quantum_computer_id"],
                 "calibration_id": receipt["device"]["calibration_id"],
@@ -618,7 +647,7 @@ class IQMAsyncRunner:
         )
 
     def poll(self, request: TaskRequest, handle: str) -> TargetStatus:
-        policy = _policy(request)
+        policy = self._policy(request)
         receipt = self._load_receipt(request, handle)
         submitted = datetime.fromisoformat(
             receipt["submitted_at"].replace("Z", "+00:00")
@@ -646,10 +675,13 @@ class IQMAsyncRunner:
         state = value["state"]
         if state not in _TARGET_STATES:
             raise IQMAdapterError("IQM status response contains an invalid state")
-        return TargetStatus(state, {"provider": "iqm", "job_id": handle})
+        return TargetStatus(
+            state,
+            {"provider": receipt["device"]["provider"], "job_id": handle},
+        )
 
     def collect(self, request: TaskRequest, handle: str) -> TaskResult:
-        policy = _policy(request)
+        policy = self._policy(request)
         receipt = self._load_receipt(request, handle)
         token = _secret(self.secret_resolver, policy.credential_reference)
         response = _call(
@@ -759,7 +791,7 @@ class IQMAsyncRunner:
             outputs,
             f"Collected IQM job {handle}",
             metadata={
-                "provider": "iqm",
+                "provider": receipt["device"]["provider"],
                 "job_id": handle,
                 "device_alias": policy.device_alias,
                 "quantum_computer_id": receipt["device"]["quantum_computer_id"],
@@ -769,7 +801,114 @@ class IQMAsyncRunner:
         )
 
     def cancel(self, request: TaskRequest, handle: str) -> None:
-        policy = _policy(request)
+        policy = self._policy(request)
         self._load_receipt(request, handle)
         token = _secret(self.secret_resolver, policy.credential_reference)
         _call("cancellation", lambda: self.client.cancel(handle, token=token))
+
+
+class SimulatedIQMBackendClient:
+    """Safe local boundary that never contacts IQM or reads a site token.
+
+    It exercises the same typed route/submit/collect contract as a real worker.
+    Its provider, computer, and calibration values are deliberately labelled as
+    simulated so these artifacts cannot be mistaken for hardware evidence.
+    """
+
+    provider = "simulated-iqm"
+
+    @staticmethod
+    def _measurement_width(circuit: Mapping[str, Any]) -> int:
+        width = sum(
+            instruction.get("name") == "measure"
+            for instruction in circuit.get("instructions", ())
+            if isinstance(instruction, Mapping)
+        )
+        if not 1 <= width <= 64:
+            raise IQMAdapterError("simulated IQM input must contain measurements")
+        return width
+
+    @staticmethod
+    def _job_parts(job_id: str) -> tuple[int, int]:
+        parts = job_id.split("-")
+        if len(parts) != 5 or parts[:2] != ["simulated", "iqm"]:
+            raise IQMAdapterError("simulated IQM job handle is invalid")
+        try:
+            width = int(parts[2])
+            shots = int(parts[3])
+        except ValueError as error:
+            raise IQMAdapterError("simulated IQM job handle is invalid") from error
+        if not 1 <= width <= 64 or not 1 <= shots <= _MAX_SHOTS:
+            raise IQMAdapterError("simulated IQM job handle is invalid")
+        return width, shots
+
+    def submit(
+        self,
+        circuit: Mapping[str, Any],
+        *,
+        device_alias: str,
+        shots: int,
+        token: str,
+    ) -> Mapping[str, Any]:
+        del token
+        routed_circuit = _circuit(
+            circuit, "simulated IQM circuit", gates=_ROUTED_GATES
+        )
+        loci: list[str] = []
+        for instruction in routed_circuit["instructions"]:
+            for locus in instruction["locus"]:
+                if locus not in loci:
+                    loci.append(locus)
+        width = self._measurement_width(routed_circuit)
+        layout = [{"source": locus, "target": locus} for locus in loci]
+        return {
+            "job_id": f"simulated-iqm-{width}-{shots}-{uuid4().hex}",
+            "state": "queued",
+            "device": {
+                "alias": device_alias,
+                "quantum_computer_id": "simulated-iqm-qpu",
+                "calibration_id": "simulation-only-not-hardware",
+            },
+            "submitted_at": datetime.now(timezone.utc).isoformat().replace(
+                "+00:00", "Z"
+            ),
+            "routed_circuit": routed_circuit,
+            "initial_layout": layout,
+            "final_layout": layout,
+            "routing_metrics": {
+                "total_operation_count": len(routed_circuit["instructions"]),
+                "two_qubit_gate_count": sum(
+                    instruction["name"] == "cz"
+                    for instruction in routed_circuit["instructions"]
+                ),
+                "move_count": sum(
+                    instruction["name"] == "move"
+                    for instruction in routed_circuit["instructions"]
+                ),
+                "explicit_swap_count": sum(
+                    instruction["name"] == "swap"
+                    for instruction in routed_circuit["instructions"]
+                ),
+            },
+        }
+
+    def status(self, job_id: str, *, token: str) -> Mapping[str, Any]:
+        del token
+        self._job_parts(job_id)
+        return {"job_id": job_id, "state": "succeeded"}
+
+    def result(self, job_id: str, *, token: str) -> Mapping[str, Any]:
+        del token
+        width, shots = self._job_parts(job_id)
+        return {
+            "job_id": job_id,
+            "counts": {"0" * width: shots},
+            "bit_order": "qiskit-little-endian",
+            "completed_at": datetime.now(timezone.utc).isoformat().replace(
+                "+00:00", "Z"
+            ),
+        }
+
+    def cancel(self, job_id: str, *, token: str) -> None:
+        del token
+        self._job_parts(job_id)

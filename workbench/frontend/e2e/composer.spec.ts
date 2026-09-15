@@ -1,6 +1,81 @@
 import { expect, test } from "@playwright/test";
 
 
+const IQM_RUNTIME_DIGEST =
+  "sha256:718119bf215316c3b09c825203a30c2f9868490302f36f5e6fba303244f45413";
+
+function iqmWorker(mode: "simulation" | "hardware", credentialAvailable = false) {
+  return {
+    id: `${mode}-iqm-worker`,
+    available: true,
+    kind: "target",
+    metadata: {
+      execution_targets: ["local-development"],
+      execution_classes: ["quantum-backend"],
+      runtime_digests: [IQM_RUNTIME_DIGEST],
+      iqm: mode === "simulation"
+        ? { mode, provider: "simulated-iqm" }
+        : {
+            mode,
+            provider: "iqm-client-qiskit",
+            endpoint_configured: true,
+            device_alias: "approved-qpu",
+            access_scope: "internal-alpha",
+            credential_available: credentialAvailable,
+          },
+    },
+  };
+}
+
+function iqmExecutionRun(
+  taskState: string,
+  attemptState: string,
+  targetState: string,
+  runState = "running",
+) {
+  return {
+    id: `run-iqm-${taskState}-${attemptState}`,
+    workflow_id: "ftqc-iqm-steane-execution",
+    workflow_version: "0.1.0",
+    state: runState,
+    created_at: "2026-09-10T12:00:00Z",
+    execution_target: "local-development",
+    outputs: {},
+    tasks: [{
+      node_id: "execute",
+      state: taskState,
+      operation: {
+        capability: "ftqc-compiler",
+        operation: "route-submit-collect",
+      },
+      attempts: [{ state: attemptState, target_state: targetState }],
+    }],
+  };
+}
+
+async function mockIqmShowcase(
+  page: import("@playwright/test").Page,
+  workers: unknown[],
+  getRuns: () => unknown[],
+) {
+  await page.route("**/api/v1/runs", async route => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(getRuns()),
+    });
+  });
+  await page.route("**/api/v1/workers", async route => {
+    const response = await route.fetch();
+    const current = await response.json();
+    await route.fulfill({ response, body: JSON.stringify([...current, ...workers]) });
+  });
+}
+
+
 test("presents the EQO-QSC product instead of internal project governance", async ({ page }) => {
   await page.goto("/");
 
@@ -75,16 +150,17 @@ test("explains what a tool does and how to use it", async ({ page }) => {
     'tr[data-capability="openqevo-library"]',
   );
   await expect(openqevo).toContainText(
-    "OpenQEvo method discovery, attributed scientific context",
+    "Reusable, documented, and reproducible Python library",
   );
   await openqevo.click();
 
   const inspector = page.getByRole("dialog", { name: "Details" });
   await expect(
     inspector.getByRole("heading", {
-      name: "OpenQEvo Library and Method Context",
+      name: "OpenQEvo",
     }),
   ).toBeVisible();
+  await expect(inspector).toContainText("OpenQEvo Library and Method Context");
   await expect(
     inspector.getByRole("heading", { name: "When to use this tool" }),
   ).toBeVisible();
@@ -116,17 +192,20 @@ test("shows the FTQC IQM run as a hardware evidence candidate", async ({
 
   const ftqc = page.locator('tr[data-capability="ftqc-compiler"]');
   await expect(ftqc).toContainText(
-    "developer-reported one-logical-qubit execution",
+    "C++ and LLVM/MLIR compiler project for fault-tolerant quantum operations",
   );
 
   const inspector = page.getByRole("dialog", { name: "Details" });
   await expect(
     inspector.getByRole("heading", {
-      name: "FTQC Fault-Tolerant Compiler",
+      name: "FTQC",
     }),
   ).toBeVisible();
   await expect(inspector).toContainText(
-    "one-logical-qubit execution on an ORNL IQM system",
+    "FTQC Fault-Tolerant Compiler",
+  );
+  await expect(inspector).toContainText(
+    "one-logical-qubit ORNL IQM demonstration candidate",
   );
   await expect(inspector).toContainText(
     "ftqc-iqm-logical-qubit-candidate",
@@ -180,11 +259,23 @@ test("presents FTQC IQM as a runnable flagship showcase", async ({ page }) => {
       name: "Prepare a fault-tolerant logical qubit for an IQM quantum computer",
     }),
   ).toBeVisible();
-  await expect(page.locator(".showcase-trace li")).toHaveCount(5);
+  await expect(page.locator(".showcase-trace li")).toHaveCount(6);
   await expect(page.getByText("1 logical → 7 data qubits")).toBeVisible();
   await expect(page.getByText("58 instructions")).toBeVisible();
   await expect(page.getByText("114 instructions")).toBeVisible();
   await expect(page.getByText("Not yet claimed")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "The next action is gated, not hidden" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Hardware execution unavailable" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("heading", { name: "Awaiting execution" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Simulation worker unavailable" }),
+  ).toBeDisabled();
 
   await page
     .getByRole("button", { name: "Run logical-qubit preparation" })
@@ -196,6 +287,127 @@ test("presents FTQC IQM as a runnable flagship showcase", async ({ page }) => {
       name: "Prepare one Steane logical qubit for IQM",
     }),
   ).toBeVisible();
+});
+
+
+test("keeps simulated IQM orchestration distinct from hardware admission", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/runs", async route => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify([{
+        id: "run-simulated-iqm",
+        workflow_id: "ftqc-iqm-steane-execution",
+        workflow_version: "0.1.0",
+        state: "running",
+        created_at: "2026-09-10T12:00:00Z",
+        execution_target: "local-development",
+        outputs: {},
+        tasks: [{
+          node_id: "execute",
+          state: "running",
+          operation: {
+            capability: "ftqc-compiler",
+            operation: "route-submit-collect",
+          },
+          attempts: [{ state: "collecting", target_state: "succeeded" }],
+        }],
+      }]),
+    });
+  });
+  await page.route("**/api/v1/workers", async route => {
+    const response = await route.fetch();
+    const workers = await response.json();
+    workers.push({
+      id: "safe-simulation-worker",
+      available: true,
+      kind: "target",
+      metadata: {
+        execution_targets: ["local-development"],
+        execution_classes: ["quantum-backend"],
+        runtime_digests: [
+          "sha256:718119bf215316c3b09c825203a30c2f9868490302f36f5e6fba303244f45413",
+        ],
+        iqm: { mode: "simulation" },
+      },
+    });
+    await route.fulfill({ response, body: JSON.stringify(workers) });
+  });
+
+  await page.goto("/?view=showcases");
+
+  await expect(
+    page.getByRole("heading", { name: "Collecting results" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("simulation worker is available", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open simulated execution workflow" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Hardware execution unavailable" }),
+  ).toBeDisabled();
+});
+
+
+test("renders every non-secret IQM execution phase", async ({ page }) => {
+  let currentRun = iqmExecutionRun("running", "submitting", "unknown");
+  await mockIqmShowcase(page, [iqmWorker("simulation")], () => [currentRun]);
+
+  const phases = [
+    ["running", "submitting", "unknown", "running", "Routing and submitting"],
+    ["running", "submitted", "queued", "running", "Provider queued"],
+    ["running", "running", "running", "running", "Provider running"],
+    ["cancel_requested", "cancel_requested", "queued", "running", "Cancellation requested"],
+    ["running", "collecting", "succeeded", "running", "Collecting results"],
+    ["succeeded", "succeeded", "succeeded", "succeeded", "Completed"],
+    ["failed", "failed", "failed", "failed", "Failed"],
+  ] as const;
+
+  for (const [taskState, attemptState, targetState, runState, label] of phases) {
+    currentRun = iqmExecutionRun(taskState, attemptState, targetState, runState);
+    await page.goto("/?view=showcases");
+    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+  }
+
+  currentRun = iqmExecutionRun("failed", "failed", "failed", "failed");
+  currentRun.tasks[0].error = {
+    code: "IQMAdapterError",
+    message: "provider response contained worker-only-token",
+  };
+  await page.goto("/?view=showcases");
+  await page.getByRole("button", { name: "Open run record" }).click();
+  const inspector = page.getByRole("dialog", { name: "Details" });
+  await expect(inspector).toContainText("Provider details are deliberately not displayed");
+  await expect(inspector).not.toContainText("worker-only-token");
+});
+
+
+test("distinguishes credential-unavailable from fully admitted hardware", async ({
+  page,
+}) => {
+  const workers = [iqmWorker("hardware", false)];
+  await mockIqmShowcase(page, workers, () => []);
+  await page.goto("/?view=showcases");
+  await expect(page.getByText("Worker-local credential", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("The worker does not currently report an available credential reference."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Hardware execution unavailable" }),
+  ).toBeDisabled();
+
+  workers[0] = iqmWorker("hardware", true);
+  await page.goto("/?view=showcases");
+  await expect(
+    page.getByRole("button", { name: "Open hardware execution workflow" }),
+  ).toBeEnabled();
 });
 
 
@@ -336,6 +548,9 @@ test("lays out advanced blocks for direct movement and port connections", async 
   await page
     .getByRole("button", { name: /Synthesize a Trotter evolution circuit/ })
     .click();
+  if ((page.viewportSize()?.width ?? 1440) <= 760) {
+    await page.getByRole("button", { name: "Show library" }).click();
+  }
   await page
     .getByRole("button", { name: /Transpile OpenQASM circuit/ })
     .click();
@@ -383,6 +598,52 @@ test("lays out advanced blocks for direct movement and port connections", async 
   );
   await source.dragTo(target);
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
+});
+
+
+test("starts an advanced workflow from an explicit circuit input", async ({
+  page,
+}) => {
+  await page.goto("/?view=compose");
+  await page.getByRole("tab", { name: "Advanced", exact: true }).click();
+
+  await page
+    .getByRole("button", { name: "Add Input Circuit", exact: true })
+    .click();
+
+  await expect(
+    page.locator(".composer-boundary-node.is-input"),
+  ).toContainText("Input Circuit");
+  await expect(page.getByLabel("Filter operations")).toHaveValue("qhpc.quantum-circuit@1");
+  await expect(
+    page.getByRole("button", { name: /Transpile OpenQASM circuit/ }),
+  ).toBeVisible();
+});
+
+
+test("offers Hamiltonian input in the Operations palette", async ({ page }) => {
+  await page.goto("/?view=compose");
+  await page.getByRole("tab", { name: "Advanced", exact: true }).click();
+
+  const inputs = page.getByLabel("Input artifacts");
+  await expect(
+    inputs.getByRole("button", { name: "Input OpenQASM Circuit" }),
+  ).toBeVisible();
+  await expect(
+    inputs.getByRole("button", { name: "Input Pauli Hamiltonian" }),
+  ).toBeVisible();
+
+  await inputs.getByRole("button", { name: "Input Pauli Hamiltonian" }).click();
+
+  await expect(
+    page.locator(".composer-boundary-node.is-input"),
+  ).toContainText("Input Hamiltonian");
+  await expect(page.getByLabel("Filter operations")).toHaveValue(
+    "qhpc.pauli-hamiltonian@1",
+  );
+  await expect(
+    page.getByRole("button", { name: /Synthesize a Trotter evolution circuit/ }),
+  ).toBeVisible();
 });
 
 
@@ -437,7 +698,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   await expect(
     page
       .getByLabel("Scientific showcases")
-      .getByText("6 runnable · 1 blueprint"),
+      .getByText("10 runnable · 1 blueprint"),
   ).toBeVisible();
   await expect(
     page.getByText(
@@ -555,9 +816,34 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   ).toBeEnabled();
 
   await page
+    .getByRole("button", { name: /Compare dense evolution methods/ })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Evaluate an OpenQEvo dense evolution reference",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("OpenQEvo", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Load example" }).click();
+  await expect(
+    page.getByLabel("Pauli Hamiltonian", { exact: true }),
+  ).toHaveValue(/"pauli": "XX"/);
+  await expect(page.locator(".composer-guided-outputs")).toContainText(
+    "Evolution method result",
+  );
+  await expect(page.locator(".composer-guided-outputs")).toContainText(
+    "Dense reference unitary",
+  );
+  await expect(page.getByText(/^Dense reference method$/i)).toBeVisible();
+  await expect(page.getByText(/^Krylov subspace dimension$/i)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Run workflow" }),
+  ).toBeEnabled();
+
+  await page
     .getByRole("button", { name: /Clifford and T resource count/ })
     .click();
-  await page.getByRole("button", { name: "Bell example" }).click();
+  await page.getByRole("button", { name: "Load example" }).click();
   await expect(
     page.getByLabel("OpenQASM 2 circuit", { exact: true }),
   ).toHaveValue(/cx q\[0\],q\[1\];/);

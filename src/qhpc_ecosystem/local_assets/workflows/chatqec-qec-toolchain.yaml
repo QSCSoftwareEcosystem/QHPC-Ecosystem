@@ -1,0 +1,101 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: chatqec-qec-toolchain
+  name: Build, simulate, diagram, and decode a ChatQEC circuit
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Combine the pinned ChatQEC LightStim circuit builder with its Stim simulator, SVG diagrammer, and PyMatching decoder through one typed circuit artifact.
+spec:
+  nodes:
+    - id: build
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: qec-circuit-build
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters:
+        code_family: toric_code
+        distance: 3
+        rounds: 3
+        protocol: memory
+    - id: simulate
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: stim-simulate
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters:
+        shots: 32
+    - id: diagram
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: stim-diagram
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters: {}
+    - id: decode
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: pymatching-decode
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters:
+        shots: 128
+  edges:
+    - from:
+        node: build
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+      to:
+        node: simulate
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+    - from:
+        node: build
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+      to:
+        node: diagram
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+    - from:
+        node: build
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+      to:
+        node: decode
+        port: circuit
+        artifact_type: qhpc.stim-circuit@1
+  inputs: {}
+  outputs:
+    circuit:
+      artifact_type: qhpc.stim-circuit@1
+      from:
+        node: build
+        port: circuit
+    build_report:
+      artifact_type: qhpc.qec-circuit-build-report@1
+      from:
+        node: build
+        port: report
+    samples:
+      artifact_type: qhpc.stim-simulation-samples@1
+      from:
+        node: simulate
+        port: samples
+    diagram:
+      artifact_type: qhpc.stim-diagram@1
+      from:
+        node: diagram
+        port: diagram
+    decoder_result:
+      artifact_type: qhpc.qec-decoder-result@1
+      from:
+        node: decode
+        port: result

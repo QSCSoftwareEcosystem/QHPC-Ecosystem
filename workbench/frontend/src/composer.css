@@ -1131,6 +1131,31 @@
   overflow: auto;
 }
 
+.composer-library-section {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-library-section-heading {
+  display: grid;
+  gap: 2px;
+  padding: 2px 2px 4px;
+}
+
+.composer-library-section-heading strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.composer-library-section-heading small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .composer-library-item {
   width: 100%;
   min-height: 58px;
@@ -1192,6 +1217,11 @@
 
 .composer-item-glyph.is-draft {
   background: var(--run);
+  color: #fff;
+}
+
+.composer-item-glyph.is-input {
+  background: var(--ok);
   color: #fff;
 }
 
@@ -1421,12 +1451,31 @@
   place-content: center;
   justify-items: center;
   gap: 7px;
+  padding: 24px;
   color: var(--muted);
+  text-align: center;
 }
 
 .composer-canvas-empty strong {
   font-size: 13px;
   font-weight: 620;
+}
+
+.composer-canvas-empty p {
+  max-width: 42ch;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.composer-canvas-empty-actions {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 5px;
 }
 
 .composer-validation-strip {

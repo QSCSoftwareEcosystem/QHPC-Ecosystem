@@ -11,27 +11,16 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
+from .chatqec_readiness import validate_chatqec_health
 from .service_adapters import (
     ServiceAdapterError,
     ask_chatqec,
     build_chatqec_request,
+    stream_chatqec,
 )
 
 
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$")
-_CORPUS_REVISION = re.compile(r"^sha256:[0-9a-f]{64}$")
-_SOURCE_REVISION = re.compile(r"^[0-9a-f]{40,64}$")
-_HEALTH_FIELDS = {
-    "status",
-    "service",
-    "mode",
-    "source_revision",
-    "corpus_revision",
-    "pages",
-    "tool_execution",
-}
-
-
 @dataclass(frozen=True)
 class AuthenticatedServiceTransport:
     """Map the logical HTTPS service origin to one controlled deployment origin."""
@@ -170,45 +159,7 @@ class ChatQECGateway:
             value = json.loads(body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise ServiceAdapterError("ChatQEC health response is invalid") from error
-        if not isinstance(value, dict) or set(value) != _HEALTH_FIELDS:
-            raise ServiceAdapterError("ChatQEC health response fields are invalid")
-        if value.get("status") != "ok":
-            raise ServiceAdapterError("ChatQEC health response is not ready")
-        if value.get("service") != "chatqec":
-            raise ServiceAdapterError("ChatQEC health response service is invalid")
-        mode = value.get("mode")
-        if not isinstance(mode, str) or not mode or len(mode) > 128:
-            raise ServiceAdapterError("ChatQEC health response mode is invalid")
-        source_revision = value.get("source_revision")
-        if (
-            not isinstance(source_revision, str)
-            or _SOURCE_REVISION.fullmatch(source_revision) is None
-        ):
-            raise ServiceAdapterError(
-                "ChatQEC health response source revision is invalid"
-            )
-        revision = value.get("corpus_revision")
-        if (
-            not isinstance(revision, str)
-            or _CORPUS_REVISION.fullmatch(revision) is None
-        ):
-            raise ServiceAdapterError("ChatQEC health response lacks a corpus revision")
-        pages = value.get("pages")
-        if isinstance(pages, bool) or not isinstance(pages, int) or pages <= 0:
-            raise ServiceAdapterError("ChatQEC health response pages is invalid")
-        if value.get("tool_execution") is not False:
-            raise ServiceAdapterError(
-                "ChatQEC health response enables prohibited tool execution"
-            )
-        return {
-            "status": "ok",
-            "service": "chatqec",
-            "mode": mode,
-            "source_revision": source_revision,
-            "corpus_revision": revision,
-            "pages": pages,
-            "tool_execution": False,
-        }
+        return validate_chatqec_health(value)
 
     def ask(
         self,
@@ -238,6 +189,40 @@ class ChatQECGateway:
             history=history,
         )
         return ask_chatqec(
+            "https://chatqec.internal",
+            request,
+            transport=self.transport,
+        )
+
+    def stream(
+        self,
+        question: str,
+        *,
+        conversation_id: str,
+        history: Sequence[Mapping[str, str]] = (),
+        correlation_id: str | None = None,
+    ) -> tuple[dict[str, Any], ...]:
+        """Return one validated, finite answer stream through the gateway."""
+        if not isinstance(conversation_id, str) or _IDENTIFIER.fullmatch(
+            conversation_id
+        ) is None:
+            raise ServiceAdapterError("conversation_id has an invalid format")
+        correlation = correlation_id or f"corr-{uuid4().hex}"
+        if _IDENTIFIER.fullmatch(correlation) is None:
+            correlation = f"corr-{uuid4().hex}"
+        status = self.status()
+        request = build_chatqec_request(
+            request_id=f"req-{uuid4().hex}",
+            correlation_id=correlation,
+            conversation_id=conversation_id,
+            authorized_subject=self.authorized_subject,
+            workspace_id=self.workspace_id,
+            policy_class=self.policy_class,
+            corpus_revision=status["corpus_revision"],
+            question=question,
+            history=history,
+        )
+        return stream_chatqec(
             "https://chatqec.internal",
             request,
             transport=self.transport,

@@ -1,0 +1,40 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.stim-simulation-samples
+  name: Stim Simulation Samples
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Bounded preview of binary samples from a governed Stim circuit simulation; it does not claim to preserve every sampled row.
+  media_type: application/vnd.qsc.stim-simulation-samples+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [schema, shots, summary, samples_preview]
+    properties:
+      schema:
+        const: qhpc.stim-simulation-samples.v1
+      shots:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+      summary:
+        type: string
+        minLength: 1
+        maxLength: 4096
+      samples_preview:
+        type: array
+        maxItems: 20
+        items:
+          type: array
+          maxItems: 100000
+          items:
+            type: integer
+            enum: [0, 1]
+  compatibility:
+    accepts_versions: [1]

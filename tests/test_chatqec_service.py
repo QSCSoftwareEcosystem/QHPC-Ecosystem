@@ -75,7 +75,7 @@ def test_canonical_chatqec_returns_source_pinned_cited_answers(
 ) -> None:
     responder = CanonicalChatQEC(
         _source(tmp_path),
-        source_url="https://github.com/QSCSoftwareThrust/ChatQEC",
+        source_url="https://github.com/QSCSoftwareEcosystem/ChatQEC",
         source_revision=SOURCE_REVISION,
     )
     request = build_chatqec_request(
@@ -154,7 +154,7 @@ def test_bundled_source_rejects_tampered_corpus(tmp_path: Path) -> None:
     root = _source(tmp_path)
     responder = CanonicalChatQEC(
         root,
-        source_url="https://github.com/QSCSoftwareThrust/ChatQEC",
+        source_url="https://github.com/QSCSoftwareEcosystem/ChatQEC",
         source_revision=SOURCE_REVISION,
     )
     license_payload = (root / "LICENSE").read_bytes()
@@ -162,7 +162,7 @@ def test_bundled_source_rejects_tampered_corpus(tmp_path: Path) -> None:
         json.dumps(
             {
                 "schema_version": 1,
-                "repository": "https://github.com/QSCSoftwareThrust/ChatQEC",
+                "repository": "https://github.com/QSCSoftwareEcosystem/ChatQEC",
                 "revision": SOURCE_REVISION,
                 "license": "Apache-2.0",
                 "license_digest": "sha256:"
@@ -174,7 +174,7 @@ def test_bundled_source_rejects_tampered_corpus(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     source = ChatQECSource(
-        "https://github.com/QSCSoftwareThrust/ChatQEC",
+        "https://github.com/QSCSoftwareEcosystem/ChatQEC",
         SOURCE_REVISION,
         root,
     )
@@ -191,7 +191,7 @@ def test_bundled_source_rejects_tampered_corpus(tmp_path: Path) -> None:
 def test_canonical_chatqec_refuses_uncited_topics(tmp_path: Path) -> None:
     responder = CanonicalChatQEC(
         _source(tmp_path),
-        source_url="https://github.com/QSCSoftwareThrust/ChatQEC",
+        source_url="https://github.com/QSCSoftwareEcosystem/ChatQEC",
         source_revision=SOURCE_REVISION,
     )
     request = build_chatqec_request(
@@ -217,7 +217,7 @@ def test_chatqec_gateway_authenticates_and_validates_json_and_sse(
 ) -> None:
     responder = CanonicalChatQEC(
         _source(tmp_path),
-        source_url="https://github.com/QSCSoftwareThrust/ChatQEC",
+        source_url="https://github.com/QSCSoftwareEcosystem/ChatQEC",
         source_revision=SOURCE_REVISION,
     )
     try:
@@ -231,7 +231,9 @@ def test_chatqec_gateway_authenticates_and_validates_json_and_sse(
         gateway = ChatQECGateway(origin, IDENTITY_TOKEN)
         status = gateway.status()
         assert status["pages"] == 2
-        assert status["mode"] == "canonical-extractive-development"
+        assert status["mode"] == "canonical-corpus-extractive-fallback"
+        assert status["capabilities"]["model_rag"] is False
+        assert status["readiness"]["model"] == "disabled"
 
         response = gateway.ask(
             "What is the threshold theorem?",
@@ -239,6 +241,19 @@ def test_chatqec_gateway_authenticates_and_validates_json_and_sse(
         )
         assert response["conversation_id"] == "conversation-browser"
         assert response["citations"][0]["id"] == "canonical:threshold-theorem"
+
+        events = gateway.stream(
+            "What is the surface code?",
+            conversation_id="conversation-gateway-stream",
+        )
+        assert [event["event"] for event in events] == [
+            "token",
+            "citation",
+            "final",
+        ]
+        assert events[-1]["data"]["response"]["conversation_id"] == (
+            "conversation-gateway-stream"
+        )
 
         with pytest.raises(HTTPError) as unauthorized:
             urlopen(
@@ -288,7 +303,7 @@ def test_chatqec_gateway_authenticates_and_validates_json_and_sse(
 def test_extract_backend_rejects_non_loopback_binding(tmp_path: Path) -> None:
     responder = CanonicalChatQEC(
         _source(tmp_path),
-        source_url="https://github.com/QSCSoftwareThrust/ChatQEC",
+        source_url="https://github.com/QSCSoftwareEcosystem/ChatQEC",
         source_revision=SOURCE_REVISION,
     )
     with pytest.raises(ChatQECServiceError, match="loopback"):

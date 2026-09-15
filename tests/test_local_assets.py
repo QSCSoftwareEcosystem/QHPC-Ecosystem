@@ -16,14 +16,46 @@ SOURCE_ASSETS = {
     "registry": ROOT / "examples" / "registry.yaml",
     "deployment-profile": ROOT / "deployments" / "initial.yaml",
     "assistant-interface": ROOT / "integrations" / "chatqec" / "service.yaml",
+    "workflow-chatqec-code-parameters": ROOT
+    / "examples"
+    / "workflows"
+    / "chatqec-code-parameters.yaml",
+    "workflow-chatqec-qec-toolchain": ROOT
+    / "examples"
+    / "workflows"
+    / "chatqec-qec-toolchain.yaml",
+    "workflow-chatqec-threshold-sweep": ROOT
+    / "examples"
+    / "workflows"
+    / "chatqec-threshold-sweep.yaml",
+    "workflow-chatqec-tsim-simulation": ROOT
+    / "examples"
+    / "workflows"
+    / "chatqec-tsim-simulation.yaml",
+    "workflow-chatqec-glcb-link": ROOT
+    / "examples"
+    / "workflows"
+    / "chatqec-glcb-link.yaml",
     "workflow-openqevo-catalog": ROOT
     / "examples"
     / "workflows"
     / "openqevo-method-catalog.yaml",
+    "workflow-openqevo-method-context": ROOT
+    / "examples"
+    / "workflows"
+    / "openqevo-method-context.yaml",
+    "workflow-openqevo-dense-reference": ROOT
+    / "examples"
+    / "workflows"
+    / "openqevo-dense-reference.yaml",
     "workflow-openqevo-synthesis": ROOT
     / "examples"
     / "workflows"
     / "openqevo-trotter-synthesis.yaml",
+    "workflow-showcase-evolution-readiness": ROOT
+    / "examples"
+    / "workflows"
+    / "showcase-evolution-readiness.yaml",
     "workflow-qasm-analysis": ROOT
     / "examples"
     / "workflows"
@@ -32,6 +64,10 @@ SOURCE_ASSETS = {
     / "examples"
     / "workflows"
     / "qec-memory-estimation.yaml",
+    "workflow-showcase-qec-distance-study": ROOT
+    / "examples"
+    / "workflows"
+    / "showcase-qec-distance-study.yaml",
     "workflow-nwqec-counts": ROOT
     / "examples"
     / "workflows"
@@ -44,6 +80,14 @@ SOURCE_ASSETS = {
     / "examples"
     / "workflows"
     / "ftqc-iqm-steane-preparation.yaml",
+    "workflow-ftqc-iqm-bell-execution": ROOT
+    / "examples"
+    / "workflows"
+    / "ftqc-iqm-bell-execution.yaml",
+    "workflow-ftqc-iqm-steane-execution": ROOT
+    / "examples"
+    / "workflows"
+    / "ftqc-iqm-steane-execution.yaml",
 }
 
 
@@ -75,7 +119,7 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     assert registry["metadata"]["entry_count"] == len(registry["spec"]["entries"])
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"
-    assert len(workflows) == 7
+    assert len(workflows) == 18
 
 
 def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> None:

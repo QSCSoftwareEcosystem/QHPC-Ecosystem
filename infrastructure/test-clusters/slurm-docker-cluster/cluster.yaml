@@ -54,6 +54,54 @@ spec:
       registry_reference: docker://qhpc/lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
       local_reference: qhpc/lightstim:23924ee-linux-amd64
       digest: sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
+    - runtime_id: chatqec-code-params-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/code-params.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      required_on_start: false
+    - runtime_id: chatqec-stim-simulate-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/stim-simulate.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      required_on_start: false
+    - runtime_id: chatqec-stim-diagram-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/stim-diagram.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      required_on_start: false
+    - runtime_id: chatqec-pymatching-decode-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/pymatching-decode.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      required_on_start: false
+    - runtime_id: chatqec-threshold-sweep-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/threshold-sweep.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      required_on_start: false
+    - runtime_id: chatqec-qec-circuit-build-linux-amd64
+      runtime_manifest: containers/operations/chatqec-lightstim/runtime.yaml
+      registry_reference: docker://qhpc/chatqec-lightstim@sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+      local_reference: qhpc/chatqec-lightstim:dd19a85-linux-amd64-v3
+      digest: sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+      required_on_start: false
+    - runtime_id: chatqec-tsim-simulate-linux-amd64
+      runtime_manifest: containers/operations/chatqec-tsim/runtime.yaml
+      registry_reference: docker://qhpc/chatqec-tsim@sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+      local_reference: qhpc/chatqec-tsim:dd19a85-linux-amd64
+      digest: sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+      required_on_start: false
+    - runtime_id: chatqec-glcb-visualize-url-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/glcb-visualize-url.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      required_on_start: false
   compose:
     project_name: qhpc-slurm-test
     compose_file: docker-compose.yml

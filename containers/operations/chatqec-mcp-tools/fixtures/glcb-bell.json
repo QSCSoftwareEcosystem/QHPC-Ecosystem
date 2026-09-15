@@ -1,0 +1,8 @@
+{
+  "qubits": 2,
+  "gates": [
+    {"gate": "h", "column": 0, "targets": [0]},
+    {"gate": "cx", "column": 1, "targets": [0, 1]}
+  ],
+  "sampler": "clifft"
+}

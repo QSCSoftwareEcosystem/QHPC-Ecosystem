@@ -21,7 +21,7 @@ this page: **Vicente Leyton-Ortega**, as shown in the
 - Package author: Sharmin Afrose.
 - Publication authors named by the project: Sharmin Afrose, Vicente Leyton-Ortega, Travis Humble, and Tirthankar Ghosal.
 - Current maintainer: unresolved in the pinned project documentation.
-- Evidence: [package metadata](https://github.com/QSCSoftwareThrust/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/pyproject.toml) and [README citation](https://github.com/QSCSoftwareThrust/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md).
+- Evidence: [package metadata](https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/pyproject.toml) and [README citation](https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md).
 
 ## QSC hardware survey
 
@@ -81,7 +81,7 @@ this page: **Vicente Leyton-Ortega**, as shown in the
 - Named repository contributors: Thomas Naughton and Vicente Leyton-Ortega.
 - Package author label: “QSC Software Thrust”; it does not identify individual authors.
 - Current maintainer: unresolved in the pinned project documentation.
-- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareThrust/OpenQEvo/commits/250550a3992bd57c032d4066843c2b03055c4b9d) and [package metadata](https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/pyproject.toml).
+- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareThrust/OpenQEvo/commits/7ad8ef14b9730adb200d3d0b001ec93730ec360a) and [package metadata](https://github.com/QSCSoftwareThrust/OpenQEvo/blob/7ad8ef14b9730adb200d3d0b001ec93730ec360a/pyproject.toml).
 
 ## QAppsWiki
 

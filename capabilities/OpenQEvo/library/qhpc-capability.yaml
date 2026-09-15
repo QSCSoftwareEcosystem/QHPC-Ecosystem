@@ -8,7 +8,7 @@ metadata:
   owners: [openqevo]
   repository:
     url: https://github.com/QSCSoftwareThrust/OpenQEvo
-    revision: 250550a3992bd57c032d4066843c2b03055c4b9d
+    revision: 7ad8ef14b9730adb200d3d0b001ec93730ec360a
   integration:
     authority: ecosystem
     maintainers: [qhpc-ecosystem]
@@ -27,17 +27,22 @@ spec:
   guidance:
     use_when:
       - Discover available quantum time-evolution methods and inspect their attributed scientific context.
+      - Evaluate a bounded dense exact, first- or second-order Trotter, qDRIFT, Krylov, interaction-picture, or linear-annealing reference on a small Pauli Hamiltonian.
       - Convert a real-weighted Pauli Hamiltonian into an OpenQASM 2.0 Trotter circuit for a local development workflow.
     quick_start:
+      - Open Compose and choose the OpenQEvo dense-reference workflow to compare a small-system evolution method.
       - Open Compose and choose Hamiltonian to evolution circuit.
       - Load the two-qubit example or upload a Pauli-Hamiltonian JSON artifact.
-      - Review the evolution time, Trotter steps, and Suzuki order, then run the scientific path.
+      - Review the method-specific parameters and the explicit dense-reference or circuit boundary, then run the scientific path.
     example_workflows:
       - openqevo-method-catalog
+      - openqevo-method-context
+      - openqevo-dense-reference
       - openqevo-trotter-synthesis
       - showcase-evolution-readiness
     limitations:
-      - EQO currently exposes method discovery, context inspection, and development Trotter synthesis rather than every OpenQEvo method and adapter.
+      - EQO exposes the full available method catalog and context snapshot, a bounded dense-reference operation for all native OpenQEvo methods, and separate Qiskit circuit synthesis. Optional framework adapters remain dependency-conditional.
+      - Dense-reference evaluation is limited to eight qubits and returns a local numerical reference, not a scalable solver, circuit, or hardware result.
       - Circuit synthesis is a local-development OpenQEvo and Qiskit bridge, not an accepted production or HPC runtime.
       - Production promotion requires a project-reviewed circuit API, packaged method context, immutable dependencies, and resolved redistribution rights.
   operations:
@@ -56,7 +61,7 @@ spec:
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
       invocation:
         entrypoint: [openqevo:list_methods_detail]
       resources:
@@ -77,17 +82,83 @@ spec:
           title: Evolution method
           description: Registered OpenQEvo method to inspect. Context availability is reported explicitly.
           default: trotter_s2
-          enum: [exact, qiskit_trotter, trotter_s1, trotter_s2]
+          enum: [exact, trotter_s1, trotter_s2, qdrift, krylov, interaction_picture, annealing, qiskit_trotter]
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
       invocation:
         entrypoint: [qhpc-openqevo-context]
       resources:
         cpu: 1
         memory_mb: 512
         walltime_seconds: 60
+      execution_targets: [local-development]
+    - id: evaluate-dense-reference
+      title: Evaluate a bounded dense evolution reference
+      description: Evaluate exact, first- or second-order Trotter, qDRIFT, Lanczos-Krylov, midpoint interaction-picture, or linear-annealing evolution for a small Pauli Hamiltonian and retain both the structured result and dense unitary artifact.
+      inputs:
+        hamiltonian:
+          artifact_type: qhpc.pauli-hamiltonian@1
+          description: Real-weighted Pauli strings using the EQO Pauli-Hamiltonian JSON input shape; bounded to eight qubits for dense evaluation.
+      outputs:
+        result:
+          artifact_type: qhpc.evolution-result@1
+          description: Structured OpenQEvo result metadata with method configuration, warnings, limitations, and the pinned EQO source revision.
+        unitary:
+          artifact_type: qhpc.dense-unitary@1
+          description: Dense NumPy unitary produced by the bounded reference evaluation.
+      parameters:
+        method:
+          type: string
+          title: Dense reference method
+          description: Exact is the numerical reference; the remaining choices are bounded dense methods, not hardware solvers. Use the separate Qiskit operation for a circuit artifact.
+          default: krylov
+          enum: [exact, trotter_s1, trotter_s2, qdrift, krylov, interaction_picture, annealing]
+        evolution_time:
+          type: number
+          title: Evolution time
+          description: Positive time t in exp(-iHt).
+          default: 1.0
+          minimum: 1.0e-12
+        steps:
+          type: integer
+          title: Method steps or qDRIFT samples
+          description: Used as Trotter repetitions, qDRIFT samples, or integration steps, depending on the selected method.
+          default: 32
+          minimum: 1
+          maximum: 4096
+        krylov_dim:
+          type: integer
+          title: Krylov subspace dimension
+          description: Used only by the Krylov method; values above the Hilbert-space dimension are capped by OpenQEvo.
+          default: 12
+          minimum: 1
+          maximum: 256
+        tolerance:
+          type: number
+          title: Krylov breakdown tolerance
+          description: Used only by the Krylov method.
+          default: 1.0e-12
+          minimum: 1.0e-16
+          maximum: 1.0
+        random_seed:
+          type: integer
+          title: qDRIFT random seed
+          description: Used only by qDRIFT to make its sampled trajectory reproducible.
+          default: 42
+          minimum: 0
+          maximum: 4294967295
+      runtime:
+        type: python-wheel
+        reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
+        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+      invocation:
+        entrypoint: [qhpc-openqevo-evaluate-reference]
+      resources:
+        cpu: 1
+        memory_mb: 2048
+        walltime_seconds: 120
       execution_targets: [local-development]
     - id: synthesize-evolution
       title: Synthesize a Trotter evolution circuit
@@ -131,7 +202,7 @@ spec:
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:78a572973dcb086e5904c54c1f7c6229ffdb33e883b009b8d3936f6814a8acec
+        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
       invocation:
         entrypoint: [qhpc-openqevo-synthesize]
       resources:
@@ -143,11 +214,11 @@ spec:
     - id: python-library
       kind: library
       version: 0.1.0
-      uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d
+      uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/7ad8ef14b9730adb200d3d0b001ec93730ec360a
     - id: method-context
       kind: dataset
       version: 0.1.0
-      uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/250550a3992bd57c032d4066843c2b03055c4b9d/context
+      uri: https://github.com/QSCSoftwareThrust/OpenQEvo/tree/7ad8ef14b9730adb200d3d0b001ec93730ec360a/context/methods
     - id: pauli-hamiltonian
       kind: artifact-type
       version: 1.0.0
@@ -160,10 +231,18 @@ spec:
       kind: artifact-type
       version: 1.0.0
       uri: artifact-types/evolution-synthesis-report-v1.yaml
+    - id: evolution-result
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/evolution-result-v1.yaml
+    - id: dense-unitary
+      kind: artifact-type
+      version: 1.0.0
+      uri: artifact-types/dense-unitary-v1.yaml
     - id: developer-attribution
       kind: documentation
       version: 1.0.0
       uri: docs/tool-attribution.md#openqevo
   documentation:
     qappswiki: packages/openqevo.md
-    url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/250550a3992bd57c032d4066843c2b03055c4b9d/README.md
+    url: https://github.com/QSCSoftwareThrust/OpenQEvo/blob/7ad8ef14b9730adb200d3d0b001ec93730ec360a/README.md

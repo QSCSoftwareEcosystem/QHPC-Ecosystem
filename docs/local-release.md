@@ -1,8 +1,10 @@
 # EQO Local
 
-The `dev-local` branch contains the portable, single-user EQO distribution: the
-Workbench, control API, local worker, and optional Assistant. The current
-artifact is a release candidate; it is not signed or approved for publication.
+The `dev-local` branch contains the portable, single-user EQO distribution:
+the Workbench, control API, Assistant, interactive worker, and a reviewed
+virtual-Slurm worker for the admitted containerized ecosystem tools. The
+current artifact is a release candidate; it is not signed or approved for
+publication.
 
 ## Build and install the release candidate
 
@@ -47,6 +49,42 @@ eqo local open
 eqo local down
 ```
 
+Before the control plane starts, `eqo local up` prepares the revision-pinned
+virtual-Slurm fixture and verifies the admitted OCI images for QASMTrans,
+STABSim, NWQEC, FTPrimitiveBench, and LightStim. These are the runtimes for the
+two complete guided showcase paths. It also verifies the FTQC OCI image; in
+this source workspace it automatically discovers the pinned `../FTQC` checkout
+and runtime contract, and builds FTQC only when that image is absent or has the
+wrong identity. A packaged installation never falls back to host-native tools:
+the approved delivery must provide the verified OCI images.
+
+```bash
+eqo local up \
+  --ftqc-source-checkout /path/to/FTQC \
+  --ftqc-runtime-manifest /path/to/QHPC-Ecosystem/containers/operations/ftqc/runtime.yaml
+```
+
+For the internal-alpha IQM worker, enter the credential only in the invoking
+terminal. EQO passes it to the isolated worker, never to the browser, supervisor
+state, command line, or saved local configuration.
+
+```bash
+export IQM_BASE_URL=https://qccsw.ccs.ornl.gov
+eqo local up --start-iqm-worker --prompt-for-iqm-token \
+  --iqm-device-alias iqm-qpu-1
+```
+
+For a credential-free demonstration of the complete FTQC route/collect path,
+start the optional safe simulation worker. It never contacts IQM, reads an IQM
+token, or produces hardware evidence; all resulting artifacts are labelled
+`simulated-iqm`.
+
+```bash
+eqo local up --iqm-simulation --open
+```
+
+Use `eqo local up --no-ecosystem-execution` only for discovery or lightweight
+interactive development; it deliberately leaves the virtual-Slurm worker out.
 By default, EQO binds only to loopback addresses. It refuses non-loopback
 hosts, conflicting service ports, insufficient or unknown storage, duplicate
 supervisors, invalid state, and unverified stale process identifiers. Startup
@@ -71,11 +109,12 @@ The versioned configuration and runtime-state documents contain no generated
 Assistant identity token. Runtime identity is generated inside the detached
 supervisor and scoped only to the API and Assistant processes.
 
-## Optional scientific runtimes
+## Optional library runtimes
 
-EQO Local starts and supports discovery without scientific runtimes. Install a
-reviewed wheel or native ZIP only with its expected immutable reference and
-SHA-256 digest:
+The complete Local execution profile uses its admitted operation containers.
+The separate runtime store is only for library or native development adapters,
+such as a reviewed OpenQEvo wheel. Install one only with its expected immutable
+reference and SHA-256 digest:
 
 ```bash
 eqo local runtime list
@@ -241,12 +280,14 @@ approved storage and audit design.
 
 ## Current boundary
 
-The default Assistant uses the Apache-2.0 ChatQEC canonical corpus bundled in
-the installed wheel. EQO verifies its source revision, license checksum, page
-count, and corpus digest before starting the loopback service, so first start
-and later restarts require no network access or source checkout. Developers may
-still pass `--assistant-source-checkout` to test an exact-revision Git checkout.
-Use `--no-assistant` when validating only the control plane.
+The default Assistant is the **ChatQEC canonical-corpus extractive fallback**.
+It uses the Apache-2.0 canonical corpus bundled in the installed wheel; it is
+not the upstream model-backed RAG application. EQO verifies its source
+revision, license checksum, page count, and corpus digest before starting the
+loopback service, so first start and later restarts require no network access
+or source checkout. Developers may still pass `--assistant-source-checkout` to
+test an exact-revision Git checkout. Use `--no-assistant` when validating only
+the control plane.
 
 Publication still requires project approval of the software inventory and
 successful clean-host CI. Scientific runtimes remain separate, optional

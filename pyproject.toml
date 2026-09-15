@@ -16,11 +16,14 @@ dependencies = [
 dev = ["pytest>=7", "setuptools>=68", "wheel>=0.41", "Django>=5.2.15,<5.3"]
 local = ["Django>=5.2.15,<5.3"]
 workbench = ["Django>=5.2.15,<5.3"]
+iqm = ["iqm-client[qiskit]>=33.0.3,<34"]
+jupyter = ["ipython>=8"]
 
 [project.scripts]
 eqo = "qhpc_ecosystem.cli:main"
 qhpc-ecosystem = "qhpc_ecosystem.cli:main"
 qhpc-workbench = "qhpc_workbench.__main__:main"
+qhpc-iqm-worker = "qhpc_ecosystem.iqm_worker:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -28,7 +31,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["qhpc_ecosystem*", "qhpc_workbench*"]
+include = ["eqo*", "qhpc_ecosystem*", "qhpc_workbench*"]
 
 [tool.setuptools.package-data]
 qhpc_ecosystem = ["contracts/*.json", "openqevo_context/*.json", "workbench/*.html", "workbench/*.css", "workbench/*.js", "workbench/assets/*"]

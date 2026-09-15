@@ -3,7 +3,7 @@ kind: OperationInterface
 metadata:
   id: ftqc-compiler
   name: FTQC Fault-Tolerant Compiler
-  version: 0.3.0
+  version: 0.4.0
   component: ftqc
   project: compilation-tools
   owners: [ftqc]

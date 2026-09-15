@@ -1,306 +1,318 @@
 <p align="center">
-  <img src=".github/assets/qhpc-ecosystem-banner.png" alt="QHPC-Ecosystem in the EQO-QSC Workbench" width="100%">
+  <img src=".github/assets/qhpc-ecosystem-banner.png" alt="EQO-QSC Workbench" width="100%">
 </p>
 
-# QHPC-Ecosystem
+# EQO — the QSC quantum-HPC ecosystem
 
-`QHPC-Ecosystem` is the integration layer for QSC quantum-HPC software. It
-combines the repository inventory and reusable Apptainer environments with an
-attributed capability registry, persistent workflow engine, controlled runners,
-versioned API, and browser workbench. Scientific source repositories remain
-independent.
+EQO brings QSC quantum-HPC software, workflows, data, knowledge, and community
+resources into one local Workbench. Start locally first; use the Workbench to
+discover what is available, compose a workflow, and inspect its results.
+Scientific source repositories remain independent.
 
-<p align="center">
-  <a href=".github/assets/qhpc-ecosystem-workflow-sandbox.html">
-    <img src=".github/assets/qhpc-ecosystem-workflow-launcher.png" alt="Figure 1 — Open the QHPC-Ecosystem controlled-run workflow sandbox" width="920">
-  </a>
-</p>
+## Start here: EQO Local
 
-*Figure 1. A QHPC-Ecosystem scientific run proceeds from QSC software discovery
-and typed composition through pinned-capability admission, worker leasing, and
-policy-controlled execution to inspectable artifacts and provenance. [Open the
-workflow sandbox](.github/assets/qhpc-ecosystem-workflow-sandbox.html) for
-guided views, focus, trace, and export controls.*
+EQO Local is the recommended starting point. It runs a single-user Workbench,
+control API, ChatQEC, an interactive worker, and the reviewed local
+virtual-Slurm worker. That means the guided Compose workflows execute their
+admitted tools—not merely their diagrams—while services remain bound to
+loopback by default. No QPU, cloud, model-provider, or registry credential is
+needed for the default scientific demonstrations.
 
-Remaining deployment dependencies are tracked in
-[docs/deployment-readiness.md](docs/deployment-readiness.md). The target
-control, execution, data, container, and storage boundaries are defined in
-[docs/architecture.md](docs/architecture.md). Integration contracts,
-architecture decisions, curator evidence, and DOE deployment readiness are
-maintained under [docs/](docs/).
+### 1. Install
 
-The first deployment uses the explicit allowlist in
-[deployments/initial.yaml](deployments/initial.yaml): STABSim, TN-Sim, NWQEC,
-FTPrimitiveBench, LightStim, QASMTrans, FTQC, OpenQEvo, OpenQSE, QAppsWiki,
-QSC Materials Repository, ChatQEC, ExaChem QFlow, QIRIS over IRIS/QIR-EE, and
-the NWQSim QFlow VQE plugin. See
-[docs/initial-deployment.md](docs/initial-deployment.md) for
-roles, onboarding state, and production gates. The larger catalog remains
-available for future onboarding but is not deployment scope. Each selected
-component has a validated record under [integrations/](integrations/), the
-pre-container source, contract, adapter, fixture, and integration-test scope is
-closed for the twelve published components; the three QFlow/QIRIS records are
-explicitly scaffolded, non-executable prototypes. All fifteen components have
-registry records admitted by the initial deployment profile, including one
-static non-executable data-service schema for QSC materials. STABSim,
-QASMTrans, NWQEC, FTPrimitiveBench,
-and LightStim now have reproducible, digest-recorded, locally smoke-tested
-operation images; see
-[docs/operation-runtimes.md](docs/operation-runtimes.md) and the status matrix
-in [containers/operations/README.md](containers/operations/README.md).
-STABSim image publication remains blocked until its upstream project supplies
-explicit license terms.
-
-TN-Sim's pinned public `tn_sim` branch now has a runtime-free CPU MPS operation
-contract and fixture-tested controlled CLI adapter. Its iTensor binary has not
-yet been built or accepted as a production runtime.
-
-FTQC uses the private `QSCSoftwareEcosystem/FTQC` repository. Its exact-revision
-C API is available to EQO Local on macOS arm64 as a locally built native bundle.
-Two Workbench examples prepare either a measured two-device-qubit Bell circuit
-or one Steane logical qubit as typed FTQC MLIR, IQM JSON, and claim-boundary
-artifacts. Calibration-aware routing and hardware submission are separate,
-credentialed stages. Their typed route, receipt, count, and logical-result
-contracts now have a restart-safe mock backend acceptance path, but no real
-qiskit-iqm client or hardware packet is admitted. The local binary is not
-distributed; a portable LLVM/MLIR 22 runtime, license clearance, immutable
-release, and target acceptance remain pending.
-
-OpenQSE is resolved to the pinned `openQSE/openqse-spec` glossary and
-architecture repository and is published only as non-executable documentation
-resources.
-
-The QFlow/QIRIS incubation admits ExaChem as chemistry-cycle owner, IRIS/QIR-EE
-as the proposed QIRIS runtime substrate, and a main-branch NWQSim VQE plugin as
-one solver backend. Their task-set, task-set-result, and cycle-checkpoint
-contracts and H6 evidence are visible in Tools and Knowledge, but they publish
-no Compose or Run operation until the source, live orchestration,
-amplitude-update, immutable-runtime, and HPC acceptance gates pass.
-
-ChatQEC uses the accepted internal-service design summarized in
-[docs/chatqec-service-boundary.md](docs/chatqec-service-boundary.md), with the
-formal decision in
-[ADR 0008](docs/adr/0008-chatqec-internal-service-boundary.md). The ecosystem
-works from the `QSCSoftwareThrust/ChatQEC` GitHub repository; GitLab copies are
-secondary mirrors. A versioned provider-neutral HTTPS JSON/SSE contract,
-bounded client adapter, fixtures, and tests are implemented. A supervised
-loopback development service now serves cited extractive answers from the
-exact-revision ChatQEC canonical corpus through the QHPC API. The model-backed
-production runtime and concrete DOE-approved model, identity, egress,
-retrieval, and retention services remain deployment work.
-
-The responsibilities are intentionally separate:
-
-- `ProjectManagement/gitlab-mirror` defines where source repositories live.
-- `QHPC-Ecosystem` defines how those repositories are built and run.
-- `QAppsWiki` describes packages, interfaces, workflows, and provenance.
-- `spack-packages` owns package-level HPC integration as components mature.
-
-The project remains one modular monorepo while it has one primary maintainer.
-The target deployment separates the API control plane, task-executing workers,
-and browser Workbench. The local API and worker now run as separate processes
-over persistent SQLite task leases. Durable worker identities and heartbeats,
-append-only attempts and execution events, asynchronous target handles,
-restart reconciliation, cancellation, and declared-output collection are
-implemented. Workers advertise their execution targets, classes, and runtime
-digests; stale heartbeats are treated as unavailable, and interactive API
-submission fails before queueing when no compatible worker is healthy. This
-verifies the production-shaped lifecycle locally, not the
-PostgreSQL, multi-host, or approved DOE deployment.
-
-For short approved operations, a target may maintain workers inside a warm,
-site-governed Slurm pilot allocation. Policy selects between local interactive,
-warm-pilot, ordinary batch, and backend-specific execution; unavailable warm
-capacity falls back to batch when permitted. Each attempt exposes separate
-authorization, dispatch, scheduler, image, input, execution, collection, and
-finalization latency instead of treating all delay as scientific runtime.
-The durable pilot controller and fallback policy are locally tested; launching
-and operating a worker inside a real site allocation remains target work.
-
-## Quick start
-
-Install the CLI in editable mode from this directory:
+From this repository, create an isolated Python environment and install the
+local profile:
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
+python -m pip install -e ".[local]"
+```
+
+This installs the **EQO Local Python profile**: the CLI, Workbench, control
+services, and bundled catalog and guidance. The reviewed OCI images are kept
+separate from the Python package; an internal installation supplies the exact
+admitted images once, and EQO verifies their digests before it uses them. It
+never replaces an unavailable tool with a host-Python substitute.
+
+The primary command is `eqo`. `qhpc-ecosystem` remains available as a
+compatibility alias for existing scripts.
+
+### 2. Start and open the Workbench
+
+```bash
+eqo local up --open
+```
+
+The command prints the Workbench address and opens it when your system permits.
+Keep that terminal open while you use EQO. To reopen an already running
+Workbench, use `eqo local open`.
+
+### 3. Let EQO start the complete execution profile
+
+The first `eqo local up` starts the isolated virtual-Slurm fixture and verifies
+the exact OCI images used by the guided workflows: **QASMTrans, STABSim,
+NWQEC, FTPrimitiveBench, LightStim**, and FTQC where its workflow is selected.
+Docker Desktop is required. This is a local development scheduler—not a DOE
+HPC system—but every scientific tool runs in its own admitted container.
+
+- **Working from this source workspace:** when the pinned `FTQC` checkout is a
+  sibling of this repository (`../FTQC`), EQO discovers it and the checked-in
+  runtime contract automatically. If the admitted image is absent, EQO builds
+  that one checksum-pinned image.
+- **Using a packaged EQO installation:** obtain the admitted OCI images through
+  the approved internal distribution path. If an image is missing or has the
+  wrong digest, startup names the exact image; it does not download an
+  arbitrary tag or substitute a host-native tool. FTQC additionally accepts a
+  separately managed source checkout and runtime contract through
+  `--ftqc-source-checkout` and `--ftqc-runtime-manifest`.
+
+If you only need discovery and the lightweight interactive tools, use
+`eqo local up --no-ecosystem-execution`. The default remains the complete
+ecosystem execution profile. See [the EQO Local guide](docs/local-release.md)
+for its container and lifecycle details.
+
+### 4. Explore the Workbench
+
+| Area | Start here when you want to… |
+| --- | --- |
+| **Overview** | See the ecosystem and local service state. |
+| **Tools** | Discover integrated software and read its published guidance. |
+| **Data** | Browse available data-service records. |
+| **Knowledge** | Explore QAppsWiki-connected ecosystem knowledge. |
+| **Engagement** | Open public course material, training tutorials, and community events. |
+| **Assistant** | Ask the local, citation-backed ChatQEC fallback about QEC concepts. |
+| **Compose** | Start a guided workflow or build an advanced typed workflow. |
+| **Runs** and **Artifacts** | Follow execution and inspect provenance-linked results. |
+
+### 5. Check, stop, or recover
+
+```bash
+eqo local status
+eqo local down
+```
+
+After updating EQO, restart the local stack so its API and Workbench load the
+new version:
+
+```bash
+eqo local down
+eqo local up --open
+```
+
+For diagnostics, backup, restore, and optional local runtime management, see
+[the EQO Local guide](docs/local-release.md):
+
+```bash
+eqo local diagnose
+eqo local export
+eqo local import /path/to/eqo-local-export.eqo
+eqo local runtime list
+```
+
+## Everyday EQO use
+
+### Browse Engagement Thrust resources
+
+The Engagement catalog is intentionally read-only: its courses, tutorials, and
+events are visible in EQO without becoming tools, services, runtimes,
+credentials, or workflow targets.
+
+```bash
+eqo engagement list
+eqo engagement list --json
+```
+
+### Use EQO from Python or Jupyter
+
+The dependency-free `eqo` client connects to the same local control API. It
+does not start services, pull images, import project tools, or resolve QPU or
+model credentials.
+
+```python
+from eqo import EQOClient
+
+client = EQOClient.connect("http://127.0.0.1:8080")
+
+for resource in client.engagement.list():
+    print(resource["title"], resource["url"])
+
+capabilities = client.capabilities.list()
+answer = client.assistant.ask("What is the surface code?")
+```
+
+Workflow submission is explicit. It creates a run only after you choose a
+published workflow and a compatible local worker is available:
+
+```python
+workflow = client.workflows.latest("WORKFLOW_ID")
+run = client.workflows.submit(workflow["id"], workflow["version"])
+completed = run.wait(timeout=300)
+artifacts = completed.artifacts
+```
+
+For notebooks, install the optional helper and use the safe rich views. They
+render escaped, size-bounded summaries; SVG and binary artifacts are described
+rather than embedded.
+
+```bash
+python -m pip install -e ".[jupyter]"
+```
+
+```python
+from eqo import render_artifact, render_citations, render_run
+
+render_run(completed)
+render_artifact(artifacts[0])
+render_citations(answer["citations"])
+```
+
+The [notebook catalog](examples/notebooks/README.md) maps every admitted tool
+and integration to an example: individual capability inspection, typed-input
+workflows, multi-tool paths such as OpenQEvo → QASMTrans → STABSim/NWQEC and
+FTPrimitiveBench → LightStim, the full ChatQEC tool gallery, and FTQC → IQM.
+The IQM notebook detects an admitted simulation or internal hardware worker;
+credentials remain worker-local and never enter notebook state.
+
+### Optional IQM simulation
+
+To explore the FTQC–IQM path without a credential or network connection, start
+the safe simulation worker:
+
+```bash
+eqo local up --iqm-simulation --open
+```
+
+Its results are labelled `simulated-iqm`; this does not submit to IQM hardware
+or constitute hardware evidence. For the internal alpha, real IQM execution
+requires the isolated worker, one device alias, and a worker-local credential.
+
+### Run an IQM experiment (internal alpha)
+
+Use the simulation path above first if you want to inspect the complete
+prepare → route → collect flow without contacting IQM. To run the experiment
+on the internal IQM machine, install the optional provider once in the active
+EQO environment, then restart EQO with its isolated IQM worker:
+
+```bash
+python -m pip install -e ".[iqm]"
+
+eqo local down
+export IQM_BASE_URL='https://qccsw.ccs.ornl.gov'
+eqo local up \
+  --start-iqm-worker \
+  --iqm-device-alias iqm-qpu-1 \
+  --prompt-for-iqm-token \
+  --open
+```
+
+The final command asks for `IQM_TOKEN` without echoing it. The token is passed
+only to the IQM worker; do not paste it into the Workbench or add it to a
+workflow. Starting the worker does **not** submit an experiment.
+
+In the Workbench, open **Guided** and choose **Route and execute one Steane
+logical qubit**. Click **Load logical |0⟩**, review the circuit, then click
+**Run workflow**. That action submits the bounded 512-shot job. The completed
+run records the FTQC preparation artifacts, routed layout and calibration
+identity, redacted job receipt, raw counts, and decoded logical result.
+
+This is an internal-alpha hardware path. A completed run is a preserved
+execution record, not by itself a claim of error suppression or fault-tolerant
+advantage. See the [FTQC–IQM worker guide](docs/ftqc-iqm-worker.md) for the
+execution boundary and troubleshooting.
+
+## Where to get help
+
+- **Something changed but the UI looks old:** run `eqo local down` followed by
+  `eqo local up --open`.
+- **EQO does not start:** run `eqo local diagnose`, then consult
+  [the Local guide](docs/local-release.md).
+- **You need a feature’s current boundary:** read its Tool Record in the
+  Workbench, then follow the linked documentation and source provenance.
+- **You are preparing a deployment or HPC target:** begin with
+  [deployment readiness](docs/deployment-readiness.md), not the local profile.
+
+---
+
+## Technical reference
+
+This section is for contributors, integrators, release engineers, and HPC site
+operators. It explains the boundaries behind the local experience.
+
+<p align="center">
+  <a href=".github/assets/qhpc-ecosystem-workflow-sandbox.html">
+    <img src=".github/assets/qhpc-ecosystem-workflow-launcher.png" alt="Open the EQO controlled-run workflow sandbox" width="920">
+  </a>
+</p>
+
+*A controlled EQO scientific run progresses from discovery and typed
+composition through capability admission and worker leasing to inspectable
+artifacts and provenance. [Open the workflow sandbox](.github/assets/qhpc-ecosystem-workflow-sandbox.html)
+for guided views, focus, trace, and export controls.*
+
+### Architecture and deployment boundary
+
+EQO combines a curated repository inventory, reusable Apptainer developer
+environments, an attributed capability registry, a persistent workflow engine,
+controlled workers, a versioned API, and a browser Workbench. The local API and
+worker use persistent SQLite task leases. A production deployment separates the
+control plane, task-executing workers, storage, and browser Workbench.
+
+The target control, execution, data, container, and storage boundaries are
+defined in [docs/architecture.md](docs/architecture.md). Architecture decisions,
+integration contracts, curator evidence, and deployment readiness are maintained
+under [docs/](docs/).
+
+The first deployment uses the explicit allowlist in
+[deployments/initial.yaml](deployments/initial.yaml). It publishes capability
+records for STABSim, TN-Sim, NWQEC, FTPrimitiveBench, LightStim, QASMTrans,
+FTQC, OpenQEvo, OpenQSE, QAppsWiki, QSC Materials Repository, ChatQEC, ExaChem
+QFlow, QIRIS over IRIS/QIR-EE, and the NWQSim QFlow VQE plugin. Roles,
+onboarding state, and production gates are in
+[docs/initial-deployment.md](docs/initial-deployment.md).
+
+#### Component status highlights
+
+- **OpenQSE** is a pinned glossary and architecture resource, not a tool or
+  service. The separately cataloged QFw–SLURM Cluster remains a planned,
+  non-executable development-cluster reference.
+- **ChatQEC** is currently a supervised, citation-backed canonical-corpus
+  extractive fallback. It is not the upstream model-backed research assistant.
+  See [the service boundary](docs/chatqec-service-boundary.md).
+- **FTQC–IQM** has typed preparation and simulated acceptance paths. Real QPU
+  submission remains a separately credentialed, site-admitted stage.
+- **QFlow/QIRIS** records are visible for discovery and knowledge, but publish
+  no Compose or Run action until their source, runtime, and HPC gates pass.
+
+The detailed status matrix is in
+[docs/deployment-readiness.md](docs/deployment-readiness.md), and immutable
+operation-image status is in
+[containers/operations/README.md](containers/operations/README.md).
+
+### Advanced local and development operations
+
+The `dev` supervisor is a development stack, not the default entry point. It
+prepares the virtual Slurm fixture, serves the API, starts separate local and
+virtual-Slurm workers, and supervises the local ChatQEC service:
+
+```bash
 python -m pip install -e ".[dev,workbench]"
-```
-
-The primary command is `eqo`. The previous `qhpc-ecosystem` executable remains
-available as a compatibility alias for existing scripts.
-
-Catalog inspection works without a container runtime or network access:
-
-```bash
-eqo list
-eqo info OpenQEvo
-eqo validate
-eqo sync-manifest --check
-eqo updates list
-eqo updates check
-eqo contract list
-eqo contract validate capability examples/contracts/valid/capability.yaml
-eqo contract validate operation-interface integrations/nwqec/interface.yaml
-eqo contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
-eqo contract validate service-interface integrations/chatqec/service.yaml
-eqo integration validate deployments/initial.yaml
-eqo integration list deployments/initial.yaml
-```
-
-Integration scaffolds and runtime-free operation or service interfaces
-deliberately contain no executable command or runtime digest. They are the
-pre-runtime onboarding layer. After an executable component's source,
-contract, adapter, fixtures, and tests stabilize, its tool-specific production
-image is built and accepted. The executable capability is then published with
-that immutable runtime digest.
-
-Project release checkouts that contain `qhpc-capability.yaml` can be aggregated
-into a deterministic federated registry:
-
-```bash
-eqo registry build --source /path/to/project-release --output registry.yaml
-eqo registry validate registry.yaml
-eqo registry list registry.yaml
-```
-
-See [docs/registry.md](docs/registry.md) for publication rules and contributor
-workflow.
-
-The Workbench **Tools** catalog shows each capability's purpose directly in the
-catalog. Open a Tool Record for recommended use cases, quick-start steps,
-example workflows, operation contracts, limitations, and source provenance.
-The same guidance is available from
-`eqo registry info REGISTRY CAPABILITY`.
-
-Build the verified local OpenQEvo wheel runtime and publish the method catalog
-and circuit-synthesis example workflows:
-
-```bash
-eqo local-runtime build-wheel ../OpenQEvo \
-  --revision 250550a3992bd57c032d4066843c2b03055c4b9d
-eqo workflow publish examples/workflows/openqevo-method-catalog.yaml \
-  --registry examples/registry.yaml
-eqo workflow publish examples/workflows/openqevo-trotter-synthesis.yaml \
-  --registry examples/registry.yaml
-```
-
-In the Workbench, select **Compose**, choose guided scientific showcase **01 —
-Evolution to hardware readiness**, load or upload a Pauli-Hamiltonian JSON
-file, and run the path to produce an OpenQASM 2.0 circuit plus a structured
-synthesis report, a hardware-mapped circuit, structural metrics, and Clifford/T
-counts. See [docs/showcases.md](docs/showcases.md) for the complete suite and
-[docs/openqevo-integration.md](docs/openqevo-integration.md) for the supported
-OpenQEvo contract and current development boundary.
-
-With the five development OCI images and OpenQEvo wheel prepared, start the
-complete local stack in one foreground supervisor:
-
-```bash
 eqo dev up
 ```
 
-This prepares or starts the pinned virtual Slurm cluster, starts the API,
-publishes the five initial workflow templates, starts the separately deployed
-Django Workbench, prepares and supervises the pinned local ChatQEC canonical
-service, starts separate local and virtual-Slurm worker processes, waits for
-their health, and restarts a failed child process. The public Workbench uses a
-fixed-origin proxy to the internal control API. The generated ChatQEC workload
-token is supplied only to ChatQEC and the API child processes. The command
-prints the Workbench URL and stops its child processes cleanly on `Ctrl-C`.
-The cluster remains available by default so a subsequent start does not rebuild
-it.
-
-To back the Workbench **Data** panel's materials-db view with live object
-storage instead of only the static capability record, point `dev up` at a
-prepared [`databucket`](https://github.com/naughtont3/databucket) checkout
-(a sibling repo in this demo, at
-`../databucket-ecosystemdemo/databucket`):
+The optional Data panel integration uses a prepared
+[`databucket`](https://github.com/naughtont3/databucket) checkout:
 
 ```bash
 eqo dev up --databucket-checkout /path/to/databucket
 ```
 
-The databucket checkout must already have a generated `.env` (run
-`./scripts/setup.sh` once inside it — `dev up` does not do this for you) and
-its own Garage containers are otherwise managed automatically: started if not
-already running, a `materials-db` project (bucket + scoped key) provisioned
-idempotently, and the local `qsc-materials-db` schema/provenance files
-published into it. Pass `--no-databucket` to skip this entirely, or
-`--no-databucket-start` to require Garage to already be running. See
-[docs/databucket-integration.md](docs/databucket-integration.md) for the full
-flag reference, the API surface this adds, and how to test just the Data
-panel directly (`eqo serve` + `qhpc-workbench`) without the rest of `dev up`.
+See [the databucket integration guide](docs/databucket-integration.md) for
+Garage setup, credentials, API behavior, and direct-panel testing. See
+[docs/repository-updates.md](docs/repository-updates.md) for the controlled
+source-update lifecycle.
 
-Open the printed URL and select **Assistant** to use ChatQEC. Questions travel
-through the Workbench's CSRF-protected fixed-origin proxy and the QHPC API;
-browser code receives no ChatQEC workload credential and cannot choose its
-subject, policy, model, provider, or corpus. Answers are rendered as untrusted
-text with an exact-revision source ledger. The local service is a deterministic
-canonical-corpus implementation, not the pending production model service.
-
-Select **Updates** to check the upstream refs admitted by the active deployment
-profile, prepare an exact detached candidate, or release that selection. The
-same lifecycle is available with
-`eqo updates list|check|stage|discard`. Prepared sources remain
-outside the active registry and runtime cache until their component-specific
-rebuild, tests, evidence, and promotion are complete. See
-[docs/repository-updates.md](docs/repository-updates.md).
-
-Open the printed URL and select **Showcases** for the flagship FTQC–IQM story:
-one logical OpenQASM qubit becomes seven Steane data-qubit loci and an
-IQM-native circuit with inspectable provenance. The page links directly to the
-two runnable preparation workflows while separating local evidence from the
-pending credentialed hardware stage.
-
-Select **Compose**. The portable local profile's default **Guided** mode
-presents six runnable scientific paths and one evidence-backed H6 incubation
-blueprint. Two flagship FTQC examples prepare a two-device-qubit circuit or one
-Steane logical qubit; four focused examples cover circuit mapping and metrics,
-QEC memory estimation, Clifford/T resource counting, and Hamiltonian evolution
-synthesis. The broader development suite also defines two cross-tool studies
-that combine those boundaries. The H6 blueprint shows the proposed ExaChem →
-QIRIS → NWQSim chemistry cycle and an optional FTQC circuit-lowering branch
-without publishing a false Run action for that still-incomplete application
-path. Circuit
-paths accept pasted OpenQASM 2 text, a local `.qasm` file, or the included
-fixtures and submit the immutable published workflow directly. Generated
-circuits, estimates, metrics, counts, and provenance are available through
-**Runs** and **Artifacts**.
-
-Select **Open in Advanced** on a path, or switch to **Advanced**, to edit its
-connected operation graph. The graph composer supports typed ports, workflow
-input and output boundaries, operation parameters, template forking,
-revisioned draft autosave, server validation, immutable publication, and run
-submission. Canvas coordinates and zoom are stored with the draft but do not
-participate in the published workflow digest.
-
-The frontend production build is committed for normal Python installation.
-When changing the TypeScript source, rebuild and verify it with:
-
-```bash
-npm ci --prefix workbench/frontend
-npm run check --prefix workbench/frontend
-npm test --prefix workbench/frontend
-npm run build --prefix workbench/frontend
-```
-
-Release candidates must use the automated clean build so committed frontend
-assets, the Python suite, the wheel, and its checksum are verified together:
-
-```bash
-python tools/build_local_release.py
-```
-
-With `eqo dev up` running and Google Chrome installed, exercise the
-browser workflow at desktop and mobile dimensions with:
-
-```bash
-npm run test:e2e --prefix workbench/frontend
-```
-
-For process-level debugging, the services can still be run in separate
-terminals:
+For process-level debugging, run the API and worker separately:
 
 ```bash
 eqo serve --registry examples/registry.yaml \
@@ -309,59 +321,9 @@ eqo serve --registry examples/registry.yaml \
 eqo worker --registry examples/registry.yaml \
   --deployment-profile deployments/initial.yaml \
   --runtime-root .qhpc/runtimes
-
-eqo target-worker --registry examples/registry.yaml \
-  --deployment-profile deployments/initial.yaml \
-  --slurm-test-cluster \
-    infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
 ```
 
-The API prints the local Workbench URL. The Workbench queues runs and polls
-persistent state while workers execute admitted tasks. Before submission, the
-Workbench verifies that a healthy worker advertises the required target,
-execution class, and immutable runtime digest. API clients may set
-`queue_if_unavailable: true` only when deliberate offline batch queueing is
-required. The local OpenQEvo operation calls the project's real method
-registry; it does not execute the
-placeholder Trotter implementations. See [docs/worker.md](docs/worker.md) for
-the process and admission boundaries.
-
-The verified CT-HW example uses a reproducible native QASMTrans bundle followed
-by STABSim's structural-metrics path:
-
-```bash
-eqo local-runtime build-native /path/to/qasmtrans \
-  --revision 1843c98fa4bac9cf6b88412145b69457e9176124 \
-  --name qasmtrans --target QASMTrans --executable QASMTrans \
-  --asset data/devices/ibmq_toronto.json
-eqo local-runtime build-cpp /path/to/STABSim \
-  --revision a0d8d2e2a9fdec9785857104220b8e7f0346c761 \
-  --name stabsim --executable nwq_qasm \
-  --source-file qasm/nwq_qasm.cpp \
-  --include-directory include --include-directory qasm
-eqo local-runtime build-native /path/to/FTQC \
-  --revision 779216de8805ea0c1d473c640eaf17d6cbfa04e8 \
-  --name ftqc --target all --executable qasm3-import \
-  --library src/libftqc.1.0.0.dylib \
-  --cmake-argument=-DMLIR_DIR=/opt/homebrew/opt/llvm/lib/cmake/mlir \
-  --cmake-argument=-DLLVM_DIR=/opt/homebrew/opt/llvm/lib/cmake/llvm \
-  --cmake-argument=-DFTQC_BUILD_TESTS=OFF
-eqo workflow publish examples/workflows/ct-hw-qasm-analysis.yaml \
-  --registry examples/registry.yaml
-```
-
-Input files can be registered with
-`eqo artifact register FILE --type qhpc.quantum-circuit@1` or pasted
-into the Workbench workflow inspector. The slice performs real transpilation
-and circuit analysis. It does not claim STABSim execution of QASMTrans's IBM
-`SX` basis, which the audited simulator correctly rejects.
-
-Completed run outputs and indexed artifacts expose controlled preview and
-download actions. The content endpoint serves only local artifacts contained
-under the configured artifact root and verifies the stored size and SHA-256
-checksum before returning bytes.
-
-Workflow and run state can also be managed without the browser:
+Workflow and run state can also be managed from the command line:
 
 ```bash
 eqo workflow validate workflow.yaml --registry registry.yaml
@@ -374,76 +336,50 @@ eqo run-record retry RUN_ID NODE_ID
 eqo run-record export RUN_ID --output run-bundle.json
 ```
 
-On a system with Apptainer, build and enter the environment associated with a
-repository:
+### Catalog, registry, and contract operations
+
+Catalog inspection works without a container runtime or network access:
 
 ```bash
-eqo build OpenQEvo
-eqo shell OpenQEvo
-eqo run OpenQEvo -- python3 -m pytest
+eqo list
+eqo info OpenQEvo
+eqo validate
+eqo sync-manifest --check
+eqo updates list
+eqo updates check
 ```
 
-Images are shared by environment class and stored under
-`~/.cache/qhpc-ecosystem/images` by default. For example, OpenQEvo and
-FTCircuitBench both use `python-lib.sif`; this avoids maintaining one large image
-per repository. `--image-dir` changes that location. A cataloged local checkout
-is bound at `/workspace`; use `--workspace PATH` to override it.
-
-The shared images above are developer environments. Tool-specific operation
-containers use the separate `operation-runtime` commands:
+Use the contract and integration commands to inspect pre-runtime admission:
 
 ```bash
-eqo operation-runtime verify \
-  containers/operations/qasmtrans/runtime.yaml
-eqo operation-runtime build-oci \
-  containers/operations/qasmtrans/runtime.yaml /path/to/qasmtrans \
-  --context .qhpc/build/qasmtrans --tag qhpc/qasmtrans:1843c98-linux-amd64
-eqo operation-runtime smoke-oci \
-  containers/operations/qasmtrans/runtime.yaml \
-  --image qhpc/qasmtrans:1843c98-linux-amd64
+eqo contract list
+eqo contract validate capability examples/contracts/valid/capability.yaml
+eqo contract validate operation-interface integrations/nwqec/interface.yaml
+eqo contract validate operation-runtime containers/operations/qasmtrans/runtime.yaml
+eqo contract validate service-interface integrations/chatqec/service.yaml
+eqo integration validate deployments/initial.yaml
+eqo integration list deployments/initial.yaml
 ```
 
-This local OCI result is not an accepted HPC runtime. Publication by immutable
-registry digest, SIF conversion, supply-chain evidence, target storage policy,
-and Slurm/Apptainer acceptance remain separate gates.
-
-The production-shaped HPC path is documented in
-[docs/hpc-execution.md](docs/hpc-execution.md). It includes the versioned
-execution-target and storage-profile contracts, asynchronous Slurm runner,
-persisted scheduler handles, controlled input and output staging, restart
-reconciliation, and pilot state controller. The included target, storage, and
-pilot YAML files are planned configurations and cannot be activated until an
-administrator supplies and approves site-specific paths and scheduler policy.
-
-For scheduler development, the repository includes a contract and CLI harness
-for Thomas Naughton's revision-pinned Slurm Docker cluster. It exercises real
-Slurm submission, polling, accounting, and cancellation while remaining
-explicitly separate from Apptainer, storage-performance, and DOE acceptance:
+Project release checkouts containing `qhpc-capability.yaml` can be aggregated
+into a deterministic registry:
 
 ```bash
-eqo slurm-test-cluster prepare \
-  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml \
-  --build-ca /approved/path/development-build-ca.pem
-eqo slurm-test-cluster start \
-  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
-eqo slurm-test-cluster smoke \
-  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+eqo registry build --source /path/to/project-release --output registry.yaml
+eqo registry validate registry.yaml
+eqo registry list registry.yaml
 ```
 
-Omit `--build-ca` on development networks that do not intercept TLS.
+`ecosystem.yaml` is the reviewed inventory corresponding to
+`catalog/repositories.tsv`. Deployment admission is separate: `serve` exposes
+only registry records on the selected profile’s non-blocked allowlist.
+`sync-manifest` changes only source-owned fields and never mutates active
+capability or runtime pins. See [docs/registry.md](docs/registry.md) and
+[ADR 0011](docs/adr/0011-controlled-repository-updates.md).
 
-Inspect the acceptance boundary for all fifteen initial components:
+### Containers and HPC execution
 
-```bash
-eqo hpc-acceptance status \
-  infrastructure/hpc-acceptance/initial.yaml
-```
-
-The corresponding `gate` command remains nonzero until all required package
-runtimes have accepted SIF releases and the site target and storage profiles
-are active. The Docker Slurm fixture validates scheduler behavior only.
-
-## Environment classes
+#### Environment classes
 
 | Class | Intended use |
 | --- | --- |
@@ -453,102 +389,69 @@ are active. The Docker Slurm fixture validates scheduler behavior only.
 | `agentic` | RAG, agents, SDK dashboards, and Python/Node.js tools |
 | `packaging` | Spack repository development and HPC package maintenance |
 
-The recipes provide toolchains rather than embedding source code. This keeps
-builds reusable and lets the same image operate on a local checkout, a GitLab
-worktree, or a batch-job staging directory.
-
-### Container roles
-
-QHPC intentionally distinguishes two container models:
-
-- **Developer environments** provide Distrobox-like `shell` and `run` access,
-  share toolchains by environment class, and bind source at `/workspace`.
-- **Operation runtimes** are tool-specific immutable Linux images used by
-  workers for reproducible local or HPC workflow execution.
-
-The current OpenQEvo wheel and QASMTrans/STABSim Darwin native bundles remain
-local runtime evidence. The five locally verified OCI operation images are
-production-shaped build artifacts, but they are not production releases until
-they are published by immutable registry digest, converted and verified as
-SIFs, supplied with required release evidence, and accepted on the target.
-
-Warm pilots reuse verified immutable runtime caches for eligible short
-operations but remain normal Slurm allocations with approved accounts, quotas,
-resource limits, lifetime, idle timeout, and draining policy. They do not offer
-an unrestricted shell or bypass scheduler and authorization controls.
-
-HPC execution also requires an administrator-owned storage profile. The worker
-must stage or verify the image, expose only controlled input and result paths,
-use approved node-local scratch, and preserve the host parallel-filesystem and
-RDMA path. Rebuilding an image alone does not correct storage placement or bind
-policy. See [docs/deployment-readiness.md](docs/deployment-readiness.md).
-
-## Catalog governance
-
-`ecosystem.yaml` contains one entry for every row in
-`catalog/repositories.tsv`, plus blocked entries that still need a source
-decision. This reviewed public snapshot keeps catalog validation independent of
-a developer's project-management checkout. `sync-manifest` updates only the
-source-owned fields (`display_name`, `source_url`, and `notes`) and preserves
-curated runtime metadata.
-
-Deployment admission is separate from catalog inventory. `serve` requires a
-versioned deployment profile and exposes only registry records whose catalog
-repositories are on that profile's non-blocked allowlist.
-
-The catalog reuses QAppsWiki vocabulary for package roles, hardware targets,
-and interfaces. New repositories synchronized from the mirror manifest start
-as `planned` with conservative `unknown` metadata and must be curated before
-being treated as a supported environment.
-
-Repository source updates are separate from mirror-manifest synchronization.
-The update controller resolves configured refs, persists checks, and creates
-clean revision-addressed candidate checkouts. It does not run `git pull` inside
-images or mutate active capability and runtime pins. The decision and
-activation gates are recorded in
-[ADR 0011](docs/adr/0011-controlled-repository-updates.md).
-
-`HeteQSys` is currently blocked because its authoritative source URL is unknown.
-The FTQC compiler uses `QSCSoftwareEcosystem/FTQC` as its canonical private
-working repository, with `code.ornl.gov/qsc-ct/ftqc` retained as an admitted
-internal mirror source.
-
-## Portable local lifecycle
-
-The `dev-local` branch provides the first release-mode lifecycle commands for
-the portable single-user distribution:
+Developer environments provide Apptainer `shell` and `run` access with source
+bound at `/workspace`. Operation runtimes are separately reviewed,
+tool-specific immutable Linux images used by workers. The two are intentionally
+not interchangeable.
 
 ```bash
-python -m pip install -e '.[local]'
-eqo local up
-eqo local status
-eqo local open
-eqo local down
-eqo local export
-eqo local import /path/to/eqo-local-export.eqo
-eqo local diagnose
-eqo local runtime list
+eqo build OpenQEvo
+eqo shell OpenQEvo
+eqo run OpenQEvo -- python3 -m pytest
+
+eqo operation-runtime verify containers/operations/qasmtrans/runtime.yaml
+eqo operation-runtime build-oci \
+  containers/operations/qasmtrans/runtime.yaml /path/to/qasmtrans \
+  --context .qhpc/build/qasmtrans --tag qhpc/qasmtrans:1843c98-linux-amd64
 ```
 
-The services bind to loopback by default and use stable operating-system data,
-configuration, cache, state, and log locations. See
-[the EQO Local guide](docs/local-release.md) for release installation, path
-overrides, backup and restore, upgrades, optional runtime management,
-diagnostics, uninstall, the security boundary, and the remaining publication
-gates. Verified developer and author evidence is listed in
-[the tool attribution record](docs/tool-attribution.md).
+An OCI image is not an accepted HPC runtime by itself. Immutable publication,
+SIF conversion, supply-chain evidence, target storage policy, and target
+Slurm/Apptainer acceptance remain separate gates. The production-shaped path is
+documented in [docs/hpc-execution.md](docs/hpc-execution.md).
 
-## Development
+For scheduler development, use the revision-pinned Slurm Docker fixture:
 
-Run the contract, registry, engine, API, runtime, Slurm, security, and catalog
-checks with:
+```bash
+eqo slurm-test-cluster prepare \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml \
+  --build-ca /approved/path/development-build-ca.pem
+eqo slurm-test-cluster start \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+eqo slurm-test-cluster smoke \
+  infrastructure/test-clusters/slurm-docker-cluster/cluster.yaml
+eqo hpc-acceptance status infrastructure/hpc-acceptance/initial.yaml
+```
+
+### Building, testing, and releasing
+
+Run the local test suite with:
 
 ```bash
 pytest
 ```
 
-The local suite does not claim target-system acceptance. Accepted Apptainer
-SIFs, live Slurm and pilot execution, institutional identity, registry policy,
-storage and RDMA performance, and security reviews require the target DOE
-environment. See
-[docs/deployment-readiness.md](docs/deployment-readiness.md).
+The suite does not claim DOE target-system acceptance. Institutional identity,
+SIF releases, live Slurm and pilot execution, storage/RDMA performance, and
+security reviews remain target-environment work.
+
+When changing the TypeScript Workbench source, rebuild and verify its committed
+production assets:
+
+```bash
+npm ci --prefix workbench/frontend
+npm run check --prefix workbench/frontend
+npm test --prefix workbench/frontend
+npm run build --prefix workbench/frontend
+npm run test:e2e --prefix workbench/frontend
+```
+
+Create a clean local release candidate with:
+
+```bash
+python tools/build_local_release.py
+```
+
+The build verifies the Python suite, package contents, production Workbench
+assets, and wheel checksum. Release evidence and remaining publication gates
+are documented in [docs/local-release.md](docs/local-release.md).

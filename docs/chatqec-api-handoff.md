@@ -22,17 +22,34 @@ A configured healthy service returns `200`:
   "status": "ok",
   "available": true,
   "service": "chatqec",
-  "mode": "canonical-extractive-development",
+  "mode": "canonical-corpus-extractive-fallback",
   "source_revision": "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977",
   "corpus_revision": "sha256:...",
   "pages": 60,
-  "tool_execution": false
+  "tool_execution": false,
+  "readiness": {
+    "source": "ready",
+    "model": "disabled",
+    "qdrant": "disabled",
+    "corpus": "ready",
+    "embeddings": "disabled",
+    "reranker": "disabled",
+    "knowledge": "disabled"
+  },
+  "capabilities": {
+    "model_rag": false,
+    "streaming": true,
+    "source_ledger": false,
+    "tool_proposals": false
+  }
 }
 ```
 
 An API started without ChatQEC returns `200` with
-`{"status":"unconfigured","available":false}`. A configured but unreachable or
-invalid service returns `502`.
+`{"status":"unconfigured","available":false}`. A containerized upstream
+service can return `status: "degraded"` with `available: false` and bounded
+component readiness when its provider, Qdrant, corpus, embedding, or reranker
+is not admitted. A configured but unreachable or invalid service returns `502`.
 
 ## Ask
 
@@ -81,9 +98,10 @@ an empty citation list.
 
 The local implementation is deliberately extractive and model-free. Its
 `provider` is `chatqec-local`, its `model` is
-`canonical-extractive-v1`, and `tool_execution` is false. The interface must
-not imply that a production model-backed service or DOE deployment approval
-exists.
+`canonical-extractive-v1`, its mode is
+`canonical-corpus-extractive-fallback`, and `tool_execution` is false. The
+interface must not imply that a production model-backed service or DOE
+deployment approval exists.
 
 ## Workbench Client
 

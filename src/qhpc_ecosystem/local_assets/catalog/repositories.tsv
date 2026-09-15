@@ -3,7 +3,9 @@ OpenQEvo	OpenQEvo	https://github.com/QSCSoftwareThrust/OpenQEvo	Includes OpenQEv
 spack-packages	QSCSpack	https://github.com/QSCSoftwareThrust/spack-packages	QSC Spack package repository.
 QAppsWiki	QAppsWiki	https://github.com/QSCSoftwareThrust/QAppsWiki	QSC applications/wiki context repository.
 quantum-rag	Baseline RAG	https://github.com/nhstaple/quantum-rag	Baseline RAG repository.
-chatqec	ChatQEC	https://github.com/QSCSoftwareThrust/ChatQEC	GitHub selected as the QHPC working source on 2026-07-24; internal GitLab repositories are secondary mirrors.
+chatqec	ChatQEC	https://github.com/QSCSoftwareEcosystem/ChatQEC	Direct upstream remote observed at pinned revision a1ddc2e on 2026-09-11; internal GitLab repositories are secondary mirrors.
+chatqec-mcp-tools	ChatQEC MCP Tools	https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools	Canonical QSCSoftwareEcosystem source confirmed on 2026-09-14 at dd19a85b08637a61dc1afc124d2f4b32745b527b; executable runtime admission remains pending supply-chain and target acceptance.
+qfw-slurm-cluster	QFw-SLURM Cluster	https://github.com/openQSE/QFw-SLURM-Cluster	OpenQSE Docker Compose Slurm environment for QFw development, integration testing, and profiling. Cataloged as a non-executable development-cluster reference at eeb42e601383f3d33020f823d4a387ef30b9dd7d; QHPC runtime admission is blocked pending a reviewed compatibility image and release evidence.
 AS-popular_quantum_sdk_dashboard	QuantumSDK	https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard	Quantum SDK dashboard.
 code_generation_agent	Q-Orch	https://code.ornl.gov/qsc-as/code_generation_agent	Internal GitLab source; access may require ORNL credentials.
 quantum-ai-assistants-benchmark	Q-Code Assistance	https://code.ornl.gov/pza/quantum-ai-assistants-benchmark	Internal GitLab source; access may require ORNL credentials.

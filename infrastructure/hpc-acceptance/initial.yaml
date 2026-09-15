@@ -58,7 +58,7 @@ spec:
       classification: batch-operation
       acceptance: required
       integration: integrations/ftqc/integration.yaml
-      rationale: Reproducible LLVM/MLIR 22 runtime and target acceptance remain pending.
+      runtime: containers/operations/ftqc/runtime.yaml
     - component: openqevo
       classification: library-resource
       acceptance: not-applicable

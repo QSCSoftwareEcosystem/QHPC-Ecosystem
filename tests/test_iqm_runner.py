@@ -10,7 +10,11 @@ from jsonschema import Draft202012Validator
 
 from qhpc_ecosystem.contract import load_document
 from qhpc_ecosystem.engine import TaskRejectedError, TaskRequest
-from qhpc_ecosystem.iqm_runner import IQMAdapterError, IQMAsyncRunner
+from qhpc_ecosystem.iqm_runner import (
+    IQMAdapterError,
+    IQMAsyncRunner,
+    SimulatedIQMBackendClient,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -243,6 +247,31 @@ def test_mock_iqm_submit_poll_collect_is_typed_and_secret_free(tmp_path: Path) -
     )
 
 
+def test_safe_simulation_uses_the_typed_boundary_without_a_credential(
+    tmp_path: Path,
+) -> None:
+    runner = IQMAsyncRunner(
+        SimulatedIQMBackendClient(),
+        secret_resolver=lambda reference: "simulated-worker-secret",
+        allowed_credential_references=("secret://env/IQM_TOKEN",),
+    )
+    task = request(tmp_path, shots=4)
+
+    submission = runner.submit(task)
+    assert submission.state == "queued"
+    assert submission.metadata["provider"] == "simulated-iqm"
+    assert runner.poll(task, submission.handle).state == "succeeded"
+    result = runner.collect(task, submission.handle)
+
+    layout = artifact_document(result, "layout")
+    receipt = artifact_document(result, "receipt")
+    counts = artifact_document(result, "counts")
+    assert layout["device"]["provider"] == "simulated-iqm"
+    assert receipt["device"]["quantum_computer_id"] == "simulated-iqm-qpu"
+    assert counts["counts"] == {"0000000": 4}
+    assert "simulated-worker-secret" not in json.dumps(result.metadata)
+
+
 def test_mock_iqm_reports_failed_status_and_propagates_cancel(tmp_path: Path) -> None:
     service = MockIQMService()
     runner = IQMAsyncRunner(
@@ -285,6 +314,23 @@ def test_iqm_worker_rejects_plaintext_secret_and_unknown_token_field(
         runner.submit(request(tmp_path, credential_reference=TOKEN))
     with pytest.raises(TaskRejectedError, match="unsupported IQM parameters: token"):
         runner.submit(request(tmp_path, token=TOKEN))
+    assert service.tokens == []
+
+
+def test_iqm_worker_can_lock_execution_to_its_configured_secret_reference(
+    tmp_path: Path,
+) -> None:
+    service = MockIQMService()
+    runner = IQMAsyncRunner(
+        service,
+        secret_resolver=secret_resolver,
+        allowed_credential_references=("secret://env/IQM_TOKEN",),
+    )
+
+    with pytest.raises(TaskRejectedError, match="not admitted"):
+        runner.submit(
+            request(tmp_path, credential_reference="secret://env/OTHER_IQM_TOKEN")
+        )
     assert service.tokens == []
 
 

@@ -1,14 +1,17 @@
 # ChatQEC Service Boundary
 
 - Status: Accepted design baseline
-- Local implementation: Functional bundled canonical-corpus service
+- Local implementation: Functional bundled canonical-corpus extractive fallback
+- Upstream query implementation: Container-only scaffold; deployment inputs pending
 - Accepted: 2026-07-24
-- Working source: [QSCSoftwareThrust/ChatQEC](https://github.com/QSCSoftwareThrust/ChatQEC)
+- Working source: [QSCSoftwareEcosystem/ChatQEC](https://github.com/QSCSoftwareEcosystem/ChatQEC)
 - Pinned revision: `a1ddc2e4916b1f4152fba4c94c9c7512eea0d977`
 - Formal decision: [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
 - Service contract: [`integrations/chatqec/service.yaml`](../integrations/chatqec/service.yaml)
 - Client adapter: [`service_adapters.py`](../src/qhpc_ecosystem/service_adapters.py)
 - Development service: [`chatqec_service.py`](../src/qhpc_ecosystem/chatqec_service.py)
+- Upstream query adapter: [`chatqec_query_service.py`](../src/qhpc_ecosystem/chatqec_query_service.py)
+- Container recipe: [`containers/services/chatqec-query`](../containers/services/chatqec-query/)
 - QHPC gateway: [`assistant.py`](../src/qhpc_ecosystem/assistant.py)
 - Workbench API handoff: [ChatQEC Workbench API Handoff](chatqec-api-handoff.md)
 - Local smoke evidence:
@@ -47,7 +50,19 @@ requires no network access or source checkout. `eqo dev up` may still prepare a
 Git checkout for integration development. Both supervise the Assistant process
 independently from the QHPC API. This makes the local Workbench assistant
 functional without claiming that a generative model, Qdrant deployment, or
-production identity service has been approved.
+production identity service has been approved. Its explicit mode is
+`canonical-corpus-extractive-fallback`; it is an offline degraded operation,
+not feature-equivalent ChatQEC.
+
+The separate container-only query candidate uses the exact upstream ChatQEC
+Python pipeline, but only behind the project-owned HTTP/SSE adapter. Its
+pinned Linux/amd64 image was built and checked offline in a no-credential
+degraded state; see
+[`chatqec-query-image-candidate-2026-09-12.md`](evidence/chatqec-query-image-candidate-2026-09-12.md).
+It starts in a bounded `degraded` readiness state until a provider, immutable
+Qdrant snapshot/corpus manifest, and controlled egress path have been admitted.
+It does not embed Streamlit, start an MCP subprocess, select an automatic
+provider fallback, or use a native-process alternate path.
 
 ## Topology
 
@@ -129,12 +144,21 @@ model endpoint and one approved embedding path. Automatic cross-provider
 fallback is disabled because it could change where request content is sent.
 Network egress is deny-by-default and limited to the selected endpoint.
 
-## Tool Integration Later
+## Contained Tool Integration
 
-ChatQEC may eventually return a structured tool proposal. It still does not
-execute the tool. QHPC resolves the proposed operation against its registry,
-authorizes it as the user, obtains confirmation when required, and submits it
-through the ordinary workflow control plane.
+EQO Local admits explicit Stim/Tsim circuit execution through the pinned
+`chatqec-mcp-tools` source in the unprivileged `chatqec-agent` service
+container. The tool is never a host subprocess, has no Docker socket, and its
+health response reports `tool_execution: true` only in the named
+`mcp-direct-tools` or `upstream-mcp-agent` modes. The assistant response
+records each executed tool by name and completion status.
+
+The full model-directed ChatQEC MCP loop remains conditional on a governed
+provider, immutable Qdrant snapshot, corpus manifest, and restricted model
+egress. The versioned
+[proposal contract](../src/qhpc_ecosystem/contracts/chatqec-tool-proposal-v1.schema.json)
+continues to govern any tool that would create an EQO workflow or reach an
+external execution target.
 
 ## Remaining Deployment Inputs
 

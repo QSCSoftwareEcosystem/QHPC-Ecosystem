@@ -16,12 +16,12 @@ presence alone does not admit a component to this deployment.
 | FTPrimitiveBench | Operation provider | [Repository](https://github.com/QSCSoftwareThrust/FTPrimitiveBench) | [Interface tested](../integrations/ftprimitivebench/integration.yaml) | OCI smoke tested; registry published |
 | LightStim | Operation provider | [QSC repository](https://github.com/QSCSoftwareThrust/LightStim) | [Interface tested](../integrations/lightstim/integration.yaml) | Registry published; QSC revision `23924ee` rebuilt, reproducibility-checked, and locally OCI-smoke-tested |
 | QASMTrans | Operation provider | [Repository](https://github.com/pnnl/qasmtrans) | [Published](../integrations/qasmtrans/integration.yaml) | Registry published; OCI smoke tested |
-| FTQC | Operation provider | [Private QSC ecosystem repository](https://github.com/QSCSoftwareEcosystem/FTQC) | [Local IQM preparation and mock backend boundary tested](../integrations/ftqc/integration.yaml) | Two credential-free Workbench preparations are admitted on the local macOS arm64 runtime; route/submit/collect is typed and mock-accepted but real qiskit-iqm execution, portable LLVM/MLIR 22 runtime, and license clearance remain pending |
+| FTQC | Operation provider | [Private QSC ecosystem repository](https://github.com/QSCSoftwareEcosystem/FTQC) | [OCI preparation and mock backend boundary tested](../integrations/ftqc/integration.yaml) | Two credential-free Workbench preparations run in the pinned Linux/amd64 OCI runtime; an optional IQM Client/Qiskit quantum worker implements route/submit/collect, while release publication, target acceptance, and hardware evidence remain pending |
 | OpenQEvo | Operation provider | [Repository](https://github.com/QSCSoftwareThrust/OpenQEvo) | [Published](../integrations/openqevo/integration.yaml) | Registry published; OCI blocked on license |
 | OpenQSE | Integration standard | [Specification repository](https://github.com/openQSE/openqse-spec) | [Published](../integrations/openqse/integration.yaml) | Registry published |
 | QAppsWiki | Knowledge resource | [Repository](https://github.com/QSCSoftwareThrust/QAppsWiki) | [Published](../integrations/qappswiki/integration.yaml) | Registry published |
 | QSC Materials Repository | Data service | [SDL deployments repository](https://code.ornl.gov/intersect/data/deployments) | [Published](../integrations/qsc-materials-db/integration.yaml) | Static `materials-db` schema and provenance record published; live SDL service deferred |
-| ChatQEC | Assistant service | [GitHub repository](https://github.com/QSCSoftwareThrust/ChatQEC) | [Contract tested](../integrations/chatqec/integration.yaml) | Local cited canonical service functional; production service deferred |
+| ChatQEC | Assistant service | [GitHub repository](https://github.com/QSCSoftwareEcosystem/ChatQEC) | [Contract tested](../integrations/chatqec/integration.yaml) | Local cited canonical service functional; production service deferred |
 | ExaChem QFlow | Operation provider | [ExaChem](https://github.com/ExaChem/exachem) | [Scaffolded](../integrations/exachem-qflow/integration.yaml) | Resource-only prototype; local export hook is uncommitted; no Run action |
 | QIRIS Runtime (IRIS/QIR-EE) | Operation provider | [IRIS](https://github.com/ORNL/iris) | [Scaffolded](../integrations/iris-qiris/integration.yaml) | Resource-only prototype; high-level QFlow task-set adapter and live orchestration pending |
 | NWQSim QFlow VQE Plugin | Operation provider | [NWQSim main branch](https://github.com/pnnl/nwq-sim) | [Scaffolded](../integrations/nwqsim-qflow/integration.yaml) | Resource-only prototype; local plugin is uncommitted; saved H6 evidence imported |
@@ -30,7 +30,7 @@ presence alone does not admit a component to this deployment.
 current example registry. It does not mean that a production Linux image, DOE
 authorization, target acceptance, or production review is complete.
 
-STABSim, QASMTrans, NWQEC, FTPrimitiveBench, and LightStim have digest-pinned
+STABSim, QASMTrans, NWQEC, FTPrimitiveBench, LightStim, and FTQC have digest-pinned
 `linux/amd64` operation recipes and runtime contracts that pass
 deterministic-context checks, constrained local OCI smoke tests, and repeat
 no-cache image builds. Existing registry capabilities still use their admitted
@@ -76,13 +76,16 @@ and smoke evidence. TN-Sim's adapter fixes the documented CPU iTensor MPS path
 and parses its count format, but the external binary has not yet been
 reproducibly built or source-executed.
 
-FTQC's exact private QSC ecosystem revision has been compiled on macOS arm64.
-Its stable C API and controlled local adapter prepare a measured two-device-
+FTQC's exact private QSC ecosystem revision is compiled within the admitted
+Linux/amd64 OCI runtime. Its stable C API and controlled local adapter prepare a measured two-device-
 qubit Bell circuit or one Steane logical qubit as typed FTQC MLIR and IQM JSON;
-both Workbench workflows have completed through the EQO worker. This is a local
-development runtime only: it does not route against live calibration data or
-submit to IQM hardware. The distributable LLVM/MLIR 22 Linux runtime, license
-clearance, immutable publication, and target acceptance remain pending.
+both preparation workflows have completed through the EQO worker. The complete
+execution workflows are separately admitted through the optional IQM
+Client/Qiskit quantum worker and remain disabled in Workbench until its device,
+credential-reference, and policy prerequisites are configured. No route against
+live calibration data or submission to IQM hardware has been accepted as
+evidence. Immutable publication, SIF conversion, supply-chain evidence, and
+target acceptance remain pending.
 
 ChatQEC has a pinned source, accepted service boundary, versioned HTTPS
 JSON/SSE interface, bounded transport-injected client adapter, and contract
@@ -97,9 +100,8 @@ production container, target, and service acceptance remain the next gates.
 
 - Build TN-Sim's pinned CPU iTensor path reproducibly, execute source-backed
   correctness fixtures, and accept its immutable Linux runtime on the target.
-- Establish FTQC license terms, build its pinned LLVM/MLIR 22 dependency stack
-  reproducibly, package the full compiler, and accept its immutable runtime on
-  the target.
+- Publish the FTQC OCI runtime by immutable digest, convert it to SIF with
+  supply-chain evidence, and accept it on the target.
 - Obtain explicit distributable license terms for STABSim before publishing
   its locally verified operation image; the audited revision contains no
   license file.
@@ -114,7 +116,7 @@ production container, target, and service acceptance remain the next gates.
   implement live QIRIS orchestration over IRIS/QIR-EE, prove QFlow amplitude
   update and restart equivalence, and accept immutable HPC runtimes before
   publishing any QFlow/QIRIS operation.
-- Publish the five verified OCI images to the approved registry, convert and
+- Publish the six verified OCI images to the approved registry, convert and
   verify immutable SIFs, produce required supply-chain evidence, and accept
   each executable runtime on its deployment targets.
 

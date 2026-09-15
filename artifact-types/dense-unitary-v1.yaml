@@ -1,0 +1,16 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.dense-unitary
+  name: Dense Unitary Matrix
+  version: 1
+  project: cross-project
+  owners: [openqevo, qhpc-ecosystem]
+  status: draft
+spec:
+  description: A NumPy .npy dense complex unitary emitted by a bounded OpenQEvo reference evaluation.
+  media_type: application/x-npy
+  representation: file
+  extensions: [npy]
+  compatibility:
+    accepts_versions: [1]

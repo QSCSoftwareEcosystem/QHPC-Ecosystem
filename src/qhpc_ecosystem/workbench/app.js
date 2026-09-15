@@ -38,12 +38,117 @@ function stateMeta(status) {
   return STATE_META[status] || { cls: "", glyph: "·", color: "var(--idle)" };
 }
 
+const FTQC_EXECUTION_WORKFLOWS = new Set([
+  "ftqc-iqm-bell-execution",
+  "ftqc-iqm-steane-execution",
+]);
+
+function isIqmExecutionTask(task) {
+  return task?.operation?.capability === "ftqc-compiler"
+    && task?.operation?.operation === "route-submit-collect";
+}
+
+function iqmExecutionLifecycle(run) {
+  const task = run?.tasks?.find(isIqmExecutionTask);
+  if (!run || !task) {
+    return {
+      present: Boolean(run),
+      status: run ? "Preparing" : "Awaiting execution",
+      detail: run
+        ? "The local preparation boundary is running before any backend submission."
+        : "No hardware or safe-simulation execution has been started.",
+      tone: "waiting",
+    };
+  }
+  const attempt = task.attempts?.at(-1);
+  if (task.state === "cancel_requested" || attempt?.state === "cancel_requested") {
+    return { present: true, status: "Cancellation requested", detail: "EQO has asked the isolated backend worker to cancel the admitted job.", tone: "waiting" };
+  }
+  if (task.state === "succeeded" || run.state === "succeeded") {
+    return { present: true, status: "Completed", detail: "Typed layout, receipt, counts, and logical-result artifacts are available in the run record.", tone: "ready" };
+  }
+  if (task.state === "failed" || run.state === "failed") {
+    return { present: true, status: "Failed", detail: "The isolated backend execution did not complete. Review the non-secret admission gates and retry only when they are resolved.", tone: "failed" };
+  }
+  if (task.state === "canceled" || run.state === "canceled") {
+    return { present: true, status: "Canceled", detail: "The backend execution was canceled before results were collected.", tone: "failed" };
+  }
+  if (attempt?.state === "collecting" || attempt?.target_state === "succeeded") {
+    return { present: true, status: "Collecting results", detail: "The backend has reached a terminal result; EQO is preserving typed artifacts and provenance.", tone: "active" };
+  }
+  if (attempt?.state === "submitting") {
+    return { present: true, status: "Routing and submitting", detail: "The isolated worker is routing the prepared circuit and submitting its admitted job.", tone: "active" };
+  }
+  if (attempt?.target_state === "queued" || attempt?.state === "submitted") {
+    return { present: true, status: "Provider queued", detail: "The backend has accepted the job and EQO is waiting for its next non-secret status transition.", tone: "waiting" };
+  }
+  if (attempt?.target_state === "running" || task.state === "running") {
+    return { present: true, status: "Provider running", detail: "The isolated worker is polling the admitted backend job. Credentials remain inside that worker.", tone: "active" };
+  }
+  return { present: true, status: "Queued for backend admission", detail: "The preparation stage is complete; EQO is waiting for a compatible backend worker.", tone: "waiting" };
+}
+
+function latestIqmExecutionRun() {
+  return state.runs.find(run => FTQC_EXECUTION_WORKFLOWS.has(run.workflow_id));
+}
+
+function compareWorkflowVersions(left, right) {
+  const parse = value => /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(value);
+  const leftVersion = parse(left);
+  const rightVersion = parse(right);
+  if (!leftVersion || !rightVersion) return String(left).localeCompare(String(right));
+  for (let index = 1; index <= 3; index += 1) {
+    const difference = Number(leftVersion[index]) - Number(rightVersion[index]);
+    if (difference) return difference;
+  }
+  const leftPrerelease = leftVersion[4]?.split(".") || null;
+  const rightPrerelease = rightVersion[4]?.split(".") || null;
+  if (!leftPrerelease && !rightPrerelease) return 0;
+  if (!leftPrerelease) return 1;
+  if (!rightPrerelease) return -1;
+  const length = Math.max(leftPrerelease.length, rightPrerelease.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftPart = leftPrerelease[index];
+    const rightPart = rightPrerelease[index];
+    if (leftPart === undefined) return -1;
+    if (rightPart === undefined) return 1;
+    const leftNumeric = /^\d+$/.test(leftPart);
+    const rightNumeric = /^\d+$/.test(rightPart);
+    if (leftNumeric && rightNumeric) {
+      const difference = Number(leftPart) - Number(rightPart);
+      if (difference) return difference;
+      continue;
+    }
+    if (leftNumeric) return -1;
+    if (rightNumeric) return 1;
+    const difference = leftPart.localeCompare(rightPart);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
+function latestWorkflowVersions(workflows) {
+  const latest = new Map();
+  workflows.forEach(workflow => {
+    const current = latest.get(workflow.id);
+    if (!current || compareWorkflowVersions(workflow.version, current.version) > 0) latest.set(workflow.id, workflow);
+  });
+  return [...latest.values()].sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function sanitizedIqmFailure(task) {
+  if (!isIqmExecutionTask(task) || !task.error) return "";
+  return "The isolated backend execution failed. Provider details are deliberately not displayed; verify the non-secret worker admission gates before retrying.";
+}
+
 const VIEW_META = {
   overview: ["QSC / QHPC ECOSYSTEM", "EQO-QSC"],
   showcases: ["SCIENCE / SHOWCASES", "Scientific showcases"],
   tools: ["ECOSYSTEM / TOOLS", "Integrated software"],
   data: ["DATA / SERVICES", "Data services"],
   knowledge: ["KNOWLEDGE / QAPPSWIKI", "Knowledge Explorer"],
+  openqse: ["COMMUNITY / OPENQSE", "OpenQSE resources"],
+  engagement: ["COMMUNITY / ENGAGEMENT", "Learning and events"],
   assistant: ["ASSISTANCE / CHATQEC", "ChatQEC"],
   compose: ["WORKFLOWS / COMPOSE", "Workflow composer"],
   runs: ["EXECUTION / RUNS", "Run operations"],
@@ -57,6 +162,8 @@ const initialSearchParams = new URLSearchParams(window.location.search);
 const rawRequestedView = initialSearchParams.get("view");
 const requestedView = VIEW_ALIASES[rawRequestedView] || rawRequestedView;
 const initialView = Object.hasOwn(VIEW_META, requestedView) ? requestedView : "overview";
+const ASSISTANT_HISTORY_MESSAGE_LIMIT = 20;
+const ASSISTANT_HISTORY_CHARACTER_BUDGET = 24_000;
 const state = {
   capabilities: [],
   workflows: [],
@@ -80,8 +187,13 @@ const state = {
     statusLoading: false,
     submitting: false,
     requestSerial: 0,
+    streamAbortController: null,
+    contextNotice: "",
   },
   assistantDockOpen: false,
+  engagement: {
+    resources: [],
+  },
   repositoryUpdates: {
     data: null,
     loading: false,
@@ -488,7 +600,9 @@ function renderShowcases() {
   quantumAsciiCleanup();
   const ftqc = state.capabilities.find(item => item.id === "ftqc-compiler");
   const operation = ftqc?.operations?.find(item => item.id === "prepare-iqm");
+  const hardwareOperation = ftqc?.operations?.find(item => item.id === "route-submit-collect");
   const runtimeDigest = operation?.runtime?.digest;
+  const hardwareRuntimeDigest = hardwareOperation?.runtime?.digest;
   const readyWorker = Boolean(runtimeDigest && state.workers.some(worker => {
     const detail = workerDetail(worker);
     return worker.available
@@ -498,9 +612,64 @@ function renderShowcases() {
   }));
   const bellWorkflow = state.workflows.find(item => item.id === "ftqc-iqm-bell-preparation");
   const steaneWorkflow = state.workflows.find(item => item.id === "ftqc-iqm-steane-preparation");
+  const steaneHardwareWorkflow = state.workflows.find(item => item.id === "ftqc-iqm-steane-execution");
+  const hardwareWorker = hardwareRuntimeDigest && state.workers.find(worker => {
+    const detail = workerDetail(worker);
+    return worker.available
+      && detail.targets.includes("local-development")
+      && detail.classes.includes("quantum-backend")
+      && detail.runtimes.includes(hardwareRuntimeDigest)
+      && worker.metadata?.iqm?.mode !== "simulation";
+  });
+  const simulationWorker = hardwareRuntimeDigest && state.workers.find(worker => {
+    const detail = workerDetail(worker);
+    return worker.available
+      && detail.targets.includes("local-development")
+      && detail.classes.includes("quantum-backend")
+      && detail.runtimes.includes(hardwareRuntimeDigest)
+      && worker.metadata?.iqm?.mode === "simulation";
+  });
+  const iqmWorker = hardwareWorker?.metadata?.iqm || {};
+  const hardwareGates = [
+    {
+      label: "Execution workflow",
+      ready: Boolean(steaneHardwareWorkflow),
+      detail: steaneHardwareWorkflow
+        ? "Prepared circuit and report are both connected to the backend stage."
+        : "The complete workflow has not been published to this control plane.",
+    },
+    {
+      label: "Quantum-backend worker",
+      ready: Boolean(hardwareWorker),
+      detail: hardwareWorker
+        ? `Worker ${hardwareWorker.id} admits the pinned IQM runtime.`
+        : "Start the separately admitted IQM worker; local and Slurm workers cannot claim this task.",
+    },
+    {
+      label: "Internal endpoint and device",
+      ready: Boolean(iqmWorker.endpoint_configured && iqmWorker.device_alias),
+      detail: iqmWorker.endpoint_configured && iqmWorker.device_alias
+        ? `Device ${iqmWorker.device_alias} is configured for internal alpha use.`
+        : "Configure the internal IQM endpoint and one device alias in the IQM worker.",
+    },
+    {
+      label: "Worker-local credential",
+      ready: Boolean(iqmWorker.credential_available),
+      detail: iqmWorker.credential_available
+        ? "A credential reference resolves only inside the quantum worker."
+        : "The worker does not currently report an available credential reference.",
+    },
+  ];
+  const hardwareReady = hardwareGates.every(gate => gate.ready);
+  const simulationReady = Boolean(steaneHardwareWorkflow && simulationWorker);
+  const hardwareActionLabel = hardwareReady
+    ? "Open hardware execution workflow"
+    : "Hardware execution unavailable";
   const localStatus = readyWorker ? "Runnable now" : "Runtime not ready";
   const localStatusClass = readyWorker ? "is-ready" : "is-waiting";
   const sourceRevision = ftqc?.repository?.revision?.slice(0, 12) || "779216de8805";
+  const executionRun = latestIqmExecutionRun();
+  const lifecycle = iqmExecutionLifecycle(executionRun);
 
   workspace.innerHTML = `
     <section class="showcase-hero" aria-labelledby="ftqc-showcase-title">
@@ -538,6 +707,7 @@ function renderShowcases() {
         <li class="is-complete"><span>03</span><div><strong>Expand the code block</strong><small>1 logical → 7 data qubits</small></div></li>
         <li class="is-complete"><span>04</span><div><strong>Emit IQM instructions</strong><small>PRX · CZ · measurement</small></div></li>
         <li class="is-boundary"><span>05</span><div><strong>Route and submit</strong><small>Live calibration · secured worker</small></div></li>
+        <li class="is-boundary"><span>06</span><div><strong>Collect and decode</strong><small>Receipt · raw counts · logical result</small></div></li>
       </ol>
     </section>
 
@@ -563,10 +733,50 @@ function renderShowcases() {
         </dl>
         <div class="showcase-claim-boundary"><strong>Not yet claimed</strong><span>Hardware execution, decoded results, error suppression, or fault-tolerant advantage.</span></div>
       </aside>
+    </section>
+
+    <section class="showcase-gates" aria-labelledby="showcase-gates-title">
+      <header>
+        <div><span class="panel-label">HARDWARE ADMISSION</span><h2 id="showcase-gates-title">The next action is gated, not hidden</h2></div>
+        <p>For the internal alpha, EQO enables the execution workflow only when its isolated worker can account for the runtime, configured device, and credential boundary.</p>
+      </header>
+      <ol>
+        ${hardwareGates.map((gate, index) => `<li class="${gate.ready ? "is-ready" : "is-pending"}"><span>${String(index + 1).padStart(2, "0")}</span><div><strong>${escapeHtml(gate.label)}</strong><small>${escapeHtml(gate.detail)}</small></div><b>${gate.ready ? "Ready" : "Required"}</b></li>`).join("")}
+      </ol>
+      <footer>
+        <p>${hardwareReady ? "The worker is configured. Opening the workflow still does not constitute a verified hardware claim." : "Preparation remains available without credentials while these gates are incomplete."}</p>
+        <button class="button ${hardwareReady ? "command-primary" : "secondary"}" type="button" data-showcase-workflow="${escapeHtml(steaneHardwareWorkflow?.id || "")}" ${hardwareReady ? "" : "disabled"} title="${escapeHtml(hardwareReady ? "Open the separately admitted execution workflow" : "Complete the listed worker gates before opening hardware execution")}">${hardwareActionLabel}<span aria-hidden="true">→</span></button>
+      </footer>
+    </section>
+
+    <section class="showcase-execution-status" aria-labelledby="showcase-execution-status-title" aria-live="polite">
+      <div>
+        <span class="panel-label">EXECUTION LIFECYCLE</span>
+        <h2 id="showcase-execution-status-title">${escapeHtml(lifecycle.status)}</h2>
+        <p>${escapeHtml(lifecycle.detail)}</p>
+      </div>
+      <div class="showcase-execution-actions">
+        <span class="showcase-execution-state is-${escapeHtml(lifecycle.tone)}">${escapeHtml(lifecycle.status)}</span>
+        ${executionRun ? `<button class="button secondary" type="button" data-showcase-run="${escapeHtml(executionRun.id)}">Open run record</button>` : ""}
+      </div>
+    </section>
+
+    <section class="showcase-simulation" aria-labelledby="showcase-simulation-title">
+      <div>
+        <span class="panel-label">SAFE DEMONSTRATION MODE</span>
+        <h2 id="showcase-simulation-title">Practice the typed route-and-collect boundary without IQM access</h2>
+        <p>${simulationReady
+          ? "The local simulation worker is available. It uses no network connection or credential, and labels every output as simulated-iqm rather than hardware evidence."
+          : "Start EQO Local with --iqm-simulation to make the credential-free simulated worker available. It cannot contact IQM or create a hardware claim."}</p>
+      </div>
+      <button class="button ${simulationReady ? "command-primary" : "secondary"}" type="button" data-showcase-workflow="${escapeHtml(steaneHardwareWorkflow?.id || "")}" ${simulationReady ? "" : "disabled"} title="${escapeHtml(simulationReady ? "Open the simulated execution workflow" : "Start the safe IQM simulation worker first")}">${simulationReady ? "Open simulated execution workflow" : "Simulation worker unavailable"}<span aria-hidden="true">→</span></button>
     </section>`;
 
   workspace.querySelectorAll("[data-showcase-workflow]").forEach(button => {
     button.addEventListener("click", () => openShowcaseWorkflow(button.dataset.showcaseWorkflow));
+  });
+  workspace.querySelectorAll("[data-showcase-run]").forEach(button => {
+    button.addEventListener("click", () => openRun(button.dataset.showcaseRun));
   });
 }
 
@@ -944,6 +1154,151 @@ function renderKnowledge() {
   window.QHPCKnowledge.mount(root, { initialNodeId: state.knowledgeNode });
 }
 
+function capabilityResourceUrl(capabilityId, resourceId, fallbackUrl) {
+  const capability = state.capabilities.find(item => item.id === capabilityId);
+  const resource = capability?.resources?.find(item => item.id === resourceId);
+  return safeHttpUrl(resource?.uri) || fallbackUrl;
+}
+
+function externalResourceLink(url, label) {
+  const href = safeHttpUrl(url);
+  if (!href) return `<span class="openqse-link-disabled">${escapeHtml(label)}</span>`;
+  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} <span aria-hidden="true">↗</span></a>`;
+}
+
+function renderOpenQSE() {
+  quantumAsciiCleanup();
+  const specRevision = "c172c716e6566bd0a7502b34896dce7467f5a474";
+  const qfwRevision = "eeb42e601383f3d33020f823d4a387ef30b9dd7d";
+  const glossaryUrl = capabilityResourceUrl(
+    "openqse-specification",
+    "openqse-glossary",
+    `https://github.com/openQSE/openqse-spec/tree/${specRevision}/specification/term`,
+  );
+  const architectureUrl = capabilityResourceUrl(
+    "openqse-specification",
+    "openqse-architecture",
+    `https://github.com/openQSE/openqse-spec/tree/${specRevision}/architecture`,
+  );
+  const specificationUrl = `https://github.com/openQSE/openqse-spec/tree/${specRevision}`;
+
+  workspace.innerHTML = sectionHeader(
+    "OpenQSE resource panel",
+    "Organization documentation and repository discovery — no EQO tool, service, or execution target is created here.",
+  ) + `
+    <section class="openqse-hero" aria-labelledby="openqse-hero-title">
+      <div class="openqse-hero-copy">
+        <span class="panel-label">OPEN QUANTUM SYSTEMS ENGINEERING</span>
+        <h2 id="openqse-hero-title">A community and repository catalog, not an EQO runtime</h2>
+        <p>OpenQSE is an organization with multiple independent projects. This panel makes its public documentation and repository catalog easy to reach while keeping admission explicit: a repository is not automatically an integrated tool, service, container, or workflow target.</p>
+        <div class="openqse-hero-actions">
+          ${externalResourceLink("https://github.com/openQSE", "Browse OpenQSE on GitHub")}
+          ${externalResourceLink(specificationUrl, "Open the specification repository")}
+        </div>
+      </div>
+      <aside class="openqse-boundary" aria-label="OpenQSE integration boundary">
+        <span class="panel-label">EQO BOUNDARY</span>
+        <strong>Read-only discovery</strong>
+        <p>Documentation links and source intake are exposed here. Run, build, credential, and hardware controls remain outside this panel.</p>
+        ${badge("pending", "No service or execution admission")}
+      </aside>
+    </section>
+
+    <section class="openqse-resource-grid" aria-label="OpenQSE documentation and source records">
+      <article class="openqse-resource-card">
+        <header><span>PINNED DOCUMENTATION</span><h3>OpenQSE specification</h3></header>
+        <p>The reviewed glossary and architecture resources used by EQO for shared systems-engineering terminology and definitions.</p>
+        <dl>
+          <div><dt>PINNED REVISION</dt><dd><code>${specRevision.slice(0, 12)}</code></dd></div>
+          <div><dt>ADMISSION</dt><dd>Non-executable resource</dd></div>
+        </dl>
+        <footer>
+          ${externalResourceLink(glossaryUrl, "Glossary")}
+          ${externalResourceLink(architectureUrl, "Architecture")}
+        </footer>
+      </article>
+
+      <article class="openqse-resource-card">
+        <header><span>ORGANIZATION CATALOG</span><h3>OpenQSE repositories</h3></header>
+        <p>Explore the organization’s public projects directly. Each project retains its own source authority, licensing, interface, runtime, and security review; browsing the catalog does not admit any of them to EQO.</p>
+        <dl>
+          <div><dt>SURFACE</dt><dd>Public GitHub organization</dd></div>
+          <div><dt>EQO TREATMENT</dt><dd>Community resource</dd></div>
+        </dl>
+        <footer>${externalResourceLink("https://github.com/openQSE?tab=repositories", "Browse repositories")}</footer>
+      </article>
+
+      <article class="openqse-resource-card openqse-qfw-card">
+        <header><span>CATALOGED SOURCE INTAKE</span><h3>QFw–SLURM Cluster</h3></header>
+        <p>OpenQSE’s Docker Compose environment for QFw development, integration testing, and profiling. It is a distinct development-cluster reference, not the EQO scheduler-conformance cluster.</p>
+        <dl>
+          <div><dt>PINNED SOURCE</dt><dd><code>${qfwRevision.slice(0, 12)}</code></dd></div>
+          <div><dt>STATUS</dt><dd>Planned; activation blocked</dd></div>
+        </dl>
+        <footer>
+          ${externalResourceLink(`https://github.com/openQSE/QFw-SLURM-Cluster/tree/${qfwRevision}`, "Source and README")}
+          ${externalResourceLink(`https://github.com/openQSE/QFw-SLURM-Cluster/tree/${qfwRevision}/docs`, "Project documentation")}
+        </footer>
+      </article>
+    </section>
+
+    <section class="openqse-admission-note" aria-labelledby="openqse-admission-title">
+      <div>
+        <span class="panel-label">QFW–SLURM ADMISSION</span>
+        <h2 id="openqse-admission-title">Cataloged without being operational</h2>
+      </div>
+      <p>The source is pinned for review, but EQO will not build or start it until a compatibility image restores secure transport, pins material inputs, and supplies an SBOM, signature, attestation, and source-to-image provenance. A separately reviewed QFw operation or target adapter is also required before workflow use.</p>
+    </section>`;
+}
+
+function renderEngagement() {
+  quantumAsciiCleanup();
+  const resources = state.engagement.resources;
+  workspace.innerHTML = sectionHeader(
+    "Engagement resources",
+    "Learning materials and community events shared by the Engagement Thrust — links only; no EQO tool, service, runtime, or workflow target is created here.",
+  ) + `
+    <section class="engagement-intro" aria-labelledby="engagement-title">
+      <div class="engagement-intro-copy">
+        <span class="panel-label">ENGAGEMENT THRUST</span>
+        <h2 id="engagement-title">Learning paths that stay connected to the ecosystem</h2>
+        <p>Find course material, training tutorials, and a community event without blurring the boundary between learning resources and operational EQO capabilities. Each destination remains owned and maintained at its source.</p>
+      </div>
+      <aside class="engagement-boundary" aria-label="Engagement resource boundary">
+        <span class="panel-label">EQO BOUNDARY</span>
+        <strong>Read-only resource directory</strong>
+        <p>These links help people learn and connect. They do not provision infrastructure, expose credentials, or submit workloads.</p>
+        ${badge("pending", "No service or execution admission")}
+      </aside>
+    </section>
+
+    <section class="engagement-resource-ledger" aria-label="Engagement learning resources">
+      ${resources.length ? resources.map((resource, index) => {
+        const kind = String(resource.kind || "resource").replaceAll("-", " ").toUpperCase();
+        const provider = String(resource.provider || "external source").toUpperCase();
+        const classes = ["engagement-resource"];
+        if (index === 0) classes.push("engagement-resource-featured");
+        if (resource.kind === "community-event") classes.push("engagement-resource-event");
+        return `<article class="${classes.join(" ")}">
+          <div class="engagement-resource-kind">${escapeHtml(kind)} · ${escapeHtml(provider)}</div>
+          <div class="engagement-resource-body">
+            <h3>${escapeHtml(resource.title || "Engagement resource")}</h3>
+            <p>${escapeHtml(resource.description || "Public Engagement Thrust resource.")}</p>
+          </div>
+          <footer>${externalResourceLink(resource.url, `Open ${resource.title || "resource"}`)}</footer>
+        </article>`;
+      }).join("") : `<p class="engagement-empty">No Engagement resources are currently published by this EQO endpoint.</p>`}
+    </section>
+
+    <section class="engagement-note" aria-labelledby="engagement-note-title">
+      <div>
+        <span class="panel-label">RESOURCE TREATMENT</span>
+        <h2 id="engagement-note-title">Visible in EQO, operational elsewhere</h2>
+      </div>
+      <p>Use these sources to discover learning opportunities and community participation. Integration, containerization, hardware admission, and workflow registration each remain separate reviewed paths.</p>
+    </section>`;
+}
+
 function assistantAnswerHtml(value) {
   return String(value ?? "")
     .split(/\n\s*\n/)
@@ -961,7 +1316,7 @@ function assistantCitations() {
   const citations = [];
   const seen = new Set();
   state.assistant.messages.forEach(message => {
-    if (message.role !== "assistant") return;
+    if (message.role !== "assistant" || message.streaming || message.interrupted) return;
     (message.citations || []).forEach(citation => {
       const key = citation.id
         || `${citation.source_uri || citation.url || ""}\0${citation.locator || ""}`;
@@ -972,6 +1327,27 @@ function assistantCitations() {
     });
   });
   return citations;
+}
+
+function boundedAssistantHistory(messages) {
+  const eligible = messages
+    .filter(message => ["user", "assistant"].includes(message.role) && !message.streaming && !message.interrupted)
+    .map(message => ({ role: message.role, content: String(message.content || "").slice(0, 8000) }));
+  const kept = [];
+  let characters = 0;
+  for (const message of eligible.slice(-ASSISTANT_HISTORY_MESSAGE_LIMIT).reverse()) {
+    if (characters + message.content.length > ASSISTANT_HISTORY_CHARACTER_BUDGET) break;
+    kept.push(message);
+    characters += message.content.length;
+  }
+  const history = kept.reverse();
+  const omitted = eligible.length - history.length;
+  return {
+    history,
+    notice: omitted > 0
+      ? `For this answer, ChatQEC received the most recent ${history.length} conversation message${history.length === 1 ? "" : "s"}; ${omitted} older message${omitted === 1 ? " was" : "s were"} omitted to stay within the ${ASSISTANT_HISTORY_CHARACTER_BUDGET.toLocaleString()}-character context budget.`
+      : "",
+  };
 }
 
 function assistantMessageHtml(message) {
@@ -987,9 +1363,15 @@ function assistantMessageHtml(message) {
       <div><p>${escapeHtml(message.content)}</p></div>
     </article>`;
   }
+  const streaming = message.streaming === true;
+  const interrupted = message.interrupted === true;
   const confidence = Number(message.confidence);
   const totalLatency = Number(message.latency_ms?.total);
-  const footer = [
+  const footer = streaming
+    ? ["Receiving a verified response stream…"]
+    : interrupted
+      ? ["Cancelled before ChatQEC returned its verified final response."]
+      : [
     message.provider && message.model
       ? `${escapeHtml(message.provider)} / ${escapeHtml(message.model)}`
       : "",
@@ -1002,12 +1384,20 @@ function assistantMessageHtml(message) {
     message.citations?.length
       ? `${message.citations.length} cited source${message.citations.length === 1 ? "" : "s"}`
       : "No cited source",
-  ].filter(Boolean).map(item => `<span>${item}</span>`).join("");
+    message.tool_calls?.length
+      ? `Executed: ${message.tool_calls.map(call => call.name).join(", ")}`
+      : "",
+  ];
+  const content = message.content || (streaming
+    ? "Preparing a cited response…"
+    : interrupted
+      ? "This response was cancelled. Ask again when you are ready to receive a complete, cited answer."
+      : "ChatQEC returned an empty answer.");
   return `<article class="assistant-message assistant">
     <span class="assistant-role">CHATQEC</span>
     <div>
-      ${assistantAnswerHtml(message.content)}
-      <footer>${footer}</footer>
+      ${assistantAnswerHtml(content)}
+      <footer>${footer.filter(Boolean).map(item => `<span>${item}</span>`).join("")}</footer>
     </div>
   </article>`;
 }
@@ -1035,16 +1425,28 @@ function assistantServiceView() {
   const service = state.assistant.status;
   const available = service?.available === true;
   const checking = service === null;
+  const fallback = service?.mode === "canonical-corpus-extractive-fallback"
+    || service?.mode === "canonical-extractive-development";
+  const directTools = service?.mode === "mcp-direct-tools";
+  const missing = Object.entries(service?.readiness || {})
+    .filter(([, value]) => !["ready", "disabled"].includes(value))
+    .map(([name]) => name);
   return {
     service,
     available,
     checking,
     state: checking ? "pending" : available ? "online" : "offline",
-    label: checking ? "checking" : available ? "ready" : "unavailable",
+    label: checking ? "checking" : available && fallback ? "fallback" : available ? "ready" : "unavailable",
     detail: checking
       ? "Verifying the canonical corpus"
       : available
-        ? `${service.pages} canonical pages · source ${String(service.source_revision).slice(0, 12)}`
+        ? fallback
+          ? `${service.pages} canonical pages · deterministic extractive fallback`
+          : directTools
+            ? "MCP circuit tools are ready in the ChatQEC container · model-backed RAG needs provider and corpus configuration"
+          : `${service.pages} governed corpus pages · source ${String(service.source_revision).slice(0, 12)}`
+        : missing.length
+          ? `Full upstream RAG is awaiting: ${missing.join(", ")}`
         : service?.error || (service?.status === "unconfigured"
           ? "ChatQEC is not configured for this API"
           : "ChatQEC did not pass its service health check"),
@@ -1068,10 +1470,10 @@ function renderAssistant() {
           ].map(prompt => `<button type="button" class="assistant-prompt" data-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
         </div>
       </div>`;
-  const pending = assistant.submitting
+  const pending = assistant.submitting && !assistant.messages.some(message => message.streaming)
     ? `<article class="assistant-message assistant assistant-pending" aria-live="polite">
         <span class="assistant-role">CHATQEC</span>
-        <div><p>Searching the canonical corpus...</p></div>
+        <div><p>Searching the governed ChatQEC sources...</p></div>
       </article>`
     : "";
   const citationList = citations.length
@@ -1082,19 +1484,27 @@ function renderAssistant() {
     ? service.tool_execution === false ? "disabled" : "not reported"
     : "unavailable";
   const corpus = available ? service.corpus_revision : "unavailable";
+  const contextNotice = assistant.contextNotice
+    ? `<p class="assistant-context-notice" role="status">${escapeHtml(assistant.contextNotice)}</p>`
+    : "";
 
   workspace.innerHTML = sectionHeader(
     "QEC research assistant",
-    "Cited answers from the exact-revision ChatQEC canonical corpus",
+    available && service?.mode === "canonical-corpus-extractive-fallback"
+      ? "Offline deterministic answers from the ChatQEC canonical-corpus extractive fallback"
+      : "Cited answers through the governed ChatQEC service boundary",
     `<div class="assistant-service-state">${badge(serviceState, serviceLabel)}<span>${escapeHtml(serviceDetail)}</span></div>`,
   ) + `<div class="assistant-layout">
     <section class="assistant-dialog" aria-label="ChatQEC conversation">
       <div class="assistant-transcript" id="assistant-transcript">${transcript}${pending}</div>
       <form class="assistant-composer" id="assistant-form">
         <label for="assistant-question">QUESTION</label>
+        ${contextNotice}
         <div>
           <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="Question for ChatQEC" placeholder="Ask about codes, decoders, noise, or fault tolerance" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
-          <button class="button" type="submit" ${available && !assistant.submitting ? "" : "disabled"}>Send</button>
+          ${assistant.submitting
+            ? '<button class="button secondary" id="assistant-cancel" type="button">Cancel</button>'
+            : `<button class="button" type="submit" ${available ? "" : "disabled"}>Send</button>`}
         </div>
       </form>
     </section>
@@ -1127,6 +1537,7 @@ function renderAssistant() {
     });
   });
   document.querySelector("#assistant-clear").addEventListener("click", clearAssistantConversation);
+  document.querySelector("#assistant-cancel")?.addEventListener("click", cancelAssistantQuestion);
   const transcriptElement = document.querySelector("#assistant-transcript");
   if (transcriptElement.scrollHeight > transcriptElement.clientHeight) {
     transcriptElement.scrollTop = transcriptElement.scrollHeight;
@@ -1162,10 +1573,10 @@ function renderAssistantDock() {
           ].map(prompt => `<button type="button" data-dock-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
         </div>
       </div>`;
-  const pending = assistant.submitting
+  const pending = assistant.submitting && !assistant.messages.some(message => message.streaming)
     ? `<article class="assistant-message assistant assistant-pending" aria-live="polite">
         <span class="assistant-role">CHATQEC</span>
-        <div><p>Searching the canonical corpus...</p></div>
+        <div><p>Searching the governed ChatQEC sources...</p></div>
       </article>`
     : "";
   body.innerHTML = `
@@ -1176,10 +1587,13 @@ function renderAssistantDock() {
     <div class="dock-transcript" id="dock-assistant-transcript">${transcript}${pending}</div>
     <form class="dock-composer" id="dock-assistant-form">
       <label for="dock-assistant-question">ASK CHATQEC</label>
+      ${assistant.contextNotice ? `<p class="assistant-context-notice" role="status">${escapeHtml(assistant.contextNotice)}</p>` : ""}
       <textarea id="dock-assistant-question" maxlength="8000" rows="3" aria-label="Question for contextual ChatQEC" placeholder="Ask a QEC question" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
       <div>
-        <button class="dock-clear" type="button" id="dock-assistant-clear" ${assistant.submitting ? "disabled" : ""}>Clear</button>
-        <button class="button" type="submit" ${available && !assistant.submitting ? "" : "disabled"}>Send</button>
+        <button class="dock-clear" type="button" id="dock-assistant-clear">Clear</button>
+        ${assistant.submitting
+          ? '<button class="button secondary" id="dock-assistant-cancel" type="button">Cancel</button>'
+          : `<button class="button" type="submit" ${available ? "" : "disabled"}>Send</button>`}
       </div>
     </form>
     <button class="dock-open-full" id="dock-assistant-open-full" type="button">Open the full research workspace <span aria-hidden="true">↗</span></button>`;
@@ -1199,6 +1613,7 @@ function renderAssistantDock() {
     });
   });
   body.querySelector("#dock-assistant-clear").addEventListener("click", clearAssistantConversation);
+  body.querySelector("#dock-assistant-cancel")?.addEventListener("click", cancelAssistantQuestion);
   body.querySelector("#dock-assistant-open-full").addEventListener("click", () => {
     closeAssistantDock(false);
     switchView("assistant");
@@ -1284,61 +1699,182 @@ async function loadAssistantStatus() {
   }
 }
 
+function assistantRequestHeaders() {
+  const csrfToken = document.cookie
+    .split("; ")
+    .find(value => value.startsWith("csrftoken="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  return csrfToken ? { "Content-Type": "application/json", "X-CSRFToken": decodeURIComponent(csrfToken) } : { "Content-Type": "application/json" };
+}
+
+function assignAssistantResponse(message, response) {
+  message.content = response.answer;
+  message.citations = Array.isArray(response.citations) ? response.citations : [];
+  message.confidence = response.confidence;
+  message.provider = response.provider;
+  message.model = response.model;
+  message.corpus_revision = response.corpus_revision;
+  message.latency_ms = response.latency_ms;
+  message.usage = response.usage;
+  message.tool_calls = Array.isArray(response.tool_calls) ? response.tool_calls : [];
+  message.streaming = false;
+  message.interrupted = false;
+}
+
+async function streamAssistantAnswer(payload, signal, onEvent) {
+  const response = await fetch("/api/v1/assistant/chatqec/answers/stream", {
+    method: "POST",
+    headers: assistantRequestHeaders(),
+    body: JSON.stringify(payload),
+    signal,
+  });
+  const contentType = response.headers.get("content-type") || "";
+  if (!response.ok) {
+    let body = {};
+    try { body = await response.json(); } catch { /* Preserve the status below. */ }
+    throw new Error(body.error || `Request failed: ${response.status}`);
+  }
+  if (!contentType.toLowerCase().startsWith("text/event-stream") || !response.body) {
+    const error = new Error("ChatQEC streaming is unavailable");
+    error.code = "stream-unavailable";
+    throw error;
+  }
+  const decoder = new TextDecoder();
+  const reader = response.body.getReader();
+  let buffer = "";
+  let finalResponse = null;
+  let receivedEvent = false;
+  const processFrame = frame => {
+    const lines = frame.split(/\r?\n/).filter(Boolean);
+    const event = lines.find(line => line.startsWith("event:"))?.slice(6).trim();
+    const data = lines.filter(line => line.startsWith("data:")).map(line => line.slice(5).trim()).join("\n");
+    if (!event || !data) throw new Error("ChatQEC returned an invalid stream event");
+    const parsed = JSON.parse(data);
+    if (!parsed || parsed.event !== event || !parsed.data) {
+      throw new Error("ChatQEC returned an invalid stream payload");
+    }
+    receivedEvent = true;
+    onEvent(parsed);
+    if (event === "final") finalResponse = parsed.data.response;
+  };
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      let separator;
+      while ((separator = buffer.indexOf("\n\n")) !== -1) {
+        const frame = buffer.slice(0, separator);
+        buffer = buffer.slice(separator + 2);
+        if (frame.trim()) processFrame(frame);
+      }
+      if (done) break;
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) processFrame(buffer);
+  } finally {
+    reader.releaseLock();
+  }
+  if (!finalResponse) {
+    const error = new Error("ChatQEC ended before a verified final response");
+    error.code = receivedEvent ? "stream-interrupted" : "stream-unavailable";
+    throw error;
+  }
+  return finalResponse;
+}
+
 async function submitAssistantQuestion(event) {
   event.preventDefault();
   const input = event.currentTarget.querySelector("textarea");
   const question = input.value.trim();
   if (!question || state.assistant.submitting || !state.assistant.status?.available) return;
 
-  const history = state.assistant.messages
-    .filter(message => ["user", "assistant"].includes(message.role))
-    .map(message => ({
-      role: message.role,
-      content: String(message.content).slice(0, 8000),
-    }))
-    .slice(-20);
+  const historyResult = boundedAssistantHistory(state.assistant.messages);
+  const history = historyResult.history;
+  state.assistant.contextNotice = historyResult.notice;
   const requestSerial = ++state.assistant.requestSerial;
   state.assistant.messages.push({ role: "user", content: question });
+  const responseMessage = {
+    role: "assistant",
+    content: "",
+    citations: [],
+    streaming: true,
+  };
+  state.assistant.messages.push(responseMessage);
   state.assistant.submitting = true;
+  const abortController = new AbortController();
+  state.assistant.streamAbortController = abortController;
   renderAssistantSurfaces();
 
   try {
-    const response = await api("/assistant/chatqec/answers", {
-      method: "POST",
-      body: JSON.stringify({
-        question,
-        conversation_id: state.assistant.conversationId,
-        history,
-      }),
-    });
+    const payload = {
+      question,
+      conversation_id: state.assistant.conversationId,
+      history,
+    };
+    let response;
+    try {
+      response = await streamAssistantAnswer(payload, abortController.signal, event => {
+        if (requestSerial !== state.assistant.requestSerial) return;
+        if (event.event === "token") {
+          responseMessage.content += String(event.data.text || "");
+        } else if (event.event === "citation" && event.data.citation) {
+          responseMessage.citations.push(event.data.citation);
+        }
+        renderAssistantSurfaces();
+      });
+    } catch (error) {
+      if (error?.code !== "stream-unavailable") throw error;
+      response = await api("/assistant/chatqec/answers", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    }
     if (requestSerial !== state.assistant.requestSerial) return;
-    state.assistant.messages.push({
-      role: "assistant",
-      content: response.answer,
-      citations: Array.isArray(response.citations) ? response.citations : [],
-      confidence: response.confidence,
-      provider: response.provider,
-      model: response.model,
-      corpus_revision: response.corpus_revision,
-      latency_ms: response.latency_ms,
-      usage: response.usage,
-    });
+    assignAssistantResponse(responseMessage, response);
   } catch (error) {
     if (requestSerial !== state.assistant.requestSerial) return;
-    state.assistant.messages.push({ role: "error", content: error.message });
+    const message = error?.name === "AbortError"
+      ? "The ChatQEC response was cancelled before a verified final response."
+      : error.message;
+    responseMessage.streaming = false;
+    responseMessage.interrupted = true;
+    responseMessage.content = "";
+    responseMessage.citations = [];
+    state.assistant.messages.push({ role: "error", content: message });
   } finally {
     if (requestSerial === state.assistant.requestSerial) {
       state.assistant.submitting = false;
+      state.assistant.streamAbortController = null;
       renderAssistantSurfaces();
     }
   }
 }
 
+function cancelAssistantQuestion() {
+  if (!state.assistant.submitting) return;
+  state.assistant.requestSerial += 1;
+  state.assistant.streamAbortController?.abort();
+  state.assistant.streamAbortController = null;
+  const partial = [...state.assistant.messages].reverse().find(message => message.streaming);
+  if (partial) {
+    partial.streaming = false;
+    partial.interrupted = true;
+    partial.citations = [];
+  }
+  state.assistant.submitting = false;
+  renderAssistantSurfaces();
+}
+
 function clearAssistantConversation() {
+  state.assistant.streamAbortController?.abort();
+  state.assistant.streamAbortController = null;
   state.assistant.requestSerial += 1;
   state.assistant.conversationId = createConversationId();
   state.assistant.messages = [];
   state.assistant.submitting = false;
+  state.assistant.contextNotice = "";
   renderAssistantSurfaces();
   const input = state.assistantDockOpen
     ? document.querySelector("#dock-assistant-question")
@@ -1407,7 +1943,7 @@ function selectWorkflow(key) {
 
 function operationExecutionTarget(operation) {
   if (!operation.execution_targets?.length) throw new Error("Operation has no execution target");
-  return operation.execution_targets.includes("local-development") ? "local-development" : operation.execution_targets[0];
+  return preferredLocalTarget(operation.execution_targets) || operation.execution_targets[0];
 }
 
 function workflowExecutionTarget(workflow) {
@@ -1420,11 +1956,19 @@ function workflowExecutionTarget(workflow) {
   });
   const common = supported.slice(1).reduce((values, targets) => values.filter(value => targets.includes(value)), [...supported[0]]);
   if (!common.length) throw new Error("Workflow nodes do not share an execution target");
-  return common.includes("local-development") ? "local-development" : common[0];
+  return preferredLocalTarget(common) || common[0];
+}
+
+function preferredLocalTarget(targets) {
+  return ["local-container", "local-development"].find(target => targets.includes(target));
+}
+
+function isLocalExecutionTarget(target) {
+  return target === "local-development" || target === "local-container";
 }
 
 function defaultExecutionClass(target) {
-  return target === "local-development" ? "interactive-local" : "batch-hpc";
+  return isLocalExecutionTarget(target) ? "interactive-local" : "batch-hpc";
 }
 
 async function requireWorkerReadiness(requirements) {
@@ -1773,7 +2317,7 @@ function render() {
   renderSummary();
   if (state.view !== "compose") window.QHPCComposer?.unmount();
   if (state.view !== "knowledge") window.QHPCKnowledge?.unmount();
-  ({ overview: renderOverview, showcases: renderShowcases, tools: renderTools, data: renderData, knowledge: renderKnowledge, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
+  ({ overview: renderOverview, showcases: renderShowcases, tools: renderTools, data: renderData, knowledge: renderKnowledge, openqse: renderOpenQSE, engagement: renderEngagement, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
 }
 
 function switchView(view) {
@@ -2043,8 +2587,9 @@ function openRun(id) {
            <div class="stage-track"><i class="stage-fill" style="width:${Math.max(2, Math.round((ms / longest) * 100))}%"></i></div>
            <span class="stage-duration">${formatDuration(ms)}</span>
          </div>`;
+    const safeFailure = sanitizedIqmFailure(task);
     const error = task.error
-      ? `<div class="task-error"><strong>${escapeHtml(task.error.code || "error")}</strong>${escapeHtml(task.error.message || "")}</div>`
+      ? `<div class="task-error"><strong>${escapeHtml(task.error.code || "error")}</strong>${escapeHtml(safeFailure || task.error.message || "")}</div>`
       : "";
     return `<div class="timeline-row" style="--state-color:${meta.color}">
       ${badge(task.state)}
@@ -2067,6 +2612,10 @@ function openRun(id) {
   </dl>`;
 
   const retry = run.tasks.find(task => task.state === "failed");
+  const lifecycle = iqmExecutionLifecycle(run);
+  const lifecyclePanel = lifecycle.present && run.tasks.some(isIqmExecutionTask)
+    ? `<section class="run-execution-status"><span class="panel-label">IQM EXECUTION LIFECYCLE</span><strong>${escapeHtml(lifecycle.status)}</strong><p>${escapeHtml(lifecycle.detail)}</p></section>`
+    : "";
   const outputs = Object.entries(run.outputs || {}).map(([name, artifactId]) => {
     const contentPath = `/api/v1/artifacts/${encodeURIComponent(artifactId)}/content`;
     return `<div class="run-output"><span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(artifactId)}</small></span><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></div>`;
@@ -2080,6 +2629,7 @@ function openRun(id) {
       ${retry ? `<button class="button" id="retry-run" data-node="${escapeHtml(retry.node_id)}">Retry task</button>` : ""}
     </div>
     ${summary}
+    ${lifecyclePanel}
     ${outputs ? `<p class="panel-label" style="margin-top:18px">WORKFLOW OUTPUTS</p><div class="run-outputs">${outputs}</div>` : ""}
     <p class="panel-label" style="margin-top:18px">TASK TIMELINE</p>
     <div class="timeline">${timeline}</div>
@@ -2122,6 +2672,7 @@ async function refreshOperationalState() {
     if (state.view === "overview") renderOverview();
     if (state.view === "runs") renderRuns();
     if (state.view === "artifacts") renderArtifacts();
+    if (state.view === "showcases") renderShowcases();
   } catch (error) {
     document.querySelector("#service-state").textContent = "Unavailable";
   } finally {
@@ -2134,10 +2685,11 @@ async function loadData() {
   window.QHPCKnowledge?.unmount();
   workspace.innerHTML = `<div class="loading">LOADING TOOL CATALOG AND RUN STATE</div>`;
   try {
-    const [capabilities, workflows, runs, artifacts, workers] = await Promise.all([api("/capabilities"), api("/workflows"), api("/runs"), api("/artifacts"), api("/workers")]);
-    state.capabilities = capabilities; state.workflows = workflows; state.runs = runs; state.artifacts = artifacts; state.workers = workers;
+    const [capabilities, workflows, runs, artifacts, workers, engagement] = await Promise.all([api("/capabilities"), api("/workflows"), api("/runs"), api("/artifacts"), api("/workers"), api("/engagement-resources")]);
+    state.capabilities = capabilities; state.workflows = latestWorkflowVersions(workflows); state.runs = runs; state.artifacts = artifacts; state.workers = workers;
+    state.engagement.resources = Array.isArray(engagement.resources) ? engagement.resources : [];
     if (!state.selectedWorkflow && !state.selectedOperation) {
-      const preferred = workflows.find(item => item.id === "ct-hw-qasm-analysis") || workflows[0];
+      const preferred = state.workflows.find(item => item.id === "ct-hw-qasm-analysis") || state.workflows[0];
       if (preferred) selectWorkflow(`${preferred.id}/${preferred.version}`);
     }
     document.querySelector("#service-dot").classList.add("online");
@@ -2163,7 +2715,7 @@ function enhancePrimaryNavigation() {
   const navigation = document.querySelector("#primary-nav");
   if (!navigation || navigation.querySelector(".nav-group")) return;
   const groups = [
-    ["workspace", "Workspace", ["overview", "showcases", "tools", "data", "knowledge", "assistant", "compose"]],
+    ["workspace", "Workspace", ["overview", "showcases", "tools", "data", "knowledge", "openqse", "engagement", "assistant", "compose"]],
     ["execution", "Execution", ["runs", "artifacts"]],
     ["system", "System", ["environments", "updates"]],
   ];

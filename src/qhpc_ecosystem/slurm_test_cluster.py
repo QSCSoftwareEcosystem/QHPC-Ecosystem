@@ -247,8 +247,23 @@ class SlurmDockerCluster:
             runtimes.append(runtime)
         return tuple(runtimes)
 
-    def verify_runtime_images(self) -> None:
-        for image in self.runtime_images:
+    def verify_runtime_images(self, *, required_on_start_only: bool = False) -> None:
+        """Verify admitted local OCI images.
+
+        The complete fixture check validates every runtime image.  EQO Local
+        startup validates only its core image set, so independently admitted
+        optional tool examples remain visible and fail explicitly at execution
+        time when their image has not yet been installed.
+        """
+
+        images = self.runtime_images
+        if required_on_start_only:
+            images = tuple(
+                image
+                for image in images
+                if image.get("required_on_start", True)
+            )
+        for image in images:
             result = self.runner(
                 [
                     "docker",

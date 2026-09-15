@@ -22,7 +22,7 @@
     },
     "absolutePath": {
       "type": "string",
-      "pattern": "^/[^\\s]*$"
+      "pattern": "^/[^\\x00\\r\\n]*$"
     },
     "metadata": {
       "type": "object",

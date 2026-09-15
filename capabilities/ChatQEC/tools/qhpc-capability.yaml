@@ -1,0 +1,333 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: chatqec-qec-tools
+  name: ChatQEC Governed QEC Tools
+  version: 0.1.0
+  project: agentic-software
+  owners: [chatqec]
+  repository:
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+      - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+  visibility: internal
+  maturity: pre-alpha
+spec:
+  component:
+    name: ChatQEC MCP Tools
+    description: Pinned QEC calculations from the ChatQEC tool repository, executed only as bounded EQO operations rather than MCP subprocesses.
+  guidance:
+    use_when:
+      - Compute bounded QEC code parameters, Stim samples or diagrams, PyMatching decoder results, LightStim-built code circuits, threshold-sweep evidence, and shareable GLCB visualization links with exact source and runtime provenance.
+    quick_start:
+      - In Compose, choose a ChatQEC governed QEC operation.
+      - Review the bounded parameters and input artifact, then submit to a compatible worker.
+    example_workflows:
+      - chatqec-code-parameters
+      - chatqec-qec-toolchain
+      - chatqec-threshold-sweep
+      - chatqec-tsim-simulation
+      - chatqec-glcb-link
+    limitations:
+      - Code-parameter calculation, bounded Stim simulation, SVG diagrams, PyMatching decoding, LightStim circuit construction, threshold sweeps, and GLCB link generation have local OCI smoke evidence; candidate images remain unpublished.
+      - ChatQEC may propose a calculation, but an EQO user must review and confirm it before any run is submitted.
+      - The candidate OCI image is unpublished and is not accepted for an HPC target.
+  operations:
+    - id: code-params
+      title: Report QEC code parameters
+      description: Return [[n,k]], stabilizer count, detector and observable counts, and Stim graphlike-distance evidence for a bounded supported code family.
+      inputs: {}
+      outputs:
+        parameters:
+          artifact_type: qhpc.qec-code-parameters@1
+      parameters:
+        code_family:
+          type: string
+          title: Code family
+          default: surface_code_rotated
+          enum: [surface_code_rotated, repetition_code, color_code]
+        distance:
+          type: integer
+          title: Code distance
+          default: 3
+          minimum: 3
+          maximum: 15
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, code-params]
+      resources:
+        cpu: 1
+        memory_mb: 512
+        walltime_seconds: 60
+      execution_targets: [development-slurm-docker]
+    - id: stim-simulate
+      title: Simulate a Stim circuit
+      description: Sample a bounded Stim circuit and return a typed preview containing at most twenty binary sample rows.
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      outputs:
+        samples:
+          artifact_type: qhpc.stim-simulation-samples@1
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 1024
+          minimum: 1
+          maximum: 1000000
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, stim-simulate]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [local-container, development-slurm-docker]
+    - id: stim-diagram
+      title: Render a Stim circuit diagram
+      description: Render a bounded Stim circuit as a validated, non-active SVG timeline artifact.
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      outputs:
+        diagram:
+          artifact_type: qhpc.stim-diagram@1
+      parameters: {}
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, stim-diagram]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [local-container, development-slurm-docker]
+    - id: pymatching-decode
+      title: Decode a detector-annotated Stim circuit
+      description: Decode bounded Stim detector samples with PyMatching and report the sampled logical-error rate and exact error count.
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      outputs:
+        result:
+          artifact_type: qhpc.qec-decoder-result@1
+      parameters:
+        shots:
+          type: integer
+          title: Decoder shots
+          default: 1024
+          minimum: 1
+          maximum: 1000000
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, pymatching-decode]
+      resources:
+        cpu: 1
+        memory_mb: 2048
+        walltime_seconds: 60
+      execution_targets: [development-slurm-docker]
+    - id: threshold-sweep
+      title: Sweep physical error rates across code distances
+      description: Generate and PyMatching-decode bounded Stim memory experiments, returning empirical logical-error rows and a sanitized logarithmic SVG plot. This is sweep evidence, not an inferred threshold claim.
+      inputs: {}
+      outputs:
+        results:
+          artifact_type: qhpc.qec-threshold-sweep@1
+        plot:
+          artifact_type: qhpc.qec-threshold-plot@1
+      parameters:
+        code_family:
+          type: string
+          title: Code family
+          default: surface_code_rotated
+          enum: [surface_code_rotated, repetition_code, color_code]
+        distances:
+          type: string
+          title: Comma-separated code distances
+          default: "3,5"
+        p_values:
+          type: string
+          title: Comma-separated physical error rates
+          default: "0.001,0.01"
+        rounds:
+          type: integer
+          title: Syndrome-extraction rounds (zero uses the code distance)
+          default: 0
+          minimum: 0
+          maximum: 200
+        shots:
+          type: integer
+          title: Decoder shots per distance/error-rate point
+          default: 200
+          minimum: 1
+          maximum: 1000000
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, threshold-sweep]
+      resources:
+        cpu: 2
+        memory_mb: 4096
+        walltime_seconds: 600
+      execution_targets: [development-slurm-docker]
+    - id: qec-circuit-build
+      title: Build a QEC circuit with LightStim
+      description: Construct a bounded detector-annotated Stim circuit for a LightStim-supported QEC family, preserving its build report and exact pinned LightStim source revision.
+      inputs: {}
+      outputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+        report:
+          artifact_type: qhpc.qec-circuit-build-report@1
+      parameters:
+        code_family:
+          type: string
+          title: QEC code family
+          default: toric_code
+          enum: [toric_code, color_code_666, bb_code, pqrm]
+        distance:
+          type: integer
+          title: Code distance
+          default: 3
+          minimum: 3
+          maximum: 15
+        rounds:
+          type: integer
+          title: Memory syndrome-extraction rounds
+          default: 3
+          minimum: 1
+          maximum: 200
+        protocol:
+          type: string
+          title: Protocol
+          default: memory
+          enum: [memory]
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-lightstim@sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+        digest: sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-lightstim-build]
+      resources:
+        cpu: 2
+        memory_mb: 4096
+        walltime_seconds: 120
+      execution_targets: [development-slurm-docker]
+    - id: tsim-simulate
+      title: Simulate a non-Clifford Tsim circuit
+      description: Sample bounded detector and observable outcomes from a Tsim circuit, including the supported non-Clifford instructions, with the T-count and sample-preview safeguards enforced by ChatQEC.
+      inputs:
+        circuit:
+          artifact_type: qhpc.tsim-circuit@1
+      outputs:
+        samples:
+          artifact_type: qhpc.tsim-simulation-samples@1
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 100
+          minimum: 1
+          maximum: 100000
+        use_reference_sample:
+          type: boolean
+          title: XOR outcomes against a noiseless reference sample
+          default: false
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-tsim@sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+        digest: sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-tsim]
+      resources:
+        cpu: 2
+        memory_mb: 4096
+        walltime_seconds: 120
+      execution_targets: [development-slurm-docker]
+    - id: glcb-visualize-url
+      title: Create a Gemini Logical Circuit Builder link
+      description: Create a deterministic URL for a bounded GLCB circuit specification without contacting the external service. Opening the returned link is an external circuit disclosure.
+      inputs:
+        circuit:
+          artifact_type: qhpc.glcb-circuit-spec@1
+      outputs:
+        link:
+          artifact_type: qhpc.glcb-visualization-link@1
+      parameters: {}
+      runtime:
+        type: oci
+        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, glcb-visualize-url]
+      resources:
+        cpu: 1
+        memory_mb: 512
+        walltime_seconds: 60
+      execution_targets: [development-slurm-docker]
+  resources:
+    - id: tool-interface
+      kind: adapter
+      version: 0.1.0
+      uri: integrations/chatqec-mcp-tools/interface.yaml
+    - id: code-params-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-mcp-tools/code-params.runtime.yaml
+    - id: stim-simulate-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-mcp-tools/stim-simulate.runtime.yaml
+    - id: stim-diagram-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-mcp-tools/stim-diagram.runtime.yaml
+    - id: pymatching-decode-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-mcp-tools/pymatching-decode.runtime.yaml
+    - id: threshold-sweep-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-mcp-tools/threshold-sweep.runtime.yaml
+    - id: qec-circuit-build-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-lightstim/runtime.yaml
+    - id: tsim-simulate-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-tsim/runtime.yaml
+    - id: glcb-visualize-url-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/chatqec-mcp-tools/glcb-visualize-url.runtime.yaml
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#chatqec
+  documentation:
+    qappswiki: packages/chatqec.md
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b

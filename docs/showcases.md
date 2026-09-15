@@ -90,8 +90,8 @@ OpenQASM through the explicit IQM hardware boundary. The page makes the
 scientific result, software handoffs, runtime state, and claim boundary visible
 before asking a visitor to operate the workflow composer.
 
-Two preparation workflows are runnable when the optional local FTQC runtime
-and compatible worker are available:
+Two preparation workflows are runnable when the admitted FTQC OCI runtime and
+a compatible worker are available:
 
 1. **Prepare one Steane logical qubit for IQM** lowers either the tracked
    `logical0.qasm` or `logical0-H.qasm` input through the pinned FTQC C API,
@@ -106,18 +106,27 @@ the four-H logical variant, and 9 for the Bell circuit. Every run preserves the
 input and output digests, exact FTQC source revision, preparation mode, circuit
 width, instruction count, gate counts, and an explicit record that routing and
 submission were not performed. See the
-[local preparation evidence](evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md).
+[OCI preparation evidence](evidence/ftqc-oci-smoke-2026-09-10.md).
 
 Calibration-aware topology routing and hardware submission remain a separate
-credentialed stage. Its `quantum-backend` contract and mock adapter now preserve
-the selected device/calibration identity, routed layout, job receipt, raw
-counts, and Steane Z-basis logical result while keeping the token inside the
-worker. This is interface evidence, not a hardware run; see the
+credentialed stage. Its optional IQM Client/Qiskit `quantum-backend` worker
+routes the typed input against the current backend calibration and preserves the
+selected device/calibration identity, routed layout, job receipt, raw counts,
+and Steane Z-basis logical result while keeping the token inside the worker.
+For the internal alpha, Workbench keeps execution disabled until it finds that
+isolated worker, its configured endpoint and device alias, and a resolvable
+credential reference. This is interface evidence, not a hardware run; see the
 [mock backend acceptance record](evidence/ftqc-iqm-mock-backend-2026-09-04.md).
 
-Promotion of that stage still requires a real qiskit-iqm client, confirmed
-site policy, developer-approved hardware packet, and an approved comparison
-rule. The earlier
+When IQM site access is not configured, **Safe demonstration mode** can start
+the same typed asynchronous boundary with `eqo local up --iqm-simulation` (or
+`eqo dev up --start-iqm-simulation-worker`). It performs no network request and
+resolves no token. The resulting route, receipt, and counts artifacts state
+`simulated-iqm`, so they are orchestration evidence only and never satisfy the
+hardware-admission gates.
+
+Promotion of that stage still requires confirmed site policy, a
+developer-approved hardware packet, and an approved comparison rule. The earlier
 [hardware candidate record](evidence/ftqc-iqm-logical-qubit-candidate-2026-07-29.md)
 documents those gaps. Until that packet exists, the showcase does not claim
 verified hardware execution, error suppression, or fault-tolerant advantage.

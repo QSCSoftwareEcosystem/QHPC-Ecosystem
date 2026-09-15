@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass, field
 from threading import Event, Thread
 from time import perf_counter
-from typing import Any, Iterable, Protocol
+from typing import Any, Iterable, Mapping, Protocol
 
 from .contract import validate_contract_data
 from .engine import (
@@ -237,6 +237,7 @@ class AsyncWorker:
         worker_id: str | None = None,
         execution_targets: Iterable[str] | None = None,
         execution_classes: Iterable[str] | None = None,
+        metadata: Mapping[str, Any] | None = None,
     ) -> None:
         if poll_interval_seconds <= 0:
             raise ValueError("worker poll interval must be greater than zero")
@@ -259,17 +260,20 @@ class AsyncWorker:
             frozenset(selected_classes) if selected_classes is not None else None
         )
         self.worker_id = worker_id or "target-" + uuid.uuid4().hex
+        worker_metadata: dict[str, Any] = {
+            "execution": "asynchronous",
+            "execution_targets": sorted(self.execution_targets or ()),
+            "execution_classes": sorted(self.execution_classes or ()),
+            "runtime_digests": sorted(
+                getattr(self.runner, "runtime_digests", ())
+            ),
+        }
+        if metadata:
+            worker_metadata.update(dict(metadata))
         self.engine.register_worker(
             self.worker_id,
             kind="target",
-            metadata={
-                "execution": "asynchronous",
-                "execution_targets": sorted(self.execution_targets or ()),
-                "execution_classes": sorted(self.execution_classes or ()),
-                "runtime_digests": sorted(
-                    getattr(self.runner, "runtime_digests", ())
-                ),
-            },
+            metadata=worker_metadata,
         )
 
     @staticmethod

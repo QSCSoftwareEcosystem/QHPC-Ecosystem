@@ -13,6 +13,7 @@ import socket
 import sqlite3
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 import webbrowser
@@ -21,16 +22,36 @@ from pathlib import Path
 from threading import Event
 from typing import Any, Mapping, Sequence
 from urllib.error import URLError
+from urllib.parse import urlparse
 from urllib.request import ProxyHandler, build_opener
 
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
+from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
 from .local_runtime import list_local_runtimes
+from .operation_runtime import (
+    OperationRuntimeError,
+    build_oci_image,
+    find_oci_builder,
+    prepare_build_context,
+    verify_runtime_definition,
+)
 
 
 LOCAL_SCHEMA_VERSION = 1
 LOOPBACK_HOSTS = {"127.0.0.1", "::1", "localhost"}
 MINIMUM_FREE_BYTES = 512 * 1024 * 1024
 _DIRECT_OPENER = build_opener(ProxyHandler({}))
+CHATQEC_AGENT_OCI_IMAGE = "qhpc/chatqec-agent:a1ddc2e-dd19a85-linux-amd64-v1"
+CHATQEC_AGENT_TSIM_IMAGE = "qhpc/chatqec-tsim:dd19a85-linux-amd64"
+CHATQEC_AGENT_TSIM_DIGEST = "sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0"
+CHATQEC_AGENT_INPUT_LABEL = "org.qscsoftware.build-inputs-sha256"
+_CHATQEC_AGENT_INPUTS = (
+    "containers/services/chatqec-agent/Containerfile",
+    "src/qhpc_ecosystem/__init__.py",
+    "src/qhpc_ecosystem/service_adapters.py",
+    "src/qhpc_ecosystem/chatqec_readiness.py",
+    "src/qhpc_ecosystem/chatqec_agent_service.py",
+)
 
 
 class LocalReleaseError(RuntimeError):
@@ -197,6 +218,17 @@ class LocalStackConfig:
     api_port: int
     assistant_port: int
     assistant_enabled: bool = True
+    iqm_simulation_enabled: bool = False
+    iqm_worker_enabled: bool = False
+    iqm_endpoint: str | None = None
+    iqm_device_alias: str | None = None
+    iqm_token: str = ""
+    ftqc_source_checkout: str | None = None
+    ftqc_runtime_manifest: str | None = None
+    ftqc_dependency_cache: str | None = None
+    ecosystem_execution_enabled: bool = True
+    slurm_test_cluster: str | None = None
+    slurm_test_checkout: str | None = None
     poll_interval_seconds: float = 0.5
     lease_seconds: int = 300
     worker_stale_after_seconds: float = 15.0
@@ -223,6 +255,27 @@ class LocalStackConfig:
             raise LocalReleaseError("worker stale threshold must be greater than zero")
         if self.restart_delay_seconds <= 0:
             raise LocalReleaseError("service restart delay must be greater than zero")
+        if self.iqm_simulation_enabled and self.iqm_worker_enabled:
+            raise LocalReleaseError(
+                "select either the safe IQM simulation worker or the IQM worker"
+            )
+        if self.iqm_worker_enabled:
+            if not (self.iqm_endpoint and self.iqm_device_alias):
+                raise LocalReleaseError(
+                    "the IQM worker requires an endpoint and device alias"
+                )
+            endpoint = urlparse(self.iqm_endpoint)
+            if (
+                endpoint.scheme != "https"
+                or not endpoint.netloc
+                or endpoint.username
+                or endpoint.password
+                or endpoint.query
+                or endpoint.fragment
+            ):
+                raise LocalReleaseError(
+                    "the IQM endpoint must be a credential-free HTTPS URL"
+                )
 
     @property
     def browser_host(self) -> str:
@@ -252,6 +305,16 @@ class LocalStackConfig:
             "assistant_interface": self.assistant_interface,
             "assistant_source_checkout": self.assistant_source_checkout,
             "assistant_enabled": self.assistant_enabled,
+            "iqm_simulation_enabled": self.iqm_simulation_enabled,
+            "iqm_worker_enabled": self.iqm_worker_enabled,
+            "iqm_endpoint": self.iqm_endpoint,
+            "iqm_device_alias": self.iqm_device_alias,
+            "ftqc_source_checkout": self.ftqc_source_checkout,
+            "ftqc_runtime_manifest": self.ftqc_runtime_manifest,
+            "ftqc_dependency_cache": self.ftqc_dependency_cache,
+            "ecosystem_execution_enabled": self.ecosystem_execution_enabled,
+            "slurm_test_cluster": self.slurm_test_cluster,
+            "slurm_test_checkout": self.slurm_test_checkout,
             "host": self.host,
             "workbench_port": self.workbench_port,
             "api_port": self.api_port,
@@ -277,6 +340,271 @@ def _write_json(path: Path, document: Mapping[str, Any]) -> None:
 def write_local_config(paths: LocalPaths, config: LocalStackConfig) -> None:
     paths.ensure()
     _write_json(paths.config_file, config.as_dict())
+
+
+def default_ftqc_build_inputs(
+    catalog: str | Path,
+) -> tuple[str | None, str | None]:
+    """Find the FTQC checkout and runtime contract in an EQO source workspace.
+
+    A packaged release deliberately carries neither the private FTQC source nor
+    an unpinned compiler bundle.  A source checkout, however, has both the
+    checked-in runtime contract and the conventional sibling FTQC checkout.
+    The subsequent contract verification still rejects any revision or archive
+    that differs from the admitted source.
+    """
+
+    catalog_path = Path(catalog).expanduser().resolve()
+    for root in (catalog_path.parent, *catalog_path.parents):
+        manifest = root / "containers" / "operations" / "ftqc" / "runtime.yaml"
+        source = root.parent / "FTQC"
+        if manifest.is_file() and source.is_dir():
+            return str(source), str(manifest)
+    return None, None
+
+
+def default_slurm_test_cluster_inputs(
+    catalog: str | Path,
+    paths: LocalPaths,
+) -> tuple[str, str]:
+    """Locate the reviewed fixture used for complete Local execution.
+
+    The fixture receives only isolated development data and runs the admitted
+    OCI operation images.  Its checkout belongs to EQO Local, not to the
+    caller's source tree.
+    """
+
+    catalog_path = Path(catalog).expanduser().resolve()
+    for root in (catalog_path.parent, *catalog_path.parents):
+        manifest = (
+            root
+            / "infrastructure"
+            / "test-clusters"
+            / "slurm-docker-cluster"
+            / "cluster.yaml"
+        )
+        if manifest.is_file():
+            checkout = paths.data_root / "test-clusters" / "thomas-slurm-docker"
+            return str(manifest), str(checkout)
+    raise LocalReleaseError(
+        "the complete EQO Local execution fixture is missing from this installation; "
+        "use the reviewed EQO source release containing infrastructure/test-clusters"
+    )
+
+
+def _ftqc_image_id(builder: str) -> str | None:
+    """Return the local FTQC image identity, without treating a miss as fatal."""
+
+    try:
+        completed = subprocess.run(
+            [builder, "image", "inspect", "--format", "{{.Id}}", FTQC_OCI_IMAGE],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise LocalReleaseError("FTQC OCI runtime inspection failed") from error
+    image_id = completed.stdout.strip()
+    if completed.returncode != 0:
+        return None
+    if not image_id.startswith("sha256:") or len(image_id) != 71:
+        raise LocalReleaseError("FTQC OCI builder returned an invalid image identity")
+    return image_id
+
+
+def ensure_ftqc_oci_runtime(config: LocalStackConfig, paths: LocalPaths) -> str:
+    """Require the exact FTQC OCI image, building it from its pinned contract if needed."""
+
+    try:
+        builder = find_oci_builder()
+    except OperationRuntimeError as error:
+        raise LocalReleaseError(
+            "FTQC preparation requires Docker or Podman; install one before starting EQO Local"
+        ) from error
+
+    current_id = _ftqc_image_id(builder)
+    if current_id == FTQC_OCI_DIGEST:
+        return "available"
+
+    if not (config.ftqc_source_checkout and config.ftqc_runtime_manifest):
+        detail = (
+            "missing" if current_id is None else f"has unexpected identity {current_id}"
+        )
+        raise LocalReleaseError(
+            "the admitted FTQC OCI runtime is "
+            f"{detail}; provide --ftqc-source-checkout and --ftqc-runtime-manifest "
+            "so EQO Local can build the checksum-pinned image"
+        )
+
+    manifest = Path(config.ftqc_runtime_manifest).expanduser().resolve()
+    source = Path(config.ftqc_source_checkout).expanduser().resolve()
+    try:
+        document = verify_runtime_definition(manifest)
+        with tempfile.TemporaryDirectory(
+            prefix="ftqc-oci-", dir=str(paths.cache_root)
+        ) as temporary:
+            context = Path(temporary) / "context"
+            prepared = prepare_build_context(
+                manifest,
+                source,
+                context,
+                dependency_cache=config.ftqc_dependency_cache,
+            )
+            image = build_oci_image(document, prepared.path, FTQC_OCI_IMAGE, builder=builder)
+    except OperationRuntimeError as error:
+        hint = ""
+        if "dependency cache" in str(error):
+            hint = " Provide --ftqc-dependency-cache with the approved LLVM archive."
+        raise LocalReleaseError(
+            f"cannot build the admitted FTQC OCI runtime: {error}{hint}"
+        ) from error
+
+    if image.local_id != FTQC_OCI_DIGEST:
+        raise LocalReleaseError(
+            "the newly built FTQC OCI runtime does not match the admitted image identity"
+        )
+    return "built"
+
+
+def _local_image_id(builder: str, image: str) -> str | None:
+    try:
+        completed = subprocess.run(
+            [builder, "image", "inspect", "--format", "{{.Id}}", image],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise LocalReleaseError("OCI image inspection failed") from error
+    identifier = completed.stdout.strip()
+    if completed.returncode:
+        return None
+    if not identifier.startswith("sha256:") or len(identifier) != 71:
+        raise LocalReleaseError(f"OCI builder returned an invalid image identity for {image}")
+    return identifier
+
+
+def _chatqec_agent_input_digest(workspace: Path) -> str:
+    """Fingerprint every source file copied into the local agent image."""
+
+    inputs = [workspace / relative for relative in _CHATQEC_AGENT_INPUTS]
+    asset_root = workspace / "src/qhpc_ecosystem/local_assets/chatqec"
+    inputs.extend(sorted(path for path in asset_root.rglob("*") if path.is_file()))
+    if not inputs or any(not path.is_file() for path in inputs):
+        raise LocalReleaseError("ChatQEC agent image inputs are incomplete")
+    digest = hashlib.sha256()
+    for path in inputs:
+        digest.update(path.relative_to(workspace).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(path.read_bytes()).digest())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _local_image_label(builder: str, image: str, label: str) -> str | None:
+    try:
+        completed = subprocess.run(
+            [
+                builder,
+                "image",
+                "inspect",
+                "--format",
+                f'{{{{index .Config.Labels "{label}"}}}}',
+                image,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise LocalReleaseError("OCI image label inspection failed") from error
+    if completed.returncode:
+        return None
+    value = completed.stdout.strip()
+    return value or None
+
+
+def ensure_chatqec_agent_oci_runtime() -> str:
+    """Build the local ChatQEC service image from admitted parent images only."""
+
+    try:
+        builder = find_oci_builder()
+    except OperationRuntimeError as error:
+        raise LocalReleaseError(
+            "ChatQEC agent preparation requires Docker or Podman"
+        ) from error
+    for image, expected in ((CHATQEC_AGENT_TSIM_IMAGE, CHATQEC_AGENT_TSIM_DIGEST),):
+        actual = _local_image_id(builder, image)
+        if actual != expected:
+            detail = "missing" if actual is None else f"has unexpected identity {actual}"
+            raise LocalReleaseError(
+                f"ChatQEC agent parent image {image} is {detail}; build its admitted runtime first"
+            )
+    workspace = Path(__file__).resolve().parents[2]
+    recipe = workspace / "containers" / "services" / "chatqec-agent" / "Containerfile"
+    if not recipe.is_file():
+        raise LocalReleaseError("ChatQEC agent container recipe is missing from this EQO installation")
+    input_digest = _chatqec_agent_input_digest(workspace)
+    if (
+        _local_image_id(builder, CHATQEC_AGENT_OCI_IMAGE) is not None
+        and _local_image_label(builder, CHATQEC_AGENT_OCI_IMAGE, CHATQEC_AGENT_INPUT_LABEL)
+        == input_digest
+    ):
+        return "available"
+    try:
+        subprocess.run(
+            [
+                builder,
+                "build",
+                "--network=none",
+                "--platform",
+                "linux/amd64",
+                "--file",
+                str(recipe),
+                "--tag",
+                CHATQEC_AGENT_OCI_IMAGE,
+                "--label",
+                f"{CHATQEC_AGENT_INPUT_LABEL}={input_digest}",
+                str(workspace),
+            ],
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise LocalReleaseError("cannot build the ChatQEC agent OCI image offline") from error
+    if _local_image_id(builder, CHATQEC_AGENT_OCI_IMAGE) is None:
+        raise LocalReleaseError("ChatQEC agent OCI image build did not produce the expected tag")
+    if (
+        _local_image_label(builder, CHATQEC_AGENT_OCI_IMAGE, CHATQEC_AGENT_INPUT_LABEL)
+        != input_digest
+    ):
+        raise LocalReleaseError("ChatQEC agent OCI image is missing its input fingerprint")
+    return "built"
+
+
+def remove_stale_chatqec_agent_container(config: LocalStackConfig) -> bool:
+    """Remove only the named local ChatQEC container left by a prior supervisor.
+
+    Docker can retain the detached container when its ``docker run`` client is
+    interrupted. The name is derived exclusively from EQO Local's configured
+    loopback assistant port, so this cannot remove an arbitrary container.
+    A missing engine or absent container is left for the normal prerequisite
+    checks to explain.
+    """
+
+    if not config.assistant_enabled:
+        return False
+    try:
+        builder = find_oci_builder()
+        completed = subprocess.run(
+            [builder, "rm", "--force", f"eqo-chatqec-{config.assistant_port}"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError, OperationRuntimeError):
+        return False
+    return completed.returncode == 0
 
 
 def read_local_state(paths: LocalPaths) -> dict[str, Any] | None:
@@ -401,6 +729,12 @@ def local_status(paths: LocalPaths) -> dict[str, Any]:
             status = "unhealthy"
         elif "eqo-local-worker" not in workers:
             status = "unhealthy"
+        elif (
+            isinstance(state.get("services"), dict)
+            and "virtual-slurm-worker" in state["services"]
+            and "eqo-local-virtual-slurm-worker" not in workers
+        ):
+            status = "unhealthy"
 
     report = dict(state)
     report.update(
@@ -496,6 +830,7 @@ def diagnostic_report(paths: LocalPaths, *, release_version: str) -> dict[str, A
         )
         assistant = {
             "available": True,
+            "mode": "canonical-corpus-extractive-fallback",
             "source_revision": source.revision,
             "corpus_revision": responder.corpus_revision,
             "canonical_pages": len(responder.pages),
@@ -860,6 +1195,24 @@ def supervisor_command(
         )
     if not config.assistant_enabled:
         command.append("--no-assistant")
+    if config.iqm_simulation_enabled:
+        command.append("--iqm-simulation")
+    if config.iqm_worker_enabled:
+        command.extend(
+            (
+                "--start-iqm-worker",
+                "--iqm-endpoint",
+                config.iqm_endpoint or "",
+                "--iqm-device-alias",
+                config.iqm_device_alias or "",
+            )
+        )
+    if config.ftqc_source_checkout:
+        command.extend(("--ftqc-source-checkout", config.ftqc_source_checkout))
+    if config.ftqc_runtime_manifest:
+        command.extend(("--ftqc-runtime-manifest", config.ftqc_runtime_manifest))
+    if config.ftqc_dependency_cache:
+        command.extend(("--ftqc-dependency-cache", config.ftqc_dependency_cache))
     for workflow in config.workflows:
         command.extend(("--workflow", workflow))
     return tuple(command)
@@ -886,10 +1239,22 @@ def launch_local(
                 f"EQO Local {current_version} is already running (pid {current_pid})"
             )
 
+    # Clear only an orphaned EQO-owned ChatQEC container before the generic
+    # port check. This makes a previous interrupted `eqo local down` recover
+    # without touching unrelated services or containers.
+    remove_stale_chatqec_agent_container(config)
     require_available_ports(config)
     require_storage_capacity(paths)
     paths.ensure()
+    ensure_ftqc_oci_runtime(config, paths)
+    if config.assistant_enabled:
+        ensure_chatqec_agent_oci_runtime()
     write_local_config(paths, config)
+    child_environment = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    child_environment.pop("IQM_TOKEN", None)
+    child_environment.pop("EQO_LOCAL_IQM_TOKEN", None)
+    if config.iqm_token:
+        child_environment["EQO_LOCAL_IQM_TOKEN"] = config.iqm_token
     with paths.log_file.open("ab") as log_stream:
         try:
             process = subprocess.Popen(
@@ -901,7 +1266,7 @@ def launch_local(
                 stdin=subprocess.DEVNULL,
                 stdout=log_stream,
                 stderr=subprocess.STDOUT,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                env=child_environment,
                 start_new_session=True,
             )
         except OSError as error:
@@ -1027,11 +1392,36 @@ def supervise_local(
 
         assistant_identity_token = secrets.token_urlsafe(32)
 
+    cluster = None
+    cluster_started_by_local = False
+    cluster_manifest = ""
+    cluster_checkout = ""
+    if config.ecosystem_execution_enabled:
+        from .slurm_test_cluster import SlurmDockerCluster
+
+        default_manifest, default_checkout = default_slurm_test_cluster_inputs(
+            config.catalog, paths
+        )
+        cluster_manifest = config.slurm_test_cluster or default_manifest
+        cluster_checkout = config.slurm_test_checkout or default_checkout
+        cluster = SlurmDockerCluster.from_manifest(cluster_manifest, cluster_checkout)
+        cluster.prepare()
+        cluster_status = cluster.status()
+        if not cluster_status.ready:
+            cluster_status = cluster.start()
+            cluster_started_by_local = True
+        if not cluster_status.ready:
+            raise LocalReleaseError(
+                "the EQO Local virtual Slurm execution fixture did not become ready"
+            )
+        cluster.verify_runtime_images(required_on_start_only=True)
+
     stack_config = DevStackConfig(
         catalog=config.catalog,
         registry=config.registry,
         deployment_profile=config.deployment_profile,
-        cluster_manifest="",
+        cluster_manifest=cluster_manifest,
+        cluster_checkout=cluster_checkout,
         database=str(paths.database),
         artifact_root=str(paths.artifact_root),
         runtime_root=str(paths.runtime_root),
@@ -1045,15 +1435,26 @@ def supervise_local(
         chatqec_source_root=assistant_source_root,
         chatqec_port=config.assistant_port,
         chatqec_identity_token=assistant_identity_token,
+        chatqec_container_image=(
+            CHATQEC_AGENT_OCI_IMAGE if config.assistant_enabled else ""
+        ),
         poll_interval_seconds=config.poll_interval_seconds,
         lease_seconds=config.lease_seconds,
         worker_stale_after_seconds=config.worker_stale_after_seconds,
         start_local_worker=True,
-        start_target_worker=False,
+        start_target_worker=config.ecosystem_execution_enabled,
         start_workbench=True,
         start_chatqec=config.assistant_enabled,
         start_repository_updates=False,
+        start_iqm_worker=config.iqm_worker_enabled,
+        start_iqm_simulation_worker=config.iqm_simulation_enabled,
+        iqm_endpoint=config.iqm_endpoint or "",
+        iqm_device_alias=config.iqm_device_alias or "",
+        iqm_token=config.iqm_token,
         local_worker_id="eqo-local-worker",
+        target_worker_id="eqo-local-virtual-slurm-worker",
+        iqm_worker_id="eqo-local-iqm-worker",
+        iqm_simulation_worker_id="eqo-local-iqm-simulation-worker",
     )
     supervisor = DevStackSupervisor(
         build_service_specs(stack_config),
@@ -1116,9 +1517,16 @@ def supervise_local(
             f"{config.workbench_url}/health",
             timeout_seconds=remaining_startup_time(),
         )
+        expected_workers = {"eqo-local-worker"}
+        if config.ecosystem_execution_enabled:
+            expected_workers.add("eqo-local-virtual-slurm-worker")
+        if config.iqm_worker_enabled:
+            expected_workers.add("eqo-local-iqm-worker")
+        if config.iqm_simulation_enabled:
+            expected_workers.add("eqo-local-iqm-simulation-worker")
         supervisor.wait_for_workers(
             f"{config.api_url}/api/v1/workers",
-            {"eqo-local-worker"},
+            expected_workers,
             timeout_seconds=remaining_startup_time(),
         )
         services = {
@@ -1159,6 +1567,8 @@ def supervise_local(
         raise LocalReleaseError(str(error)) from error
     finally:
         supervisor.stop()
+        if cluster is not None and cluster_started_by_local:
+            cluster.stop()
 
     write_local_state(
         paths,

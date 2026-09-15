@@ -26,6 +26,7 @@ VALID_EXAMPLES = {
     "artifact": VALID / "artifact.yaml",
     "artifact-type": VALID / "artifact-type.yaml",
     "capability": VALID / "capability.yaml",
+    "chatqec-tool-proposal": VALID / "chatqec-tool-proposal.yaml",
     "deployment-profile": ROOT / "deployments" / "initial.yaml",
     "execution-target": VALID / "execution-target.yaml",
     "hpc-acceptance": ROOT / "infrastructure/hpc-acceptance/initial.yaml",

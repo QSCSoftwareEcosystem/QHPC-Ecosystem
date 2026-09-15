@@ -30,12 +30,15 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "containers/operations/qasmtrans/runtime.yaml"
 RECIPE = ROOT / "containers/operations/qasmtrans/Containerfile"
 ENTRYPOINT = ROOT / "containers/operations/qasmtrans/entrypoint.sh"
+FTQC_RUNTIME = ROOT / "containers/operations/ftqc/runtime.yaml"
+FTQC_RECIPE = ROOT / "containers/operations/ftqc/Containerfile"
 REPOSITORY_RUNTIMES = (
     ROOT / "containers/operations/qasmtrans/runtime.yaml",
     ROOT / "containers/operations/stabsim/runtime.yaml",
     ROOT / "containers/operations/nwqec/runtime.yaml",
     ROOT / "containers/operations/ftprimitivebench/runtime.yaml",
     ROOT / "containers/operations/lightstim/runtime.yaml",
+    FTQC_RUNTIME,
 )
 
 
@@ -387,3 +390,29 @@ def test_apptainer_command_requires_an_immutable_source(tmp_path: Path) -> None:
 def test_operation_runtime_cli_verifies_repository_manifest(capsys) -> None:
     assert cli.main(["operation-runtime", "verify", str(RUNTIME)]) == 0
     assert "qasmtrans-transpile-linux-amd64@0.1.0" in capsys.readouterr().out
+
+
+def test_ftqc_test_builder_pins_the_llvm_lit_toolchain_and_suite_gate() -> None:
+    document = verify_runtime_definition(FTQC_RUNTIME, ROOT)
+    dependencies = document["spec"]["build"]["dependency_archives"]
+    assert dependencies == [
+        {
+            "filename": "llvm-project-22.1.8.src.tar.xz",
+            "url": (
+                "https://github.com/llvm/llvm-project/releases/download/"
+                "llvmorg-22.1.8/llvm-project-22.1.8.src.tar.xz"
+            ),
+            "digest": (
+                "sha256:922f1817a0df7b1489272d18134ee0087a8b068828f87ac63b9861b1a9965888"
+            ),
+        }
+    ]
+    recipe = FTQC_RECIPE.read_text(encoding="utf-8")
+    assert "AS test-builder" in recipe
+    assert "llvm/utils/FileCheck/FileCheck.cpp" in recipe
+    assert "llvm/utils/not/not.cpp" in recipe
+    assert "llvm/utils/count/count.c" in recipe
+    assert "llvm/utils/lit/lit.py" in recipe
+    assert "-DFTQC_BUILD_TESTS=ON" in recipe
+    assert "--target check-ftqc" in recipe
+    assert "COPY --from=test-builder /runtime-root/ /" in recipe

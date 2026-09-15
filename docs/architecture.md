@@ -296,10 +296,13 @@ storage contracts. The runner keeps host storage paths separate from
 scheduler-visible paths through an injected mapper, so transport-specific path
 translation does not alter operation contracts.
 
-The external OpenQSE QFw Slurm stack is reference material only. Its
-multi-node, communication, and synthetic-resource patterns may inform future
-test cases, but QHPC does not clone, build, run, package, or depend on that
-stack.
+The external OpenQSE QFw Slurm stack is cataloged as a planned,
+non-executable development-cluster reference. QHPC may pin and inspect its
+source under controlled `.qhpc/` state, and its multi-node, communication, and
+synthetic-resource patterns may inform future test cases. It is not an active
+provider, dependency, runtime, deployment component, or EQO service: QHPC does
+not build, run, or package it until its separate compatibility and release
+gates are met.
 
 ## Storage-Aware HPC Execution
 

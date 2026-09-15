@@ -1,0 +1,44 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.qec-circuit-build-report
+  name: QEC Circuit Build Report
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Provenance-preserving summary of a bounded QEC circuit construction, paired with the generated Stim circuit artifact.
+  media_type: application/vnd.qsc.qec-circuit-build-report+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [schema, code_family, distance, rounds, protocol, num_qubits, num_detectors, num_observables]
+    properties:
+      schema:
+        const: qhpc.qec-circuit-build-report.v1
+      code_family:
+        enum: [toric_code, color_code_666, bb_code, pqrm]
+      distance:
+        type: integer
+        minimum: 3
+        maximum: 15
+      rounds:
+        type: integer
+        minimum: 1
+        maximum: 200
+      protocol:
+        const: memory
+      num_qubits:
+        type: integer
+        minimum: 1
+      num_detectors:
+        type: integer
+        minimum: 1
+      num_observables:
+        type: integer
+        minimum: 1
+  compatibility:
+    accepts_versions: [1]

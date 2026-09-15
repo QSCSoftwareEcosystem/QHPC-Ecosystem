@@ -1,0 +1,38 @@
+api_version: qhpc/v1
+kind: ChatQECToolProposal
+metadata:
+  id: proposal-code-params-example
+  created_at: "2026-09-11T12:00:00Z"
+  expires_at: "2026-09-11T12:15:00Z"
+  status: review-required
+spec:
+  registry_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  source:
+    repository: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+    tool: code-params
+  target:
+    capability: chatqec-qec-tools
+    version: 0.1.0
+    operation: code-params
+  parameters:
+    code_family: surface_code_rotated
+    distance: 3
+  input_requirements: {}
+  purpose: Compare the bounded surface-code parameters requested in the cited answer.
+  evidence:
+    - id: canonical-surface-code
+      title: Surface Code
+      source_uri: https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/knowledge/canonical/surface-code.md
+      source_revision: a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
+  expected_outputs:
+    parameters: qhpc.qec-code-parameters@1
+  execution_target: local-development
+  execution_class: interactive-local
+  resource_estimate:
+    cpu: 1
+    memory_mb: 512
+    walltime_seconds: 60
+  confirmation:
+    required: true
+    status: pending

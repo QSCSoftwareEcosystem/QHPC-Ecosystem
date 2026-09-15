@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .assistant import ChatQECGateway
 from .contract import ContractError
+from .engagement import engagement_catalog
 from .engine import DEFAULT_WORKER_STALE_AFTER_SECONDS, WorkflowEngine
 from .knowledge import KnowledgeGraphError, QAppsWikiKnowledge
 from .registry import registry_entries
@@ -90,6 +91,24 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(payload)))
             self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def _sse_response(
+            self,
+            status: int,
+            events: tuple[dict[str, Any], ...],
+        ) -> None:
+            payload = "".join(
+                "event: " + event["event"] + "\n"
+                "data: " + json.dumps(event, sort_keys=True) + "\n\n"
+                for event in events
+            ).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(payload)
 
@@ -189,6 +208,9 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                             for entry in registry_entries(context.registry)
                         ],
                     )
+                    return
+                if path == "/api/v1/engagement-resources":
+                    self._json_response(HTTPStatus.OK, engagement_catalog())
                     return
                 if path == "/api/v1/data/objects":
                     if context.databucket is None:
@@ -404,7 +426,13 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         HTTPStatus.OK,
                         {
                             **status,
-                            "available": True,
+                            # A deployed upstream container may be reachable
+                            # while awaiting an approved provider, corpus, or
+                            # Qdrant snapshot.  Keep it inspectable without
+                            # enabling browser queries against a degraded mode.
+                            "available": bool(
+                                status.get("available", status.get("status") == "ok")
+                            ),
                         },
                     )
                     return
@@ -639,7 +667,10 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         context.repository_updates.discard(component_id),
                     )
                     return
-                if path == "/api/v1/assistant/chatqec/answers":
+                if path in {
+                    "/api/v1/assistant/chatqec/answers",
+                    "/api/v1/assistant/chatqec/answers/stream",
+                }:
                     if context.chatqec is None:
                         self._error(
                             HTTPStatus.SERVICE_UNAVAILABLE,
@@ -696,15 +727,23 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                                 f"history[{index}].content must contain "
                                 "1 to 8000 characters"
                             )
-                    result = context.chatqec.ask(
-                        question,
-                        conversation_id=conversation_id,
-                        history=history,
-                        correlation_id=self.headers.get(
+                    arguments = {
+                        "conversation_id": conversation_id,
+                        "history": history,
+                        "correlation_id": self.headers.get(
                             "X-QHPC-Correlation-ID"
                         ),
-                    )
-                    self._json_response(HTTPStatus.OK, result)
+                    }
+                    if path.endswith("/stream"):
+                        self._sse_response(
+                            HTTPStatus.OK,
+                            context.chatqec.stream(question, **arguments),
+                        )
+                    else:
+                        self._json_response(
+                            HTTPStatus.OK,
+                            context.chatqec.ask(question, **arguments),
+                        )
                     return
                 if path == "/api/v1/workflow-drafts":
                     workflow = body.get("workflow")

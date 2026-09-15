@@ -1,0 +1,35 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: chatqec-tsim-simulation
+  name: Simulate a non-Clifford ChatQEC Tsim circuit
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Submit a typed Tsim circuit to the pinned non-Clifford ChatQEC runtime and retain bounded detector and observable samples.
+spec:
+  nodes:
+    - id: simulate
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: tsim-simulate
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters:
+        shots: 32
+        use_reference_sample: false
+  edges: []
+  inputs:
+    circuit:
+      artifact_type: qhpc.tsim-circuit@1
+      required: true
+      to:
+        node: simulate
+        port: circuit
+  outputs:
+    samples:
+      artifact_type: qhpc.tsim-simulation-samples@1
+      from:
+        node: simulate
+        port: samples

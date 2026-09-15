@@ -115,7 +115,16 @@ spec:
       catalog_repository: chatqec
       source:
         kind: repository
-        url: https://github.com/QSCSoftwareThrust/ChatQEC
+        url: https://github.com/QSCSoftwareEcosystem/ChatQEC
+    - id: chatqec-mcp-tools
+      name: ChatQEC MCP Tools
+      role: operation-provider
+      onboarding_status: onboarding
+      integration_scaffold: integrations/chatqec-mcp-tools/integration.yaml
+      catalog_repository: chatqec-mcp-tools
+      source:
+        kind: repository
+        url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
     - id: exachem-qflow
       name: ExaChem QFlow
       role: operation-provider

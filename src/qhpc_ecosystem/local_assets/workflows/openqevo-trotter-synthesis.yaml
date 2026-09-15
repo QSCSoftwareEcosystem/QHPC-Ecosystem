@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   id: openqevo-trotter-synthesis
   name: Synthesize an OpenQEvo Trotter circuit
-  version: 0.1.0
+  version: 0.1.1
   owner: qhpc-ecosystem
   visibility: internal
   description: Convert a Pauli Hamiltonian into OpenQASM 2.0 with an attributed local OpenQEvo/Qiskit development bridge.

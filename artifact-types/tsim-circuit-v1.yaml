@@ -1,0 +1,16 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.tsim-circuit
+  name: Tsim Detector Circuit
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: "UTF-8 Tsim circuit source: Stim-compatible detector syntax extended with bounded non-Clifford operations supported by Tsim."
+  media_type: application/vnd.qsc.tsim
+  representation: file
+  extensions: [tsim, stim]
+  compatibility:
+    accepts_versions: [1]

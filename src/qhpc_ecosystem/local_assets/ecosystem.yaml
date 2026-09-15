@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_updated: '2026-07-29'
+catalog_updated: '2026-09-14'
 source_manifest: catalog/repositories.tsv
 environments:
   python-lib:
@@ -34,6 +34,31 @@ repositories:
   - markdown-source
   environment: schema-docs
   container_status: ready
+  visibility: public
+  canonical_status: canonical
+- slug: qfw-slurm-cluster
+  display_name: QFw-SLURM Cluster
+  source_url: https://github.com/openQSE/QFw-SLURM-Cluster
+  notes: OpenQSE Docker Compose Slurm environment for QFw development, integration
+    testing, and profiling. Cataloged as a non-executable development-cluster reference
+    at eeb42e601383f3d33020f823d4a387ef30b9dd7d; QHPC runtime admission is blocked
+    pending a reviewed compatibility image and release evidence.
+  qsc_project: cross-project
+  package_role: framework
+  capabilities:
+  - qfw
+  - slurm
+  - hpc-integration
+  hardware_targets:
+  - local-cpu
+  - hpc
+  - quantum-hardware
+  - simulator
+  interfaces:
+  - cli
+  - metadata-bundle
+  environment: hpc-build
+  container_status: blocked
   visibility: public
   canonical_status: canonical
 - slug: OpenQEvo
@@ -125,9 +150,8 @@ repositories:
   canonical_status: canonical
 - slug: chatqec
   display_name: ChatQEC
-  source_url: https://github.com/QSCSoftwareThrust/ChatQEC
-  notes: GitHub selected as the QHPC working source on 2026-07-24; internal GitLab
-    repositories are secondary mirrors.
+  source_url: https://github.com/QSCSoftwareEcosystem/ChatQEC
+  notes: Direct upstream remote observed at pinned revision a1ddc2e on 2026-09-11; internal GitLab repositories are secondary mirrors.
   qsc_project: agentic-software
   package_role: workflow
   capabilities:
@@ -141,6 +165,27 @@ repositories:
   environment: agentic
   container_status: planned
   visibility: internal
+  canonical_status: canonical
+- slug: chatqec-mcp-tools
+  display_name: ChatQEC MCP Tools
+  source_url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+  notes: Canonical QSCSoftwareEcosystem source confirmed on 2026-09-14 at dd19a85b08637a61dc1afc124d2f4b32745b527b; executable runtime admission remains pending supply-chain and target acceptance.
+  qsc_project: agentic-software
+  package_role: workflow
+  capabilities:
+  - agentic-query
+  - qec
+  hardware_targets:
+  - local-cpu
+  - simulator
+  interfaces:
+  - python-api
+  - mcp
+  - stim
+  - cli
+  environment: agentic
+  container_status: blocked
+  visibility: public
   canonical_status: canonical
 - slug: AS-popular_quantum_sdk_dashboard
   display_name: QuantumSDK
@@ -222,6 +267,27 @@ repositories:
   visibility: public
   canonical_status: canonical
   local_path: ../DataSchema
+- slug: qsc-materials-db
+  display_name: QSC Materials Repository
+  source_url: https://code.ornl.gov/intersect/data/deployments
+  notes: SDL QSC deployment data repository containing the draft qsc-materials-db repository contract, KCuF3 seed payloads, and materials provenance notes.
+  qsc_project: data-schema
+  package_role: dataset
+  capabilities:
+  - schema
+  - provenance
+  hardware_targets:
+  - hpc
+  - quantum-hardware
+  interfaces:
+  - json-context
+  - metadata-bundle
+  - markdown-source
+  environment: schema-docs
+  container_status: ready
+  visibility: internal
+  canonical_status: canonical
+  local_path: ../sdl/intersect-sdl-workspace/deployments
 - slug: qasmtrans
   display_name: QASMTrans
   source_url: https://github.com/pnnl/qasmtrans

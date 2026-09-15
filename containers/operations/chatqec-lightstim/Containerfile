@@ -1,0 +1,52 @@
+# This context is self-contained: pinned ChatQEC source, pinned LightStim
+# source, adapter, and checksum-verified wheels. Build networking is disabled.
+ARG SOURCE_DATE_EPOCH=1785324021
+FROM docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47 AS builder
+
+ARG SOURCE_DATE_EPOCH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_INDEX=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/opt/chatqec-mcp-tools/src:/opt/lightstim
+WORKDIR /work
+
+COPY source.tar /tmp/chatqec-source.tar
+COPY lightstim-source.tar /tmp/lightstim-source.tar
+COPY *.whl /wheelhouse/
+COPY entrypoint.py /opt/qhpc/bin/qhpc-chatqec-lightstim-build
+
+RUN mkdir -p /opt/chatqec-mcp-tools /opt/lightstim /opt/qhpc/bin /outputs \
+    && tar -xf /tmp/chatqec-source.tar -C /opt/chatqec-mcp-tools \
+    && tar -xf /tmp/lightstim-source.tar -C /opt/lightstim \
+    && python -m pip install --no-cache-dir --no-compile --no-deps /wheelhouse/*.whl \
+    && python -c 'from chatqec_mcp_tools.tools.qec_circuit_build import qec_circuit_build; from lightstim.qec_code.surface_code.toric import ToricCode' \
+    && rm -rf /root/.cache /tmp/chatqec-source.tar /tmp/lightstim-source.tar /wheelhouse \
+    && find /opt/chatqec-mcp-tools /opt/lightstim /opt/qhpc -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+
+FROM docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+
+ARG SOURCE_DATE_EPOCH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/opt/chatqec-mcp-tools/src:/opt/lightstim
+WORKDIR /work
+
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /opt/chatqec-mcp-tools /opt/chatqec-mcp-tools
+COPY --from=builder /opt/lightstim /opt/lightstim
+COPY --from=builder /opt/qhpc /opt/qhpc
+RUN useradd --uid 65532 --create-home --shell /usr/sbin/nologin qhpc \
+    && mkdir /outputs \
+    && chown -R 65532:65532 /opt/chatqec-mcp-tools /opt/lightstim /opt/qhpc /outputs \
+    && find /opt/chatqec-mcp-tools /opt/lightstim /opt/qhpc -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+
+LABEL org.opencontainers.image.title="EQO ChatQEC LightStim circuit builder" \
+      org.opencontainers.image.description="Pinned ChatQEC adapter and exact LightStim source, executed as a network-disabled EQO operation" \
+      org.opencontainers.image.source="https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools" \
+      org.opencontainers.image.revision="dd19a85b08637a61dc1afc124d2f4b32745b527b" \
+      org.qscsoftware.lightstim.revision="47dd74976780192ae901d91958863cced1165354" \
+      org.qscsoftware.mcp-server="not-started"
+
+USER 65532:65532
+ENTRYPOINT ["/opt/qhpc/bin/qhpc-chatqec-lightstim-build"]

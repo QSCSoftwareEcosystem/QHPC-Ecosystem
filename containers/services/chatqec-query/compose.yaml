@@ -1,0 +1,55 @@
+# Deployment template only.  It intentionally cannot become model-ready until
+# an institution supplies the external egress network, a secret-injection
+# mechanism, a reviewed corpus snapshot, and a deployment profile.
+services:
+  qdrant:
+    image: docker.io/qdrant/qdrant:v1.12.0@sha256:d8cd4bb56e737c78d7e06e364584eb2b58097977aa12e0a9324b18bffddc17ec
+    restart: unless-stopped
+    expose: ["6333"]
+    volumes:
+      - type: bind
+        source: ${EQO_CHATQEC_QDRANT_STORAGE:?set an immutable reviewed Qdrant snapshot directory}
+        target: /qdrant/storage
+    networks: [chatqec-private]
+    security_opt: [no-new-privileges:true]
+
+  query:
+    image: ${EQO_CHATQEC_QUERY_IMAGE:?set an EQO-built immutable image reference}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    depends_on: [qdrant]
+    ports:
+      - 127.0.0.1:${EQO_CHATQEC_QUERY_PORT:?set a free loopback port}:8096
+    environment:
+      QHPC_CHATQEC_QUERY_PROFILE: /etc/eqo/chatqec-query.json
+      QHPC_CHATQEC_LISTEN_HOST: 0.0.0.0
+      QHPC_CHATQEC_LISTEN_PORT: "8096"
+      QHPC_CHATQEC_IDENTITY_TOKEN: ${QHPC_CHATQEC_IDENTITY_TOKEN:?inject a scoped workload token}
+      # Provider credentials are injected only by the approved secret mechanism.
+      # Do not put them in this compose file, a profile, or an .env file.
+    volumes:
+      - type: bind
+        source: ${EQO_CHATQEC_QUERY_PROFILE:?set a read-only deployment profile}
+        target: /etc/eqo/chatqec-query.json
+        read_only: true
+      - type: bind
+        source: ${EQO_CHATQEC_UPSTREAM_CONFIG:?set an approved upstream config directory}
+        target: /etc/eqo/upstream-config
+        read_only: true
+      - type: bind
+        source: ${EQO_CHATQEC_CORPUS_MANIFEST:?set a reviewed corpus manifest}
+        target: /var/lib/eqo/chatqec/corpus-manifest.json
+        read_only: true
+    networks: [chatqec-private, chatqec-model-egress]
+    security_opt: [no-new-privileges:true]
+
+networks:
+  chatqec-private:
+    internal: true
+  # A site must pre-create this network with egress limited to the one approved
+  # provider endpoint. Qdrant never joins it.
+  chatqec-model-egress:
+    external: true
+    name: ${EQO_CHATQEC_MODEL_EGRESS_NETWORK:?set the approved model-egress network}

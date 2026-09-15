@@ -12,6 +12,7 @@ metadata:
   evidence:
     - ../../../docs/adr/0010-openqse-qfw-slurm-provider.md
     - ../../../docs/evidence/qfw-slurm-cluster-source-audit-2026-07-28.md
+    - ../../../docs/evidence/qfw-slurm-cluster-source-audit-2026-09-14.md
     - ../../../docs/hpc-execution.md
 spec:
   scheduler: slurm
@@ -20,7 +21,7 @@ spec:
   source:
     repository: https://github.com/openQSE/QFw-SLURM-Cluster.git
     branch: main
-    revision: 16bc49691679d99fc4f28a27612425a2a67909c1
+    revision: eeb42e601383f3d33020f823d4a387ef30b9dd7d
     license: MIT
   compatibility:
     build_ca_destination: qhpc-build-ca.pem
@@ -70,9 +71,9 @@ spec:
     - This provider complements the lightweight scheduler-conformance cluster and does not replace it.
     - The upstream source starts slurmrestd by default; QHPC excludes that service and does not accept its REST security settings.
     - The upstream Dockerfile disables TLS verification and is not approved for QHPC builds.
-    - The upstream image clones QFw and installs several dependencies without immutable identities.
-    - The published development image is linux/amd64 only and transfers approximately 3.84 GB of compressed layers.
-    - The published image has no QHPC-reviewed SBOM, signature, attestation, or source-to-image provenance.
+    - The upstream build resolves QFw and qfw-slurm refs at build time, but the published image has no QHPC-reviewed source lock or source-to-image provenance.
+    - The documented published development image is linux/amd64 only and transfers approximately 3.84 GB of compressed layers; its relationship to this newer source intake is not established.
+    - The published image has no QHPC-reviewed SBOM, signature, attestation, or immutable release evidence.
     - Shared root SSH, default database credentials, synthetic QPU resources, and task/none isolation are development-only.
     - Real IQM or other device credentials must not be passed through shell history, Compose files, images, or committed environment files.
     - Apptainer, accepted operation SIFs, facility identity, parallel storage, RDMA hardware, GPUs, and production security are not validated.

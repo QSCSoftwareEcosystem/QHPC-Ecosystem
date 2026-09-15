@@ -1,0 +1,20 @@
+# Build an exact Linux/amd64 dependency wheelhouse from the pinned upstream
+# lockfile. This is a supply-chain collection stage, not the query image: the
+# resulting wheel files require review before the no-network query build uses
+# them.
+FROM ghcr.io/astral-sh/uv@sha256:aaeebd3aab31e193633f104cbec66d24777538fee7a8e819217066046e1deb40 AS uv
+
+FROM docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+
+COPY --from=uv /uv /usr/local/bin/uv
+WORKDIR /src
+COPY pyproject.toml uv.lock ./
+RUN uv export --frozen --no-dev --no-emit-project --format requirements-txt \
+      --no-annotate --output-file /tmp/requirements.txt \
+    && python -m pip wheel --no-cache-dir --require-hashes \
+      --wheel-dir /wheelhouse --requirement /tmp/requirements.txt \
+    && find /wheelhouse -type f ! -name '*.whl' -delete
+
+LABEL org.opencontainers.image.title="ChatQEC locked dependency wheelhouse collector" \
+      org.opencontainers.image.description="Linux/amd64 wheels collected from the pinned ChatQEC uv.lock for EQO review" \
+      org.opencontainers.image.revision="a1ddc2e4916b1f4152fba4c94c9c7512eea0d977"

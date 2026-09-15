@@ -1,0 +1,29 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: chatqec-code-parameters
+  name: Inspect ChatQEC code parameters
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Run the canonical ChatQEC code-parameter tool in its pinned OCI container and retain the structured code evidence.
+spec:
+  nodes:
+    - id: parameters
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: code-params
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters:
+        code_family: surface_code_rotated
+        distance: 3
+  edges: []
+  inputs: {}
+  outputs:
+    parameters:
+      artifact_type: qhpc.qec-code-parameters@1
+      from:
+        node: parameters
+        port: parameters

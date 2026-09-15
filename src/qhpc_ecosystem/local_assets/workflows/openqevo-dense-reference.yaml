@@ -1,0 +1,42 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: openqevo-dense-reference
+  name: Evaluate an OpenQEvo dense evolution reference
+  version: 0.1.1
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Evaluate a bounded small-system native OpenQEvo evolution reference and retain both result provenance and the dense unitary.
+spec:
+  nodes:
+    - id: evaluate
+      operation:
+        capability: openqevo-library
+        version: 0.1.0
+        operation: evaluate-dense-reference
+      parameters:
+        method: krylov
+        evolution_time: 1.0
+        steps: 32
+        krylov_dim: 12
+        tolerance: 1.0e-12
+        random_seed: 42
+  edges: []
+  inputs:
+    hamiltonian:
+      artifact_type: qhpc.pauli-hamiltonian@1
+      required: true
+      to:
+        node: evaluate
+        port: hamiltonian
+  outputs:
+    result:
+      artifact_type: qhpc.evolution-result@1
+      from:
+        node: evaluate
+        port: result
+    unitary:
+      artifact_type: qhpc.dense-unitary@1
+      from:
+        node: evaluate
+        port: unitary

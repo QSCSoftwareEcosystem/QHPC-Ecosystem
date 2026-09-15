@@ -139,9 +139,13 @@ The first live verification passed on 2026-07-27; the exact source, build,
 image, node, completion, accounting, and cancellation record is in
 [the scheduler smoke evidence](evidence/slurm-docker-cluster-smoke-2026-07-27.md).
 
-The external OpenQSE QFw Slurm stack is reference material only. QHPC may use
-its design ideas when defining future multi-node or synthetic-resource tests,
-but it is not a provider, dependency, runtime, or deployment component.
+The external OpenQSE QFw Slurm stack is cataloged as a planned,
+non-executable development-cluster reference. QHPC may use its design ideas
+and prepare its pinned source for review when defining future multi-node or
+synthetic-resource tests, but it is not an active provider, dependency,
+runtime, or deployment component. No EQO operation may build, start, or submit
+to it until the separate compatibility-image, supply-chain, and QFw adapter
+gates are met.
 
 ## Site Activation
 

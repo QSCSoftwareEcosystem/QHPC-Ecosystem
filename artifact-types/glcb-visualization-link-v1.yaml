@@ -1,0 +1,29 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.glcb-visualization-link
+  name: Gemini Logical Circuit Builder Visualization Link
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Deterministically generated external GLCB link. Opening it discloses the encoded circuit to the Gemini Logical Circuit Builder service.
+  media_type: application/vnd.qsc.glcb-visualization-link+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [schema, url, external_disclosure]
+    properties:
+      schema:
+        const: qhpc.glcb-visualization-link.v1
+      url:
+        type: string
+        pattern: "^https://gemini-logical-circuit-builder\\.vercel\\.app/#circuit="
+      external_disclosure:
+        type: string
+        minLength: 1
+  compatibility:
+    accepts_versions: [1]

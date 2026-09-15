@@ -1,0 +1,61 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: chatqec-mcp-tools
+  name: ChatQEC MCP Tools
+  version: 0.1.0
+  project: agentic-software
+  role: operation-provider
+  owners: [chatqec]
+  visibility: public
+  integration_status: scaffolded
+spec:
+  source:
+    kind: repository
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    catalog_repository: chatqec-mcp-tools
+  mirror:
+    status: not-applicable
+  development_environment:
+    status: assigned
+    class: agentic
+  interfaces: [python-api, mcp, stim, cli]
+  scope:
+    status: defined
+    summary: Expose every inspected MCP tool as a bounded, source-pinned EQO operation candidate. ChatQEC may only recommend a reviewed proposal; it cannot start the MCP server, spawn a subprocess, or submit a run.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: not-applicable
+  contract_refs:
+    - integrations/chatqec-mcp-tools/interface.yaml
+    - artifact-types/qec-code-parameters-v1.yaml
+    - artifact-types/qec-decoder-result-v1.yaml
+    - artifact-types/qec-threshold-sweep-v1.yaml
+    - artifact-types/qec-threshold-plot-v1.yaml
+    - artifact-types/qec-circuit-build-report-v1.yaml
+    - artifact-types/tsim-circuit-v1.yaml
+    - artifact-types/tsim-simulation-samples-v1.yaml
+    - artifact-types/glcb-circuit-spec-v1.yaml
+    - artifact-types/glcb-visualization-link-v1.yaml
+    - capabilities/ChatQEC/tools/qhpc-capability.yaml
+    - containers/operations/chatqec-mcp-tools/threshold-sweep.runtime.yaml
+    - containers/operations/chatqec-lightstim/runtime.yaml
+    - containers/operations/chatqec-tsim/runtime.yaml
+    - artifact-types/stim-simulation-samples-v1.yaml
+    - artifact-types/stim-diagram-v1.yaml
+  evidence:
+    - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+    - docs/evidence/chatqec-tool-operations-oci-smoke-2026-09-14.md
+    - .development/CHATQEC_PLAN.md
+  production_runtime:
+    status: deferred
+    technology: oci
+    reason: All eight source tools have source-pinned, network-disabled OCI candidates and local smoke evidence. Immutable publication, target-worker validation, and scientific/supply-chain acceptance are required before release.
+  blockers:
+    - Confirm the canonical QSCSoftwareEcosystem repository authority and project maintainer review ownership.
+    - Publish the OCI candidates to an approved immutable registry and accept them on their target workers before they become executable deployment releases.
+    - Complete maintainer, supply-chain, and scientific-result acceptance before changing the internal pre-alpha capability to a released service.

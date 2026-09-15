@@ -68,7 +68,7 @@ spec:
         required: [provider, alias, quantum_computer_id, calibration_id]
         properties:
           provider:
-            const: iqm
+            enum: [iqm, simulated-iqm]
           alias:
             type: string
             minLength: 1

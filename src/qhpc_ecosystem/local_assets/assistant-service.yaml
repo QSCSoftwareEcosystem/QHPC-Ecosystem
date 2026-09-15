@@ -8,7 +8,7 @@ metadata:
   project: agentic-software
   owners: [chatqec]
   source:
-    url: https://github.com/QSCSoftwareThrust/ChatQEC
+    url: https://github.com/QSCSoftwareEcosystem/ChatQEC
     revision: a1ddc2e4916b1f4152fba4c94c9c7512eea0d977
   status: contract-valid
   evidence:
@@ -33,7 +33,7 @@ spec:
     corpus_access: read-only
     payload_logging: prohibited
     default_retention: none
-    tool_execution: prohibited
+    tool_execution: contained-mcp-only
   schemas:
     ask-request:
       $schema: https://json-schema.org/draft/2020-12/schema
@@ -195,6 +195,23 @@ spec:
             total:
               type: number
               minimum: 0
+        tool_calls:
+          type: array
+          maxItems: 32
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, status]
+            properties:
+              name:
+                type: string
+                pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$'
+              status:
+                enum: [completed, failed]
+              summary:
+                type: string
+                minLength: 1
+                maxLength: 4000
     answer-stream-event:
       $schema: https://json-schema.org/draft/2020-12/schema
       oneOf:
@@ -302,6 +319,64 @@ spec:
                   type: string
                   minLength: 1
                   maxLength: 1000
+    health-response:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - service
+        - mode
+        - source_revision
+        - corpus_revision
+        - pages
+        - tool_execution
+        - readiness
+        - capabilities
+      properties:
+        status:
+          enum: [ok, degraded]
+        service:
+          const: chatqec
+        mode:
+          enum:
+            - canonical-corpus-extractive-fallback
+            - upstream-rag-read-only
+            - upstream-mcp-agent
+            - mcp-direct-tools
+        source_revision:
+          type: string
+          pattern: '^[0-9a-f]{40,64}$'
+        corpus_revision:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        pages:
+          type: integer
+          minimum: 0
+        tool_execution:
+          type: boolean
+        readiness:
+          type: object
+          additionalProperties: false
+          required: [source, model, qdrant, corpus, embeddings, reranker, knowledge]
+          properties:
+            source: &readiness-state {enum: [ready, disabled, not-configured, not-provisioned, unavailable]}
+            model: *readiness-state
+            qdrant: *readiness-state
+            corpus: *readiness-state
+            embeddings: *readiness-state
+            reranker: *readiness-state
+            knowledge: *readiness-state
+        capabilities:
+          type: object
+          additionalProperties: false
+          required: [model_rag, streaming, source_ledger, tool_proposals, mcp_tools]
+          properties:
+            model_rag: {type: boolean}
+            streaming: {type: boolean}
+            source_ledger: {type: boolean}
+            tool_proposals: {type: boolean}
+            mcp_tools: {type: boolean}
   endpoints:
     - id: ask
       method: POST

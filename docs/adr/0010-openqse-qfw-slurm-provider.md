@@ -13,18 +13,22 @@ QPU-oriented Slurm resource descriptions.
 
 OpenQSE publishes
 [`QFw-SLURM-Cluster`](https://github.com/openQSE/QFw-SLURM-Cluster) as a Docker
-Compose development environment containing those components. Revision
-`16bc49691679d99fc4f28a27612425a2a67909c1` also defines eight compute nodes,
-normal and synthetic quantum partitions, an optional mounted QFw development
-tree, and a QFw shim smoke test.
+Compose development environment containing those components. The current
+intake pins revision `eeb42e601383f3d33020f823d4a387ef30b9dd7d` (observed
+2026-09-14). It defines eight compute nodes, normal and synthetic quantum
+partitions, an optional mounted QFw development tree, QFw shim smoke tests,
+and an optional dashboard. The dashboard is an upstream development feature;
+it is not an EQO service and receives no EQO deployment or run control.
 
 The source is useful but cannot be activated unchanged. Its Dockerfile disables
-TLS verification, retrieves a signing key with an insecure request, clones QFw
-without an immutable revision, and installs mutable dependencies. Its Compose
-configuration uses development credentials, shared root SSH, and a host-exposed
-`slurmrestd` whose development security checks are reduced. The published image
-is a large, single-platform development artifact without QHPC-reviewed supply
-chain evidence.
+TLS verification, retrieves a signing key with an insecure request, uses a
+mutable base-image reference, and installs mutable dependencies. Its build
+script resolves QFw and qfw-slurm source refs at build time, but does not turn
+those resolutions into a QHPC-reviewed source lock or release attestation. Its
+Compose configuration uses development credentials, shared root SSH, and a
+host-exposed `slurmrestd` whose development security checks are reduced. The
+published image is a large, single-platform development artifact without
+QHPC-reviewed supply-chain evidence.
 
 ## Decision
 

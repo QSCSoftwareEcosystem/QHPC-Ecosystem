@@ -756,6 +756,39 @@ export function uniqueBoundaryName(
 }
 
 
+export function createWorkflowInputCanvasNode(
+  baseName: string,
+  artifactType: string,
+  nodes: ComposerNode[],
+  position?: { x: number; y: number },
+): ComposerNode {
+  const inputCount = nodes.filter(
+    (node) => node.data.kind === "workflow-input",
+  ).length;
+  const leftmostNode = nodes.reduce(
+    (leftmost, node) => Math.min(leftmost, node.position.x),
+    220,
+  );
+  const name = uniqueBoundaryName(baseName, "workflow-input", nodes);
+  return {
+    id: `input:${name}`,
+    type: "boundary",
+    position: position ?? {
+      x: Math.max(24, leftmostNode - 210),
+      y: 72 + inputCount * 76,
+    },
+    data: {
+      kind: "workflow-input",
+      name,
+      artifactType,
+      required: true,
+      requiredWasSet: true,
+      sequence: inputCount,
+    },
+  };
+}
+
+
 export function createBoundaryForPort(
   operationNode: Extract<ComposerNode, { type: "operation" }>,
   port: string,

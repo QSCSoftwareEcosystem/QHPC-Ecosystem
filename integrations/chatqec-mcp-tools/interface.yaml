@@ -1,0 +1,198 @@
+api_version: qhpc/v1
+kind: OperationInterface
+metadata:
+  id: chatqec-mcp-tools-p1
+  name: ChatQEC MCP Tools P1 Interfaces
+  version: 0.1.0
+  component: chatqec-mcp-tools
+  project: agentic-software
+  owners: [chatqec]
+  source:
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+  status: contract-valid
+  evidence:
+    - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+spec:
+  operations:
+    - id: code-params
+      title: Report QEC code parameters
+      description: Return [[n,k]], stabilizer count, detector and observable counts, and Stim graphlike-distance evidence for a bounded supported code family.
+      behavior: deterministic
+      inputs: {}
+      outputs:
+        parameters:
+          artifact_type: qhpc.qec-code-parameters@1
+          description: Typed code-parameter record with graphlike-distance qualification.
+      parameters:
+        code_family:
+          type: string
+          title: Code family
+          required: true
+          enum: [surface_code_rotated, repetition_code, color_code]
+        distance:
+          type: integer
+          title: Code distance
+          required: true
+          minimum: 3
+          maximum: 15
+    - id: stim-simulate
+      title: Simulate a Stim circuit
+      description: Sample a bounded detector-annotated Stim circuit and return a clearly limited preview of binary results.
+      behavior: stochastic
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+          description: UTF-8 Stim source admitted as an EQO input artifact.
+      outputs:
+        samples:
+          artifact_type: qhpc.stim-simulation-samples@1
+          description: At most twenty returned sample rows, with explicit truncation status in the summary.
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 1024
+          minimum: 1
+          maximum: 1000000
+    - id: stim-diagram
+      title: Render a Stim circuit diagram
+      description: Render a bounded Stim circuit as a sanitized SVG timeline diagram.
+      behavior: deterministic
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+          description: UTF-8 Stim source admitted as an EQO input artifact.
+      outputs:
+        diagram:
+          artifact_type: qhpc.stim-diagram@1
+          description: SVG circuit timeline subject to artifact size and content controls.
+      parameters: {}
+    - id: pymatching-decode
+      title: Decode a detector-annotated Stim circuit
+      description: Decode bounded Stim detector samples through PyMatching and return the sampled logical-error rate and exact error count.
+      behavior: stochastic
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+          description: UTF-8 detector-annotated Stim source admitted as an EQO input artifact.
+      outputs:
+        result:
+          artifact_type: qhpc.qec-decoder-result@1
+          description: Typed logical-error result with exact sample and error counts.
+      parameters:
+        shots:
+          type: integer
+          title: Decoder shots
+          default: 1024
+          minimum: 1
+          maximum: 1000000
+    - id: threshold-sweep
+      title: Sweep physical error rates across code distances
+      description: Generate and PyMatching-decode bounded Stim memory experiments, returning empirical logical-error rows and an optional sanitized SVG plot. The data is evidence for analysis, not an inferred threshold claim.
+      behavior: stochastic
+      inputs: {}
+      outputs:
+        results:
+          artifact_type: qhpc.qec-threshold-sweep@1
+          description: Bounded physical-error-rate versus logical-error-rate rows with the requested sweep inputs.
+        plot:
+          artifact_type: qhpc.qec-threshold-plot@1
+          description: Sanitized log-log SVG plot rendered from the returned rows when it stays within artifact limits.
+      parameters:
+        code_family:
+          type: string
+          title: Code family
+          default: surface_code_rotated
+          enum: [surface_code_rotated, repetition_code, color_code]
+        distances:
+          type: string
+          title: Comma-separated code distances
+          default: "3,5"
+        p_values:
+          type: string
+          title: Comma-separated physical error rates
+          default: "0.001,0.01"
+        rounds:
+          type: integer
+          title: Syndrome-extraction rounds (zero uses the code distance)
+          default: 0
+          minimum: 0
+          maximum: 200
+        shots:
+          type: integer
+          title: Decoder shots per distance/error-rate point
+          default: 200
+          minimum: 1
+          maximum: 1000000
+    - id: qec-circuit-build
+      title: Build a QEC circuit with LightStim
+      description: Construct a bounded detector-annotated Stim circuit through the pinned LightStim source used by ChatQEC. Family-specific discrete constraints are enforced by the adapter before construction.
+      behavior: deterministic
+      inputs: {}
+      outputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+          description: Detector-annotated Stim circuit generated by the selected LightStim family and memory protocol.
+        report:
+          artifact_type: qhpc.qec-circuit-build-report@1
+          description: Code family, requested parameters, and circuit size/count summary.
+      parameters:
+        code_family:
+          type: string
+          title: QEC code family
+          default: toric_code
+          enum: [toric_code, color_code_666, bb_code, pqrm]
+        distance:
+          type: integer
+          title: Code distance
+          default: 3
+          minimum: 3
+          maximum: 15
+        rounds:
+          type: integer
+          title: Memory syndrome-extraction rounds
+          default: 3
+          minimum: 1
+          maximum: 200
+        protocol:
+          type: string
+          title: Protocol
+          default: memory
+          enum: [memory]
+    - id: tsim-simulate
+      title: Simulate a non-Clifford Tsim circuit
+      description: Sample bounded detector and observable outcomes from a Tsim circuit. The adapter enforces source-size, 100,000-shot, T-count, and preview limits before persisting a typed result.
+      behavior: stochastic
+      inputs:
+        circuit:
+          artifact_type: qhpc.tsim-circuit@1
+          description: Tsim source containing detector or observable annotations; it may use the bounded non-Clifford extension.
+      outputs:
+        samples:
+          artifact_type: qhpc.tsim-simulation-samples@1
+          description: At most twenty detector/observable sample rows and a summary that states whether the preview was truncated.
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 100
+          minimum: 1
+          maximum: 100000
+        use_reference_sample:
+          type: boolean
+          title: XOR outcomes against a noiseless reference sample
+          default: false
+    - id: glcb-visualize-url
+      title: Create a Gemini Logical Circuit Builder link
+      description: Deterministically encode a bounded GLCB circuit specification into a link without any network call. Opening the resulting URL is an external circuit disclosure.
+      behavior: deterministic
+      inputs:
+        circuit:
+          artifact_type: qhpc.glcb-circuit-spec@1
+          description: JSON circuit description accepted by the Gemini Logical Circuit Builder URL format.
+      outputs:
+        link:
+          artifact_type: qhpc.glcb-visualization-link@1
+          description: Link record carrying an explicit external-disclosure warning.
+      parameters: {}

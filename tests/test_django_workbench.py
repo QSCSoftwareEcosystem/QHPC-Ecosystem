@@ -45,6 +45,8 @@ def test_django_workbench_serves_existing_design_and_health() -> None:
     assert b'data-view="showcases"' in response.content
     assert b'data-view="tools"' in response.content
     assert b'data-view="knowledge"' in response.content
+    assert b'data-view="openqse"' in response.content
+    assert b'data-view="engagement"' in response.content
     assert b'data-view="assistant"' in response.content
     assert b'data-view="updates"' in response.content
     assert b">Projects<" not in response.content

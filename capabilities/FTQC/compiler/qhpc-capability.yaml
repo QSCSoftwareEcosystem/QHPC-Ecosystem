@@ -3,7 +3,7 @@ kind: Capability
 metadata:
   id: ftqc-compiler
   name: FTQC Fault-Tolerant Compiler
-  version: 0.3.0
+  version: 0.4.0
   project: compilation-tools
   owners: [ftqc]
   repository:
@@ -13,12 +13,13 @@ metadata:
     authority: ecosystem
     maintainers: [qhpc-ecosystem]
     project_reviewed: false
-    runtime_status: declared
+    runtime_status: verified
     validation_status: integration-tested
     evidence:
       - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
       - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
       - docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md
+      - docs/evidence/ftqc-oci-smoke-2026-09-10.md
   visibility: internal
   maturity: pre-alpha
 spec:
@@ -33,7 +34,7 @@ spec:
     quick_start:
       - Open the FTQC Tool Record and read the IQM one-logical-qubit hardware demonstration candidate, including its evidence gaps.
       - Open Compose and choose either FTQC IQM preparation example.
-      - Load the authored input, confirm that the local FTQC compiler runtime is ready, and run the credential-free preparation stage.
+      - Load the authored input, confirm that the admitted FTQC OCI runtime is ready, and run the credential-free preparation stage.
       - Open Compose and choose H6 QFlow chemistry cycle to inspect where optional FTQC circuit lowering would attach after a QIRIS-selected backend emits OpenQASM.
       - Inspect the published compiler-interface resource and pinned source revision from this record.
       - Inspect the FTQC MLIR, IQM JSON, and preparation report outputs; routing and hardware submission remain separate stages.
@@ -42,8 +43,8 @@ spec:
       - ftqc-iqm-bell-preparation
       - ftqc-iqm-steane-preparation
     limitations:
-      - The admitted native bundle is locally built for macOS arm64 against Homebrew LLVM/MLIR 20.1.2; it is not distributed by this repository.
-      - FTQC does not publish distributable license terms, so EQO does not publish the compiler binary, shared library, or a container image.
+      - Preparation executes only in the checksum-pinned Linux/amd64 OCI runtime. The historical macOS native bundle is not an EQO execution target.
+      - The OCI image has local smoke evidence only. Registry publication, immutable SIF conversion, supply-chain evidence, and deployment-target acceptance remain separate release gates.
       - The preparation operation does not query live calibration, route the circuit, submit to IQM, or collect results.
       - The route-submit-collect operation is contract- and mock-tested, but its real qiskit-iqm provider client and site credential configuration are not yet accepted.
       - The one-logical-qubit IQM run is developer-reported and source-supported, but the repository does not preserve a job receipt, exact QPU identity, raw counts, corrected logical histogram, or acceptance comparison; it is not verified hardware evidence.
@@ -57,12 +58,17 @@ spec:
       description: Developer-reported and source-supported one-logical-qubit ORNL IQM demonstration candidate, with the exact promotion evidence still required.
     - id: ftqc-compiler-interface
       kind: adapter
-      version: 0.3.0
+      version: 0.4.0
       uri: integrations/ftqc/interface.yaml
       description: Controlled OpenQASM-to-FTQC-MLIR-and-IQM-preparation contract; routing and hardware submission are excluded.
+    - id: ftqc-iqm-operation-runtime
+      kind: documentation
+      version: 0.1.0
+      uri: containers/operations/ftqc/runtime.yaml
+      description: Pinned Linux/amd64 OCI build, execution boundary, and smoke contract for credential-free FTQC IQM preparation.
     - id: ftqc-source
       kind: library
-      version: 0.3.0
+      version: 0.4.0
       uri: https://github.com/QSCSoftwareEcosystem/FTQC/tree/779216de8805ea0c1d473c640eaf17d6cbfa04e8
       description: Pinned private source containing the C API, IQM JSON lowering, physical Steane expansion, routing/submission path, and demonstration fixtures.
     - id: developer-attribution
@@ -101,9 +107,9 @@ spec:
           title: MLIR and IQM circuit name
           default: circuit
       runtime:
-        type: native-bundle
-        reference: qhpc-runtime://native/ftqc-779216de8805-darwin-arm64.zip
-        digest: sha256:ab1b34d6a0a86a3d522061b00b4efdea253e2c77d64b5d27a52260e0740ba215
+        type: oci
+        reference: docker://qhpc/ftqc@sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
+        digest: sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
       invocation:
         entrypoint: [qhpc-ftqc-prepare-iqm]
       resources:

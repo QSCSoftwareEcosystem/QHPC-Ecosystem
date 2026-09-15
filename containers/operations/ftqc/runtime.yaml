@@ -1,0 +1,101 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: ftqc-prepare-iqm-linux-amd64
+  name: FTQC IQM preparation Linux runtime
+  version: 0.1.0
+  component: ftqc
+  capability: ftqc-compiler
+  operation: prepare-iqm
+  project: compilation-tools
+  owners: [ftqc, qhpc-ecosystem]
+  source:
+    url: https://github.com/QSCSoftwareEcosystem/FTQC
+    revision: 779216de8805ea0c1d473c640eaf17d6cbfa04e8
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
+    - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
+    - docs/evidence/ftqc-oci-smoke-2026-09-10.md
+    - docs/evidence/ftqc-upstream-suite-container-2026-09-11.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/ftqc/Containerfile
+      digest: sha256:11084d6a2952b5b28de94f724e514ffbe1c442b5ca27336ec2961f56f9bb1688
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:e1cdcb76528293c1b222bd7eda5ee841818acbb1986041f6052d226138d7319e
+      source_date_epoch: 1787879391
+    context_files:
+      - source: containers/operations/ftqc/entrypoint.py
+        destination: entrypoint.py
+        digest: sha256:c9c9b0a81749be853da22ca1a180f6b37d0a08bece7d98f7de1b9414ce366418
+        mode: "0755"
+      - source: containers/operations/ftqc/llvm-lit
+        destination: llvm-lit
+        digest: sha256:34e6971cdcb925bc35af6d98cd354d019ac0c87cfc471141d1e40d2fb82c4e2b
+        mode: "0755"
+    dependency_archives:
+      - filename: llvm-project-22.1.8.src.tar.xz
+        url: https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/llvm-project-22.1.8.src.tar.xz
+        digest: sha256:922f1817a0df7b1489272d18134ee0087a8b068828f87ac63b9861b1a9965888
+    builder:
+      reference: zhongruoyu/llvm-ports:22-jammy@sha256:eb7caed5cfe7e765bde2c5f8e7654ceb0a0282728ea1db4433fa00c4059dc7a9
+      digest: sha256:eb7caed5cfe7e765bde2c5f8e7654ceb0a0282728ea1db4433fa00c4059dc7a9
+    runtime_base:
+      reference: zhongruoyu/llvm-ports:22-jammy@sha256:eb7caed5cfe7e765bde2c5f8e7654ceb0a0282728ea1db4433fa00c4059dc7a9
+      digest: sha256:eb7caed5cfe7e765bde2c5f8e7654ceb0a0282728ea1db4433fa00c4059dc7a9
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-ftqc-prepare-iqm]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: circuit-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.qasm
+      outputs:
+        program: /outputs/program.mlir
+        circuit: /outputs/iqm-circuit.json
+        report: /outputs/preparation-report.json
+    parameters:
+      preparation:
+        argument: --preparation
+        type: string
+      function_name:
+        argument: --function-name
+        type: string
+  verification:
+    fixture:
+      path: containers/operations/ftqc/fixtures/bell.qasm
+      digest: sha256:2ac7cd20b39ec697de724938829129483b1df03f5452119a7f4586a533c78038
+      mount_path: /inputs/circuit.qasm
+    arguments: [--preparation, device, --function-name, circuit]
+    expected_outputs:
+      - path: /outputs/program.mlir
+        nonempty: true
+        text_contains: [ftqc.iqm_json]
+      - path: /outputs/iqm-circuit.json
+        nonempty: true
+        text_contains: ['"name": "circuit"', '"measure"']
+      - path: /outputs/preparation-report.json
+        nonempty: true
+        text_contains: ['"device_qubits": 2', '"status": "not-submitted"']
+    timeout_seconds: 120
+  release:
+    status: unpublished

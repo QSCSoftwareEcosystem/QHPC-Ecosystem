@@ -12,6 +12,25 @@ function shortArtifactType(value: string): string {
 }
 
 
+function boundaryTitle(data: BoundaryNodeData): string {
+  if (data.kind === "workflow-output") return `Output ${data.name}`;
+  switch (data.artifactType) {
+    case "qhpc.quantum-circuit@1":
+      return "Input Circuit";
+    case "qhpc.pauli-hamiltonian@1":
+      return "Input Hamiltonian";
+    case "qhpc.stim-circuit@1":
+      return "Input Stim Circuit";
+    case "qhpc.tsim-circuit@1":
+      return "Input TSim Circuit";
+    case "qhpc.glcb-circuit-spec@1":
+      return "Input GLCB Specification";
+    default:
+      return `Input ${data.name}`;
+  }
+}
+
+
 export function OperationCanvasNode({
   data,
   selected,
@@ -93,7 +112,7 @@ export function BoundaryCanvasNode({
         )}
       </span>
       <span>
-        <strong>{data.name}</strong>
+        <strong>{boundaryTitle(data)}</strong>
         <small>{shortArtifactType(data.artifactType)}</small>
       </span>
       {!input && (

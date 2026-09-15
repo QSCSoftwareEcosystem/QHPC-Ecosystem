@@ -57,12 +57,13 @@ def test_initial_hpc_acceptance_profile_covers_only_initial_components() -> None
         "ftprimitivebench",
         "lightstim",
         "qasmtrans",
+        "ftqc",
     }
     assert {
         case.component_id
         for case in report.cases
         if case.status == "runtime-pending"
-    } == {"tn-sim", "ftqc"}
+    } == {"tn-sim"}
     assert {
         case.component_id
         for case in report.cases
@@ -117,7 +118,7 @@ def test_hpc_acceptance_cli_reports_status_and_enforces_gate(
     assert cli.main(["hpc-acceptance", "status", str(PROFILE)]) == 0
     output = capsys.readouterr().out
     assert "HPC acceptance: initial@0.4.0 (planned)" in output
-    assert "Batch operations: 7 (oci-verified=5, runtime-pending=2)" in output
+    assert "Batch operations: 7 (oci-verified=6, runtime-pending=1)" in output
     assert "Ready: false" in output
 
     assert (

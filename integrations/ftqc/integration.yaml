@@ -3,7 +3,7 @@ kind: IntegrationScaffold
 metadata:
   id: ftqc
   name: FTQC
-  version: 0.3.0
+  version: 0.4.0
   project: compilation-tools
   role: operation-provider
   owners: [ftqc]
@@ -41,16 +41,17 @@ spec:
     - artifact-types/iqm-job-receipt-v1.yaml
     - artifact-types/iqm-raw-counts-v1.yaml
     - artifact-types/ftqc-logical-result-v1.yaml
+    - containers/operations/ftqc/runtime.yaml
   evidence:
     - docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md
     - docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md
     - docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md
+    - docs/evidence/ftqc-oci-smoke-2026-09-10.md
   production_runtime:
     status: deferred
     technology: apptainer
-    reason: A macOS arm64 development runtime is locally verified, but the production LLVM/MLIR 22 Linux runtime remains deferred pending license clearance and target acceptance.
+    reason: The checksum-pinned Linux/amd64 OCI preparation runtime is locally smoke-tested; immutable release publication, SIF conversion, supply-chain evidence, and deployment-target acceptance remain pending.
   blockers:
-    - Add explicit distributable license terms before publishing FTQC binaries or images.
-    - Pin and reproduce the LLVM/MLIR 22 toolchain and execute the upstream lit suite for a portable Linux runtime.
+    - Publish the checksum-pinned OCI image to an approved registry and retain the immutable release digest.
+    - Convert the released OCI image to SIF and retain required SBOM, signature, and attestation evidence.
     - Preserve a developer-approved IQM hardware run receipt, exact device identity, generated-circuit digest, physical layout, raw counts, and corrected logical result before promoting the one-logical-qubit demonstration to verified evidence.
-    - Publish immutable OCI and SIF artifacts with supply-chain and target acceptance evidence.

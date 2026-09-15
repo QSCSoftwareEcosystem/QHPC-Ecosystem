@@ -1,0 +1,28 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: openqevo-method-context
+  name: Inspect an OpenQEvo method context
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Retrieve the pinned applicability, limitations, complexity, references, and source provenance for an OpenQEvo evolution method.
+spec:
+  nodes:
+    - id: describe
+      operation:
+        capability: openqevo-library
+        version: 0.1.0
+        operation: describe-method
+      execution_target: local-development
+      execution_class: interactive-local
+      parameters:
+        method: trotter_s2
+  edges: []
+  inputs: {}
+  outputs:
+    context:
+      artifact_type: qhpc.evolution-method-context@1
+      from:
+        node: describe
+        port: context

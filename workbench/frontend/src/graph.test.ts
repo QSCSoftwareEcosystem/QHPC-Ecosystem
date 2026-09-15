@@ -6,6 +6,7 @@ import { parse } from "yaml";
 
 import {
   canvasToWorkflow,
+  createWorkflowInputCanvasNode,
   validateCanvas,
   validateConnection,
   workflowToCanvas,
@@ -18,6 +19,7 @@ const examples = [
   "ct-hw-qasm-analysis.yaml",
   "qec-memory-estimation.yaml",
   "openqevo-method-catalog.yaml",
+  "openqevo-dense-reference.yaml",
   "openqevo-trotter-synthesis.yaml",
   "nwqec-counts.yaml",
   "showcase-evolution-readiness.yaml",
@@ -97,5 +99,29 @@ describe("workflow canvas conversion", () => {
       message: "Workflow input circuit is disconnected.",
       nodeId: "input:circuit",
     });
+  });
+
+  it("creates a distinct, connectable workflow input block", () => {
+    const workflow = parse(
+      readFileSync(resolve(exampleRoot, "openqevo-trotter-synthesis.yaml"), "utf8"),
+    ) as Workflow;
+    const canvas = workflowToCanvas(workflow, undefined, []);
+    const input = createWorkflowInputCanvasNode(
+      "hamiltonian",
+      "qhpc.pauli-hamiltonian@1",
+      canvas.nodes,
+    );
+
+    expect(input).toMatchObject({
+      id: "input:hamiltonian_2",
+      type: "boundary",
+      data: {
+        kind: "workflow-input",
+        name: "hamiltonian_2",
+        artifactType: "qhpc.pauli-hamiltonian@1",
+        required: true,
+      },
+    });
+    expect(input.position.x).toBeGreaterThanOrEqual(24);
   });
 });

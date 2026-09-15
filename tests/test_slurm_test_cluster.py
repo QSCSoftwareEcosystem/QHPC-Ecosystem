@@ -10,6 +10,7 @@ from qhpc_ecosystem import cli
 from qhpc_ecosystem.contract import (
     ContractError,
     load_document,
+    validate_contract,
     validate_contract_data,
 )
 from qhpc_ecosystem.slurm import CommandResult
@@ -29,6 +30,14 @@ MANIFEST = (
     / "cluster.yaml"
 )
 REVISION = "8c8065cbebb475a512a66cabff9aceda5f2c57b0"
+QFW_MANIFEST = (
+    ROOT
+    / "infrastructure"
+    / "test-clusters"
+    / "qfw-slurm-cluster"
+    / "cluster.yaml"
+)
+QFW_REVISION = "eeb42e601383f3d33020f823d4a387ef30b9dd7d"
 
 
 def _prepared_checkout(path: Path) -> None:
@@ -42,6 +51,26 @@ def _prepared_checkout(path: Path) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((MANIFEST.parent / item["source"]).read_bytes())
     (path / "qhpc-build-ca.pem").write_bytes(b"")
+
+
+def test_qfw_slurm_source_intake_is_pinned_and_non_executable() -> None:
+    document = validate_contract("slurm-test-cluster", QFW_MANIFEST)
+
+    assert document["metadata"]["status"] == "planned"
+    assert document["spec"]["scope"] == "development-only"
+    assert document["spec"]["production_evidence"] is False
+    assert document["spec"]["source"] == {
+        "repository": "https://github.com/openQSE/QFw-SLURM-Cluster.git",
+        "branch": "main",
+        "revision": QFW_REVISION,
+        "license": "MIT",
+    }
+    assert "slurmrestd" not in document["spec"]["compose"]["services"]
+    assert document["spec"]["security"]["start_rest_api"] is False
+    assert any(
+        reference.endswith("qfw-slurm-cluster-source-audit-2026-09-14.md")
+        for reference in document["metadata"]["evidence"]
+    )
 
 
 def test_manifest_rejects_rest_service_and_unsafe_source_paths() -> None:
@@ -162,7 +191,7 @@ def test_development_target_loads_all_verified_oci_runtime_bindings(
     assert {runtime["metadata"]["id"] for runtime in runtimes} == {
         image["runtime_id"] for image in cluster.runtime_images
     }
-    assert len(runtimes) == 5
+    assert len(runtimes) == 13
 
 
 def test_development_target_verifies_local_image_ids(tmp_path: Path) -> None:
@@ -182,8 +211,36 @@ def test_development_target_verifies_local_image_ids(tmp_path: Path) -> None:
     cluster = SlurmDockerCluster.from_manifest(MANIFEST, checkout, runner=run)
     cluster.verify_runtime_images()
 
-    assert len(commands) == 5
+    assert len(commands) == 13
     assert all(command[:3] == ["docker", "image", "inspect"] for command in commands)
+
+
+def test_local_startup_verifies_only_required_runtime_images(tmp_path: Path) -> None:
+    checkout = tmp_path / "cluster"
+    (checkout / "shared-dir").mkdir(parents=True)
+    document = load_document(MANIFEST)
+    expected = {
+        image["local_reference"]: image["digest"]
+        for image in document["spec"]["runtime_images"]
+    }
+    commands: list[list[str]] = []
+
+    def run(command):
+        command = list(command)
+        commands.append(command)
+        return CommandResult(0, expected[command[-1]] + "\n")
+
+    cluster = SlurmDockerCluster.from_manifest(MANIFEST, checkout, runner=run)
+    cluster.verify_runtime_images(required_on_start_only=True)
+
+    required = [
+        image
+        for image in document["spec"]["runtime_images"]
+        if image.get("required_on_start", True)
+    ]
+    assert len(required) == 5
+    assert len(commands) == len(required)
+    assert all(command[-1] in {image["local_reference"] for image in required} for command in commands)
 
 
 def test_smoke_exercises_completion_accounting_and_cancellation(

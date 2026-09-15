@@ -16,9 +16,13 @@ from qhpc_ecosystem.local_release import (
     LocalPaths,
     LocalReleaseError,
     LocalStackConfig,
+    _chatqec_agent_input_digest,
+    default_ftqc_build_inputs,
     diagnostic_report,
+    ensure_ftqc_oci_runtime,
     local_status,
     prepare_local_database,
+    remove_stale_chatqec_agent_container,
     require_storage_capacity,
     state_document,
     stop_local,
@@ -44,6 +48,7 @@ def config(**overrides) -> LocalStackConfig:
         "workbench_port": 18080,
         "api_port": 18081,
         "assistant_port": 18082,
+        "ecosystem_execution_enabled": False,
     }
     values.update(overrides)
     return LocalStackConfig(**values)
@@ -134,6 +139,148 @@ def test_config_and_state_files_contain_no_runtime_identity_token(tmp_path: Path
     assert "token" not in config_text.lower()
     assert "token" not in state_text.lower()
     assert json.loads(state_text)["registry_digest"].startswith("sha256:")
+
+
+def test_iqm_worker_configuration_requires_a_credential_free_https_endpoint() -> None:
+    value = config(
+        assistant_enabled=False,
+        iqm_worker_enabled=True,
+        iqm_endpoint="https://qccsw.ccs.ornl.gov",
+        iqm_device_alias="iqm-qpu-1",
+        iqm_token="not-persisted",
+    )
+
+    value.validate()
+    persisted = value.as_dict()
+    assert "token" not in json.dumps(persisted).lower()
+
+    with pytest.raises(LocalReleaseError, match="credential-free HTTPS"):
+        config(
+            assistant_enabled=False,
+            iqm_worker_enabled=True,
+            iqm_endpoint="https://qccsw.ccs.ornl.gov/?credential=never",
+            iqm_device_alias="iqm-qpu-1",
+        ).validate()
+
+
+def test_ftqc_runtime_preflight_accepts_only_the_admitted_image(
+    tmp_path: Path, monkeypatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path)
+    monkeypatch.setattr(local_release, "find_oci_builder", lambda: "docker")
+    monkeypatch.setattr(
+        local_release,
+        "_ftqc_image_id",
+        lambda _builder: local_release.FTQC_OCI_DIGEST,
+    )
+
+    assert ensure_ftqc_oci_runtime(config(), paths) == "available"
+
+
+def test_ftqc_runtime_build_inputs_are_discovered_from_a_source_workspace(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "QHPC-Ecosystem"
+    catalog = workspace / "ecosystem.yaml"
+    manifest = workspace / "containers" / "operations" / "ftqc" / "runtime.yaml"
+    source = tmp_path / "FTQC"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text("contract", encoding="utf-8")
+    catalog.write_text("catalog", encoding="utf-8")
+    source.mkdir()
+
+    assert default_ftqc_build_inputs(catalog) == (str(source), str(manifest))
+
+
+def test_ftqc_runtime_preflight_builds_from_the_pinned_contract(
+    tmp_path: Path, monkeypatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path)
+    paths.ensure()
+    source = tmp_path / "FTQC"
+    source.mkdir()
+    manifest = tmp_path / "runtime.yaml"
+    manifest.write_text("contract", encoding="utf-8")
+    dependency_cache = tmp_path / "llvm-source-cache"
+    dependency_cache.mkdir()
+    value = config(
+        ftqc_source_checkout=str(source),
+        ftqc_runtime_manifest=str(manifest),
+        ftqc_dependency_cache=str(dependency_cache),
+    )
+    calls: list[str] = []
+    requested_caches: list[str | None] = []
+    monkeypatch.setattr(local_release, "find_oci_builder", lambda: "docker")
+    monkeypatch.setattr(local_release, "_ftqc_image_id", lambda _builder: None)
+    monkeypatch.setattr(
+        local_release,
+        "verify_runtime_definition",
+        lambda _manifest: {"runtime": "pinned"},
+    )
+    monkeypatch.setattr(
+        local_release,
+        "prepare_build_context",
+        lambda _manifest, _source, context, *, dependency_cache: (
+            requested_caches.append(dependency_cache) or SimpleNamespace(path=context)
+        ),
+    )
+
+    def build(document, context, tag, *, builder):
+        calls.extend((str(document), str(context), tag, builder))
+        return SimpleNamespace(local_id=local_release.FTQC_OCI_DIGEST)
+
+    monkeypatch.setattr(local_release, "build_oci_image", build)
+
+    assert ensure_ftqc_oci_runtime(value, paths) == "built"
+    assert requested_caches == [str(dependency_cache)]
+    assert calls[-2:] == ["qhpc/ftqc:779216de-linux-amd64", "docker"]
+
+
+def test_ftqc_runtime_preflight_explains_how_to_build_a_missing_image(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(local_release, "find_oci_builder", lambda: "docker")
+    monkeypatch.setattr(local_release, "_ftqc_image_id", lambda _builder: None)
+
+    with pytest.raises(LocalReleaseError, match="--ftqc-source-checkout"):
+        ensure_ftqc_oci_runtime(config(), LocalPaths.discover(tmp_path))
+
+
+def test_chatqec_agent_input_digest_changes_when_a_copied_asset_changes(
+    tmp_path: Path,
+) -> None:
+    for relative in local_release._CHATQEC_AGENT_INPUTS:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+    canonical = tmp_path / "src/qhpc_ecosystem/local_assets/chatqec/knowledge/canonical"
+    canonical.mkdir(parents=True)
+    page = canonical / "surface-code.md"
+    page.write_text("first revision", encoding="utf-8")
+
+    first = _chatqec_agent_input_digest(tmp_path)
+    page.write_text("second revision", encoding="utf-8")
+
+    assert _chatqec_agent_input_digest(tmp_path) != first
+
+
+def test_stale_chatqec_cleanup_targets_only_the_configured_eqo_name(
+    monkeypatch,
+) -> None:
+    commands: list[tuple[str, ...]] = []
+
+    def runner(command, **kwargs):
+        assert kwargs["check"] is False
+        assert kwargs["timeout"] == 20
+        commands.append(tuple(command))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(local_release, "find_oci_builder", lambda: "docker")
+    monkeypatch.setattr(local_release.subprocess, "run", runner)
+
+    assert remove_stale_chatqec_agent_container(config(assistant_port=18082)) is True
+    assert commands == [("docker", "rm", "--force", "eqo-chatqec-18082")]
+    assert remove_stale_chatqec_agent_container(config(assistant_enabled=False)) is False
 
 
 def test_status_reports_health_and_compatible_worker(
@@ -227,6 +374,34 @@ def test_supervisor_command_uses_the_requested_startup_timeout(tmp_path: Path) -
     )
 
     assert command[command.index("--startup-timeout") + 1] == "75.5"
+
+
+def test_supervisor_command_can_enable_the_safe_iqm_simulation(tmp_path: Path) -> None:
+    command = supervisor_command(
+        config(assistant_enabled=False, iqm_simulation_enabled=True),
+        LocalPaths.discover(tmp_path),
+    )
+
+    assert "--iqm-simulation" in command
+
+
+def test_supervisor_command_passes_nonsecret_iqm_configuration_only(
+    tmp_path: Path,
+) -> None:
+    command = supervisor_command(
+        config(
+            assistant_enabled=False,
+            iqm_worker_enabled=True,
+            iqm_endpoint="https://qccsw.ccs.ornl.gov",
+            iqm_device_alias="iqm-qpu-1",
+            iqm_token="do-not-place-in-arguments",
+        ),
+        LocalPaths.discover(tmp_path),
+    )
+
+    assert "--start-iqm-worker" in command
+    assert command[command.index("--iqm-device-alias") + 1] == "iqm-qpu-1"
+    assert "do-not-place-in-arguments" not in command
 
 
 def test_supervisor_launches_services_before_waiting_for_api(
@@ -327,6 +502,37 @@ def test_supervisor_identity_uses_untruncated_process_command(monkeypatch) -> No
 def test_cli_local_status_uses_portable_home(tmp_path: Path, capsys) -> None:
     assert cli.main(["local", "status", "--home", str(tmp_path)]) == 0
     assert "EQO Local: stopped" in capsys.readouterr().out
+
+
+def test_cli_local_iqm_configuration_scopes_terminal_credential(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    captured: list[LocalStackConfig] = []
+    monkeypatch.setenv("IQM_TOKEN", "terminal-secret")
+    monkeypatch.setattr(
+        local_release,
+        "launch_local",
+        lambda value, *_args, **_kwargs: captured.append(value)
+        or {"status": "ready"},
+    )
+
+    assert cli.main(
+        [
+            "local",
+            "up",
+            "--home",
+            str(tmp_path),
+            "--no-assistant",
+            "--start-iqm-worker",
+            "--iqm-endpoint",
+            "https://qccsw.ccs.ornl.gov",
+            "--iqm-device-alias",
+            "iqm-qpu-1",
+        ]
+    ) == 0
+
+    assert captured[0].iqm_token == "terminal-secret"
+    assert "terminal-secret" not in capsys.readouterr().out
 
 
 def test_diagnostic_report_is_portable_and_secret_free(tmp_path: Path) -> None:

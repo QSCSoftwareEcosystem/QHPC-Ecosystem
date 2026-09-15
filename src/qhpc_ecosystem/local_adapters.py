@@ -6,21 +6,57 @@ import importlib
 import json
 import math
 import re
-import sys
+import shutil
 import subprocess
+import sys
+from xml.etree import ElementTree
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+import numpy as np
+
 from .engine import ArtifactResult, FunctionRunner, TaskRequest, TaskResult
 from .local_runtime import resolve_native_runtime, resolve_wheel_runtime
-from .project_adapters import prepare_ftqc_iqm
 
 
 OPENQEVO_CONTEXT_ROOT = Path(__file__).with_name("openqevo_context")
 OPENQEVO_REPOSITORY = "https://github.com/QSCSoftwareThrust/OpenQEvo"
-OPENQEVO_REVISION = "250550a3992bd57c032d4066843c2b03055c4b9d"
-FTQC_REVISION = "779216de8805ea0c1d473c640eaf17d6cbfa04e8"
+OPENQEVO_REVISION = "7ad8ef14b9730adb200d3d0b001ec93730ec360a"
+OPENQEVO_DENSE_REFERENCE_METHODS = {
+    "exact",
+    "trotter_s1",
+    "trotter_s2",
+    "qdrift",
+    "krylov",
+    "interaction_picture",
+    "annealing",
+}
+OPENQEVO_DENSE_REFERENCE_MAX_QUBITS = 8
+FTQC_OCI_DIGEST = "sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96"
+FTQC_OCI_REFERENCE = f"docker://qhpc/ftqc@{FTQC_OCI_DIGEST}"
+FTQC_OCI_IMAGE = "qhpc/ftqc:779216de-linux-amd64"
+FTQC_OCI_PLATFORM = "linux/amd64"
+CHATQEC_QEC_TOOLS_OCI_DIGEST = (
+    "sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2"
+)
+CHATQEC_QEC_TOOLS_OCI_REFERENCE = (
+    f"docker://qhpc/chatqec-qec-tools@{CHATQEC_QEC_TOOLS_OCI_DIGEST}"
+)
+CHATQEC_QEC_TOOLS_OCI_IMAGE = "qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2"
+CHATQEC_QEC_TOOLS_OCI_PLATFORM = "linux/amd64"
+_MAX_CHATQEC_SVG_BYTES = 10 * 1024 * 1024
+_FORBIDDEN_SVG_ELEMENTS = {
+    "animate",
+    "animateMotion",
+    "animateTransform",
+    "embed",
+    "foreignObject",
+    "iframe",
+    "object",
+    "script",
+    "set",
+}
 
 
 def _load_openqevo(root: Path, request: TaskRequest) -> Any:
@@ -41,6 +77,209 @@ def _input_file(request: TaskRequest, port: str) -> Path:
     if not path.is_file():
         raise RuntimeError(f"{port} artifact not found: {path}")
     return path
+
+
+def _ftqc_container_parameters(request: TaskRequest) -> tuple[str, str]:
+    """Validate the only two caller-controlled FTQC container arguments."""
+
+    permitted = {"preparation", "function_name"}
+    unknown = sorted(
+        str(name) for name in request.parameters if name not in permitted
+    )
+    if unknown:
+        raise RuntimeError(f"unsupported FTQC parameters: {', '.join(unknown)}")
+    preparation = request.parameters.get("preparation", "device")
+    if preparation not in {"device", "steane-logical"}:
+        raise RuntimeError("FTQC preparation must be device or steane-logical")
+    function_name = request.parameters.get("function_name", "circuit")
+    if (
+        not isinstance(function_name, str)
+        or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", function_name) is None
+        or len(function_name.encode("ascii")) > 63
+    ):
+        raise RuntimeError(
+            "FTQC function_name must be an MLIR-compatible identifier of at most "
+            "63 bytes"
+        )
+    return preparation, function_name
+
+
+def _ftqc_container_engine(request: TaskRequest) -> str:
+    """Admit the exact locally built FTQC OCI image before it is executed."""
+
+    if request.runtime_reference != FTQC_OCI_REFERENCE:
+        raise RuntimeError("FTQC preparation requires the admitted OCI runtime")
+    engine = shutil.which("docker") or shutil.which("podman")
+    if engine is None:
+        raise RuntimeError(
+            "FTQC preparation requires Docker or Podman; build the admitted OCI runtime first"
+        )
+    try:
+        inspected = subprocess.run(
+            [engine, "image", "inspect", "--format", "{{.Id}}", FTQC_OCI_IMAGE],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise RuntimeError("FTQC OCI runtime inspection failed") from error
+    image_id = (inspected.stdout or "").strip()
+    if inspected.returncode != 0 or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+        raise RuntimeError(
+            "FTQC OCI runtime is not installed; run the documented operation-runtime build"
+        )
+    if image_id != request.runtime_digest:
+        raise RuntimeError(
+            "FTQC OCI runtime digest does not match the admitted registry"
+        )
+    return engine
+
+
+def _ftqc_container_output(directory: Path, name: str) -> Path:
+    path = directory / name
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"FTQC OCI runtime did not produce required output: {name}")
+    return path
+
+
+def _chatqec_qec_tools_container_engine(request: TaskRequest) -> str:
+    """Admit only the reviewed ChatQEC QEC-tools image for a local run."""
+
+    if (
+        request.runtime_reference != CHATQEC_QEC_TOOLS_OCI_REFERENCE
+        or request.runtime_digest != CHATQEC_QEC_TOOLS_OCI_DIGEST
+    ):
+        raise RuntimeError("ChatQEC Stim operations require the admitted OCI runtime")
+    engine = shutil.which("docker") or shutil.which("podman")
+    if engine is None:
+        raise RuntimeError(
+            "ChatQEC Stim operations require Docker or Podman and the admitted OCI runtime"
+        )
+    try:
+        inspected = subprocess.run(
+            [
+                engine,
+                "image",
+                "inspect",
+                "--format",
+                "{{.Id}}",
+                CHATQEC_QEC_TOOLS_OCI_IMAGE,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise RuntimeError("ChatQEC QEC-tools OCI runtime inspection failed") from error
+    image_id = (inspected.stdout or "").strip()
+    if inspected.returncode != 0 or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+        raise RuntimeError(
+            "ChatQEC QEC-tools OCI runtime is not installed; run the documented operation-runtime build"
+        )
+    if image_id != CHATQEC_QEC_TOOLS_OCI_DIGEST:
+        raise RuntimeError(
+            "ChatQEC QEC-tools OCI runtime digest does not match the admitted registry"
+        )
+    return engine
+
+
+def _chatqec_stim_shots(request: TaskRequest) -> int:
+    unknown = sorted(str(name) for name in request.parameters if name != "shots")
+    if unknown:
+        raise RuntimeError("unsupported ChatQEC Stim parameters: " + ", ".join(unknown))
+    shots = request.parameters.get("shots", 1024)
+    if isinstance(shots, bool) or not isinstance(shots, int) or not 1 <= shots <= 1_000_000:
+        raise RuntimeError("ChatQEC Stim shots must be an integer from 1 to 1000000")
+    return shots
+
+
+def _chatqec_no_parameters(request: TaskRequest) -> None:
+    if request.parameters:
+        unknown = ", ".join(sorted(str(name) for name in request.parameters))
+        raise RuntimeError("ChatQEC Stim diagram accepts no parameters: " + unknown)
+
+
+def _chatqec_container_output(directory: Path, name: str) -> Path:
+    path = directory / name
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(
+            f"ChatQEC QEC-tools OCI runtime did not produce required output: {name}"
+        )
+    return path
+
+
+def _validated_chatqec_svg(path: Path) -> None:
+    if path.stat().st_size > _MAX_CHATQEC_SVG_BYTES:
+        raise RuntimeError("ChatQEC Stim diagram exceeds the 10 MiB artifact limit")
+    try:
+        root = ElementTree.fromstring(path.read_bytes())
+    except ElementTree.ParseError as error:
+        raise RuntimeError("ChatQEC Stim diagram is not valid SVG XML") from error
+    if root.tag.rsplit("}", 1)[-1] != "svg":
+        raise RuntimeError("ChatQEC Stim diagram did not produce an SVG root element")
+    for element in root.iter():
+        if element.tag.rsplit("}", 1)[-1] in _FORBIDDEN_SVG_ELEMENTS:
+            raise RuntimeError("ChatQEC Stim diagram contains an active SVG element")
+        for attribute, value in element.attrib.items():
+            name = attribute.rsplit("}", 1)[-1].lower()
+            normalized = value.strip().lower()
+            if name.startswith("on") or normalized.startswith("javascript:"):
+                raise RuntimeError("ChatQEC Stim diagram contains active SVG content")
+            if name == "href" and ":" in normalized:
+                raise RuntimeError("ChatQEC Stim diagram contains an external SVG reference")
+
+
+def _run_chatqec_stim_container(
+    request: TaskRequest,
+    *,
+    tool: str,
+    arguments: tuple[str, ...] = (),
+) -> Path:
+    engine = _chatqec_qec_tools_container_engine(request)
+    input_directory = request.work_directory / "chatqec-stim-input"
+    output_directory = request.work_directory / "chatqec-stim-output"
+    if input_directory.exists() or output_directory.exists():
+        raise RuntimeError("ChatQEC OCI runtime staging directory already exists")
+    input_directory.mkdir()
+    output_directory.mkdir()
+    output_directory.chmod(0o777)
+    shutil.copyfile(_input_file(request, "circuit"), input_directory / "circuit.stim")
+    command = [
+        engine,
+        "run",
+        "--rm",
+        "--platform",
+        CHATQEC_QEC_TOOLS_OCI_PLATFORM,
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--tmpfs",
+        "/tmp:rw,noexec,nosuid,size=16m",
+        "--mount",
+        f"type=bind,src={input_directory},dst=/inputs,readonly",
+        "--mount",
+        f"type=bind,src={output_directory},dst=/outputs",
+        CHATQEC_QEC_TOOLS_OCI_IMAGE,
+        tool,
+        *arguments,
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise RuntimeError("ChatQEC Stim OCI runtime could not be started") from error
+    if completed.returncode != 0:
+        raise RuntimeError("ChatQEC Stim OCI runtime failed")
+    return output_directory
 
 
 def _method_details(openqevo: Any, method: str) -> dict[str, str]:
@@ -114,6 +353,62 @@ def _pauli_hamiltonian(path: Path) -> dict[str, Any]:
             {"pauli": pauli, "coefficient": float(coefficient)}
         )
     return {"qubits": qubits, "terms": normalized}
+
+
+def _openqevo_dense_hamiltonian(openqevo: Any, payload: dict[str, Any]) -> Any:
+    """Convert the EQO JSON input shape into OpenQEvo's canonical contract."""
+
+    qubits = int(payload["qubits"])
+    if qubits > OPENQEVO_DENSE_REFERENCE_MAX_QUBITS:
+        raise RuntimeError(
+            "OpenQEvo dense-reference evaluation is limited to "
+            f"{OPENQEVO_DENSE_REFERENCE_MAX_QUBITS} qubits"
+        )
+    try:
+        terms = tuple(
+            openqevo.PauliTerm(
+                coefficient=term["coefficient"],
+                pauli_word=term["pauli"],
+            )
+            for term in payload["terms"]
+        )
+        return openqevo.PauliHamiltonian(
+            terms=terms,
+            identifier="eqo-supplied-hamiltonian",
+            source="EQO local-development input",
+        )
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(f"OpenQEvo rejected the Pauli Hamiltonian: {error}") from error
+
+
+def _positive_integer_parameter(
+    parameters: dict[str, Any], name: str, *, maximum: int
+) -> int:
+    value = parameters.get(name)
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= maximum:
+        raise RuntimeError(f"{name} must be an integer from 1 to {maximum}")
+    return value
+
+
+def _nonnegative_integer_parameter(
+    parameters: dict[str, Any], name: str, *, maximum: int
+) -> int:
+    value = parameters.get(name)
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= maximum:
+        raise RuntimeError(f"{name} must be an integer from 0 to {maximum}")
+    return value
+
+
+def _positive_float_parameter(
+    parameters: dict[str, Any], name: str, *, maximum: float
+) -> float:
+    value = parameters.get(name)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RuntimeError(f"{name} must be a finite positive number")
+    normalized = float(value)
+    if not math.isfinite(normalized) or not 0 < normalized <= maximum:
+        raise RuntimeError(f"{name} must be a finite positive number up to {maximum}")
+    return normalized
 
 
 def _synthesize_qiskit_trotter(
@@ -226,6 +521,105 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
 
     runner.register(
         "openqevo-library", "describe-method", describe_openqevo_method
+    )
+
+    def evaluate_openqevo_dense_reference(request: TaskRequest) -> TaskResult:
+        """Run a deliberately bounded dense reference and preserve its outputs."""
+
+        unknown = sorted(
+            str(name)
+            for name in request.parameters
+            if name
+            not in {
+                "method",
+                "evolution_time",
+                "steps",
+                "krylov_dim",
+                "tolerance",
+                "random_seed",
+            }
+        )
+        if unknown:
+            raise RuntimeError(
+                "unsupported OpenQEvo dense-reference parameters: "
+                + ", ".join(unknown)
+            )
+        openqevo = _load_openqevo(root, request)
+        method = str(request.parameters.get("method", "krylov"))
+        if method not in OPENQEVO_DENSE_REFERENCE_METHODS:
+            available = ", ".join(sorted(OPENQEVO_DENSE_REFERENCE_METHODS))
+            raise RuntimeError(
+                f"OpenQEvo dense-reference method {method!r} is unavailable; "
+                f"choose one of: {available}"
+            )
+        _method_details(openqevo, method)
+        evolution_time = _positive_float_parameter(
+            request.parameters, "evolution_time", maximum=1_000_000.0
+        )
+        hamiltonian = _openqevo_dense_hamiltonian(
+            openqevo, _pauli_hamiltonian(_input_file(request, "hamiltonian"))
+        )
+        method_parameters: dict[str, Any] = {}
+        if method == "krylov":
+            method_parameters = {
+                "krylov_dim": _positive_integer_parameter(
+                    request.parameters, "krylov_dim", maximum=256
+                ),
+                "tolerance": _positive_float_parameter(
+                    request.parameters, "tolerance", maximum=1.0
+                ),
+            }
+        elif method in {
+            "trotter_s1",
+            "trotter_s2",
+            "qdrift",
+            "interaction_picture",
+            "annealing",
+        }:
+            method_parameters = {
+                "steps": _positive_integer_parameter(
+                    request.parameters, "steps", maximum=4096
+                )
+            }
+            if method == "qdrift":
+                method_parameters["seed"] = _nonnegative_integer_parameter(
+                    request.parameters, "random_seed", maximum=2**32 - 1
+                )
+
+        result = openqevo.get(method).run(
+            hamiltonian, evolution_time, **method_parameters
+        )
+        unitary = request.work_directory / "evolution-unitary.npy"
+        np.save(unitary, result.unitary, allow_pickle=False)
+        document = result.to_metadata()
+        document["parameters"] = {
+            **document["parameters"],
+            "eqo_source_revision": OPENQEVO_REVISION,
+        }
+        report = request.work_directory / "evolution-result.json"
+        report.write_text(
+            json.dumps(document, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        return TaskResult(
+            {
+                "result": ArtifactResult.from_path(
+                    request.output_types["result"], report
+                ),
+                "unitary": ArtifactResult.from_path(
+                    request.output_types["unitary"], unitary
+                ),
+            },
+            (
+                f"OpenQEvo evaluated {method} on {hamiltonian.n_qubits} qubits "
+                "as a bounded dense reference"
+            ),
+        )
+
+    runner.register(
+        "openqevo-library",
+        "evaluate-dense-reference",
+        evaluate_openqevo_dense_reference,
     )
 
     def synthesize_openqevo_evolution(request: TaskRequest) -> TaskResult:
@@ -424,36 +818,71 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
     runner.register("stabsim-simulator", "analyze-metrics", analyze_stabsim_metrics)
 
     def prepare_ftqc_iqm_circuit(request: TaskRequest) -> TaskResult:
-        runtime = resolve_native_runtime(
-            root, request.runtime_reference, request.runtime_digest
+        preparation, function_name = _ftqc_container_parameters(request)
+        engine = _ftqc_container_engine(request)
+        input_directory = request.work_directory / "ftqc-container-input"
+        output_directory = request.work_directory / "ftqc-container-output"
+        if input_directory.exists() or output_directory.exists():
+            raise RuntimeError("FTQC OCI runtime staging directory already exists")
+        input_directory.mkdir()
+        output_directory.mkdir()
+        output_directory.chmod(0o777)
+        shutil.copyfile(
+            _input_file(request, "circuit"), input_directory / "circuit.qasm"
         )
-        libraries = sorted(
-            path
-            for path in (runtime / "lib").glob("libftqc.*")
-            if path.is_file() and path.suffix in {".dylib", ".so", ".dll"}
-        )
-        if len(libraries) != 1:
-            raise RuntimeError(
-                "FTQC local runtime must contain exactly one compiler library"
+        command = [
+            engine,
+            "run",
+            "--rm",
+            "--platform",
+            FTQC_OCI_PLATFORM,
+            "--network",
+            "none",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--tmpfs",
+            "/tmp:rw,noexec,nosuid,size=16m",
+            "--mount",
+            f"type=bind,src={input_directory},dst=/inputs,readonly",
+            "--mount",
+            f"type=bind,src={output_directory},dst=/outputs",
+            FTQC_OCI_IMAGE,
+            "--preparation",
+            preparation,
+            "--function-name",
+            function_name,
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
             )
-        result = prepare_ftqc_iqm(
-            libraries[0],
-            _input_file(request, "circuit"),
-            request.parameters,
-            source_revision=FTQC_REVISION,
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise RuntimeError("FTQC OCI preparation could not be started") from error
+        if completed.returncode != 0:
+            raise RuntimeError("FTQC OCI preparation failed")
+        program = _ftqc_container_output(output_directory, "program.mlir")
+        iqm_circuit = _ftqc_container_output(
+            output_directory, "iqm-circuit.json"
         )
-        program = request.work_directory / "program.mlir"
-        program.write_text(result["program"], encoding="utf-8")
-        iqm_circuit = request.work_directory / "iqm-circuit.json"
-        iqm_circuit.write_text(
-            json.dumps(result["circuit"], indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+        report = _ftqc_container_output(
+            output_directory, "preparation-report.json"
         )
-        report = request.work_directory / "preparation-report.json"
-        report.write_text(
-            json.dumps(result["report"], indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        try:
+            report_data = json.loads(report.read_text(encoding="utf-8"))
+            device_qubits = report_data["device_qubits"]
+        except (KeyError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise RuntimeError(
+                "FTQC OCI runtime produced an invalid preparation report"
+            ) from error
+        if isinstance(device_qubits, bool) or not isinstance(device_qubits, int):
+            raise RuntimeError("FTQC OCI runtime reported an invalid device width")
         return TaskResult(
             {
                 "program": ArtifactResult.from_path(
@@ -468,10 +897,62 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
             },
             (
                 "FTQC prepared "
-                f"{result['report']['device_qubits']} IQM loci; "
+                f"{device_qubits} IQM loci in the admitted OCI runtime; "
                 "routing and hardware submission were not performed"
             ),
         )
 
     runner.register("ftqc-compiler", "prepare-iqm", prepare_ftqc_iqm_circuit)
+
+    def simulate_chatqec_stim_circuit(request: TaskRequest) -> TaskResult:
+        shots = _chatqec_stim_shots(request)
+        output_directory = _run_chatqec_stim_container(
+            request,
+            tool="stim-simulate",
+            arguments=("--shots", str(shots)),
+        )
+        samples = _chatqec_container_output(output_directory, "samples.json")
+        try:
+            payload = json.loads(samples.read_text(encoding="utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise RuntimeError(
+                "ChatQEC Stim OCI runtime produced invalid simulation samples"
+            ) from error
+        if (
+            not isinstance(payload, dict)
+            or payload.get("schema") != "qhpc.stim-simulation-samples.v1"
+            or payload.get("shots") != shots
+        ):
+            raise RuntimeError(
+                "ChatQEC Stim OCI runtime produced an invalid simulation result"
+            )
+        return TaskResult(
+            {
+                "samples": ArtifactResult.from_path(
+                    request.output_types["samples"], samples
+                )
+            },
+            f"ChatQEC Stim sampled {shots} shots in the admitted OCI runtime",
+        )
+
+    runner.register("chatqec-qec-tools", "stim-simulate", simulate_chatqec_stim_circuit)
+
+    def render_chatqec_stim_diagram(request: TaskRequest) -> TaskResult:
+        _chatqec_no_parameters(request)
+        output_directory = _run_chatqec_stim_container(
+            request,
+            tool="stim-diagram",
+        )
+        diagram = _chatqec_container_output(output_directory, "diagram.svg")
+        _validated_chatqec_svg(diagram)
+        return TaskResult(
+            {
+                "diagram": ArtifactResult.from_path(
+                    request.output_types["diagram"], diagram
+                )
+            },
+            "ChatQEC Stim rendered a validated SVG diagram in the admitted OCI runtime",
+        )
+
+    runner.register("chatqec-qec-tools", "stim-diagram", render_chatqec_stim_diagram)
     return runner

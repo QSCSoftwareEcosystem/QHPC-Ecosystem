@@ -1,0 +1,141 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: chatqec-glcb-visualize-url-linux-amd64
+  name: ChatQEC GLCB visualization-link Linux runtime
+  version: 0.1.0
+  component: chatqec-mcp-tools
+  capability: chatqec-qec-tools
+  operation: glcb-visualize-url
+  project: agentic-software
+  owners: [chatqec]
+  source:
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+    - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+    - .development/CHATQEC_PLAN.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/chatqec-mcp-tools/Containerfile
+      digest: sha256:306e0a9f155c278f719135f38b8abd87f955f0212c90d0e966799a1fcc9c784c
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:7fb55933bdcf668b141358b45ab0940e2b1904d2c0ba49431421af0aff274692
+      source_date_epoch: 1785324021
+    context_files:
+      - source: containers/operations/chatqec-mcp-tools/entrypoint.py
+        destination: entrypoint.py
+        digest: sha256:c6d41a40f93f35a9679cdcabc9de297d0ecc88b4cc5dfeaca894a6abd46ef32e
+        mode: "0755"
+    dependency_archives:
+      - filename: annotated_types-0.8.0-py3-none-any.whl
+        url: https://pypi.org/project/annotated-types/0.8.0/
+        digest: sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
+      - filename: contourpy-1.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/contourpy/1.3.3/
+        digest: sha256:51e79c1f7470158e838808d4a996fa9bac72c498e93d8ebe5119bc1e6becb0db
+      - filename: cycler-0.12.1-py3-none-any.whl
+        url: https://pypi.org/project/cycler/0.12.1/
+        digest: sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30
+      - filename: fonttools-4.63.0-py3-none-any.whl
+        url: https://pypi.org/project/fonttools/4.63.0/
+        digest: sha256:445af2eab030a16b9171ea8bdda7ebf7d96bda2df88ee182a464252f6e05e20d
+      - filename: kiwisolver-1.5.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/kiwisolver/1.5.0/
+        digest: sha256:2517e24d7315eb51c10664cdb865195df38ab74456c677df67bb47f12d088a27
+      - filename: matplotlib-3.10.9-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/matplotlib/3.10.9/
+        digest: sha256:8e436d155fa8a3399dc62683f8f5d0e2e50d25d0144a73edd73f82eec8f4abfb
+      - filename: numpy-2.2.6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/numpy/2.2.6/
+        digest: sha256:ba10f8411898fc418a521833e014a77d3ca01c15b0c6cdcce6a0d2897e6dbbdf
+      - filename: networkx-3.6.1-py3-none-any.whl
+        url: https://pypi.org/project/networkx/3.6.1/
+        digest: sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762
+      - filename: packaging-26.2-py3-none-any.whl
+        url: https://pypi.org/project/packaging/26.2/
+        digest: sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e
+      - filename: pydantic-2.13.4-py3-none-any.whl
+        url: https://pypi.org/project/pydantic/2.13.4/
+        digest: sha256:45a282cde31d808236fd7ea9d919b128653c8b38b393d1c4ab335c62924d9aba
+      - filename: pydantic_core-2.46.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/pydantic/2.46.4/
+        digest: sha256:f9fa868638bf362d3d138ea55829cefb3d5f4b0d7f142234382a15e2485dbec4
+      - filename: pymatching-2.4.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/PyMatching/2.4.0/
+        digest: sha256:ac25684a41ab859cbb0f2ea34d86485aa89d4d22f97df684f9579c167c7d560a
+      - filename: pillow-12.2.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+        url: https://pypi.org/project/pillow/12.2.0/
+        digest: sha256:8bd7903a5f2a4545f6fd5935c90058b89d30045568985a71c79f5fd6edf9b91e
+      - filename: pyparsing-3.3.2-py3-none-any.whl
+        url: https://pypi.org/project/pyparsing/3.3.2/
+        digest: sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d
+      - filename: python_dateutil-2.9.0.post0-py2.py3-none-any.whl
+        url: https://pypi.org/project/python-dateutil/2.9.0.post0/
+        digest: sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
+      - filename: scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/scipy/1.17.1/
+        digest: sha256:43af8d1f3bea642559019edfe64e9b11192a8978efbd1539d7bc2aaa23d92de4
+      - filename: six-1.17.0-py2.py3-none-any.whl
+        url: https://pypi.org/project/six/1.17.0/
+        digest: sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274
+      - filename: stim-1.15.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/stim/1.15.0/
+        digest: sha256:f0fb249f1a2897a22cbe4e0c2627abf49188cbbf19b942d4749972d1c3bdf12c
+      - filename: typing_extensions-4.16.0-py3-none-any.whl
+        url: https://pypi.org/project/typing-extensions/4.16.0/
+        digest: sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
+      - filename: typing_inspection-0.4.4-py3-none-any.whl
+        url: https://pypi.org/project/typing-inspection/0.4.4/
+        digest: sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
+    builder:
+      reference: docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+      digest: sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+    runtime_base:
+      reference: docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+      digest: sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, glcb-visualize-url]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: visualization-link-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.json
+      outputs:
+        link: /outputs/visualization-link.json
+    parameters: {}
+  verification:
+    fixture:
+      path: containers/operations/chatqec-mcp-tools/fixtures/glcb-bell.json
+      digest: sha256:31d009341992f9ea336611d888e1ed6419c452de126d1f469246e715f5ab4e6b
+      mount_path: /inputs/circuit.json
+    arguments: [glcb-visualize-url]
+    expected_outputs:
+      - path: /outputs/visualization-link.json
+        nonempty: true
+        text_contains:
+          - '"schema": "qhpc.glcb-visualization-link.v1"'
+          - 'https://gemini-logical-circuit-builder.vercel.app/#circuit='
+    timeout_seconds: 60
+  release:
+    status: unpublished

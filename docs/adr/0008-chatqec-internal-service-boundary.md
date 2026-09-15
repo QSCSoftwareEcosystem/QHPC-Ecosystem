@@ -147,6 +147,17 @@ token, no retained conversation state, and no model, Qdrant, web, image, or tool
 path. The QHPC API owns the browser-facing request allowlist and injects subject,
 workspace, policy, correlation, and corpus identity.
 
+That server is now explicitly identified as the **ChatQEC canonical-corpus
+extractive fallback**. A distinct container-only implementation uses the
+pinned upstream Python pipeline behind an EQO-owned HTTP/SSE adapter and
+remains degraded until a single provider, immutable Qdrant snapshot, governed
+corpus manifest, and controlled egress path are accepted. It does not expose
+Streamlit. EQO Local additionally exposes explicit, supplied Stim/Tsim circuits
+through a separate unprivileged service container using the pinned
+`chatqec-mcp-tools` source. That narrow direct path is not a model-backed RAG
+deployment and does not grant host process, Docker socket, workflow, or target
+access.
+
 That development server makes the local integration executable, but it does
 not implement or approve the model-backed production runtime. The source work
 and institutional selections above remain required before production

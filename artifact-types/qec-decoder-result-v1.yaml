@@ -1,0 +1,40 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.qec-decoder-result
+  name: QEC Decoder Result
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Bounded PyMatching decoder result from a detector-annotated Stim circuit, with the exact number of sampled shots and logical errors.
+  media_type: application/vnd.qsc.qec-decoder-result+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [schema, logical_error_rate, num_errors, shots, num_detectors, num_observables]
+    properties:
+      schema:
+        const: qhpc.qec-decoder-result.v1
+      logical_error_rate:
+        type: number
+        minimum: 0
+        maximum: 1
+      num_errors:
+        type: integer
+        minimum: 0
+      shots:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+      num_detectors:
+        type: integer
+        minimum: 1
+      num_observables:
+        type: integer
+        minimum: 1
+  compatibility:
+    accepts_versions: [1]

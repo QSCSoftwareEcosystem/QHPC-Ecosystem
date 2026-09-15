@@ -1,0 +1,23 @@
+{
+  "api_version": "qhpc/v1",
+  "kind": "ChatQECQueryDeployment",
+  "metadata": {
+    "source_revision": "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977"
+  },
+  "spec": {
+    "provider": {
+      "name": "unconfigured",
+      "model": null,
+      "credential_environment": null
+    },
+    "qdrant_url": null,
+    "upstream_config_directory": null,
+    "corpus_manifest": null,
+    "features": {
+      "mcp": false,
+      "qappswiki": false,
+      "web_fallback": false,
+      "images": false
+    }
+  }
+}

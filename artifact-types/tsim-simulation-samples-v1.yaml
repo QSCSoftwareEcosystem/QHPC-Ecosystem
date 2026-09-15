@@ -1,0 +1,42 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.tsim-simulation-samples
+  name: Tsim Simulation Samples
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Bounded preview of detector and observable samples from a governed Tsim simulation; it does not preserve every sampled row.
+  media_type: application/vnd.qsc.tsim-simulation-samples+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [schema, shots, use_reference_sample, summary, samples_preview]
+    properties:
+      schema:
+        const: qhpc.tsim-simulation-samples.v1
+      shots:
+        type: integer
+        minimum: 1
+        maximum: 100000
+      use_reference_sample:
+        type: boolean
+      summary:
+        type: string
+        minLength: 1
+        maxLength: 4096
+      samples_preview:
+        type: array
+        maxItems: 20
+        items:
+          type: array
+          maxItems: 100000
+          items:
+            type: integer
+            enum: [0, 1]
+  compatibility:
+    accepts_versions: [1]

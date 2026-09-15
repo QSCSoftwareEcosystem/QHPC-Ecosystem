@@ -27,7 +27,7 @@ def test_initial_profile_has_an_aligned_scaffold_for_every_component() -> None:
     assert tuple(scaffold.component_id for scaffold in scaffolds) == tuple(
         component["id"] for component in profile["spec"]["components"]
     )
-    assert len(scaffolds) == 15
+    assert len(scaffolds) == 16
     assert {
         scaffold.component_id
         for scaffold in scaffolds
@@ -54,6 +54,7 @@ def test_initial_profile_has_an_aligned_scaffold_for_every_component() -> None:
         "exachem-qflow",
         "iris-qiris",
         "nwqsim-qflow",
+        "chatqec-mcp-tools",
     }
 
 
@@ -66,7 +67,7 @@ def test_initial_scaffolds_defer_production_containerization() -> None:
         ]
         for scaffold in scaffolds
     }
-    assert "verified" not in runtime_statuses.values()
+    assert runtime_statuses["ftqc"] == "deferred"
     assert runtime_statuses["qappswiki"] == "not-applicable"
     assert runtime_statuses["openqse"] == "not-applicable"
     assert all(
@@ -82,7 +83,6 @@ def test_pre_runtime_components_have_pinned_interface_contracts() -> None:
         "nwqec",
         "ftprimitivebench",
         "lightstim",
-        "ftqc",
     ):
         scaffold = find_integration_scaffold(scaffolds, component_id).document
         assert scaffold["spec"]["scope"]["status"] == "defined"
@@ -101,7 +101,7 @@ def test_chatqec_source_and_service_contract_are_complete_before_runtime() -> No
     scaffold = find_integration_scaffold(scaffolds, "chatqec").document
     assert scaffold["spec"]["mirror"]["status"] == "verified"
     assert scaffold["spec"]["source"]["url"] == (
-        "https://github.com/QSCSoftwareThrust/ChatQEC"
+        "https://github.com/QSCSoftwareEcosystem/ChatQEC"
     )
     assert scaffold["spec"]["mirror"]["url"] == (
         "https://code.ornl.gov/qsc-as/chatqec"
@@ -257,7 +257,7 @@ def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:
     assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
 
 
-def test_ftqc_uses_private_ecosystem_source_and_local_preparation_runtime() -> None:
+def test_ftqc_uses_private_ecosystem_source_and_oci_preparation_runtime() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
     scaffold = find_integration_scaffold(scaffolds, "ftqc").document
     capability = validate_contract(
@@ -287,6 +287,7 @@ def test_ftqc_uses_private_ecosystem_source_and_local_preparation_runtime() -> N
         "artifact-types/iqm-job-receipt-v1.yaml",
         "artifact-types/iqm-raw-counts-v1.yaml",
         "artifact-types/ftqc-logical-result-v1.yaml",
+        "containers/operations/ftqc/runtime.yaml",
     ]
     assert scaffold["spec"]["production_runtime"]["status"] == "deferred"
     resources = {
@@ -311,13 +312,21 @@ def test_ftqc_uses_private_ecosystem_source_and_local_preparation_runtime() -> N
         "docs/evidence/ftqc-source-mirror-and-import-smoke-2026-07-29.md",
         "docs/evidence/ftqc-local-iqm-preparation-smoke-2026-09-03.md",
         "docs/evidence/ftqc-iqm-mock-backend-2026-09-04.md",
+        "docs/evidence/ftqc-oci-smoke-2026-09-10.md",
     ]
     operations = {
         operation["id"]: operation
         for operation in capability["spec"]["operations"]
     }
     assert set(operations) == {"prepare-iqm", "route-submit-collect"}
-    assert operations["prepare-iqm"]["runtime"]["type"] == "native-bundle"
+    assert operations["prepare-iqm"]["runtime"] == {
+        "type": "oci",
+        "reference": (
+            "docker://qhpc/ftqc@sha256:"
+            "f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96"
+        ),
+        "digest": "sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96",
+    }
     assert operations["prepare-iqm"]["execution_targets"] == [
         "local-development"
     ]
@@ -347,11 +356,15 @@ def test_draft_cross_project_artifact_types_are_valid() -> None:
     paths = sorted((ROOT / "artifact-types").glob("*.yaml"))
     assert {path.name for path in paths} == {
         "clifford-t-counts-v1.yaml",
+        "dense-unitary-v1.yaml",
         "evolution-method-context-v1.yaml",
+        "evolution-result-v1.yaml",
         "evolution-synthesis-report-v1.yaml",
         "ftqc-iqm-preparation-report-v1.yaml",
         "ftqc-logical-result-v1.yaml",
         "ftqc-mlir-v1.yaml",
+        "glcb-circuit-spec-v1.yaml",
+        "glcb-visualization-link-v1.yaml",
         "iqm-circuit-v1.yaml",
         "iqm-job-receipt-v1.yaml",
         "iqm-raw-counts-v1.yaml",
@@ -362,7 +375,16 @@ def test_draft_cross_project_artifact_types_are_valid() -> None:
         "qflow-cycle-checkpoint-v1.yaml",
         "qflow-taskset-result-v1.yaml",
         "qflow-taskset-v1.yaml",
+        "qec-code-parameters-v1.yaml",
+        "qec-circuit-build-report-v1.yaml",
+        "qec-decoder-result-v1.yaml",
+        "qec-threshold-plot-v1.yaml",
+        "qec-threshold-sweep-v1.yaml",
         "stim-circuit-v1.yaml",
+        "stim-diagram-v1.yaml",
+        "stim-simulation-samples-v1.yaml",
+        "tsim-circuit-v1.yaml",
+        "tsim-simulation-samples-v1.yaml",
     }
     for path in paths:
         validate_contract("artifact-type", path)
@@ -404,7 +426,7 @@ def test_find_integration_scaffold_rejects_unknown_component() -> None:
 
 def test_integration_cli_validates_lists_and_inspects(capsys) -> None:
     assert cli.main(["integration", "validate", str(PROFILE)]) == 0
-    assert "Integration scaffolds valid: initial@0.8.0 (15 components)" in (
+    assert "Integration scaffolds valid: initial@0.8.0 (16 components)" in (
         capsys.readouterr().out
     )
 

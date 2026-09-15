@@ -1,0 +1,59 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.qec-code-parameters
+  name: QEC Code Parameters
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Code-family parameters and graphlike-distance evidence returned by the governed ChatQEC code-parameters operation.
+  media_type: application/vnd.qsc.qec-code-parameters+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required:
+      - schema
+      - code_family
+      - distance
+      - n
+      - k
+      - num_stabilizers
+      - stim_code_distance
+      - num_detectors
+      - num_observables
+      - notes
+    properties:
+      schema:
+        const: qhpc.qec-code-parameters.v1
+      code_family:
+        enum: [surface_code_rotated, repetition_code, color_code]
+      distance:
+        type: integer
+        minimum: 3
+        maximum: 15
+      n:
+        type: integer
+        minimum: 1
+      k:
+        const: 1
+      num_stabilizers:
+        type: integer
+        minimum: 0
+      stim_code_distance:
+        type: integer
+        minimum: 1
+      num_detectors:
+        type: integer
+        minimum: 0
+      num_observables:
+        type: integer
+        minimum: 1
+      notes:
+        type: string
+        maxLength: 2000
+  compatibility:
+    accepts_versions: [1]

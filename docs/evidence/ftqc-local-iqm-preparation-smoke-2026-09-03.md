@@ -23,8 +23,10 @@ The bundle is installed under the ignored `.qhpc/runtimes` state directory.
 It is not committed, attached to a release, or published as an image because
 the FTQC repository does not provide explicit distributable license terms.
 
-The current native build depends on Homebrew LLVM/MLIR 20.1.2 and is therefore
-a macOS arm64 local-development runtime, not the future portable runtime.
+The current native build depends on Homebrew LLVM/MLIR 20.1.2. It is retained
+only as historical evidence: EQO does not use it as an execution runtime. The
+admitted preparation runtime is the Linux/amd64 OCI image documented in
+[`ftqc-oci-smoke-2026-09-10.md`](ftqc-oci-smoke-2026-09-10.md).
 
 ## Workbench adapter smoke
 

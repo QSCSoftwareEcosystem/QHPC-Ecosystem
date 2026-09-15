@@ -1,0 +1,9 @@
+#!/bin/sh
+# Run the exact lit implementation unpacked from the checksum-pinned LLVM
+# source archive.  llvm-ports installs LLVM/MLIR libraries and tools but not
+# LLVM's regression-test runner.
+set -eu
+
+export PYTHONPATH=/opt/qhpc-test/python${PYTHONPATH:+:${PYTHONPATH}}
+export PATH=/opt/qhpc-test/bin:${PATH}
+exec /usr/bin/python3 /opt/qhpc-test/python/lit.py "$@"

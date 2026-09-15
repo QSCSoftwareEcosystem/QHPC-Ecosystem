@@ -20,10 +20,10 @@ spec:
   development_environment:
     status: assigned
     class: python-lib
-  interfaces: [python-api, registry, adapter, json-context, qasm]
+  interfaces: [python-api, registry, adapter, json-context, dense-unitary, qasm]
   scope:
     status: defined
-    summary: Publish library resources, expose attributed method context, and provide a bounded local OpenQASM synthesis bridge without claiming production HPC acceptance.
+    summary: Publish library resources, expose attributed method context, run bounded dense numerical references, and provide a bounded local OpenQASM synthesis bridge without claiming production HPC acceptance.
   deliverables:
     source_audit: complete
     interface_contract: complete

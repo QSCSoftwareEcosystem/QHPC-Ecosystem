@@ -13,6 +13,8 @@ from typing import Callable, Sequence
 from urllib.error import URLError
 from urllib.request import ProxyHandler, build_opener
 
+from .operation_runtime import find_oci_builder
+
 
 _DIRECT_OPENER = build_opener(ProxyHandler({}))
 
@@ -37,6 +39,8 @@ class DevStackConfig:
     poll_interval_seconds: float
     lease_seconds: int
     worker_stale_after_seconds: float
+    cluster_checkout: str = ""
+    chatqec_container_image: str = ""
     update_state_root: str = ".qhpc/live/updates"
     workspace_root: str = "."
     start_local_worker: bool = True
@@ -45,12 +49,19 @@ class DevStackConfig:
     start_chatqec: bool = True
     start_repository_updates: bool = True
     start_databucket: bool = True
+    start_iqm_worker: bool = False
+    start_iqm_simulation_worker: bool = False
     databucket_s3_endpoint: str = ""
     databucket_bucket: str = ""
     databucket_access_key_id: str = ""
     databucket_secret_access_key: str = ""
+    iqm_endpoint: str = ""
+    iqm_device_alias: str = ""
+    iqm_token: str = ""
     local_worker_id: str = "dev-local-worker"
     target_worker_id: str = "dev-virtual-slurm-worker"
+    iqm_worker_id: str = "dev-iqm-worker"
+    iqm_simulation_worker_id: str = "dev-iqm-simulation-worker"
 
 
 @dataclass(frozen=True)
@@ -58,6 +69,8 @@ class ServiceSpec:
     name: str
     command: tuple[str, ...]
     environment: tuple[tuple[str, str], ...] = ()
+    secret_environment_names: tuple[str, ...] = ()
+    cleanup_command: tuple[str, ...] = ()
 
 
 def build_service_specs(
@@ -128,29 +141,80 @@ def build_service_specs(
         api_command.extend(("--workflow", workflow))
     services = [ServiceSpec("api", tuple(api_command), api_environment)]
     if config.start_chatqec:
-        services.append(
-            ServiceSpec(
-                "chatqec",
-                (
-                    *base,
-                    "chatqec-service",
-                    "serve",
-                    config.chatqec_service_interface,
-                    "--checkout",
-                    config.chatqec_source_root,
-                    "--host",
-                    "127.0.0.1",
-                    "--port",
-                    str(config.chatqec_port),
-                ),
-                (
+        if config.chatqec_container_image:
+            try:
+                container_engine = find_oci_builder()
+            except Exception as error:
+                raise RuntimeError(
+                    "EQO Local ChatQEC agent requires Docker or Podman"
+                ) from error
+            services.append(
+                ServiceSpec(
+                    "chatqec",
                     (
+                        container_engine,
+                        "run",
+                        "--rm",
+                        "--name",
+                        f"eqo-chatqec-{config.chatqec_port}",
+                        "--platform",
+                        "linux/amd64",
+                        "--read-only",
+                        "--cap-drop",
+                        "ALL",
+                        "--security-opt",
+                        "no-new-privileges",
+                        "--tmpfs",
+                        "/tmp:rw,noexec,nosuid,size=128m",
+                        "--publish",
+                        f"127.0.0.1:{config.chatqec_port}:8096",
+                        "--env",
                         "QHPC_CHATQEC_IDENTITY_TOKEN",
-                        config.chatqec_identity_token,
+                        "--env",
+                        "QHPC_CHATQEC_LISTEN_HOST=0.0.0.0",
+                        "--env",
+                        "QHPC_CHATQEC_LISTEN_PORT=8096",
+                        config.chatqec_container_image,
                     ),
-                ),
+                    (
+                        (
+                            "QHPC_CHATQEC_IDENTITY_TOKEN",
+                            config.chatqec_identity_token,
+                        ),
+                    ),
+                    ("QHPC_CHATQEC_IDENTITY_TOKEN",),
+                    (
+                        container_engine,
+                        "rm",
+                        "--force",
+                        f"eqo-chatqec-{config.chatqec_port}",
+                    ),
+                )
             )
-        )
+        else:
+            services.append(
+                ServiceSpec(
+                    "chatqec",
+                    (
+                        *base,
+                        "chatqec-service",
+                        "serve",
+                        config.chatqec_service_interface,
+                        "--checkout",
+                        config.chatqec_source_root,
+                        "--host",
+                        "127.0.0.1",
+                        "--port",
+                        str(config.chatqec_port),
+                    ),
+                    (
+                        (
+                            "QHPC_CHATQEC_IDENTITY_TOKEN",
+                            config.chatqec_identity_token,
+                        ),
+                    ),
+                )
+            )
     if config.start_workbench:
         services.append(
             ServiceSpec(
@@ -184,25 +248,72 @@ def build_service_specs(
                     str(config.lease_seconds),
                     "--worker-id",
                     config.local_worker_id,
+                    "--execution-target",
+                    "local-development",
+                    "--execution-target",
+                    "local-container",
                 ),
             )
         )
     if config.start_target_worker:
+        target_command = [
+            *base,
+            "target-worker",
+            *shared,
+            "--slurm-test-cluster",
+            config.cluster_manifest,
+            "--poll-interval",
+            str(config.poll_interval_seconds),
+            "--lease-seconds",
+            str(config.lease_seconds),
+            "--worker-id",
+            config.target_worker_id,
+        ]
+        if config.cluster_checkout:
+            target_command.extend(("--slurm-test-checkout", config.cluster_checkout))
         services.append(
             ServiceSpec(
                 "virtual-slurm-worker",
+                tuple(target_command),
+            )
+        )
+    if config.start_iqm_worker:
+        services.append(
+            ServiceSpec(
+                "iqm-worker",
                 (
                     *base,
-                    "target-worker",
+                    "iqm-worker",
                     *shared,
-                    "--slurm-test-cluster",
-                    config.cluster_manifest,
+                    "--endpoint",
+                    config.iqm_endpoint,
+                    "--device-alias",
+                    config.iqm_device_alias,
                     "--poll-interval",
                     str(config.poll_interval_seconds),
                     "--lease-seconds",
                     str(config.lease_seconds),
                     "--worker-id",
-                    config.target_worker_id,
+                    config.iqm_worker_id,
+                ),
+                (("IQM_TOKEN", config.iqm_token),) if config.iqm_token else (),
+                ("IQM_TOKEN",),
+            )
+        )
+    if config.start_iqm_simulation_worker:
+        services.append(
+            ServiceSpec(
+                "iqm-simulation-worker",
+                (
+                    *base,
+                    "iqm-simulation-worker",
+                    *shared,
+                    "--poll-interval",
+                    str(config.poll_interval_seconds),
+                    "--lease-seconds",
+                    str(config.lease_seconds),
+                    "--worker-id",
+                    config.iqm_simulation_worker_id,
                 ),
             )
         )
@@ -210,6 +321,7 @@ def build_service_specs(
 
 
 ProcessFactory = Callable[..., subprocess.Popen[bytes]]
+CommandRunner = Callable[..., object]
 
 
 class DevStackSupervisor:
@@ -221,6 +333,7 @@ class DevStackSupervisor:
         *,
         restart_delay_seconds: float = 1.0,
         process_factory: ProcessFactory = subprocess.Popen,
+        cleanup_runner: CommandRunner = subprocess.run,
         service_label: str = "QHPC dev",
     ) -> None:
         if not services:
@@ -230,14 +343,46 @@ class DevStackSupervisor:
         self.services = tuple(services)
         self.restart_delay_seconds = restart_delay_seconds
         self.process_factory = process_factory
+        self.cleanup_runner = cleanup_runner
         self.service_label = service_label
         self.processes: dict[str, subprocess.Popen[bytes]] = {}
 
+    def _cleanup(self, service: ServiceSpec) -> None:
+        """Remove a bounded external service left by an interrupted client.
+
+        A ``docker run`` client can receive SIGTERM before Docker has stopped
+        its named container. Only services that explicitly opt in get a
+        cleanup command; the local ChatQEC name is derived from its loopback
+        port, so this cannot target an arbitrary user container.
+        """
+
+        if not service.cleanup_command:
+            return
+        try:
+            self.cleanup_runner(
+                service.cleanup_command,
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=20,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            print(
+                f"{self.service_label} could not clean external service "
+                f"{service.name}: {error}"
+            )
+
     def _start(self, service: ServiceSpec) -> subprocess.Popen[bytes]:
+        self._cleanup(service)
         environment = os.environ.copy()
         environment.pop("QHPC_CHATQEC_IDENTITY_TOKEN", None)
         environment.pop("QHPC_DATABUCKET_ACCESS_KEY_ID", None)
         environment.pop("QHPC_DATABUCKET_SECRET_ACCESS_KEY", None)
+        environment.pop("IQM_BASE_URL", None)
+        environment.pop("IQM_TOKEN", None)
+        environment.pop("EQO_LOCAL_IQM_TOKEN", None)
+        for name in service.secret_environment_names:
+            environment.pop(name, None)
         environment.update(dict(service.environment))
         process = self.process_factory(
             service.command,
@@ -356,4 +501,6 @@ class DevStackSupervisor:
                 )
                 process.kill()
                 process.wait()
+        for service in reversed(self.services):
+            self._cleanup(service)
         self.processes.clear()

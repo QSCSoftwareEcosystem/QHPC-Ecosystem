@@ -43,7 +43,7 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
         "https://github.com/pnnl/nwq-sim"
     )
     assert catalog.repository("chatqec").source_url == (
-        "https://github.com/QSCSoftwareThrust/ChatQEC"
+        "https://github.com/QSCSoftwareEcosystem/ChatQEC"
     )
     assert catalog.repository("FTPrimitiveBench").source_url == (
         "https://github.com/QSCSoftwareThrust/FTPrimitiveBench"
@@ -66,6 +66,10 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
     assert catalog.repository("openqse-spec").source_url == (
         "https://github.com/openQSE/openqse-spec"
     )
+    qfw_cluster = catalog.repository("qfw-slurm-cluster")
+    assert qfw_cluster.source_url == "https://github.com/openQSE/QFw-SLURM-Cluster"
+    assert qfw_cluster.container_status == "blocked"
+    assert qfw_cluster.environment == "hpc-build"
     assert catalog.repository("ftqc").source_url == (
         "https://github.com/QSCSoftwareEcosystem/FTQC"
     )
@@ -73,6 +77,7 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
         "https://code.ornl.gov/qsc-ct/ftqc",
     )
     assert catalog.repository("ftqc").canonical_status == "canonical"
+    assert catalog.repository("chatqec-mcp-tools").canonical_status == "canonical"
     assert catalog.repository("qsc-materials-db").source_url == (
         "https://code.ornl.gov/intersect/data/deployments"
     )

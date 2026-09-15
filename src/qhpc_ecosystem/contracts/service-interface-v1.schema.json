@@ -121,7 +121,12 @@
         "corpus_access": {"const": "read-only"},
         "payload_logging": {"const": "prohibited"},
         "default_retention": {"const": "none"},
-        "tool_execution": {"const": "prohibited"}
+        "tool_execution": {
+          "enum": [
+            "prohibited",
+            "contained-mcp-only"
+          ]
+        }
       }
     },
     "endpoint": {

@@ -1,0 +1,33 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: chatqec-glcb-link
+  name: Generate a ChatQEC GLCB visualization link
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Generate a deterministic Gemini Logical Circuit Builder URL from a typed circuit specification without contacting the external service. Opening the resulting URL is an explicit external disclosure.
+spec:
+  nodes:
+    - id: link
+      operation:
+        capability: chatqec-qec-tools
+        version: 0.1.0
+        operation: glcb-visualize-url
+      execution_target: development-slurm-docker
+      execution_class: batch-hpc
+      parameters: {}
+  edges: []
+  inputs:
+    circuit:
+      artifact_type: qhpc.glcb-circuit-spec@1
+      required: true
+      to:
+        node: link
+        port: circuit
+  outputs:
+    link:
+      artifact_type: qhpc.glcb-visualization-link@1
+      from:
+        node: link
+        port: link

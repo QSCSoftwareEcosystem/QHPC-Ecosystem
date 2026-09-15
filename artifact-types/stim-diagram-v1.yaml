@@ -1,0 +1,16 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.stim-diagram
+  name: Stim Circuit Diagram
+  version: 1
+  project: cross-project
+  owners: [qhpc-ecosystem]
+  status: draft
+spec:
+  description: Sanitized SVG timeline diagram rendered from a detector-annotated Stim circuit by a governed operation runtime.
+  media_type: image/svg+xml
+  representation: file
+  extensions: [svg]
+  compatibility:
+    accepts_versions: [1]

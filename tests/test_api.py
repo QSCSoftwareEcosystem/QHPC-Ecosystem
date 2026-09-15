@@ -58,6 +58,41 @@ class FakeChatQEC:
             ],
         }
 
+    def stream(
+        self,
+        question: str,
+        *,
+        conversation_id: str,
+        history: list[dict],
+        correlation_id: str | None,
+    ) -> tuple[dict, ...]:
+        answer = self.ask(
+            question,
+            conversation_id=conversation_id,
+            history=history,
+            correlation_id=correlation_id,
+        )
+        return (
+            {
+                "request_id": "req-api-stream",
+                "sequence": 0,
+                "event": "token",
+                "data": {"text": answer["answer"]},
+            },
+            {
+                "request_id": "req-api-stream",
+                "sequence": 1,
+                "event": "citation",
+                "data": {"citation": answer["citations"][0]},
+            },
+            {
+                "request_id": "req-api-stream",
+                "sequence": 2,
+                "event": "final",
+                "data": {"response": answer},
+            },
+        )
+
 
 class FakeRepositoryUpdates:
     def __init__(self) -> None:
@@ -222,6 +257,19 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
         assert capabilities[0]["description"].startswith("Illustrative operations")
         assert capabilities[0]["guidance"]["use_when"]
         assert capabilities[0]["guidance"]["quick_start"]
+        status, engagement = request_json(base, "/api/v1/engagement-resources")
+        assert status == 200
+        assert engagement["kind"] == "EngagementResources"
+        assert engagement["read_only"] is True
+        assert [item["id"] for item in engagement["resources"]] == [
+            "hpc-ai-qc-crash-course",
+            "quantum-computing-user-training",
+            "fall-2026-qcup-hackathon",
+        ]
+        assert all(
+            item["admission"] == "read-only-external-resource"
+            for item in engagement["resources"]
+        )
         status, workers = request_json(base, "/api/v1/workers")
         assert status == 200
         assert workers == []
@@ -247,6 +295,25 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
         assert status == 200
         assert answer["citations"][0]["title"] == "Surface Code"
         assert chatqec.requests[0]["conversation_id"] == "conversation-api-test"
+        stream_request = Request(
+            base + "/api/v1/assistant/chatqec/answers/stream",
+            data=json.dumps(
+                {
+                    "question": "What is the surface code?",
+                    "conversation_id": "conversation-api-stream",
+                    "history": [],
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(stream_request, timeout=3) as stream:
+            assert stream.headers["Content-Type"].startswith("text/event-stream")
+            payload = stream.read().decode("utf-8")
+        assert "event: token" in payload
+        assert "event: citation" in payload
+        assert "event: final" in payload
+        assert chatqec.requests[-1]["conversation_id"] == "conversation-api-stream"
         with pytest.raises(HTTPError) as unsupported_identity:
             request_json(
                 base,

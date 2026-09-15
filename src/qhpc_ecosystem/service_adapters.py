@@ -48,6 +48,7 @@ _RESPONSE_FIELDS = {
     "usage",
     "latency_ms",
 }
+_OPTIONAL_RESPONSE_FIELDS = {"tool_calls"}
 
 
 def _bounded_text(
@@ -241,7 +242,7 @@ def validate_chatqec_response(
         response,
         "ChatQEC response",
         required=_RESPONSE_FIELDS,
-        allowed=_RESPONSE_FIELDS,
+        allowed=_RESPONSE_FIELDS | _OPTIONAL_RESPONSE_FIELDS,
     )
     normalized: dict[str, Any] = {}
     for field in ("request_id", "correlation_id", "conversation_id"):
@@ -325,6 +326,44 @@ def validate_chatqec_response(
             "latency_ms.total cannot be less than an individual stage"
         )
     normalized["latency_ms"] = normalized_latency
+    if "tool_calls" in value:
+        tool_calls = value["tool_calls"]
+        if not isinstance(tool_calls, list) or len(tool_calls) > 32:
+            raise ServiceAdapterError("tool_calls must contain at most 32 entries")
+        normalized_tool_calls: list[dict[str, str]] = []
+        for index, tool_call in enumerate(tool_calls):
+            item = _object_fields(
+                tool_call,
+                f"tool_calls[{index}]",
+                required={"name", "status"},
+                allowed={"name", "status", "summary"},
+            )
+            status = _bounded_text(
+                item["status"],
+                f"tool_calls[{index}].status",
+                maximum=16,
+            )
+            if status not in {"completed", "failed"}:
+                raise ServiceAdapterError(
+                    f"tool_calls[{index}].status must be completed or failed"
+                )
+            normalized_item = {
+                "name": _bounded_text(
+                    item["name"],
+                    f"tool_calls[{index}].name",
+                    maximum=128,
+                    pattern=_IDENTIFIER,
+                ),
+                "status": status,
+            }
+            if "summary" in item:
+                normalized_item["summary"] = _bounded_text(
+                    item["summary"],
+                    f"tool_calls[{index}].summary",
+                    maximum=4000,
+                )
+            normalized_tool_calls.append(normalized_item)
+        normalized["tool_calls"] = normalized_tool_calls
     return normalized
 
 
@@ -398,6 +437,64 @@ def ask_chatqec(
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ServiceAdapterError("ChatQEC returned invalid JSON") from error
     return validate_chatqec_response(decoded, normalized_request)
+
+
+def stream_chatqec(
+    base_url: str,
+    request: Mapping[str, Any],
+    *,
+    transport: ServiceTransport,
+    timeout_seconds: float = 60.0,
+) -> tuple[dict[str, Any], ...]:
+    """Call the fixed SSE endpoint and validate every returned event.
+
+    This remains a narrowly scoped service call: the browser never receives
+    the service identity token, and a malformed partial response is rejected
+    before it can be forwarded by the EQO gateway.
+    """
+    normalized_request = _normalize_chatqec_request(request)
+    if (
+        isinstance(timeout_seconds, bool)
+        or not isinstance(timeout_seconds, (int, float))
+        or not 0 < timeout_seconds <= 300
+    ):
+        raise ServiceAdapterError("timeout_seconds must be between 0 and 300")
+    body = json.dumps(
+        normalized_request,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    headers = {
+        "Accept": "text/event-stream",
+        "Content-Type": "application/json",
+        "X-QHPC-Correlation-ID": normalized_request["correlation_id"],
+        "X-QHPC-Request-ID": normalized_request["request_id"],
+    }
+    try:
+        status, response_headers, response_body = transport(
+            url=_chatqec_endpoint(base_url, "/answers/stream"),
+            headers=headers,
+            body=body,
+            timeout_seconds=float(timeout_seconds),
+        )
+    except (OSError, TimeoutError) as error:
+        raise ServiceAdapterError(f"ChatQEC transport failed: {error}") from error
+    if status != 200:
+        raise ServiceAdapterError(f"ChatQEC returned HTTP status {status}")
+    content_type = next(
+        (
+            value
+            for name, value in response_headers.items()
+            if name.lower() == "content-type"
+        ),
+        "",
+    )
+    if content_type.split(";", 1)[0].strip().lower() != "text/event-stream":
+        raise ServiceAdapterError("ChatQEC stream must be text/event-stream")
+    if not isinstance(response_body, bytes):
+        raise ServiceAdapterError("ChatQEC stream body must be bytes")
+    return parse_chatqec_sse(response_body, normalized_request)
 
 
 def parse_chatqec_sse(

@@ -114,6 +114,15 @@ class WorkflowDraftRevisionError(RuntimeError):
     """A workflow draft changed after the client loaded it."""
 
 
+LOCAL_EXECUTION_TARGETS = frozenset({"local-development", "local-container"})
+
+
+def _default_execution_class(execution_target: str) -> str:
+    """Keep OCI-backed local tools on the interactive local worker."""
+
+    return "interactive-local" if execution_target in LOCAL_EXECUTION_TARGETS else "batch-hpc"
+
+
 class FunctionRunner:
     """Execute only explicitly registered Python callables, never arbitrary shell."""
 
@@ -1472,10 +1481,8 @@ class WorkflowEngine:
             )
             resolution = json.loads(workflow_row["resolution"])
             nodes = {node["id"]: node for node in definition["spec"]["nodes"]}
-            default_execution_class = execution_class or (
-                "interactive-local"
-                if execution_target == "local-development"
-                else "batch-hpc"
+            default_execution_class = execution_class or _default_execution_class(
+                execution_target
             )
             for sequence, node_id in enumerate(topological_nodes(definition)):
                 item = resolution[node_id]
@@ -1816,10 +1823,8 @@ class WorkflowEngine:
         definition = json.loads(row["definition"])
         resolution = json.loads(row["resolution"])
         nodes = {node["id"]: node for node in definition["spec"]["nodes"]}
-        default_execution_class = execution_class or (
-            "interactive-local"
-            if execution_target == "local-development"
-            else "batch-hpc"
+        default_execution_class = execution_class or _default_execution_class(
+            execution_target
         )
         requirements: list[dict[str, str]] = []
         for node_id in topological_nodes(definition):

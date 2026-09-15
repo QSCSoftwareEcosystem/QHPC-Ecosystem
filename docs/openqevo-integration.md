@@ -8,13 +8,14 @@ orchestrator.
 
 ## Available development operations
 
-The pinned `openqevo-library@0.1.0` capability exposes three local-development
+The pinned `openqevo-library@0.1.0` capability exposes four local-development
 operations:
 
 | Operation | Purpose | Output |
 | --- | --- | --- |
 | `list-methods` | Discover registered OpenQEvo methods | `qhpc.method-catalog@1` |
 | `describe-method` | Inspect attributed applicability, limitations, complexity, and references | `qhpc.evolution-method-context@1` |
+| `evaluate-dense-reference` | Evaluate a bounded exact, Trotter, qDRIFT, Krylov, interaction-picture, or annealing numerical reference | `qhpc.evolution-result@1` and `qhpc.dense-unitary@1` |
 | `synthesize-evolution` | Convert a real-weighted Pauli Hamiltonian to an OpenQASM 2.0 Trotter circuit | `qhpc.quantum-circuit@1` and `qhpc.evolution-synthesis-report@1` |
 
 The synthesis operation accepts `qhpc.pauli-hamiltonian@1` JSON:
@@ -34,6 +35,12 @@ Each Pauli string must have the declared qubit count. Coefficients are real.
 The local adapter accepts 1–32 qubits, 1–256 terms, 1–256 Trotter steps, and
 Suzuki order 1, 2, or 4. The product of term count and step count may not exceed
 4096.
+
+`evaluate-dense-reference` accepts the same input shape, but is intentionally
+limited to eight qubits. It is for numerical comparison and method evaluation:
+it returns a structured result plus a NumPy `.npy` unitary. It neither creates
+a circuit nor submits quantum hardware work. The source revision is retained
+in the result parameters so the reference can be reproduced.
 
 ## Use from the Workbench
 
@@ -55,6 +62,22 @@ The equivalent workflow is
 [`examples/workflows/openqevo-trotter-synthesis.yaml`](../examples/workflows/openqevo-trotter-synthesis.yaml),
 with example input in
 [`examples/inputs/openqevo-two-qubit-hamiltonian.json`](../examples/inputs/openqevo-two-qubit-hamiltonian.json).
+
+### Compare dense evolution methods
+
+For the newly integrated numerical methods, open **Compose** and choose
+**07 — Compare dense evolution methods**. Load the same two-qubit example and
+run it to evaluate the default Krylov reference. The run produces an
+inspectable evolution-result record and the `.npy` dense unitary.
+
+To compare **exact**, **first- or second-order Trotter**, **qDRIFT**,
+**interaction-picture**, or **annealing**, choose
+**Open in Advanced**, select the OpenQEvo operation, and change **Dense
+reference method**. Method steps apply to Trotter, qDRIFT,
+interaction-picture, and annealing; the qDRIFT random seed makes its sampled
+trajectory reproducible; Krylov dimension and tolerance apply only to Krylov.
+The method is deliberately bounded to eight qubits, so it is suitable for
+validation and comparison—not a scalable circuit or hardware execution path.
 
 ## Scientific and production boundary
 

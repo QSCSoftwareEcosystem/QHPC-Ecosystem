@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   id: openqevo-method-catalog
   name: Inspect OpenQEvo method registry
-  version: 0.1.0
+  version: 0.1.1
   owner: qhpc-ecosystem
   visibility: internal
   description: Execute the pinned OpenQEvo registry API through a controlled local adapter.

@@ -57,6 +57,8 @@ def test_dev_stack_builds_separate_api_and_worker_processes() -> None:
     assert "chatqec-service" in services[1].command
     assert "qhpc_workbench" in services[2].command
     assert "worker" in services[3].command
+    assert "local-development" in services[3].command
+    assert "local-container" in services[3].command
     assert "target-worker" in services[4].command
     assert all(
         ".qhpc/live/workbench.sqlite" in service.command
@@ -105,6 +107,71 @@ def test_dev_stack_omits_databucket_credentials_when_disabled() -> None:
     assert not any(name.startswith("QHPC_DATABUCKET_") for name, _ in services[0].environment)
 
 
+def test_dev_stack_starts_iqm_worker_only_when_explicit_and_scopes_token(monkeypatch) -> None:
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "start_iqm_worker": True,
+            "iqm_endpoint": "https://iqm.example.test/cocos",
+            "iqm_device_alias": "approved-qpu",
+            "iqm_token": "worker-only-iqm-token",
+        }
+    )
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+    iqm = next(service for service in services if service.name == "iqm-worker")
+
+    assert "iqm-worker" in iqm.command
+    assert "https://iqm.example.test/cocos" in iqm.command
+    assert ("IQM_TOKEN", "worker-only-iqm-token") in iqm.environment
+
+    created: list[FakeProcess] = []
+
+    def factory(command, **kwargs):
+        process = FakeProcess(command, **kwargs)
+        created.append(process)
+        return process
+
+    monkeypatch.setenv("IQM_TOKEN", "parent-token-must-not-reach-other-services")
+    monkeypatch.setenv("IQM_BASE_URL", "https://qccsw.ccs.ornl.gov")
+    supervisor = DevStackSupervisor(
+        services,
+        process_factory=factory,
+    )
+    supervisor.start_api()
+    supervisor.start_workers()
+    processes = {process.command: process for process in created}
+    iqm_process = next(
+        process for process in created if "iqm-worker" in process.command
+    )
+    assert iqm_process.environment["IQM_TOKEN"] == "worker-only-iqm-token"
+    assert all(
+        "IQM_TOKEN" not in process.environment
+        for process in created
+        if process is not iqm_process
+    )
+    assert all("IQM_BASE_URL" not in process.environment for process in created)
+    assert processes
+    supervisor.stop()
+
+
+def test_dev_stack_starts_simulation_worker_without_iqm_configuration() -> None:
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "start_iqm_simulation_worker": True,
+        }
+    )
+
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+    simulation = next(
+        service for service in services if service.name == "iqm-simulation-worker"
+    )
+
+    assert "iqm-simulation-worker" in simulation.command
+    assert simulation.environment == ()
+    assert simulation.secret_environment_names == ()
+
+
 def test_dev_stack_accepts_release_specific_worker_identity() -> None:
     value = config()
     value = DevStackConfig(
@@ -119,6 +186,27 @@ def test_dev_stack_accepts_release_specific_worker_identity() -> None:
 
     assert [service.name for service in services][-1] == "local-worker"
     assert "eqo-local-worker" in services[-1].command
+
+
+def test_containerized_chatqec_has_a_narrow_named_container_cleanup(monkeypatch) -> None:
+    monkeypatch.setattr("qhpc_ecosystem.dev_stack.find_oci_builder", lambda: "docker")
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "chatqec_container_image": "qhpc/chatqec-agent:test",
+        }
+    )
+
+    chatqec = next(
+        service for service in build_service_specs(value) if service.name == "chatqec"
+    )
+
+    assert chatqec.cleanup_command == (
+        "docker",
+        "rm",
+        "--force",
+        "eqo-chatqec-8096",
+    )
 
 
 class FakeProcess:
@@ -143,6 +231,41 @@ class FakeProcess:
 
     def kill(self) -> None:
         self.returncode = -9
+
+
+def test_supervisor_cleans_named_external_service_before_start_and_on_stop() -> None:
+    created: list[FakeProcess] = []
+    cleanup_commands: list[tuple[str, ...]] = []
+
+    def factory(command, **kwargs):
+        process = FakeProcess(command, **kwargs)
+        created.append(process)
+        return process
+
+    def cleanup(command, **kwargs) -> None:
+        del kwargs
+        cleanup_commands.append(tuple(command))
+
+    stale_cleanup = ("docker", "rm", "--force", "eqo-chatqec-8096")
+    supervisor = DevStackSupervisor(
+        (
+            ServiceSpec("api", ("python", "serve")),
+            ServiceSpec(
+                "chatqec",
+                ("docker", "run", "qhpc/chatqec-agent:test"),
+                cleanup_command=stale_cleanup,
+            ),
+        ),
+        process_factory=factory,
+        cleanup_runner=cleanup,
+    )
+
+    supervisor.start_api()
+    supervisor.start_workers()
+    supervisor.stop()
+
+    assert len(created) == 2
+    assert cleanup_commands == [stale_cleanup, stale_cleanup]
 
 
 def test_dev_stack_supervisor_restarts_exited_service(monkeypatch) -> None:

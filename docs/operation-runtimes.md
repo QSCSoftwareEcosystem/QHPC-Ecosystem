@@ -24,7 +24,7 @@ Apptainer reference and digest, SBOM, signature, and attestation references.
 
 ## Initial Runtime Set
 
-Five operation images have local `oci-smoke-tested` evidence:
+Six operation images have local `oci-smoke-tested` evidence:
 
 | Component | Operation | Local evidence |
 | --- | --- | --- |
@@ -33,6 +33,7 @@ Five operation images have local `oci-smoke-tested` evidence:
 | NWQEC | `count-clifford-t` | [Build and smoke](evidence/nwqec-oci-smoke-2026-07-27.md) |
 | FTPrimitiveBench | `build-memory` | [Build and smoke](evidence/ftprimitivebench-oci-smoke-2026-07-27.md) |
 | LightStim | `estimate-logical-error` | [QSC-source rebuild and smoke](evidence/lightstim-oci-update-2026-09-03.md) |
+| FTQC | `prepare-iqm` | [Linux/amd64 build and smoke](evidence/ftqc-oci-smoke-2026-09-10.md) |
 
 Local build evidence does not grant redistribution rights. STABSim's audited
 revision contains no license file, so its image cannot be published until the
@@ -75,6 +76,29 @@ source commit timestamp, and writes build metadata. `build-oci` pins
 `linux/amd64`, disables build-step networking, and suppresses BuildKit's
 implicit non-deterministic provenance envelope. Formal release provenance is
 produced and signed by the approved supply-chain process.
+
+FTQC preparation follows the same container contract and runs from the OCI
+image rather than a host-native compiler bundle:
+
+```bash
+eqo operation-runtime verify containers/operations/ftqc/runtime.yaml
+eqo operation-runtime build-oci \
+  containers/operations/ftqc/runtime.yaml /path/to/FTQC \
+  --dependency-cache /approved/llvm-source-cache \
+  --context .qhpc/build/ftqc --tag qhpc/ftqc:779216de-linux-amd64
+eqo operation-runtime smoke-oci \
+  containers/operations/ftqc/runtime.yaml \
+  --image qhpc/ftqc:779216de-linux-amd64
+```
+
+The FTQC `test-builder` stage builds `llvm-lit`, `FileCheck`, `not`, and
+`count` from the official checksum-pinned LLVM 22.1.8 source archive, against
+the same digest-pinned LLVM/MLIR runtime libraries. It runs the upstream
+`check-ftqc` target before the narrow execution image is assembled. The tools
+and source archive remain in that builder stage; they are not copied into the
+operation runtime. A suite failure therefore prevents an OCI image from being
+created or published. The declared LLVM source archive must already be present
+in the approved dependency cache; the container build has no network access.
 
 Python runtimes declare every external wheel as a dependency archive with its
 source URL and SHA-256 digest. The acquisition step populates a controlled
