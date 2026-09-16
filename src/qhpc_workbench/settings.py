@@ -16,7 +16,15 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("QHPC_WORKBENCH_DEBUG", "1") == "1"
 
 configured_host = os.environ.get("QHPC_WORKBENCH_HOST", "127.0.0.1")
-ALLOWED_HOSTS = sorted({configured_host, "127.0.0.1", "localhost", "testserver"})
+configured_allowed_hosts = {
+    host.strip()
+    for host in os.environ.get("QHPC_WORKBENCH_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+}
+ALLOWED_HOSTS = sorted(
+    configured_allowed_hosts
+    | {configured_host, "127.0.0.1", "localhost", "testserver"}
+)
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",

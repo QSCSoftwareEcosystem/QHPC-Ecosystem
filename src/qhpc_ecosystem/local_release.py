@@ -45,7 +45,7 @@ MINIMUM_FREE_BYTES = 512 * 1024 * 1024
 _DIRECT_OPENER = build_opener(ProxyHandler({}))
 CHATQEC_AGENT_OCI_IMAGE = "qhpc/chatqec-agent:a1ddc2e-dd19a85-linux-amd64-v1"
 CHATQEC_AGENT_TSIM_IMAGE = "qhpc/chatqec-tsim:dd19a85-linux-amd64"
-CHATQEC_AGENT_TSIM_DIGEST = "sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0"
+CHATQEC_AGENT_TSIM_DIGEST = "sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2"
 CHATQEC_AGENT_INPUT_LABEL = "org.qscsoftware.build-inputs-sha256"
 _CHATQEC_AGENT_INPUTS = (
     "containers/services/chatqec-agent/Containerfile",
@@ -215,10 +215,12 @@ class LocalStackConfig:
     workflows: tuple[str, ...]
     assistant_interface: str
     assistant_source_checkout: str | None
+    qappswiki_graph: str
     host: str
     workbench_port: int
     api_port: int
     assistant_port: int
+    workbench_allowed_hosts: tuple[str, ...] = ()
     assistant_enabled: bool = True
     iqm_simulation_enabled: bool = False
     iqm_worker_enabled: bool = False
@@ -249,6 +251,26 @@ class LocalStackConfig:
             raise LocalReleaseError("local service ports must be between 1 and 65535")
         if len(set(ports)) != len(ports):
             raise LocalReleaseError("local service ports must be different")
+        invalid_allowed_hosts = [
+            host
+            for host in self.workbench_allowed_hosts
+            if (
+                not host
+                or host == "*"
+                or "://" in host
+                or any(character in host for character in "/?#@")
+                or any(character.isspace() for character in host)
+            )
+        ]
+        if invalid_allowed_hosts:
+            raise LocalReleaseError(
+                "Workbench allowed hosts must be explicit hostnames or IP addresses "
+                "without a scheme, path, or wildcard"
+            )
+        if not Path(self.qappswiki_graph).is_file():
+            raise LocalReleaseError(
+                f"QAppsWiki graph is not available: {self.qappswiki_graph}"
+            )
         if self.poll_interval_seconds <= 0:
             raise LocalReleaseError("worker poll interval must be greater than zero")
         if self.lease_seconds <= 0:
@@ -306,6 +328,7 @@ class LocalStackConfig:
             "workflows": list(self.workflows),
             "assistant_interface": self.assistant_interface,
             "assistant_source_checkout": self.assistant_source_checkout,
+            "qappswiki_graph": self.qappswiki_graph,
             "assistant_enabled": self.assistant_enabled,
             "iqm_simulation_enabled": self.iqm_simulation_enabled,
             "iqm_worker_enabled": self.iqm_worker_enabled,
@@ -318,6 +341,7 @@ class LocalStackConfig:
             "slurm_test_cluster": self.slurm_test_cluster,
             "slurm_test_checkout": self.slurm_test_checkout,
             "host": self.host,
+            "workbench_allowed_hosts": list(self.workbench_allowed_hosts),
             "workbench_port": self.workbench_port,
             "api_port": self.api_port,
             "assistant_port": self.assistant_port,
@@ -1190,6 +1214,8 @@ def supervisor_command(
         config.deployment_profile,
         "--assistant-interface",
         config.assistant_interface,
+        "--qappswiki-graph",
+        config.qappswiki_graph,
         "--host",
         config.host,
         "--port",
@@ -1209,12 +1235,16 @@ def supervisor_command(
         "--startup-timeout",
         str(startup_timeout_seconds),
     ]
+    for allowed_host in config.workbench_allowed_hosts:
+        command.extend(("--workbench-allowed-host", allowed_host))
     if config.assistant_source_checkout:
         command.extend(
             ("--assistant-source-checkout", config.assistant_source_checkout)
         )
     if not config.assistant_enabled:
         command.append("--no-assistant")
+    if not config.ecosystem_execution_enabled:
+        command.append("--no-ecosystem-execution")
     if config.iqm_simulation_enabled:
         command.append("--iqm-simulation")
     if config.iqm_worker_enabled:
@@ -1462,12 +1492,14 @@ def supervise_local(
         workspace_root=str(Path(config.catalog).resolve().parent),
         workflows=config.workflows,
         host=config.host,
+        workbench_allowed_hosts=config.workbench_allowed_hosts,
         port=config.workbench_port,
         api_port=config.api_port,
         chatqec_service_interface=config.assistant_interface,
         chatqec_source_root=assistant_source_root,
         chatqec_port=config.assistant_port,
         chatqec_identity_token=assistant_identity_token,
+        qappswiki_graph=config.qappswiki_graph,
         chatqec_container_image=(
             CHATQEC_AGENT_OCI_IMAGE
             if config.assistant_enabled and not apptainer_requested()

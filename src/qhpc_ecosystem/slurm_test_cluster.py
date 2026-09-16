@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import secrets
 import shlex
 import subprocess
 import time
@@ -289,6 +291,36 @@ class SlurmDockerCluster:
                     f"found {actual or 'missing'}"
                 )
 
+    def verify_compatibility_image(self) -> None:
+        """Verify that the local compatibility tag resolves to its admitted config."""
+
+        image = self.compatibility.get("image")
+        if not image:
+            return
+        result = self.runner(
+            [
+                "docker",
+                "image",
+                "inspect",
+                "--format",
+                "{{.Id}}",
+                image["local_reference"],
+            ]
+        )
+        actual = result.stdout.strip()
+        if result.returncode:
+            detail = result.stderr.strip() or "image not found"
+            raise SlurmTestClusterError(
+                "compatibility image is unavailable "
+                f"({image['local_reference']}): {detail}"
+            )
+        if actual != image["config_digest"]:
+            raise SlurmTestClusterError(
+                "compatibility image digest mismatch for "
+                f"{image['local_reference']}: expected {image['config_digest']}, "
+                f"found {actual or 'missing'}"
+            )
+
     def development_execution_target(self) -> dict[str, Any]:
         target = {
             "api_version": "qhpc/v1",
@@ -517,6 +549,7 @@ class SlurmDockerCluster:
 
         self._install_compatibility_files()
         self._install_build_ca(build_ca)
+        self._install_local_secrets()
         self._assert_prepared()
         return self.checkout
 
@@ -543,10 +576,10 @@ class SlurmDockerCluster:
                     f"compatibility source not found: {source}"
                 )
             payload = source.read_bytes()
-            if destination.is_file() and destination.read_bytes() == payload:
-                continue
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(payload)
+            if not destination.is_file() or destination.read_bytes() != payload:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(payload)
+            os.chmod(destination, source.stat().st_mode & 0o777)
 
     def _install_build_ca(self, build_ca: str | Path | None) -> None:
         if build_ca is None:
@@ -570,6 +603,33 @@ class SlurmDockerCluster:
                 "build CA input must contain PEM certificates"
             )
         self.build_ca_path.write_bytes(payload)
+
+    def _secret_paths(self) -> tuple[Path, ...]:
+        values = self.document["spec"]["security"].get("secret_files", {})
+        return tuple(
+            _safe_relative_path(self.checkout, value, f"{name} secret")
+            for name, value in values.items()
+        )
+
+    def _install_local_secrets(self) -> None:
+        for path in self._secret_paths():
+            if path.exists():
+                if not path.is_file() or path.is_symlink():
+                    raise SlurmTestClusterError(
+                        f"test-cluster secret is not a regular file: {path}"
+                    )
+                os.chmod(path, 0o600)
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            descriptor = os.open(
+                path,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o600,
+            )
+            try:
+                os.write(descriptor, secrets.token_hex(32).encode("ascii"))
+            finally:
+                os.close(descriptor)
 
     def _assert_prepared(self) -> None:
         if not (self.checkout / ".git").is_dir():
@@ -603,6 +663,13 @@ class SlurmDockerCluster:
                 raise SlurmTestClusterError(
                     f"compatibility file is missing or modified: {destination}"
                 )
+            expected_mode = source.stat().st_mode & 0o777
+            actual_mode = destination.stat().st_mode & 0o777
+            if actual_mode != expected_mode:
+                raise SlurmTestClusterError(
+                    "compatibility file permissions differ from the admitted "
+                    f"source: {destination}"
+                )
         if not self.build_ca_path.is_file():
             raise SlurmTestClusterError(
                 f"build CA compatibility file is missing: {self.build_ca_path}"
@@ -611,6 +678,19 @@ class SlurmDockerCluster:
             raise SlurmTestClusterError(
                 "build CA compatibility file contains a private key"
             )
+        for path in self._secret_paths():
+            if not path.is_file() or path.is_symlink():
+                raise SlurmTestClusterError(
+                    f"test-cluster secret is unavailable: {path}"
+                )
+            if path.stat().st_mode & 0o077:
+                raise SlurmTestClusterError(
+                    f"test-cluster secret permissions are too broad: {path}"
+                )
+            if not re.fullmatch(rb"[0-9a-f]{64}", path.read_bytes()):
+                raise SlurmTestClusterError(
+                    f"test-cluster secret has an invalid format: {path}"
+                )
 
         compose_file = _safe_relative_path(
             self.checkout, self.compose["compose_file"], "Compose file"
@@ -732,7 +812,12 @@ class SlurmDockerCluster:
         )
 
     def start(self, timeout_seconds: int | None = None) -> ClusterStatus:
+        if self.document["metadata"]["status"] != "validated":
+            raise SlurmTestClusterError(
+                "test cluster must be validated before it can be started"
+            )
         self._assert_prepared()
+        self.verify_compatibility_image()
         timeout = timeout_seconds or self.compose["readiness_timeout_seconds"]
         if timeout < 1:
             raise SlurmTestClusterError("cluster readiness timeout must be positive")
@@ -800,6 +885,10 @@ class SlurmDockerCluster:
         verify_cancellation: bool = True,
         keep_artifacts: bool = False,
     ) -> SlurmSmokeResult:
+        if self.document["metadata"]["status"] != "validated":
+            raise SlurmTestClusterError(
+                "test cluster must be validated before it can be smoke-tested"
+            )
         self._assert_prepared()
         timeout = timeout_seconds or self.compose["readiness_timeout_seconds"]
         if timeout < 1:

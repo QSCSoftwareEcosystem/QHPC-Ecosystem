@@ -99,7 +99,7 @@ def test_tool_proposal_contract_is_valid_and_resolves_one_admitted_operation() -
 def test_tool_proposal_rejects_unadmitted_or_mismatched_targets() -> None:
     registry = _registry()
     proposal = _proposal(registry)
-    proposal["spec"]["target"]["operation"] = "stim-simulate"
+    proposal["spec"]["target"]["operation"] = "simulate"
 
     with pytest.raises(ChatQECProposalError, match="does not match the source tool"):
         validate_tool_proposal(
@@ -111,12 +111,83 @@ def test_tool_proposal_rejects_unadmitted_or_mismatched_targets() -> None:
     proposal = _proposal(registry)
     proposal["spec"]["target"]["capability"] = "missing-capability"
     proposal["spec"]["registry_digest"] = registry_digest(registry)
-    with pytest.raises(ChatQECProposalError, match="does not resolve to an admitted capability"):
+    with pytest.raises(ChatQECProposalError, match="does not match the source tool"):
         validate_tool_proposal(
             proposal,
             registry,
             now=datetime(2026, 9, 11, 12, 1, tzinfo=timezone.utc),
         )
+
+
+def test_stim_tool_proposal_targets_the_independent_capability() -> None:
+    registry = _registry()
+    registry["spec"]["entries"].append(
+        {
+            "capability": {
+                "metadata": {"id": "stim-simulation", "version": "0.1.0"},
+                "spec": {
+                    "operations": [
+                        {
+                            "id": "simulate",
+                            "inputs": {
+                                "circuit": {
+                                    "artifact_type": "qhpc.stim-circuit@1"
+                                }
+                            },
+                            "outputs": {
+                                "samples": {
+                                    "artifact_type": "qhpc.stim-simulation-samples@1"
+                                }
+                            },
+                            "parameters": {
+                                "shots": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 1000000,
+                                }
+                            },
+                            "execution_targets": ["local-development"],
+                            "resources": {
+                                "cpu": 1,
+                                "memory_mb": 1024,
+                                "walltime_seconds": 60,
+                            },
+                        }
+                    ]
+                },
+            }
+        }
+    )
+    proposal = _proposal(registry)
+    proposal["spec"].update(
+        {
+            "source": {
+                **proposal["spec"]["source"],
+                "tool": "stim-simulate",
+            },
+            "target": {
+                "capability": "stim-simulation",
+                "version": "0.1.0",
+                "operation": "simulate",
+            },
+            "parameters": {"shots": 4},
+            "input_requirements": {"circuit": "qhpc.stim-circuit@1"},
+            "expected_outputs": {"samples": "qhpc.stim-simulation-samples@1"},
+            "execution_target": "local-development",
+            "resource_estimate": {
+                "cpu": 1,
+                "memory_mb": 1024,
+                "walltime_seconds": 60,
+            },
+        }
+    )
+    proposal["spec"]["registry_digest"] = registry_digest(registry)
+
+    assert validate_tool_proposal(
+        proposal,
+        registry,
+        now=datetime(2026, 9, 11, 12, 1, tzinfo=timezone.utc),
+    ) == proposal
 
 
 def test_tool_proposal_cannot_smuggle_commands_or_bypass_confirmation() -> None:

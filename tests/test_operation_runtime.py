@@ -39,6 +39,7 @@ REPOSITORY_RUNTIMES = (
     ROOT / "containers/operations/ftprimitivebench/runtime.yaml",
     ROOT / "containers/operations/lightstim/runtime.yaml",
     FTQC_RUNTIME,
+    ROOT / "containers/operations/nwqsim/runtime.yaml",
 )
 
 

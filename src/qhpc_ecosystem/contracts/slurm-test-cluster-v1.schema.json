@@ -104,6 +104,57 @@
             "build_ca_destination": {
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "local_reference",
+                "registry_reference",
+                "registry_index_digest",
+                "digest",
+                "config_digest",
+                "platform",
+                "dockerfile",
+                "source_lock",
+                "sbom",
+                "provenance",
+                "signature",
+                "public_key",
+                "license_inventory",
+                "validation"
+              ],
+              "properties": {
+                "local_reference": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*(?::[A-Za-z0-9][A-Za-z0-9._-]*)?$"
+                },
+                "registry_reference": {
+                  "type": "string",
+                  "pattern": "^ghcr\\.io/qscsoftwareecosystem/[a-z0-9][a-z0-9._-]*@sha256:[0-9a-f]{64}$"
+                },
+                "registry_index_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "config_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "platform": {"const": "linux/amd64"},
+                "dockerfile": {"$ref": "#/$defs/safeRelativePath"},
+                "source_lock": {"$ref": "#/$defs/safeRelativePath"},
+                "sbom": {"$ref": "#/$defs/safeRelativePath"},
+                "provenance": {"$ref": "#/$defs/safeRelativePath"},
+                "signature": {"$ref": "#/$defs/safeRelativePath"},
+                "public_key": {"$ref": "#/$defs/safeRelativePath"},
+                "license_inventory": {"$ref": "#/$defs/safeRelativePath"},
+                "validation": {"$ref": "#/$defs/safeRelativePath"}
+              }
             }
           }
         },
@@ -245,8 +296,27 @@
           ],
           "properties": {
             "start_rest_api": {"const": false},
-            "default_credentials": {"const": true},
-            "isolated_test_data_only": {"const": true}
+            "default_credentials": {"type": "boolean"},
+            "isolated_test_data_only": {"const": true},
+            "secret_files": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["munge_key", "jwt_key", "database_password"],
+              "properties": {
+                "munge_key": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+                },
+                "jwt_key": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+                },
+                "database_password": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+                }
+              }
+            }
           }
         },
         "limitations": {
@@ -256,6 +326,12 @@
           "items": {"type": "string", "minLength": 1}
         }
       }
+    }
+  },
+  "$defs": {
+    "safeRelativePath": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
     }
   }
 }

@@ -1,21 +1,22 @@
 api_version: qhpc/v1
 kind: OperationRuntime
 metadata:
-  id: chatqec-tsim-simulate-linux-amd64
-  name: ChatQEC Tsim simulation Linux runtime
+  id: tsim-simulation-linux-amd64
+  name: EQO Tsim simulation Linux runtime
   version: 0.1.0
-  component: chatqec-mcp-tools
-  capability: chatqec-qec-tools
-  operation: tsim-simulate
+  component: tsim
+  capability: tsim-simulation
+  operation: simulate
   project: agentic-software
-  owners: [chatqec]
+  owners: [tsim]
   source:
     url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
     revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
   status: oci-smoke-tested
   evidence:
     - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
-    - .development/CHATQEC_PLAN.md
+    - docs/adr/0012-independent-stim-tsim-operation-images.md
+    - docs/evidence/stim-tsim-image-split-build-2026-09-16.md
 spec:
   packaging: oci-to-apptainer
   platform:
@@ -23,8 +24,8 @@ spec:
     architecture: amd64
   build:
     recipe:
-      path: containers/operations/chatqec-tsim/Containerfile
-      digest: sha256:7b45e7b507546bcb13f66b4900562471081e5a5b18755bf5099702ea19420a09
+      path: containers/operations/tsim/Containerfile
+      digest: sha256:5eaea82675655f352741127b0fac391346a7b5b53bdb2b3b962792cd577e8912
     source_archive:
       filename: source.tar
       format: git-archive-tar
@@ -173,7 +174,7 @@ spec:
       digest: sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
     network: disabled
   execution:
-    entrypoint: [/opt/qhpc/bin/qhpc-chatqec-tsim]
+    entrypoint: [/opt/qhpc/bin/qhpc-tsim]
     working_directory: /work
     network: disabled
     read_only_root: true
@@ -213,4 +214,3 @@ spec:
     timeout_seconds: 120
   release:
     status: unpublished
-

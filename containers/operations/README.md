@@ -13,6 +13,7 @@ separate from the shared developer environments under `containers/`.
 | FTPrimitiveBench | `oci-smoke-tested` | Generate one detector-annotated memory circuit |
 | LightStim | `oci-smoke-tested` | Estimate logical error with the CPU PyMatching pipeline |
 | FTQC | `oci-smoke-tested` | Prepare a credential-free IQM circuit with the pinned LLVM/MLIR 22 runtime |
+| NWQ-Sim CPU | `oci-smoke-tested` | Sample a bounded OpenQASM 2.0 circuit through the pinned CPU state-vector runner |
 | TN-Sim | Not build-ready | Pinned iTensor, BLAS/LAPACK, build correction, and source-backed correctness evidence remain required |
 | OpenQEvo | Not build-ready | The repository license is `TBD`; redistribution in an OCI image is blocked until licensing is explicit |
 | ChatQEC | Not build-ready | A conforming server and institutional identity, model, egress, corpus, and retention services are not selected |

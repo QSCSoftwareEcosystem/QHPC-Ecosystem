@@ -1,0 +1,84 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: tsim-simulation
+  name: Tsim Non-Clifford Circuit Simulation
+  version: 0.1.0
+  project: agentic-software
+  owners: [tsim]
+  repository:
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+      - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+  visibility: internal
+  maturity: pre-alpha
+spec:
+  component:
+    name: Tsim
+    description: Direct bounded non-Clifford Tsim circuit simulation, delivered temporarily through the validated ChatQEC Tsim wrapper.
+  guidance:
+    use_when:
+      - Simulate a typed Tsim circuit with bounded detector and observable outcomes in an EQO run or workflow.
+    quick_start:
+      - Choose Tsim Non-Clifford Circuit Simulation, supply a qhpc.tsim-circuit@1 artifact, review the bounded parameters, and submit to the development worker.
+    example_workflows:
+      - chatqec-tsim-simulation
+    limitations:
+      - This is a validated development capability only; it is not a hardware backend or a facility-HPC-approved runtime.
+      - The admitted runtime is the existing ChatQEC Tsim wrapper image. EQO will publish independently built Tsim images only after separate SBOM, provenance, signature, and validation evidence is available.
+  operations:
+    - id: simulate
+      title: Simulate a non-Clifford Tsim circuit
+      description: Sample bounded detector and observable outcomes from a Tsim circuit, including supported non-Clifford instructions, with T-count and sample-preview safeguards enforced by the wrapper.
+      inputs:
+        circuit:
+          artifact_type: qhpc.tsim-circuit@1
+      outputs:
+        samples:
+          artifact_type: qhpc.tsim-simulation-samples@1
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 100
+          minimum: 1
+          maximum: 100000
+        use_reference_sample:
+          type: boolean
+          title: XOR outcomes against a noiseless reference sample
+          default: false
+      runtime:
+        type: oci
+        reference: docker://ghcr.io/qscsoftwareecosystem/eqo-tsim@sha256:df54b0ff9fd999168786726f3a9d408ee68f692c3d75b1500ce47be3c003d80d
+        digest: sha256:df54b0ff9fd999168786726f3a9d408ee68f692c3d75b1500ce47be3c003d80d
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-tsim]
+      resources:
+        cpu: 2
+        memory_mb: 4096
+        walltime_seconds: 120
+      execution_targets: [development-slurm-docker]
+  resources:
+    - id: wrapper-source
+      kind: adapter
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
+    - id: simulation-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/tsim/runtime.yaml
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#tsim
+  documentation:
+    qappswiki: packages/chatqec.md
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b

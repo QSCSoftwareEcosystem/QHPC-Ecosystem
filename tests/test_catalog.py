@@ -68,7 +68,7 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
     )
     qfw_cluster = catalog.repository("qfw-slurm-cluster")
     assert qfw_cluster.source_url == "https://github.com/openQSE/QFw-SLURM-Cluster"
-    assert qfw_cluster.container_status == "blocked"
+    assert qfw_cluster.container_status == "ready"
     assert qfw_cluster.environment == "hpc-build"
     assert catalog.repository("ftqc").source_url == (
         "https://github.com/QSCSoftwareEcosystem/FTQC"

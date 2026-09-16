@@ -40,18 +40,26 @@ OPENQEVO_DENSE_REFERENCE_METHODS = {
     "annealing",
 }
 OPENQEVO_DENSE_REFERENCE_MAX_QUBITS = 8
-FTQC_OCI_DIGEST = "sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96"
+FTQC_OCI_DIGEST = "sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac"
 FTQC_OCI_REFERENCE = f"docker://qhpc/ftqc@{FTQC_OCI_DIGEST}"
 FTQC_OCI_IMAGE = "qhpc/ftqc:779216de-linux-amd64"
 FTQC_OCI_PLATFORM = "linux/amd64"
 CHATQEC_QEC_TOOLS_OCI_DIGEST = (
-    "sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2"
+    "sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c"
 )
-CHATQEC_QEC_TOOLS_OCI_REFERENCE = (
-    f"docker://qhpc/chatqec-qec-tools@{CHATQEC_QEC_TOOLS_OCI_DIGEST}"
+CHATQEC_QEC_TOOLS_OCI_REFERENCE = f"docker://ghcr.io/qscsoftwareecosystem/eqo-stim@{CHATQEC_QEC_TOOLS_OCI_DIGEST}"
+CHATQEC_QEC_TOOLS_OCI_IMAGE = "qhpc/stim:0.1.0-linux-amd64"
+CHATQEC_QEC_TOOLS_OCI_LOCAL_ID = (
+    "sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678"
 )
-CHATQEC_QEC_TOOLS_OCI_IMAGE = "qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2"
 CHATQEC_QEC_TOOLS_OCI_PLATFORM = "linux/amd64"
+NWQSIM_OCI_DIGEST = "sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf"
+NWQSIM_OCI_REFERENCE = (
+    f"docker://ghcr.io/qscsoftwareecosystem/eqo-nwqsim@{NWQSIM_OCI_DIGEST}"
+)
+NWQSIM_OCI_IMAGE = "qhpc/nwqsim:0.1.0-linux-amd64"
+NWQSIM_OCI_LOCAL_ID = "sha256:9e0dfb6168bd03d98165315144150a386314e855c4aacf206da76116a0b8c5bc"
+NWQSIM_OCI_PLATFORM = "linux/amd64"
 _MAX_CHATQEC_SVG_BYTES = 10 * 1024 * 1024
 _FORBIDDEN_SVG_ELEMENTS = {
     "animate",
@@ -195,7 +203,7 @@ def _chatqec_qec_tools_run_target(request: TaskRequest) -> tuple[ContainerEngine
     _admit_oci_image_docker(
         engine,
         CHATQEC_QEC_TOOLS_OCI_IMAGE,
-        CHATQEC_QEC_TOOLS_OCI_DIGEST,
+        CHATQEC_QEC_TOOLS_OCI_LOCAL_ID,
         label="ChatQEC QEC-tools",
     )
     return engine, CHATQEC_QEC_TOOLS_OCI_IMAGE
@@ -223,6 +231,89 @@ def _chatqec_container_output(directory: Path, name: str) -> Path:
         raise RuntimeError(
             f"ChatQEC QEC-tools OCI runtime did not produce required output: {name}"
         )
+    return path
+
+
+def _nwqsim_container_engine(request: TaskRequest) -> str:
+    """Admit only the reviewed local NWQ-Sim CPU operation image."""
+
+    if (
+        request.runtime_reference != NWQSIM_OCI_REFERENCE
+        or request.runtime_digest != NWQSIM_OCI_DIGEST
+    ):
+        raise RuntimeError("NWQ-Sim simulation requires the admitted OCI runtime")
+    engine = shutil.which("docker") or shutil.which("podman")
+    if engine is None:
+        raise RuntimeError(
+            "NWQ-Sim simulation requires Docker or Podman and the admitted OCI runtime"
+        )
+    try:
+        inspected = subprocess.run(
+            [engine, "image", "inspect", "--format", "{{.Id}}", NWQSIM_OCI_IMAGE],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise RuntimeError("NWQ-Sim OCI runtime inspection failed") from error
+    image_id = (inspected.stdout or "").strip()
+    if inspected.returncode != 0 or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+        raise RuntimeError(
+            "NWQ-Sim OCI runtime is not installed; run the documented operation-runtime build"
+        )
+    if image_id != NWQSIM_OCI_LOCAL_ID:
+        raise RuntimeError("NWQ-Sim OCI runtime digest does not match the admitted registry")
+    return engine
+
+
+def _nwqsim_parameters(request: TaskRequest) -> tuple[int, int, int]:
+    permitted = {"shots", "random_seed", "max_qubits"}
+    unknown = sorted(str(name) for name in request.parameters if name not in permitted)
+    if unknown:
+        raise RuntimeError("unsupported NWQ-Sim parameters: " + ", ".join(unknown))
+    shots = request.parameters.get("shots", 1024)
+    random_seed = request.parameters.get("random_seed", 42)
+    max_qubits = request.parameters.get("max_qubits", 16)
+    if isinstance(shots, bool) or not isinstance(shots, int) or not 1 <= shots <= 1_000_000:
+        raise RuntimeError("NWQ-Sim shots must be an integer from 1 to 1000000")
+    if (
+        isinstance(random_seed, bool)
+        or not isinstance(random_seed, int)
+        or not 0 <= random_seed <= 2_147_483_647
+    ):
+        raise RuntimeError("NWQ-Sim random_seed must be an integer from 0 to 2147483647")
+    if isinstance(max_qubits, bool) or not isinstance(max_qubits, int) or not 1 <= max_qubits <= 16:
+        raise RuntimeError("NWQ-Sim max_qubits must be an integer from 1 to 16")
+    return shots, random_seed, max_qubits
+
+
+def _nwqsim_measurements_output(directory: Path, shots: int) -> Path:
+    path = directory / "measurements.json"
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError("NWQ-Sim OCI runtime did not produce measurements.json")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise RuntimeError("NWQ-Sim OCI runtime produced invalid measurements") from error
+    counts = payload.get("counts") if isinstance(payload, dict) else None
+    if (
+        not isinstance(counts, dict)
+        or not counts
+        or payload.get("backend") != "CPU"
+        or payload.get("simulation_method") != "sv"
+        or payload.get("source_revision") != "b35763d846e6512ed817d3f88ac8ce79a7e82a7e"
+        or payload.get("shots") != shots
+    ):
+        raise RuntimeError("NWQ-Sim OCI runtime produced an invalid measurement result")
+    if any(
+            not isinstance(state, str)
+            or re.fullmatch(r"[01]+", state) is None
+            or isinstance(count, bool)
+            or not isinstance(count, int)
+            or count < 1
+            for state, count in counts.items()
+    ) or sum(counts.values()) != shots:
+        raise RuntimeError("NWQ-Sim OCI runtime produced an invalid measurement result")
     return path
 
 
@@ -926,7 +1017,7 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
             f"ChatQEC Stim sampled {shots} shots in the admitted OCI runtime",
         )
 
-    runner.register("chatqec-qec-tools", "stim-simulate", simulate_chatqec_stim_circuit)
+    runner.register("stim-simulation", "simulate", simulate_chatqec_stim_circuit)
 
     def render_chatqec_stim_diagram(request: TaskRequest) -> TaskResult:
         _chatqec_no_parameters(request)
@@ -945,5 +1036,68 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
             "ChatQEC Stim rendered a validated SVG diagram in the admitted OCI runtime",
         )
 
-    runner.register("chatqec-qec-tools", "stim-diagram", render_chatqec_stim_diagram)
+    runner.register("stim-simulation", "render-diagram", render_chatqec_stim_diagram)
+
+    def simulate_nwqsim_qasm(request: TaskRequest) -> TaskResult:
+        shots, random_seed, max_qubits = _nwqsim_parameters(request)
+        engine = _nwqsim_container_engine(request)
+        input_directory = request.work_directory / "nwqsim-container-input"
+        output_directory = request.work_directory / "nwqsim-container-output"
+        if input_directory.exists() or output_directory.exists():
+            raise RuntimeError("NWQ-Sim OCI runtime staging directory already exists")
+        input_directory.mkdir()
+        output_directory.mkdir()
+        output_directory.chmod(0o777)
+        shutil.copyfile(_input_file(request, "circuit"), input_directory / "circuit.qasm")
+        command = [
+            engine,
+            "run",
+            "--rm",
+            "--platform",
+            NWQSIM_OCI_PLATFORM,
+            "--network",
+            "none",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--tmpfs",
+            "/tmp:rw,noexec,nosuid,size=16m",
+            "--mount",
+            f"type=bind,src={input_directory},dst=/inputs,readonly",
+            "--mount",
+            f"type=bind,src={output_directory},dst=/outputs",
+            NWQSIM_OCI_IMAGE,
+            "--shots",
+            str(shots),
+            "--random-seed",
+            str(random_seed),
+            "--max-qubits",
+            str(max_qubits),
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise RuntimeError("NWQ-Sim OCI simulation could not be started") from error
+        if completed.returncode != 0:
+            raise RuntimeError("NWQ-Sim OCI simulation failed")
+        measurements = _nwqsim_measurements_output(output_directory, shots)
+        return TaskResult(
+            {
+                "measurements": ArtifactResult.from_path(
+                    request.output_types["measurements"], measurements
+                )
+            },
+            "NWQ-Sim sampled "
+            f"{shots} shots on the admitted CPU state-vector OCI runtime",
+        )
+
+    runner.register("nwqsim-cpu-simulation", "simulate-qasm", simulate_nwqsim_qasm)
     return runner

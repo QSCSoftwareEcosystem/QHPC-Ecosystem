@@ -31,7 +31,7 @@ def test_published_capabilities_separate_tool_and_integration_identity() -> None
         (ROOT / "capabilities").rglob("qhpc-capability.yaml")
     )
 
-    assert len(descriptors) == 19
+    assert len(descriptors) == 22
     for descriptor in descriptors:
         capability = validate_contract("capability", descriptor)
         assert capability["spec"]["component"]["name"]
@@ -53,6 +53,21 @@ def test_published_capabilities_separate_tool_and_integration_identity() -> None
     assert lightstim["spec"]["component"]["description"].startswith(
         "Modular QEC framework built on Stim"
     )
+
+    stim = validate_contract(
+        "capability", ROOT / "capabilities/Stim/simulation/qhpc-capability.yaml"
+    )
+    assert [operation["id"] for operation in stim["spec"]["operations"]] == [
+        "simulate",
+        "render-diagram",
+    ]
+
+    tsim = validate_contract(
+        "capability", ROOT / "capabilities/Tsim/simulation/qhpc-capability.yaml"
+    )
+    assert [operation["id"] for operation in tsim["spec"]["operations"]] == [
+        "simulate"
+    ]
 
 
 def write_capability(

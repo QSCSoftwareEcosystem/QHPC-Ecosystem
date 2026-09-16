@@ -108,8 +108,8 @@ spec:
           default: circuit
       runtime:
         type: oci
-        reference: docker://qhpc/ftqc@sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
-        digest: sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
+        reference: docker://qhpc/ftqc@sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac
+        digest: sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac
       invocation:
         entrypoint: [qhpc-ftqc-prepare-iqm]
       resources:

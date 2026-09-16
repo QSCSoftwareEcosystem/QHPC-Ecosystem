@@ -76,8 +76,8 @@ spec:
           maximum: 0.5
       runtime:
         type: oci
-        reference: docker://qhpc/ftprimitivebench@sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
-        digest: sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+        reference: docker://qhpc/ftprimitivebench@sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3
+        digest: sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-ftprimitivebench-memory]
       resources:

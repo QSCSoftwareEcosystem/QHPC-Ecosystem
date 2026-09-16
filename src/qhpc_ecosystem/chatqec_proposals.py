@@ -25,25 +25,25 @@ MCP_TOOLS_REVISION = "dd19a85b08637a61dc1afc124d2f4b32745b527b"
 
 # Every inspected source tool now has a bounded EQO operation record. A model
 # cannot use this mapping to target another existing EQO capability.
-_P1_OPERATION_BY_TOOL = {
+_P1_TARGET_BY_TOOL = {
     # The source repository uses Python-style names.  The hyphenated aliases
     # are retained for proposal records created by the initial EQO UI draft.
-    "code_params": "code-params",
-    "code-params": "code-params",
-    "stim_simulate": "stim-simulate",
-    "stim-simulate": "stim-simulate",
-    "stim_diagram": "stim-diagram",
-    "stim-diagram": "stim-diagram",
-    "pymatching_decode": "pymatching-decode",
-    "pymatching-decode": "pymatching-decode",
-    "threshold_sweep": "threshold-sweep",
-    "threshold-sweep": "threshold-sweep",
-    "qec_circuit_build": "qec-circuit-build",
-    "qec-circuit-build": "qec-circuit-build",
-    "tsim_simulate": "tsim-simulate",
-    "tsim-simulate": "tsim-simulate",
-    "glcb_visualize_url": "glcb-visualize-url",
-    "glcb-visualize-url": "glcb-visualize-url",
+    "code_params": ("chatqec-qec-tools", "code-params"),
+    "code-params": ("chatqec-qec-tools", "code-params"),
+    "stim_simulate": ("stim-simulation", "simulate"),
+    "stim-simulate": ("stim-simulation", "simulate"),
+    "stim_diagram": ("stim-simulation", "render-diagram"),
+    "stim-diagram": ("stim-simulation", "render-diagram"),
+    "pymatching_decode": ("chatqec-qec-tools", "pymatching-decode"),
+    "pymatching-decode": ("chatqec-qec-tools", "pymatching-decode"),
+    "threshold_sweep": ("chatqec-qec-tools", "threshold-sweep"),
+    "threshold-sweep": ("chatqec-qec-tools", "threshold-sweep"),
+    "qec_circuit_build": ("chatqec-qec-tools", "qec-circuit-build"),
+    "qec-circuit-build": ("chatqec-qec-tools", "qec-circuit-build"),
+    "tsim_simulate": ("tsim-simulation", "simulate"),
+    "tsim-simulate": ("tsim-simulation", "simulate"),
+    "glcb_visualize_url": ("chatqec-qec-tools", "glcb-visualize-url"),
+    "glcb-visualize-url": ("chatqec-qec-tools", "glcb-visualize-url"),
 }
 
 
@@ -155,12 +155,12 @@ def validate_tool_proposal(
         or source["revision"] != MCP_TOOLS_REVISION
     ):
         raise _proposal_error("source is not the pinned chatqec-mcp-tools revision")
-    expected_operation = _P1_OPERATION_BY_TOOL.get(source["tool"])
-    if expected_operation is None:
+    expected_target = _P1_TARGET_BY_TOOL.get(source["tool"])
+    if expected_target is None:
         raise _proposal_error("source tool is not admitted for proposal review")
     target = spec["target"]
-    if target["operation"] != expected_operation:
-        raise _proposal_error("target operation does not match the source tool")
+    if (target["capability"], target["operation"]) != expected_target:
+        raise _proposal_error("target does not match the source tool")
 
     try:
         actual_registry_digest = registry_digest(dict(registry))

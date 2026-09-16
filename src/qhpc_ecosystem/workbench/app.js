@@ -7,6 +7,34 @@ const SOURCE_AREAS = {
   "cross-project": "Cross-project",
 };
 
+// Names are transcribed only from the reviewed, pinned-source attribution
+// record.  They identify developers or publication authors, not current
+// maintainers; the latter requires an explicit project statement.
+const TOOL_PEOPLE = {
+  "quantum-sdk-ranking": { basis: "Named repository contributor", people: ["Sharmin Afrose"] },
+  "chatqec-assistant-service": { basis: "Package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "chatqec-qec-tools": { basis: "Package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "stim-simulation": { basis: "Temporary wrapper package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "tsim-simulation": { basis: "Temporary wrapper package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "qsc-hardware-survey": { basis: "Named repository contributors", people: ["Swen Boehm", "Thomas Naughton", "Vicente Leyton-Ortega"] },
+  "exachem-qflow-tasksets": { basis: "Publication authors named by the project", people: ["Ajay Panyala", "Nicholas Bauman", "Daniel Mejia Rodriguez", "Himadri Pathak", "Bo Peng", "Marcus Liebenthal", "David Murphy", "Giridhar Nandipati", "Erdal Mutlu", "Sriram Krishnamoorthy", "Edo Aprà", "Sotiris Xantheas", "Niranjan Govind", "Karol Kowalski"] },
+  "ftprimitivebench-primitives": { basis: "Publication authors named by the project", people: ["Shuwen Kan", "Adrian Harkness", "Zefan Du", "Rod Rofougaran", "Sean Garner", "Chenxu Liu", "Ying Mao", "Samuel Stein"] },
+  "ftqc-compiler": { basis: "Named repository contributors", people: ["Narasinga Rao Miniskar", "Seyong Lee"] },
+  "iris-qiris-runtime": { basis: "Package and publication authors", people: ["Narasinga Rao Miniskar", "Jungwon Kim", "Seyong Lee", "Beau Johnston", "Jeffrey S. Vetter"] },
+  "lightstim-simulation": { basis: "Software and package authors", people: ["Xiang Fang", "Ming Wang", "Yue Wu", "Sharanya Prabhu", "Dean Tullsen", "Narasinga Rao Miniskar", "Frank Mueller", "Travis Humble", "Yufei Ding"] },
+  "tn-sim-mps-simulation": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
+  "nwqsim-cpu-simulation": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
+  "nwqsim-qflow-vqe-plugin": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
+  "openqevo-library": { basis: "Named repository contributors", people: ["Thomas Naughton", "Vicente Leyton-Ortega"] },
+  "qappswiki-tooling": { basis: "Named repository contributor", people: ["Vicente Leyton-Ortega"] },
+  "stabsim-simulator": { basis: "Publication authors named by the project", people: ["Sean Garner", "Chenxu Liu", "Meng Wang", "Samuel Stein", "Ang Li"] },
+  "nwqec-qec-transpilation": { basis: "Publication authors named by the project", people: ["Meng Wang", "Chenxu Liu", "Samuel Stein", "Yufei Ding", "Poulami Das", "Prashant J. Nair", "Ang Li", "Sean Garner"] },
+  "openqse-specification": { basis: "Named repository contributors", people: ["Amir Shehata", "Josh Moles", "Patrick Deuley", "Thomas Naughton"] },
+  "qasmtrans-transpiler": { basis: "Developers named by the project", people: ["Fei Hua", "Meng Wang", "Muqing Zheng", "Ang Li"] },
+  "qsc-materials-db-schema": { basis: "No individual developers are named in the reviewed source", people: [] },
+  "qsc-spack-repository": { basis: "Named repository contributors", people: ["Brad Chase", "Charles Ferenbaugh", "Seth R. Johnson"] },
+};
+
 /* Every state carries a class, a glyph, and its own word, so state is never
    communicated by color alone. Red and green stay semantic; the glyph is the
    channel that survives deuteranopia and forced-colors mode. */
@@ -356,7 +384,7 @@ async function api(path, options = {}) {
   if (csrfToken && !["GET", "HEAD", "OPTIONS", "TRACE"].includes(options.method || "GET")) {
     headers["X-CSRFToken"] = decodeURIComponent(csrfToken);
   }
-  const response = await fetch(`/api/v1${path}`, { ...options, headers });
+  const response = await fetch(`api/v1${path}`, { ...options, headers });
   const body = await response.json();
   if (!response.ok) throw new Error(body.error || `Request failed: ${response.status}`);
   return body;
@@ -996,7 +1024,7 @@ function dataDetail(item) {
         ? `<p class="tool-record-empty">databucket/Garage is not configured for this Workbench — start it with <code>eqo dev up</code> (without <code>--no-databucket</code>).</p>`
         : objectsState.objects.length
           ? `<table class="data-table"><thead><tr><th>KEY</th><th>SIZE</th><th>LAST MODIFIED</th><th>ACTIONS</th></tr></thead><tbody>${objectsState.objects.map(object => {
-              const contentPath = `/api/v1/data/objects/content?key=${encodeURIComponent(object.key)}`;
+              const contentPath = `api/v1/data/objects/content?key=${encodeURIComponent(object.key)}`;
               return `<tr><td><code>${escapeHtml(object.key)}</code></td><td>${escapeHtml(object.size)} B</td><td>${escapeHtml(object.last_modified)}</td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}&download=1">Download</a></span></td></tr>`;
             }).join("")}</tbody></table>`
           : `<p class="tool-record-empty">Bucket '${escapeHtml(objectsState.bucket || "")}' has no objects under this prefix yet.</p>`;
@@ -1229,11 +1257,11 @@ function renderOpenQSE() {
       </article>
 
       <article class="openqse-resource-card openqse-qfw-card">
-        <header><span>CATALOGED SOURCE INTAKE</span><h3>QFw–SLURM Cluster</h3></header>
+        <header><span>VALIDATED DEVELOPMENT FIXTURE</span><h3>QFw–SLURM Cluster</h3></header>
         <p>OpenQSE’s Docker Compose environment for QFw development, integration testing, and profiling. It is a distinct development-cluster reference, not the EQO scheduler-conformance cluster.</p>
         <dl>
           <div><dt>PINNED SOURCE</dt><dd><code>${qfwRevision.slice(0, 12)}</code></dd></div>
-          <div><dt>STATUS</dt><dd>Planned; activation blocked</dd></div>
+          <div><dt>STATUS</dt><dd>Validated office development simulation</dd></div>
         </dl>
         <footer>
           ${externalResourceLink(`https://github.com/openQSE/QFw-SLURM-Cluster/tree/${qfwRevision}`, "Source and README")}
@@ -1245,9 +1273,9 @@ function renderOpenQSE() {
     <section class="openqse-admission-note" aria-labelledby="openqse-admission-title">
       <div>
         <span class="panel-label">QFW–SLURM ADMISSION</span>
-        <h2 id="openqse-admission-title">Cataloged without being operational</h2>
+        <h2 id="openqse-admission-title">Validated without becoming a workflow target</h2>
       </div>
-      <p>The source is pinned for review, but EQO will not build or start it until a compatibility image restores secure transport, pins material inputs, and supplies an SBOM, signature, attestation, and source-to-image provenance. A separately reviewed QFw operation or target adapter is also required before workflow use.</p>
+      <p>The public immutable Linux/AMD64 compatibility image is admitted with pinned material inputs, secure transport, SBOM, signature, provenance, and office scheduler evidence. EQO may start this development fixture, but it is not a workflow, CLI, or Workbench execution target: a separately reviewed QFw operation or target-adapter contract is still required.</p>
     </section>`;
 }
 
@@ -1724,7 +1752,7 @@ function assignAssistantResponse(message, response) {
 }
 
 async function streamAssistantAnswer(payload, signal, onEvent) {
-  const response = await fetch("/api/v1/assistant/chatqec/answers/stream", {
+  const response = await fetch("api/v1/assistant/chatqec/answers/stream", {
     method: "POST",
     headers: assistantRequestHeaders(),
     body: JSON.stringify(payload),
@@ -2125,7 +2153,7 @@ function renderArtifacts() {
     return;
   }
   const rows = artifacts.map(item => {
-    const contentPath = `/api/v1/artifacts/${encodeURIComponent(item.id)}/content`;
+    const contentPath = `api/v1/artifacts/${encodeURIComponent(item.id)}/content`;
     return `<tr><td><span class="cell-title"><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.artifact_type)}</small></span></td><td>${escapeHtml(item.provenance)}</td><td>${escapeHtml(item.size_bytes)} B</td><td><span class="cell-title"><strong>${escapeHtml(item.checksum.slice(0, 24))}…</strong><small>${escapeHtml(item.uri)}</small></span></td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></td></tr>`;
   }).join("");
   workspace.innerHTML = sectionHeader("Artifact index", `${artifacts.length} checksummed artifacts`) + `<table class="data-table"><thead><tr><th>ARTIFACT</th><th>PROVENANCE</th><th>SIZE</th><th>CHECKSUM / URI</th><th>ACTIONS</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -2520,6 +2548,21 @@ function openCapability(id) {
   const limitations = guidance.limitations?.length
     ? `<section class="tool-record-section tool-limitations"><h3>Current limitations</h3>${guidanceList(guidance.limitations)}</section>`
     : "";
+  const serviceModes = guidance.service_modes?.length
+    ? `<section class="tool-record-section"><h3>Service modes</h3>${guidanceList(guidance.service_modes)}</section>`
+    : "";
+  const people = TOOL_PEOPLE[item.id] || {
+    basis: "No source-reviewed developer attribution is recorded for this tool",
+    people: [],
+  };
+  const peopleList = people.people.length
+    ? `<ul class="tool-example-list">${people.people.map(person => `<li>${escapeHtml(person)}</li>`).join("")}</ul>`
+    : `<p class="tool-record-empty">No individual developer is named in the reviewed source.</p>`;
+  const attribution = `<section class="tool-record-section tool-people">
+      <h3>Developers and authors</h3>
+      <p>${escapeHtml(people.basis)}. Attribution is limited to people named by the reviewed source; it does not imply current maintenance responsibility.</p>
+      ${peopleList}
+    </section>`;
 
   openInspector(`<article class="tool-record">
     <header class="tool-record-intro">
@@ -2552,6 +2595,8 @@ function openCapability(id) {
       <h3>Published resources <span>${item.resources.length}</span></h3>
       ${resources}
     </section>
+    ${attribution}
+    ${serviceModes}
     ${limitations}
     <details class="tool-provenance">
       <summary>Release, ownership, and provenance</summary>
@@ -2617,7 +2662,7 @@ function openRun(id) {
     ? `<section class="run-execution-status"><span class="panel-label">IQM EXECUTION LIFECYCLE</span><strong>${escapeHtml(lifecycle.status)}</strong><p>${escapeHtml(lifecycle.detail)}</p></section>`
     : "";
   const outputs = Object.entries(run.outputs || {}).map(([name, artifactId]) => {
-    const contentPath = `/api/v1/artifacts/${encodeURIComponent(artifactId)}/content`;
+    const contentPath = `api/v1/artifacts/${encodeURIComponent(artifactId)}/content`;
     return `<div class="run-output"><span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(artifactId)}</small></span><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></div>`;
   }).join("");
   openInspector(`<h2>${escapeHtml(run.workflow_id)}</h2>

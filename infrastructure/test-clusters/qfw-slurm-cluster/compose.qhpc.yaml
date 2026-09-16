@@ -1,24 +1,127 @@
+x-qhpc-slurm-service: &qhpc-slurm-service
+  image: qhpc/openqse-qfw-slurm:0.1.0-office
+  pull_policy: never
+  init: true
+  restart: "no"
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - qhpc-qfw-internal
+  secrets:
+    - qhpc_munge_key
+    - qhpc_jwt_key
+  volumes:
+    - qhpc_qfw_jobdir:/data
+    - qhpc_qfw_logs:/var/log/slurm
+    - ./shared-dir:/mnt:rw
+    - ./shared-dir:/workspace/qfw-container-base:rw
+
+x-qhpc-worker: &qhpc-worker
+  <<: *qhpc-slurm-service
+  command: ["slurmd"]
+  cpus: 4
+  cpuset: "0-3"
+  mem_limit: 6g
+  depends_on:
+    slurmctld:
+      condition: service_started
+
 services:
-  slurmctld:
+  mysql:
+    image: mariadb@sha256:5ae7fc7b20f8e07c0ee169ff24617b39cb99b4bfc147555cea758baa69834d9e
     pull_policy: never
+    container_name: qhpc-openqse-qfw-mysql
+    hostname: mysql
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+      MARIADB_DATABASE: slurm_acct_db
+      MARIADB_USER: slurm
+      MARIADB_PASSWORD_FILE: /run/secrets/qhpc_slurm_db_password
+    secrets:
+      - qhpc_slurm_db_password
     volumes:
-      - qhpc_qfw_slurm_state:/var/lib/slurmd
+      - qhpc_qfw_mysql:/var/lib/mysql
+    networks:
+      - qhpc-qfw-internal
+
+  slurmdbd:
+    <<: *qhpc-slurm-service
+    container_name: qhpc-openqse-qfw-slurmdbd
+    hostname: slurmdbd
+    command: ["slurmdbd"]
+    secrets:
+      - qhpc_munge_key
+      - qhpc_jwt_key
+      - qhpc_slurm_db_password
+    depends_on:
+      mysql:
+        condition: service_started
+
+  slurmctld:
+    <<: *qhpc-slurm-service
+    container_name: qhpc-openqse-qfw-slurmctld
+    hostname: slurmctld
+    command: ["slurmctld"]
+    volumes:
+      - qhpc_qfw_jobdir:/data
+      - qhpc_qfw_logs:/var/log/slurm
+      - qhpc_qfw_controller_state:/var/lib/slurmd
+      - ./shared-dir:/mnt:rw
+      - ./shared-dir:/workspace/qfw-container-base:rw
+    depends_on:
+      slurmdbd:
+        condition: service_started
+
   c1:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c1
+    hostname: c1
   c2:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c2
+    hostname: c2
   c3:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c3
+    hostname: c3
   c4:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c4
+    hostname: c4
   c5:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c5
+    hostname: c5
   c6:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c6
+    hostname: c6
   c7:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c7
+    hostname: c7
   c8:
-    pull_policy: never
+    <<: *qhpc-worker
+    container_name: qhpc-openqse-qfw-c8
+    hostname: c8
+
+networks:
+  qhpc-qfw-internal:
+    internal: true
+
+secrets:
+  qhpc_munge_key:
+    file: qhpc-secrets/munge-key
+  qhpc_jwt_key:
+    file: qhpc-secrets/slurm-jwt-key
+  qhpc_slurm_db_password:
+    file: qhpc-secrets/slurm-db-password
 
 volumes:
-  qhpc_qfw_slurm_state:
+  qhpc_qfw_mysql:
+  qhpc_qfw_jobdir:
+  qhpc_qfw_logs:
+  qhpc_qfw_controller_state:

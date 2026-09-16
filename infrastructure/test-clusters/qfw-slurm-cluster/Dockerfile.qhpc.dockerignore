@@ -1,0 +1,14 @@
+.git
+.gitmodules
+qhpc-secrets
+shared-dir
+qfw-install.env
+.env
+*.env
+*.env.*
+iqm-*.env
+qhpc-evidence
+dashboard
+docs
+rest-testing
+test_scripts

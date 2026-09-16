@@ -41,6 +41,8 @@ class DevStackConfig:
     poll_interval_seconds: float
     lease_seconds: int
     worker_stale_after_seconds: float
+    workbench_allowed_hosts: tuple[str, ...] = ()
+    qappswiki_graph: str = ""
     cluster_checkout: str = ""
     chatqec_container_image: str = ""
     update_state_root: str = ".qhpc/live/updates"
@@ -119,6 +121,8 @@ def build_service_specs(
                 config.update_state_root,
             )
         )
+    if config.qappswiki_graph:
+        api_command.extend(("--qappswiki-graph", config.qappswiki_graph))
     if config.start_chatqec:
         api_command.extend(
             (
@@ -220,6 +224,12 @@ def build_service_specs(
                 )
             )
     if config.start_workbench:
+        workbench_environment = (
+            (
+                "QHPC_WORKBENCH_ALLOWED_HOSTS",
+                ",".join(config.workbench_allowed_hosts),
+            ),
+        ) if config.workbench_allowed_hosts else ()
         services.append(
             ServiceSpec(
                 "workbench",
@@ -234,6 +244,7 @@ def build_service_specs(
                     "--api-base",
                     f"http://{config.host}:{config.api_port}",
                 ),
+                workbench_environment,
             )
         )
     if config.start_local_worker:

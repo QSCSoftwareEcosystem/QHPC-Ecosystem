@@ -53,8 +53,8 @@ spec:
           minimum: 0
       runtime:
         type: oci
-        reference: docker://qhpc/stabsim@sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
-        digest: sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
+        reference: docker://qhpc/stabsim@sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e
+        digest: sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-stabsim-metrics]
       resources:

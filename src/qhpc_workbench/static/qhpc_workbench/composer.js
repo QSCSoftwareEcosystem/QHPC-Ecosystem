@@ -16245,7 +16245,7 @@ var tf = (...e) => e.filter((e, t, n) => !!e && e.trim() !== "" && n.indexOf(e) 
 }], ["path", {
 	d: "m6 6 12 12",
 	key: "d8bk6v"
-}]]), Jf = "/api/v1";
+}]]), Jf = "api/v1";
 function Yf() {
 	return document.cookie.split(";").map((e) => e.trim()).find((e) => e.startsWith("csrftoken="))?.slice(10) ?? "";
 }

@@ -23,6 +23,13 @@ this page: **Vicente Leyton-Ortega**, as shown in the
 - Current maintainer: unresolved in the pinned project documentation.
 - Evidence: [package metadata](https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/pyproject.toml) and [README citation](https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md).
 
+## Stim and Tsim wrappers
+
+- The current EQO Stim and Tsim capability records reuse the bounded wrappers from ChatQEC MCP Tools; their named package author is Sharmin Afrose.
+- Publication authors named by the related ChatQEC project: Sharmin Afrose, Vicente Leyton-Ortega, Travis Humble, and Tirthankar Ghosal.
+- This attributes the temporary wrapper integration, not the upstream Stim or Tsim projects. Independent images will carry their own source and attribution evidence.
+- Evidence: [pinned wrapper repository](https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b) and [ChatQEC package metadata](https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/pyproject.toml).
+
 ## QSC hardware survey
 
 - Named repository contributors: Swen Boehm, Thomas Naughton, and Vicente Leyton-Ortega.

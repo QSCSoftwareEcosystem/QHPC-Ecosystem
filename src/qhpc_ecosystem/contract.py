@@ -1255,8 +1255,27 @@ def _validate_slurm_test_cluster(
             spec["compatibility"]["build_ca_destination"],
         ),
         *[
+            (f"/spec/compatibility/image/{name}", value)
+            for name, value in spec["compatibility"].get("image", {}).items()
+            if name
+            in {
+                "dockerfile",
+                "source_lock",
+                "sbom",
+                "provenance",
+                "signature",
+                "public_key",
+                "license_inventory",
+                "validation",
+            }
+        ],
+        *[
             (f"/spec/runtime_images/{index}/runtime_manifest", item["runtime_manifest"])
             for index, item in enumerate(spec.get("runtime_images", []))
+        ],
+        *[
+            (f"/spec/security/secret_files/{name}", value)
+            for name, value in spec["security"].get("secret_files", {}).items()
         ],
     ]
     for path, value in relative_paths:
@@ -1274,6 +1293,16 @@ def _validate_slurm_test_cluster(
         )
     )
     runtime_images = spec.get("runtime_images", [])
+    compatibility_image = spec["compatibility"].get("image", {})
+    if compatibility_image and not compatibility_image["registry_reference"].endswith(
+        "@" + compatibility_image["registry_index_digest"]
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/compatibility/image/registry_reference",
+                "must end with the declared digest",
+            )
+        )
     issues.extend(
         _duplicate_issues(
             (item["runtime_id"] for item in runtime_images),
@@ -1294,6 +1323,26 @@ def _validate_slurm_test_cluster(
             ContractIssue(
                 "/metadata/evidence",
                 "is required before a test cluster can be validated",
+            )
+        )
+    if (
+        metadata["status"] == "validated"
+        and not spec["security"]["default_credentials"]
+        and not spec["compatibility"].get("image")
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/compatibility/image",
+                "is required before a test cluster can be validated",
+            )
+        )
+    if not spec["security"]["default_credentials"] and not spec["security"].get(
+        "secret_files"
+    ):
+        issues.append(
+            ContractIssue(
+                "/spec/security/secret_files",
+                "is required when default credentials are disabled",
             )
         )
     return issues

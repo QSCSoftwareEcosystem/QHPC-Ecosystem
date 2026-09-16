@@ -188,7 +188,7 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
         "IRIS-QIRIS",
         "NWQSim-QFlow",
     }
-    assert registry["metadata"]["entry_count"] == 16
+    assert registry["metadata"]["entry_count"] == 19
     validate_contract_data("registry", registry)
     with pytest.raises(RegistryError, match="capability not found"):
         find_registry_entry(registry, "qsc-hardware-survey")
@@ -300,5 +300,5 @@ def test_worker_command_uses_the_same_deployment_profile(
     )
 
     output = capsys.readouterr().out
-    assert "QHPC Worker: initial@0.8.0 (16 published capabilities)" in output
+    assert "QHPC Worker: initial@0.8.0 (19 published capabilities)" in output
     assert "Worker stopped: 0 tasks processed" in output

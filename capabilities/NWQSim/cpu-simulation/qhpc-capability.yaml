@@ -1,0 +1,98 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: nwqsim-cpu-simulation
+  name: NWQ-Sim CPU State-Vector Simulation
+  version: 0.1.0
+  project: hybrid-workflows
+  owners: [nwqsim]
+  repository:
+    url: https://github.com/pnnl/nwq-sim
+    revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/nwqsim-cpu-source-audit-2026-09-16.md
+      - docs/evidence/nwqsim-cpu-oci-smoke-2026-09-16.md
+  visibility: public
+  maturity: pre-alpha
+spec:
+  component:
+    name: NWQ-Sim
+    description: Pinned NWQ-Sim mainline CPU state-vector runner, exposed through one bounded OpenQASM 2.0 sampling operation.
+  guidance:
+    use_when:
+      - Sample a small OpenQASM 2.0 circuit on the pinned NWQ-Sim CPU state-vector implementation.
+      - Compare a circuit produced by the OpenQEvo development bridge with an independent CPU simulator path.
+    quick_start:
+      - Open Compose and choose NWQ-Sim CPU simulation.
+      - Upload or connect an OpenQASM 2.0 circuit with at most sixteen qubits.
+      - Set bounded shots and a random seed, then inspect normalized measurement counts.
+    example_workflows: [nwqsim-bell-simulation]
+    limitations:
+      - This is a local, development-only CPU state-vector operation; it is not an HPC target, a GPU path, or a QFw workflow runtime.
+      - Only the fixed CPU `sv` runner is exposed. MPI, GPU, noise, state import/export, Qobj, benchmarks, and arbitrary runner flags are unavailable.
+      - Input is bounded to one OpenQASM 2.0 qreg of at most sixteen qubits and one million shots.
+      - The existing TN-Sim MPS contract and the proposed QFlow VQE plugin remain separate records with their own readiness states.
+  operations:
+    - id: simulate-qasm
+      title: Simulate bounded OpenQASM on CPU
+      description: Run the pinned NWQ-Sim CPU state-vector QASM runner with fixed backend and simulation method, returning seeded measurement counts.
+      inputs:
+        circuit:
+          artifact_type: qhpc.quantum-circuit@1
+          description: One-register OpenQASM 2.0 circuit with at most sixteen qubits.
+      outputs:
+        measurements:
+          artifact_type: qhpc.nwqsim-measurement-counts@1
+          description: Computational-basis shot counts and the effective fixed CPU state-vector runtime details.
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 1024
+          minimum: 1
+          maximum: 1000000
+        random_seed:
+          type: integer
+          title: Sampling random seed
+          default: 42
+          minimum: 0
+          maximum: 2147483647
+        max_qubits:
+          type: integer
+          title: Maximum admitted circuit qubits
+          default: 16
+          minimum: 1
+          maximum: 16
+      runtime:
+        type: oci
+        reference: docker://ghcr.io/qscsoftwareecosystem/eqo-nwqsim@sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf
+        digest: sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-nwqsim-simulate]
+      resources:
+        cpu: 1
+        memory_mb: 2048
+        walltime_seconds: 60
+      execution_targets: [local-development]
+  resources:
+    - id: nwqsim-source
+      kind: library
+      version: 0.1.0
+      uri: https://github.com/pnnl/nwq-sim/tree/b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+    - id: cpu-runtime-contract
+      kind: adapter
+      version: 0.1.0
+      uri: containers/operations/nwqsim/runtime.yaml
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#nwqsim-qflow
+  documentation:
+    qappswiki: packages/nwqsim.md
+    url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md

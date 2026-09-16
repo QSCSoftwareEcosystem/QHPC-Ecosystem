@@ -1,0 +1,34 @@
+api_version: qhpc/v1
+kind: Workflow
+metadata:
+  id: nwqsim-bell-simulation
+  name: Simulate OpenQASM with NWQ-Sim CPU
+  version: 0.1.0
+  owner: qhpc-ecosystem
+  visibility: internal
+  description: Run a bounded OpenQASM 2.0 circuit through the development-only NWQ-Sim CPU state-vector operation.
+spec:
+  nodes:
+    - id: simulate
+      operation:
+        capability: nwqsim-cpu-simulation
+        version: 0.1.0
+        operation: simulate-qasm
+      parameters:
+        shots: 1024
+        random_seed: 42
+        max_qubits: 16
+  edges: []
+  inputs:
+    circuit:
+      artifact_type: qhpc.quantum-circuit@1
+      required: true
+      to:
+        node: simulate
+        port: circuit
+  outputs:
+    measurements:
+      artifact_type: qhpc.nwqsim-measurement-counts@1
+      from:
+        node: simulate
+        port: measurements

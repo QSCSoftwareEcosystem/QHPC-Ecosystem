@@ -1,0 +1,50 @@
+api_version: qhpc/v1
+kind: ArtifactType
+metadata:
+  id: qhpc.nwqsim-measurement-counts
+  name: NWQ-Sim Measurement Counts
+  version: 1
+  project: hybrid-workflows
+  owners: [nwqsim, qhpc-ecosystem]
+  status: draft
+spec:
+  description: Bounded CPU state-vector measurement counts produced by the pinned NWQ-Sim OpenQASM runner.
+  media_type: application/vnd.qsc.nwqsim-measurement-counts+json
+  representation: json
+  extensions: [json]
+  json_schema:
+    type: object
+    additionalProperties: false
+    required: [backend, counts, qubits, random_seed, shots, simulation_method, source_revision]
+    properties:
+      backend:
+        type: string
+        enum: [CPU]
+      counts:
+        type: object
+        minProperties: 1
+        propertyNames:
+          pattern: "^[01]+$"
+        additionalProperties:
+          type: integer
+          minimum: 1
+      qubits:
+        type: integer
+        minimum: 1
+        maximum: 16
+      random_seed:
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+      shots:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+      simulation_method:
+        type: string
+        enum: [sv]
+      source_revision:
+        type: string
+        pattern: "^[0-9a-f]{40}$"
+  compatibility:
+    accepts_versions: [1]

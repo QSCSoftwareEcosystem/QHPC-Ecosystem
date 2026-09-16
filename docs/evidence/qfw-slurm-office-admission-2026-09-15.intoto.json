@@ -1,0 +1,40 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "predicate": {
+    "admissionScope": "office development simulation; not facility-HPC performance or a workflow target adapter approval",
+    "attestations": {
+      "provenance_statement": "docs/evidence/qfw-slurm-office-provenance-2026-09-15.intoto.json",
+      "provenance_statement_sha256": "sha256:60e410b837edbb82a0c0cda1adfbf790cec1759ffa77118925a0d66821ecece4",
+      "sbom_statement": "docs/evidence/qfw-slurm-office-sbom-2026-09-15.spdx.json",
+      "sbom_statement_sha256": "sha256:b3fea92dff3b17c56e69ca704a5125774f941d3e1714b266d61e7fd5c79dea95"
+    },
+    "image": {
+      "config_digest": "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b",
+      "local_reference": "qhpc/openqse-qfw-slurm:0.1.0-office",
+      "oci_index_digest": "sha256:5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105",
+      "platform_manifest_digest": "sha256:0fed63f95914df4927ea26a34296d1862821bc52629bffd5fb7869ecf612de41"
+    },
+    "pinned_source": {
+      "cluster_repository": "https://github.com/openQSE/QFw-SLURM-Cluster.git",
+      "cluster_revision": "eeb42e601383f3d33020f823d4a387ef30b9dd7d",
+      "dependency_patch_sha256": "sha256:40af0ec4af72df2e7f5721ce170dcb296e7b6b8377d58d93a15ecd08af929754",
+      "dockerfile": "infrastructure/test-clusters/qfw-slurm-cluster/Dockerfile.qhpc",
+      "dockerfile_sha256": "sha256:2c119a59baeec50fb2458374896f7e0ab3930203a66e02dc21e8f65273dc1c11",
+      "python_build_lock_sha256": "sha256:274b2eceb1e3e611afb2e5b6859bfd6fda6686026d1a0883bfb1a906929e3bc6",
+      "python_lock_sha256": "sha256:481424a8bcedb6a484f4f0d469df7b345d89a96e0e018a3996c1c4a071e7ad79",
+      "rpm_lock_sha256": "sha256:1f1671e859e7ee60451c486261f22b4b4231885bf025b361917be23f0b6855d3",
+      "source_lock": "infrastructure/test-clusters/qfw-slurm-cluster/source-lock.json",
+      "source_lock_sha256": "sha256:295e0216f3c4ac80a630fa845ac16fd6306ffa6768a27f7a0a2b2ad409345856"
+    },
+    "platform": "linux/amd64"
+  },
+  "predicateType": "https://qhpc.example/compatibility-admission/v1",
+  "subject": [
+    {
+      "digest": {
+        "sha256": "0fed63f95914df4927ea26a34296d1862821bc52629bffd5fb7869ecf612de41"
+      },
+      "name": "qhpc/openqse-qfw-slurm:0.1.0-office"
+    }
+  ]
+}

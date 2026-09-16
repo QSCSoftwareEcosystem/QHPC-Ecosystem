@@ -51,11 +51,11 @@ def test_django_workbench_serves_existing_design_and_health() -> None:
     assert b'data-view="updates"' in response.content
     assert b">Projects<" not in response.content
     assert b"Software Thrust projects" not in response.content
-    assert b"/static/styles.css?v=" in response.content
-    assert b"/static/qhpc_workbench/composer.css?v=" in response.content
-    assert b"/static/qhpc_workbench/composer.js?v=" in response.content
-    assert b"/static/nebula.js?v=" in response.content
-    assert b"/static/app.js?v=" in response.content
+    assert b'href="static/styles.css?v=' in response.content
+    assert b'href="static/qhpc_workbench/composer.css?v=' in response.content
+    assert b'src="static/qhpc_workbench/composer.js?v=' in response.content
+    assert b'src="static/nebula.js?v=' in response.content
+    assert b'src="static/app.js?v=' in response.content
     assert response["Cache-Control"] == "no-store"
     assert "csrftoken" in response.cookies
 

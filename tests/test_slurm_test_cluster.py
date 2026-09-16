@@ -53,10 +53,10 @@ def _prepared_checkout(path: Path) -> None:
     (path / "qhpc-build-ca.pem").write_bytes(b"")
 
 
-def test_qfw_slurm_source_intake_is_pinned_and_non_executable() -> None:
+def test_qfw_slurm_source_intake_is_pinned_and_validated_development_only() -> None:
     document = validate_contract("slurm-test-cluster", QFW_MANIFEST)
 
-    assert document["metadata"]["status"] == "planned"
+    assert document["metadata"]["status"] == "validated"
     assert document["spec"]["scope"] == "development-only"
     assert document["spec"]["production_evidence"] is False
     assert document["spec"]["source"] == {
@@ -67,10 +67,36 @@ def test_qfw_slurm_source_intake_is_pinned_and_non_executable() -> None:
     }
     assert "slurmrestd" not in document["spec"]["compose"]["services"]
     assert document["spec"]["security"]["start_rest_api"] is False
+    image = document["spec"]["compatibility"]["image"]
+    assert image["platform"] == "linux/amd64"
+    assert image["registry_reference"] == (
+        "ghcr.io/qscsoftwareecosystem/eqo-qfw-slurm@sha256:"
+        "5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105"
+    )
+    assert image["registry_index_digest"] == (
+        "sha256:5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105"
+    )
+    assert image["digest"] == (
+        "sha256:0fed63f95914df4927ea26a34296d1862821bc52629bffd5fb7869ecf612de41"
+    )
+    assert image["config_digest"] == (
+        "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b"
+    )
+    assert image["validation"].endswith("qfw-slurm-office-validation-2026-09-15.md")
     assert any(
         reference.endswith("qfw-slurm-cluster-source-audit-2026-09-14.md")
         for reference in document["metadata"]["evidence"]
     )
+
+
+def test_qfw_compose_is_internal_and_uses_file_secrets() -> None:
+    override = yaml.safe_load((QFW_MANIFEST.parent / "compose.qhpc.yaml").read_text())
+
+    assert "slurmrestd" not in override["services"]
+    assert override["networks"]["qhpc-qfw-internal"]["internal"] is True
+    assert all("ports" not in service for service in override["services"].values())
+    assert override["services"]["mysql"]["environment"]["MARIADB_RANDOM_ROOT_PASSWORD"] == "yes"
+    assert all("file" in secret for secret in override["secrets"].values())
 
 
 def test_manifest_rejects_rest_service_and_unsafe_source_paths() -> None:
@@ -129,6 +155,86 @@ def test_prepare_rejects_private_key_as_build_ca(tmp_path: Path) -> None:
 
     with pytest.raises(SlurmTestClusterError, match="private key"):
         cluster.prepare(private_key)
+
+
+def test_qfw_prepare_generates_and_preserves_private_local_secrets(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "qfw-cluster"
+    (checkout / ".git").mkdir(parents=True)
+    (checkout / "LICENSE").write_text("MIT\n", encoding="utf-8")
+
+    def run(command):
+        command = list(command)
+        if "remote" in command:
+            return CommandResult(
+                0, "https://github.com/openQSE/QFw-SLURM-Cluster.git\n"
+            )
+        if "rev-parse" in command:
+            return CommandResult(0, QFW_REVISION + "\n")
+        if "status" in command:
+            return CommandResult(0, "")
+        raise AssertionError(command)
+
+    cluster = SlurmDockerCluster.from_manifest(QFW_MANIFEST, checkout, runner=run)
+    cluster.prepare()
+    secret_paths = cluster._secret_paths()
+    original = {path: path.read_bytes() for path in secret_paths}
+
+    assert len(secret_paths) == 3
+    assert all(path.stat().st_mode & 0o777 == 0o600 for path in secret_paths)
+    assert all(len(value) == 64 for value in original.values())
+    assert (
+        checkout / "build-compatibility-image.sh"
+    ).stat().st_mode & 0o777 == 0o755
+
+    cluster.prepare()
+
+    assert {path: path.read_bytes() for path in secret_paths} == original
+
+
+def test_planned_cluster_cannot_start_or_smoke(tmp_path: Path) -> None:
+    document = copy.deepcopy(load_document(QFW_MANIFEST))
+    document["metadata"]["status"] = "planned"
+    cluster = SlurmDockerCluster(document, QFW_MANIFEST, tmp_path / "checkout")
+
+    with pytest.raises(SlurmTestClusterError, match="must be validated"):
+        cluster.start()
+    with pytest.raises(SlurmTestClusterError, match="must be validated"):
+        cluster.smoke()
+
+
+def test_compatibility_image_config_digest_is_enforced(tmp_path: Path) -> None:
+    document = copy.deepcopy(load_document(QFW_MANIFEST))
+    document["spec"]["compatibility"]["image"] = {
+        "local_reference": "qhpc/openqse-qfw-slurm:0.1.0-office",
+        "config_digest": "sha256:" + "1" * 64,
+    }
+    commands: list[list[str]] = []
+
+    def run(command):
+        commands.append(list(command))
+        return CommandResult(0, "sha256:" + "2" * 64 + "\n")
+
+    cluster = SlurmDockerCluster(
+        document,
+        QFW_MANIFEST,
+        tmp_path / "checkout",
+        runner=run,
+    )
+
+    with pytest.raises(SlurmTestClusterError, match="digest mismatch"):
+        cluster.verify_compatibility_image()
+    assert commands == [
+        [
+            "docker",
+            "image",
+            "inspect",
+            "--format",
+            "{{.Id}}",
+            "qhpc/openqse-qfw-slurm:0.1.0-office",
+        ]
+    ]
 
 
 def test_compose_executor_preserves_tokens_and_maps_shared_paths(

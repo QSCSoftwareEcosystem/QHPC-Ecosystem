@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from qhpc_ecosystem.chatqec_service import CanonicalChatQEC, ChatQECSource
 from qhpc_ecosystem.contract import validate_contract
 from qhpc_ecosystem.local_assets import ASSETS, assistant_source_path, asset_path
 from qhpc_ecosystem.local_images import load_public_images
+from qhpc_ecosystem.knowledge import QAppsWikiKnowledge
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,6 +55,10 @@ SOURCE_ASSETS = {
     / "examples"
     / "workflows"
     / "openqevo-trotter-synthesis.yaml",
+    "workflow-openqevo-nwqsim-tour": ROOT
+    / "examples"
+    / "workflows"
+    / "openqevo-nwqsim-tour.yaml",
     "workflow-showcase-evolution-readiness": ROOT
     / "examples"
     / "workflows"
@@ -120,7 +126,7 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     assert registry["metadata"]["entry_count"] == len(registry["spec"]["entries"])
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"
-    assert len(workflows) == 18
+    assert len(workflows) == 19
 
 
 def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> None:
@@ -141,6 +147,26 @@ def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> No
     )
 
 
+def test_packaged_qappswiki_graph_is_immutable_and_requires_no_checkout() -> None:
+    graph = asset_path("qappswiki-graph")
+    knowledge = QAppsWikiKnowledge(
+        graph,
+        source_revision="d5f0248945516a4198f92edd9764a2fe5b676549",
+    )
+    summary = knowledge.summary()
+
+    assert summary["available"] is True
+    assert summary["schema_version"] == "qappswiki-graph-0"
+    assert summary["stats"]["content_nodes"] == 711
+    assert summary["stats"]["all_nodes"] == 1413
+    assert summary["stats"]["edges"] == 4660
+    assert summary["stats"]["communities"] == 9
+    assert hashlib.sha256(graph.read_bytes()).hexdigest() == (
+        "ba8abcdf70dfecd1c041f39f5a4d84aaa5691189956e5ab959835c054809d05e"
+    )
+    assert graph.stat().st_size < 2 * 1024 * 1024
+
+
 def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> None:
     images = load_public_images()
 
@@ -154,5 +180,18 @@ def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> Non
         "chatqec-qec-tools",
         "chatqec-lightstim",
         "chatqec-tsim",
+        "stim",
+            "tsim",
+            "qfw-slurm-development",
+            "nwqsim",
     ]
     assert all(image.source.startswith("ghcr.io/qscsoftwareecosystem/") for image in images)
+    qfw = next(image for image in images if image.id == "qfw-slurm-development")
+    assert qfw.source == (
+        "ghcr.io/qscsoftwareecosystem/eqo-qfw-slurm@sha256:"
+        "5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105"
+    )
+    assert qfw.local_reference == "qhpc/openqse-qfw-slurm:0.1.0-office"
+    assert qfw.local_id == (
+        "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b"
+    )

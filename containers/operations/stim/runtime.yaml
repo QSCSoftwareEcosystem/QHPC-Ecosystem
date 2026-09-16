@@ -1,14 +1,14 @@
 api_version: qhpc/v1
 kind: OperationRuntime
 metadata:
-  id: chatqec-stim-simulate-linux-amd64
-  name: ChatQEC Stim simulation Linux runtime
+  id: stim-simulation-linux-amd64
+  name: EQO Stim simulation Linux runtime
   version: 0.1.0
-  component: chatqec-mcp-tools
-  capability: chatqec-qec-tools
-  operation: stim-simulate
+  component: stim
+  capability: stim-simulation
+  operation: simulate
   project: agentic-software
-  owners: [chatqec]
+  owners: [stim]
   source:
     url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
     revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
@@ -16,7 +16,8 @@ metadata:
   evidence:
     - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
     - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
-    - .development/CHATQEC_PLAN.md
+    - docs/adr/0012-independent-stim-tsim-operation-images.md
+    - docs/evidence/stim-tsim-image-split-build-2026-09-16.md
 spec:
   packaging: oci-to-apptainer
   platform:
@@ -24,8 +25,8 @@ spec:
     architecture: amd64
   build:
     recipe:
-      path: containers/operations/chatqec-mcp-tools/Containerfile
-      digest: sha256:306e0a9f155c278f719135f38b8abd87f955f0212c90d0e966799a1fcc9c784c
+      path: containers/operations/stim/Containerfile
+      digest: sha256:2ca188449683220c9c38027a41480bade1850931a164be25c1b81d491976cb86
     source_archive:
       filename: source.tar
       format: git-archive-tar
@@ -105,7 +106,7 @@ spec:
       digest: sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
     network: disabled
   execution:
-    entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, stim-simulate]
+    entrypoint: [/opt/qhpc/bin/qhpc-stim, stim-simulate]
     working_directory: /work
     network: disabled
     read_only_root: true
