@@ -698,7 +698,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   await expect(
     page
       .getByLabel("Scientific showcases")
-      .getByText("10 runnable · 1 blueprint"),
+      .getByText("4 published journeys · 2 gated paths"),
   ).toBeVisible();
   await expect(
     page.getByText(

@@ -155,6 +155,7 @@ interface ScientificPathDefinition {
   workflowId: string;
   code: string;
   shortName: string;
+  section: "journey" | "tour" | "gated";
   toolChain: string[];
   kind: "Cross-tool study" | "Flagship showcase" | "Focused example" | "Incubation blueprint";
   blueprint?: IncubationBlueprint;
@@ -320,6 +321,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "showcase-evolution-readiness",
     code: "01",
     shortName: "Evolution to hardware readiness",
+    section: "journey",
     kind: "Cross-tool study",
     toolChain: ["OpenQEvo", "QASMTrans", "STABSim", "NWQEC"],
     inputLabel: "Pauli Hamiltonian",
@@ -334,6 +336,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "showcase-qec-distance-study",
     code: "02",
     shortName: "Compare QEC memory protection",
+    section: "journey",
     kind: "Cross-tool study",
     toolChain: ["FTPrimitiveBench", "LightStim"],
   },
@@ -341,6 +344,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "blueprint-h6-qflow-cycle",
     code: "H6",
     shortName: "H6 QFlow chemistry cycle",
+    section: "gated",
     kind: "Incubation blueprint",
     toolChain: ["ExaChem", "QIRIS", "NWQSim", "FTQC"],
     blueprint: {
@@ -472,6 +476,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "ftqc-iqm-bell-preparation",
     code: "F1",
     shortName: "Prepare a two-qubit Bell circuit",
+    section: "tour",
     kind: "Flagship showcase",
     toolChain: ["FTQC", "IQM JSON"],
     inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
@@ -488,6 +493,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "ftqc-iqm-steane-preparation",
     code: "F2",
     shortName: "Prepare one Steane logical qubit",
+    section: "journey",
     kind: "Flagship showcase",
     toolChain: ["FTQC", "Steane [[7,1,3]]", "IQM JSON"],
     inputLabel: "One-logical-qubit OpenQASM 3 circuit",
@@ -509,6 +515,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "ftqc-iqm-steane-execution",
     code: "F3",
     shortName: "Route and execute one Steane logical qubit",
+    section: "gated",
     kind: "Flagship showcase",
     toolChain: ["FTQC", "IQM route", "secured worker"],
     inputLabel: "One-logical-qubit OpenQASM 3 circuit",
@@ -530,6 +537,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "ct-hw-qasm-analysis",
     code: "03",
     shortName: "Circuit transformation and metrics",
+    section: "tour",
     kind: "Focused example",
     toolChain: ["QASMTrans", "STABSim"],
     inputLabel: "OpenQASM 2 circuit",
@@ -540,6 +548,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "qec-memory-estimation",
     code: "04",
     shortName: "Fault-tolerant memory estimate",
+    section: "journey",
     kind: "Focused example",
     toolChain: ["FTPrimitiveBench", "LightStim"],
   },
@@ -547,6 +556,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "nwqec-counts",
     code: "05",
     shortName: "Clifford and T resource count",
+    section: "tour",
     kind: "Focused example",
     toolChain: ["NWQEC"],
     inputLabel: "OpenQASM 2 circuit",
@@ -557,6 +567,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "openqevo-trotter-synthesis",
     code: "06",
     shortName: "Hamiltonian to evolution circuit",
+    section: "tour",
     kind: "Focused example",
     toolChain: ["OpenQEvo", "Qiskit"],
     inputLabel: "Pauli Hamiltonian",
@@ -571,6 +582,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     workflowId: "openqevo-dense-reference",
     code: "07",
     shortName: "Compare dense evolution methods",
+    section: "tour",
     kind: "Focused example",
     toolChain: ["OpenQEvo"],
     inputLabel: "Pauli Hamiltonian",
@@ -581,7 +593,56 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     exampleLabel: "Load example",
     exampleContent: OPENQEVO_HAMILTONIAN_EXAMPLE,
   },
+  {
+    workflowId: "openqevo-nwqsim-tour",
+    code: "08",
+    shortName: "OpenQEvo to NWQ-Sim CPU",
+    section: "journey",
+    kind: "Cross-tool study",
+    toolChain: ["OpenQEvo", "NWQ-Sim CPU"],
+    inputLabel: "Pauli Hamiltonian",
+    inputFileLabel: "Choose .json",
+    inputAccept: ".json,application/json,text/plain",
+    inputPlaceholder: '{"qubits": 2, "terms": [...]}',
+    exampleName: "two-qubit-hamiltonian.json",
+    exampleLabel: "Load example",
+    exampleContent: OPENQEVO_HAMILTONIAN_EXAMPLE,
+  },
+  {
+    workflowId: "nwqsim-bell-simulation",
+    code: "09",
+    shortName: "NWQ-Sim CPU Bell simulation",
+    section: "tour",
+    kind: "Focused example",
+    toolChain: ["NWQ-Sim CPU"],
+    inputLabel: "OpenQASM 2 circuit",
+    exampleName: "bell.qasm",
+    exampleContent: QASMTRANS_BELL_EXAMPLE,
+  },
+  {
+    workflowId: "chatqec-qec-toolchain",
+    code: "10",
+    shortName: "QEC circuit toolchain",
+    section: "journey",
+    kind: "Cross-tool study",
+    toolChain: ["ChatQEC", "Stim", "PyMatching"],
+  },
+  {
+    workflowId: "chatqec-tsim-simulation",
+    code: "11",
+    shortName: "Tsim non-Clifford simulation",
+    section: "tour",
+    kind: "Focused example",
+    toolChain: ["Tsim"],
+    inputLabel: "Tsim circuit",
+  },
 ];
+
+const GUIDED_SECTIONS = [
+  { id: "journey", title: "Scientific journeys", detail: "Multi-tool studies for program review" },
+  { id: "tour", title: "Capability tours", detail: "Focused, bounded demonstrations" },
+  { id: "gated", title: "Gated and blueprint paths", detail: "Evidence or readiness gates remain" },
+] as const;
 
 const ARTIFACT_LABELS: Record<string, string> = {
   "qhpc.quantum-circuit@1": "OpenQASM circuit",
@@ -2484,57 +2545,38 @@ function GuidedComposer({
   const target = workflow
     ? workflowTarget(workflow.definition, capabilities)
     : "Unavailable";
-  const runnableCount = paths.filter((path) => path.workflow).length;
-  const blueprintCount = paths.filter(
-    (path) => path.definition.blueprint,
+  const publishedJourneyCount = paths.filter(
+    (path) => path.definition.section === "journey" && path.workflow,
+  ).length;
+  const gatedCount = paths.filter(
+    (path) => path.definition.section === "gated",
   ).length;
 
   return (
     <div className="composer-guided-workspace">
       <aside className="composer-path-index" aria-label="Scientific showcases">
         <div className="composer-path-index-header">
-          <span>SCIENTIFIC SHOWCASES</span>
+          <span>GUIDED COMPOSER</span>
           <strong>
-            {runnableCount} runnable · {blueprintCountLabel(blueprintCount)}
+            {publishedJourneyCount} published journeys · {gatedCount} gated paths
           </strong>
         </div>
         <div className="composer-path-list">
-          {paths.map((path) => {
-            const selected =
-              definition?.workflowId === path.definition.workflowId;
-            return (
-              <button
-                type="button"
-                className={`composer-path-item${selected ? " is-selected" : ""}${path.definition.blueprint ? " is-blueprint" : ""}`}
-                aria-pressed={selected}
-                onClick={() => {
-                  setFileError(null);
-                  onSelect(path.definition.workflowId);
-                }}
-                key={path.definition.workflowId}
-              >
-                <span className="composer-path-code">
-                  {path.definition.code}
-                </span>
-                <span>
-                  <strong>{path.definition.shortName}</strong>
-                  <small>
-                    {path.definition.kind} ·{" "}
-                    {path.definition.toolChain.join(" + ")}
-                  </small>
-                </span>
-                {path.definition.blueprint ? (
-                  <FlaskConical
-                    size={14}
-                    aria-label="Incubation blueprint"
-                  />
-                ) : path.workflow ? (
-                  <ChevronRight size={14} aria-hidden="true" />
-                ) : (
-                  <CircleAlert size={14} aria-label="Unavailable" />
-                )}
-              </button>
+          {GUIDED_SECTIONS.map((section) => {
+            const sectionPaths = paths.filter(
+              (path) => path.definition.section === section.id,
             );
+            return <section className="composer-path-section" key={section.id}>
+              <header><strong>{section.title}</strong><small>{section.detail}</small></header>
+              {sectionPaths.map((path) => {
+                const selected = definition?.workflowId === path.definition.workflowId;
+                return <button type="button" className={`composer-path-item${selected ? " is-selected" : ""}${path.definition.blueprint ? " is-blueprint" : ""}`} aria-pressed={selected} onClick={() => { setFileError(null); onSelect(path.definition.workflowId); }} key={path.definition.workflowId}>
+                  <span className="composer-path-code">{path.definition.code}</span>
+                  <span><strong>{path.definition.shortName}</strong><small>{path.definition.kind} · {path.definition.toolChain.join(" + ")}</small></span>
+                  {path.definition.blueprint ? <FlaskConical size={14} aria-label="Incubation blueprint" /> : path.workflow ? <ChevronRight size={14} aria-hidden="true" /> : <CircleAlert size={14} aria-label="Unavailable" />}
+                </button>;
+              })}
+            </section>;
           })}
         </div>
       </aside>

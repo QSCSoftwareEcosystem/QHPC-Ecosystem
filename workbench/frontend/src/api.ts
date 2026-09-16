@@ -17,7 +17,9 @@ import type {
 } from "./types";
 
 
-const API_ROOT = "/api/v1";
+// Resolve relative to the Workbench so code-server's `/proxy/<port>/` route
+// remains inside the EQO origin instead of accidentally requesting its own API.
+const API_ROOT = new URL("api/v1", window.location.href).pathname;
 
 
 function csrfToken(): string {
