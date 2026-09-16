@@ -26,7 +26,7 @@ metadata:
 spec:
   component:
     name: ChatQEC
-    description: Quantum error-correction research assistant with cited retrieval over a curated corpus and optional sandboxed Stim circuit execution.
+    description: Quantum error-correction research assistant with cited retrieval over a curated corpus that can propose independently published, bounded EQO simulator operations for user-confirmed execution.
   guidance:
     use_when:
       - Ask QEC questions while retaining the current EQO-QSC workspace context and source citations.
@@ -35,7 +35,7 @@ spec:
       - Ask a focused QEC question and inspect the cited sources in the response.
     example_workflows: []
     service_modes:
-      - "mcp-direct-tools: executes explicitly supplied bounded circuits through the pinned Stim or Tsim path and records each completed tool call."
+      - "mcp-direct-tools: proposes explicitly supplied bounded circuits for the published Stim or Tsim EQO capability; EQO executes only after user confirmation and records the completed run."
       - "canonical-corpus-extractive-fallback: serves the deterministic bundled corpus read-only when direct tools are not active."
   resources:
     - id: service-interface

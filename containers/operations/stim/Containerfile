@@ -1,0 +1,38 @@
+# Dedicated EQO Stim image. The pinned ChatQEC source supplies the transitional
+# bounded adapter; it is not an upstream-native Stim image.
+ARG SOURCE_DATE_EPOCH=1785324021
+FROM docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47 AS builder
+
+ARG SOURCE_DATE_EPOCH
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_INDEX=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PYTHONPATH=/opt/chatqec-mcp-tools/src
+WORKDIR /work
+COPY source.tar /tmp/source.tar
+COPY *.whl /wheelhouse/
+COPY entrypoint.py /opt/qhpc/bin/qhpc-stim
+RUN mkdir -p /opt/chatqec-mcp-tools /opt/qhpc/bin /outputs \
+    && tar -xf /tmp/source.tar -C /opt/chatqec-mcp-tools \
+    && python -m pip install --no-cache-dir --no-compile --no-deps /wheelhouse/*.whl \
+    && python -c 'from chatqec_mcp_tools.tools.stim_simulate import stim_simulate; from chatqec_mcp_tools.tools.stim_diagram import stim_diagram' \
+    && rm -rf /root/.cache /tmp/source.tar /wheelhouse \
+    && find /opt/chatqec-mcp-tools /opt/qhpc -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+
+FROM docker.io/library/python:3.11.13-slim-bookworm@sha256:cec9aa7aa96eea4fa036e9b82be1e6b325f2e3707f462d885868df51ec0a4b47
+ARG SOURCE_DATE_EPOCH
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/opt/chatqec-mcp-tools/src
+WORKDIR /work
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /opt/chatqec-mcp-tools /opt/chatqec-mcp-tools
+COPY --from=builder /opt/qhpc /opt/qhpc
+RUN useradd --uid 65532 --create-home --shell /usr/sbin/nologin qhpc \
+    && mkdir /outputs \
+    && chown -R 65532:65532 /opt/chatqec-mcp-tools /opt/qhpc /outputs \
+    && find /opt/chatqec-mcp-tools /opt/qhpc -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
+LABEL org.opencontainers.image.title="EQO Stim simulation" \
+      org.opencontainers.image.description="Pinned ChatQEC adapter source executing bounded, network-disabled Stim operations for EQO" \
+      org.opencontainers.image.source="https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools" \
+      org.opencontainers.image.revision="dd19a85b08637a61dc1afc124d2f4b32745b527b" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.qscsoftware.capability="stim-simulation" \
+      org.qscsoftware.adapter="chatqec-mcp-tools"
+USER 65532:65532
+ENTRYPOINT ["/opt/qhpc/bin/qhpc-stim"]

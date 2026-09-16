@@ -200,7 +200,7 @@ def test_chatqec_stim_simulation_uses_only_the_admitted_oci_runtime(
         if command[1:3] == ["image", "inspect"]:
             return SimpleNamespace(
                 returncode=0,
-                stdout=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST + "\n",
+                stdout=local_adapters.CHATQEC_QEC_TOOLS_OCI_LOCAL_ID + "\n",
                 stderr="",
             )
         assert command[:3] == ["/usr/bin/docker", "run", "--rm"]
@@ -228,9 +228,9 @@ def test_chatqec_stim_simulation_uses_only_the_admitted_oci_runtime(
         TaskRequest(
             run_id="run-stim",
             node_id="simulate",
-            capability_id="chatqec-qec-tools",
+            capability_id="stim-simulation",
             capability_version="0.1.0",
-            operation_id="stim-simulate",
+            operation_id="simulate",
             runtime_reference=local_adapters.CHATQEC_QEC_TOOLS_OCI_REFERENCE,
             runtime_digest=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST,
             parameters={"shots": 4},
@@ -258,7 +258,7 @@ def test_chatqec_stim_diagram_rejects_active_svg(
         if command[1:3] == ["image", "inspect"]:
             return SimpleNamespace(
                 returncode=0,
-                stdout=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST + "\n",
+                stdout=local_adapters.CHATQEC_QEC_TOOLS_OCI_LOCAL_ID + "\n",
                 stderr="",
             )
         output_mount = next(
@@ -279,9 +279,9 @@ def test_chatqec_stim_diagram_rejects_active_svg(
     request = TaskRequest(
         run_id="run-stim",
         node_id="diagram",
-        capability_id="chatqec-qec-tools",
+            capability_id="stim-simulation",
         capability_version="0.1.0",
-        operation_id="stim-diagram",
+            operation_id="render-diagram",
         runtime_reference=local_adapters.CHATQEC_QEC_TOOLS_OCI_REFERENCE,
         runtime_digest=local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST,
         parameters={},

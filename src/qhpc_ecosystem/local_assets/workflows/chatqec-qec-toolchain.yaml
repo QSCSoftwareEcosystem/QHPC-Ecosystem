@@ -2,11 +2,11 @@ api_version: qhpc/v1
 kind: Workflow
 metadata:
   id: chatqec-qec-toolchain
-  name: Build, simulate, diagram, and decode a ChatQEC circuit
+  name: Build, simulate, diagram, and decode a QEC circuit
   version: 0.1.0
   owner: qhpc-ecosystem
   visibility: internal
-  description: Combine the pinned ChatQEC LightStim circuit builder with its Stim simulator, SVG diagrammer, and PyMatching decoder through one typed circuit artifact.
+  description: Combine the pinned ChatQEC LightStim circuit builder and decoder with the independently published Stim simulator and SVG diagrammer through one typed circuit artifact.
 spec:
   nodes:
     - id: build
@@ -23,18 +23,18 @@ spec:
         protocol: memory
     - id: simulate
       operation:
-        capability: chatqec-qec-tools
+        capability: stim-simulation
         version: 0.1.0
-        operation: stim-simulate
+        operation: simulate
       execution_target: development-slurm-docker
       execution_class: batch-hpc
       parameters:
         shots: 32
     - id: diagram
       operation:
-        capability: chatqec-qec-tools
+        capability: stim-simulation
         version: 0.1.0
-        operation: stim-diagram
+        operation: render-diagram
       execution_target: development-slurm-docker
       execution_class: batch-hpc
       parameters: {}

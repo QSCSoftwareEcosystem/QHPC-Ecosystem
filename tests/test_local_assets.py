@@ -176,6 +176,8 @@ def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> Non
         "chatqec-qec-tools",
         "chatqec-lightstim",
         "chatqec-tsim",
+        "stim",
+        "tsim",
         "qfw-slurm-development",
     ]
     assert all(image.source.startswith("ghcr.io/qscsoftwareecosystem/") for image in images)

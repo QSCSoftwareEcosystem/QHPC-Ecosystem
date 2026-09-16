@@ -1,11 +1,11 @@
 api_version: qhpc/v1
 kind: Registry
 metadata:
-  entry_count: 19
+  entry_count: 21
   catalog_digest: sha256:d835fd11bac21982f51d5883c78bda3f75394f29ec752883222720e64d93cb88
 spec:
   entries:
-  - descriptor_digest: sha256:91a1c528f4432d3e8e07f9e2e79b9c87032bb1ecea3c235d3ead0c0cb2db00f3
+  - descriptor_digest: sha256:1ffb401a8a6827593cc0c1dfc6f91bc1f50276fefbe32372cff3368479488308
     catalog_repository: chatqec
     validation:
       contract: valid
@@ -49,7 +49,8 @@ spec:
         component:
           name: ChatQEC
           description: Quantum error-correction research assistant with cited retrieval over a curated
-            corpus and optional sandboxed Stim circuit execution.
+            corpus that can propose independently published, bounded EQO simulator operations for user-confirmed
+            execution.
         guidance:
           use_when:
           - Ask QEC questions while retaining the current EQO-QSC workspace context and source citations.
@@ -58,8 +59,8 @@ spec:
           - Ask a focused QEC question and inspect the cited sources in the response.
           example_workflows: []
           service_modes:
-          - 'mcp-direct-tools: executes explicitly supplied bounded circuits through the pinned Stim or
-            Tsim path and records each completed tool call.'
+          - 'mcp-direct-tools: proposes explicitly supplied bounded circuits for the published Stim or
+            Tsim EQO capability; EQO executes only after user confirmation and records the completed run.'
           - 'canonical-corpus-extractive-fallback: serves the deterministic bundled corpus read-only when
             direct tools are not active.'
         resources:
@@ -78,7 +79,7 @@ spec:
         documentation:
           qappswiki: packages/chatqec.md
           url: https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md
-  - descriptor_digest: sha256:bfc0dc8b8bf1b064a785c755d5b6c15afb023b423593ea1c94ad7b13464d0dd3
+  - descriptor_digest: sha256:7f8163da96f1d46b94f9965bf14ceba6e5093a5aae9c77d54a3f94d562904c36
     catalog_repository: chatqec-mcp-tools
     validation:
       contract: valid
@@ -122,9 +123,9 @@ spec:
             EQO operations rather than MCP subprocesses.
         guidance:
           use_when:
-          - Compute bounded QEC code parameters, Stim samples or diagrams, PyMatching decoder results,
-            LightStim-built code circuits, threshold-sweep evidence, and shareable GLCB visualization
-            links with exact source and runtime provenance.
+          - Compute bounded QEC code parameters, PyMatching decoder results, LightStim-built code circuits,
+            threshold-sweep evidence, and shareable GLCB visualization links with exact source and runtime
+            provenance.
           quick_start:
           - In Compose, choose a ChatQEC governed QEC operation.
           - Review the bounded parameters and input artifact, then submit to a compatible worker.
@@ -135,11 +136,12 @@ spec:
           - chatqec-tsim-simulation
           - chatqec-glcb-link
           limitations:
-          - Code-parameter calculation, bounded Stim simulation, SVG diagrams, PyMatching decoding, LightStim
-            circuit construction, threshold sweeps, and GLCB link generation have local OCI smoke evidence;
-            candidate images remain unpublished.
-          - ChatQEC may propose a calculation, but an EQO user must review and confirm it before any run
-            is submitted.
+          - Code-parameter calculation, PyMatching decoding, LightStim circuit construction, threshold
+            sweeps, and GLCB link generation have local OCI smoke evidence; candidate images remain unpublished.
+          - Direct Stim and Tsim simulation are separately published EQO capabilities that currently reuse
+            their validated ChatQEC wrappers.
+          - ChatQEC may propose a calculation, including an independently published Stim or Tsim operation,
+            but an EQO user must review and confirm it before any run is submitted.
           - The candidate OCI image is unpublished and is not accepted for an HPC target.
         operations:
         - id: code-params
@@ -178,63 +180,6 @@ spec:
             memory_mb: 512
             walltime_seconds: 60
           execution_targets:
-          - development-slurm-docker
-        - id: stim-simulate
-          title: Simulate a Stim circuit
-          description: Sample a bounded Stim circuit and return a typed preview containing at most twenty
-            binary sample rows.
-          inputs:
-            circuit:
-              artifact_type: qhpc.stim-circuit@1
-          outputs:
-            samples:
-              artifact_type: qhpc.stim-simulation-samples@1
-          parameters:
-            shots:
-              type: integer
-              title: Measurement shots
-              default: 1024
-              minimum: 1
-              maximum: 1000000
-          runtime:
-            type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
-            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
-          invocation:
-            entrypoint:
-            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
-            - stim-simulate
-          resources:
-            cpu: 1
-            memory_mb: 1024
-            walltime_seconds: 60
-          execution_targets:
-          - local-container
-          - development-slurm-docker
-        - id: stim-diagram
-          title: Render a Stim circuit diagram
-          description: Render a bounded Stim circuit as a validated, non-active SVG timeline artifact.
-          inputs:
-            circuit:
-              artifact_type: qhpc.stim-circuit@1
-          outputs:
-            diagram:
-              artifact_type: qhpc.stim-diagram@1
-          parameters: {}
-          runtime:
-            type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
-            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
-          invocation:
-            entrypoint:
-            - /opt/qhpc/bin/qhpc-chatqec-qec-tools
-            - stim-diagram
-          resources:
-            cpu: 1
-            memory_mb: 1024
-            walltime_seconds: 60
-          execution_targets:
-          - local-container
           - development-slurm-docker
         - id: pymatching-decode
           title: Decode a detector-annotated Stim circuit
@@ -372,41 +317,6 @@ spec:
             walltime_seconds: 120
           execution_targets:
           - development-slurm-docker
-        - id: tsim-simulate
-          title: Simulate a non-Clifford Tsim circuit
-          description: Sample bounded detector and observable outcomes from a Tsim circuit, including
-            the supported non-Clifford instructions, with the T-count and sample-preview safeguards enforced
-            by ChatQEC.
-          inputs:
-            circuit:
-              artifact_type: qhpc.tsim-circuit@1
-          outputs:
-            samples:
-              artifact_type: qhpc.tsim-simulation-samples@1
-          parameters:
-            shots:
-              type: integer
-              title: Measurement shots
-              default: 100
-              minimum: 1
-              maximum: 100000
-            use_reference_sample:
-              type: boolean
-              title: XOR outcomes against a noiseless reference sample
-              default: false
-          runtime:
-            type: oci
-            reference: docker://qhpc/chatqec-tsim@sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
-            digest: sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
-          invocation:
-            entrypoint:
-            - /opt/qhpc/bin/qhpc-chatqec-tsim
-          resources:
-            cpu: 2
-            memory_mb: 4096
-            walltime_seconds: 120
-          execution_targets:
-          - development-slurm-docker
         - id: glcb-visualize-url
           title: Create a Gemini Logical Circuit Builder link
           description: Create a deterministic URL for a bounded GLCB circuit specification without contacting
@@ -441,14 +351,6 @@ spec:
           kind: provenance
           version: 0.1.0
           uri: containers/operations/chatqec-mcp-tools/code-params.runtime.yaml
-        - id: stim-simulate-runtime
-          kind: provenance
-          version: 0.1.0
-          uri: containers/operations/chatqec-mcp-tools/stim-simulate.runtime.yaml
-        - id: stim-diagram-runtime
-          kind: provenance
-          version: 0.1.0
-          uri: containers/operations/chatqec-mcp-tools/stim-diagram.runtime.yaml
         - id: pymatching-decode-runtime
           kind: provenance
           version: 0.1.0
@@ -461,10 +363,6 @@ spec:
           kind: provenance
           version: 0.1.0
           uri: containers/operations/chatqec-lightstim/runtime.yaml
-        - id: tsim-simulate-runtime
-          kind: provenance
-          version: 0.1.0
-          uri: containers/operations/chatqec-tsim/runtime.yaml
         - id: glcb-visualize-url-runtime
           kind: provenance
           version: 0.1.0
@@ -2279,8 +2177,8 @@ spec:
         documentation:
           qappswiki: packages/stabsim.md
           url: https://github.com/QSCSoftwareThrust/STABSim/blob/a0d8d2e2a9fdec9785857104220b8e7f0346c761/README.md
-  - descriptor_digest: sha256:2bc8667561cf5626e9bf29f837dc36806671c8be457d0b4f44bf1429e5d0656b
-    catalog_repository: NWQ-Sim
+  - descriptor_digest: sha256:6fd27dabc3e3ea66c7666a8da15d06e4da0538187062d0cd7cbf3a7ca550b9ee
+    catalog_repository: chatqec-mcp-tools
     validation:
       contract: valid
       attribution: valid
@@ -2288,10 +2186,144 @@ spec:
       curated_by: &id037
       - qhpc-ecosystem
       project_reviewed: false
-      runtime: not-applicable
+      runtime: verified
       documentation: linked
       status: integration-tested
       evidence: &id038
+      - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+      - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: stim-simulation
+        name: Stim Circuit Simulation
+        version: 0.1.0
+        project: agentic-software
+        owners:
+        - stim
+        repository:
+          url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+          revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+        integration:
+          authority: ecosystem
+          maintainers: *id037
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id038
+        visibility: internal
+        maturity: pre-alpha
+      spec:
+        component:
+          name: Stim
+          description: Direct, bounded Stim circuit simulation and non-active SVG diagram rendering, delivered
+            temporarily through the validated ChatQEC QEC-tools wrapper.
+        guidance:
+          use_when:
+          - Simulate a typed Stim circuit or render its circuit timeline in an EQO run or workflow.
+          quick_start:
+          - Choose Stim Circuit Simulation, supply a qhpc.stim-circuit@1 artifact, review the bounded
+            parameters, and submit to a compatible worker.
+          example_workflows:
+          - chatqec-qec-toolchain
+          limitations:
+          - This is a validated development capability only; it is not a hardware backend or a facility-HPC-approved
+            runtime.
+          - The admitted runtime is the existing ChatQEC QEC-tools wrapper image. EQO will publish independently
+            built Stim images only after separate SBOM, provenance, signature, and validation evidence
+            is available.
+        operations:
+        - id: simulate
+          title: Simulate a Stim circuit
+          description: Sample a bounded Stim circuit and return a typed preview containing at most twenty
+            binary sample rows.
+          inputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          outputs:
+            samples:
+              artifact_type: qhpc.stim-simulation-samples@1
+          parameters:
+            shots:
+              type: integer
+              title: Measurement shots
+              default: 1024
+              minimum: 1
+              maximum: 1000000
+          runtime:
+            type: oci
+            reference: docker://ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+            digest: sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-stim
+            - stim-simulate
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - local-container
+          - development-slurm-docker
+        - id: render-diagram
+          title: Render a Stim circuit diagram
+          description: Render a bounded Stim circuit as a validated, non-active SVG timeline artifact.
+          inputs:
+            circuit:
+              artifact_type: qhpc.stim-circuit@1
+          outputs:
+            diagram:
+              artifact_type: qhpc.stim-diagram@1
+          parameters: {}
+          runtime:
+            type: oci
+            reference: docker://ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+            digest: sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-stim
+            - stim-diagram
+          resources:
+            cpu: 1
+            memory_mb: 1024
+            walltime_seconds: 60
+          execution_targets:
+          - local-container
+          - development-slurm-docker
+        resources:
+        - id: wrapper-source
+          kind: adapter
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
+        - id: simulation-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/stim/runtime.yaml
+        - id: diagram-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/stim/runtime.yaml
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#stim
+        documentation:
+          qappswiki: packages/chatqec.md
+          url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
+  - descriptor_digest: sha256:2bc8667561cf5626e9bf29f837dc36806671c8be457d0b4f44bf1429e5d0656b
+    catalog_repository: NWQ-Sim
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id039
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id040
       - docs/evidence/tn-sim-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -2308,11 +2340,11 @@ spec:
           revision: 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
         integration:
           authority: ecosystem
-          maintainers: *id037
+          maintainers: *id039
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id038
+          evidence: *id040
         visibility: public
         maturity: pre-alpha
       spec:
@@ -2349,3 +2381,112 @@ spec:
         documentation:
           qappswiki: packages/tn-sim.md
           url: https://github.com/pnnl/NWQ-Sim/blob/0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b/README.md
+  - descriptor_digest: sha256:59a1c00d8783fef450b6d48e9270267bded6707159971ef760b892ca22237073
+    catalog_repository: chatqec-mcp-tools
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id041
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: verified
+      documentation: linked
+      status: integration-tested
+      evidence: &id042
+      - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+      - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: tsim-simulation
+        name: Tsim Non-Clifford Circuit Simulation
+        version: 0.1.0
+        project: agentic-software
+        owners:
+        - tsim
+        repository:
+          url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+          revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+        integration:
+          authority: ecosystem
+          maintainers: *id041
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id042
+        visibility: internal
+        maturity: pre-alpha
+      spec:
+        component:
+          name: Tsim
+          description: Direct bounded non-Clifford Tsim circuit simulation, delivered temporarily through
+            the validated ChatQEC Tsim wrapper.
+        guidance:
+          use_when:
+          - Simulate a typed Tsim circuit with bounded detector and observable outcomes in an EQO run
+            or workflow.
+          quick_start:
+          - Choose Tsim Non-Clifford Circuit Simulation, supply a qhpc.tsim-circuit@1 artifact, review
+            the bounded parameters, and submit to the development worker.
+          example_workflows:
+          - chatqec-tsim-simulation
+          limitations:
+          - This is a validated development capability only; it is not a hardware backend or a facility-HPC-approved
+            runtime.
+          - The admitted runtime is the existing ChatQEC Tsim wrapper image. EQO will publish independently
+            built Tsim images only after separate SBOM, provenance, signature, and validation evidence
+            is available.
+        operations:
+        - id: simulate
+          title: Simulate a non-Clifford Tsim circuit
+          description: Sample bounded detector and observable outcomes from a Tsim circuit, including
+            supported non-Clifford instructions, with T-count and sample-preview safeguards enforced by
+            the wrapper.
+          inputs:
+            circuit:
+              artifact_type: qhpc.tsim-circuit@1
+          outputs:
+            samples:
+              artifact_type: qhpc.tsim-simulation-samples@1
+          parameters:
+            shots:
+              type: integer
+              title: Measurement shots
+              default: 100
+              minimum: 1
+              maximum: 100000
+            use_reference_sample:
+              type: boolean
+              title: XOR outcomes against a noiseless reference sample
+              default: false
+          runtime:
+            type: oci
+            reference: docker://ghcr.io/qscsoftwareecosystem/eqo-tsim@sha256:df54b0ff9fd999168786726f3a9d408ee68f692c3d75b1500ce47be3c003d80d
+            digest: sha256:df54b0ff9fd999168786726f3a9d408ee68f692c3d75b1500ce47be3c003d80d
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-tsim
+          resources:
+            cpu: 2
+            memory_mb: 4096
+            walltime_seconds: 120
+          execution_targets:
+          - development-slurm-docker
+        resources:
+        - id: wrapper-source
+          kind: adapter
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
+        - id: simulation-runtime
+          kind: provenance
+          version: 0.1.0
+          uri: containers/operations/tsim/runtime.yaml
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#tsim
+        documentation:
+          qappswiki: packages/chatqec.md
+          url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b

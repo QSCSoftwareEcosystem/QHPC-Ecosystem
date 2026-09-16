@@ -38,12 +38,13 @@ FTQC_OCI_REFERENCE = f"docker://qhpc/ftqc@{FTQC_OCI_DIGEST}"
 FTQC_OCI_IMAGE = "qhpc/ftqc:779216de-linux-amd64"
 FTQC_OCI_PLATFORM = "linux/amd64"
 CHATQEC_QEC_TOOLS_OCI_DIGEST = (
-    "sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a"
+    "sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c"
 )
-CHATQEC_QEC_TOOLS_OCI_REFERENCE = (
-    f"docker://qhpc/chatqec-qec-tools@{CHATQEC_QEC_TOOLS_OCI_DIGEST}"
+CHATQEC_QEC_TOOLS_OCI_REFERENCE = f"docker://ghcr.io/qscsoftwareecosystem/eqo-stim@{CHATQEC_QEC_TOOLS_OCI_DIGEST}"
+CHATQEC_QEC_TOOLS_OCI_IMAGE = "qhpc/stim:0.1.0-linux-amd64"
+CHATQEC_QEC_TOOLS_OCI_LOCAL_ID = (
+    "sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678"
 )
-CHATQEC_QEC_TOOLS_OCI_IMAGE = "qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2"
 CHATQEC_QEC_TOOLS_OCI_PLATFORM = "linux/amd64"
 _MAX_CHATQEC_SVG_BYTES = 10 * 1024 * 1024
 _FORBIDDEN_SVG_ELEMENTS = {
@@ -176,7 +177,7 @@ def _chatqec_qec_tools_container_engine(request: TaskRequest) -> str:
         raise RuntimeError(
             "ChatQEC QEC-tools OCI runtime is not installed; run the documented operation-runtime build"
         )
-    if image_id != CHATQEC_QEC_TOOLS_OCI_DIGEST:
+    if image_id != CHATQEC_QEC_TOOLS_OCI_LOCAL_ID:
         raise RuntimeError(
             "ChatQEC QEC-tools OCI runtime digest does not match the admitted registry"
         )
@@ -935,7 +936,7 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
             f"ChatQEC Stim sampled {shots} shots in the admitted OCI runtime",
         )
 
-    runner.register("chatqec-qec-tools", "stim-simulate", simulate_chatqec_stim_circuit)
+    runner.register("stim-simulation", "simulate", simulate_chatqec_stim_circuit)
 
     def render_chatqec_stim_diagram(request: TaskRequest) -> TaskResult:
         _chatqec_no_parameters(request)
@@ -954,5 +955,5 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
             "ChatQEC Stim rendered a validated SVG diagram in the admitted OCI runtime",
         )
 
-    runner.register("chatqec-qec-tools", "stim-diagram", render_chatqec_stim_diagram)
+    runner.register("stim-simulation", "render-diagram", render_chatqec_stim_diagram)
     return runner

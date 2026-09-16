@@ -64,6 +64,14 @@ install_image "eqo-chatqec-tsim" \
   "sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0" \
   "sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2" \
   "qhpc/chatqec-tsim:dd19a85-linux-amd64"
+install_image "eqo-stim" \
+  "sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c" \
+  "sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678" \
+  "qhpc/stim:0.1.0-linux-amd64"
+install_image "eqo-tsim" \
+  "sha256:df54b0ff9fd999168786726f3a9d408ee68f692c3d75b1500ce47be3c003d80d" \
+  "sha256:2201fe400234a451f6a0bd38902f8c0c83e9a444001d035cdabde6aee22b4b17" \
+  "qhpc/tsim:0.1.0-linux-amd64"
 install_image "eqo-qfw-slurm" \
   "sha256:5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105" \
   "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b" \

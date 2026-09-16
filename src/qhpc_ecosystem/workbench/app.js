@@ -14,6 +14,8 @@ const TOOL_PEOPLE = {
   "quantum-sdk-ranking": { basis: "Named repository contributor", people: ["Sharmin Afrose"] },
   "chatqec-assistant-service": { basis: "Package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
   "chatqec-qec-tools": { basis: "Package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "stim-simulation": { basis: "Temporary wrapper package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "tsim-simulation": { basis: "Temporary wrapper package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
   "qsc-hardware-survey": { basis: "Named repository contributors", people: ["Swen Boehm", "Thomas Naughton", "Vicente Leyton-Ortega"] },
   "exachem-qflow-tasksets": { basis: "Publication authors named by the project", people: ["Ajay Panyala", "Nicholas Bauman", "Daniel Mejia Rodriguez", "Himadri Pathak", "Bo Peng", "Marcus Liebenthal", "David Murphy", "Giridhar Nandipati", "Erdal Mutlu", "Sriram Krishnamoorthy", "Edo Aprà", "Sotiris Xantheas", "Niranjan Govind", "Karol Kowalski"] },
   "ftprimitivebench-primitives": { basis: "Publication authors named by the project", people: ["Shuwen Kan", "Adrian Harkness", "Zefan Du", "Rod Rofougaran", "Sean Garner", "Chenxu Liu", "Ying Mao", "Samuel Stein"] },

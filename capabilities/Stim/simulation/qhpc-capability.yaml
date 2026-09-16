@@ -1,0 +1,105 @@
+api_version: qhpc/v1
+kind: Capability
+metadata:
+  id: stim-simulation
+  name: Stim Circuit Simulation
+  version: 0.1.0
+  project: agentic-software
+  owners: [stim]
+  repository:
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools
+    revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
+  integration:
+    authority: ecosystem
+    maintainers: [qhpc-ecosystem]
+    project_reviewed: false
+    runtime_status: verified
+    validation_status: integration-tested
+    evidence:
+      - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
+      - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
+  visibility: internal
+  maturity: pre-alpha
+spec:
+  component:
+    name: Stim
+    description: Direct, bounded Stim circuit simulation and non-active SVG diagram rendering, delivered temporarily through the validated ChatQEC QEC-tools wrapper.
+  guidance:
+    use_when:
+      - Simulate a typed Stim circuit or render its circuit timeline in an EQO run or workflow.
+    quick_start:
+      - Choose Stim Circuit Simulation, supply a qhpc.stim-circuit@1 artifact, review the bounded parameters, and submit to a compatible worker.
+    example_workflows:
+      - chatqec-qec-toolchain
+    limitations:
+      - This is a validated development capability only; it is not a hardware backend or a facility-HPC-approved runtime.
+      - The admitted runtime is the existing ChatQEC QEC-tools wrapper image. EQO will publish independently built Stim images only after separate SBOM, provenance, signature, and validation evidence is available.
+  operations:
+    - id: simulate
+      title: Simulate a Stim circuit
+      description: Sample a bounded Stim circuit and return a typed preview containing at most twenty binary sample rows.
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      outputs:
+        samples:
+          artifact_type: qhpc.stim-simulation-samples@1
+      parameters:
+        shots:
+          type: integer
+          title: Measurement shots
+          default: 1024
+          minimum: 1
+          maximum: 1000000
+      runtime:
+        type: oci
+        reference: docker://ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+        digest: sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-stim, stim-simulate]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [local-container, development-slurm-docker]
+    - id: render-diagram
+      title: Render a Stim circuit diagram
+      description: Render a bounded Stim circuit as a validated, non-active SVG timeline artifact.
+      inputs:
+        circuit:
+          artifact_type: qhpc.stim-circuit@1
+      outputs:
+        diagram:
+          artifact_type: qhpc.stim-diagram@1
+      parameters: {}
+      runtime:
+        type: oci
+        reference: docker://ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+        digest: sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c
+      invocation:
+        entrypoint: [/opt/qhpc/bin/qhpc-stim, stim-diagram]
+      resources:
+        cpu: 1
+        memory_mb: 1024
+        walltime_seconds: 60
+      execution_targets: [local-container, development-slurm-docker]
+  resources:
+    - id: wrapper-source
+      kind: adapter
+      version: 0.1.0
+      uri: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
+    - id: simulation-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/stim/runtime.yaml
+    - id: diagram-runtime
+      kind: provenance
+      version: 0.1.0
+      uri: containers/operations/stim/runtime.yaml
+    - id: developer-attribution
+      kind: documentation
+      version: 1.0.0
+      uri: docs/tool-attribution.md#stim
+  documentation:
+    qappswiki: packages/chatqec.md
+    url: https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools/tree/dd19a85b08637a61dc1afc124d2f4b32745b527b
