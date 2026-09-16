@@ -7,6 +7,31 @@ const SOURCE_AREAS = {
   "cross-project": "Cross-project",
 };
 
+// Names are transcribed only from the reviewed, pinned-source attribution
+// record.  They identify developers or publication authors, not current
+// maintainers; the latter requires an explicit project statement.
+const TOOL_PEOPLE = {
+  "quantum-sdk-ranking": { basis: "Named repository contributor", people: ["Sharmin Afrose"] },
+  "chatqec-assistant-service": { basis: "Package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "chatqec-qec-tools": { basis: "Package and publication authors", people: ["Sharmin Afrose", "Vicente Leyton-Ortega", "Travis Humble", "Tirthankar Ghosal"] },
+  "qsc-hardware-survey": { basis: "Named repository contributors", people: ["Swen Boehm", "Thomas Naughton", "Vicente Leyton-Ortega"] },
+  "exachem-qflow-tasksets": { basis: "Publication authors named by the project", people: ["Ajay Panyala", "Nicholas Bauman", "Daniel Mejia Rodriguez", "Himadri Pathak", "Bo Peng", "Marcus Liebenthal", "David Murphy", "Giridhar Nandipati", "Erdal Mutlu", "Sriram Krishnamoorthy", "Edo Aprà", "Sotiris Xantheas", "Niranjan Govind", "Karol Kowalski"] },
+  "ftprimitivebench-primitives": { basis: "Publication authors named by the project", people: ["Shuwen Kan", "Adrian Harkness", "Zefan Du", "Rod Rofougaran", "Sean Garner", "Chenxu Liu", "Ying Mao", "Samuel Stein"] },
+  "ftqc-compiler": { basis: "Named repository contributors", people: ["Narasinga Rao Miniskar", "Seyong Lee"] },
+  "iris-qiris-runtime": { basis: "Package and publication authors", people: ["Narasinga Rao Miniskar", "Jungwon Kim", "Seyong Lee", "Beau Johnston", "Jeffrey S. Vetter"] },
+  "lightstim-simulation": { basis: "Software and package authors", people: ["Xiang Fang", "Ming Wang", "Yue Wu", "Sharanya Prabhu", "Dean Tullsen", "Narasinga Rao Miniskar", "Frank Mueller", "Travis Humble", "Yufei Ding"] },
+  "tn-sim-mps-simulation": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
+  "nwqsim-qflow-vqe-plugin": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
+  "openqevo-library": { basis: "Named repository contributors", people: ["Thomas Naughton", "Vicente Leyton-Ortega"] },
+  "qappswiki-tooling": { basis: "Named repository contributor", people: ["Vicente Leyton-Ortega"] },
+  "stabsim-simulator": { basis: "Publication authors named by the project", people: ["Sean Garner", "Chenxu Liu", "Meng Wang", "Samuel Stein", "Ang Li"] },
+  "nwqec-qec-transpilation": { basis: "Publication authors named by the project", people: ["Meng Wang", "Chenxu Liu", "Samuel Stein", "Yufei Ding", "Poulami Das", "Prashant J. Nair", "Ang Li", "Sean Garner"] },
+  "openqse-specification": { basis: "Named repository contributors", people: ["Amir Shehata", "Josh Moles", "Patrick Deuley", "Thomas Naughton"] },
+  "qasmtrans-transpiler": { basis: "Developers named by the project", people: ["Fei Hua", "Meng Wang", "Muqing Zheng", "Ang Li"] },
+  "qsc-materials-db-schema": { basis: "No individual developers are named in the reviewed source", people: [] },
+  "qsc-spack-repository": { basis: "Named repository contributors", people: ["Brad Chase", "Charles Ferenbaugh", "Seth R. Johnson"] },
+};
+
 /* Every state carries a class, a glyph, and its own word, so state is never
    communicated by color alone. Red and green stay semantic; the glyph is the
    channel that survives deuteranopia and forced-colors mode. */
@@ -2520,6 +2545,18 @@ function openCapability(id) {
   const limitations = guidance.limitations?.length
     ? `<section class="tool-record-section tool-limitations"><h3>Current limitations</h3>${guidanceList(guidance.limitations)}</section>`
     : "";
+  const people = TOOL_PEOPLE[item.id] || {
+    basis: "No source-reviewed developer attribution is recorded for this tool",
+    people: [],
+  };
+  const peopleList = people.people.length
+    ? `<ul class="tool-example-list">${people.people.map(person => `<li>${escapeHtml(person)}</li>`).join("")}</ul>`
+    : `<p class="tool-record-empty">No individual developer is named in the reviewed source.</p>`;
+  const attribution = `<section class="tool-record-section tool-people">
+      <h3>Developers and authors</h3>
+      <p>${escapeHtml(people.basis)}. Attribution is limited to people named by the reviewed source; it does not imply current maintenance responsibility.</p>
+      ${peopleList}
+    </section>`;
 
   openInspector(`<article class="tool-record">
     <header class="tool-record-intro">
@@ -2552,6 +2589,7 @@ function openCapability(id) {
       <h3>Published resources <span>${item.resources.length}</span></h3>
       ${resources}
     </section>
+    ${attribution}
     ${limitations}
     <details class="tool-provenance">
       <summary>Release, ownership, and provenance</summary>

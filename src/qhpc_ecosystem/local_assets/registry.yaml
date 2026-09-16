@@ -5,7 +5,7 @@ metadata:
   catalog_digest: sha256:d835fd11bac21982f51d5883c78bda3f75394f29ec752883222720e64d93cb88
 spec:
   entries:
-  - descriptor_digest: sha256:f43d76e3daf392b2b917125e3caa691621acce6939cff6fad6a225d3618fa173
+  - descriptor_digest: sha256:223f970daf17e8cc32c1ed775f9194e092d067089168a13cd9e508f99d450ced
     catalog_repository: chatqec
     validation:
       contract: valid
@@ -58,10 +58,11 @@ spec:
           - Ask a focused QEC question and inspect the cited sources in the response.
           example_workflows: []
           limitations:
-          - The current canonical-corpus service is a deterministic development implementation and does
-            not execute tools.
-          - EQO currently integrates ChatQEC through an authenticated service boundary rather than exposing
-            every upstream CLI, library, Streamlit, and sandboxed-Stim feature.
+          - In `canonical-corpus-extractive-fallback` mode, the deterministic bundled corpus is read-only
+            and does not execute tools.
+          - In the admitted `mcp-direct-tools` mode, ChatQEC executes explicitly supplied bounded circuits
+            through the pinned Stim or Tsim path and records the completed tool call; this is not unrestricted
+            upstream MCP, CLI, or browser execution.
         resources:
         - id: service-interface
           kind: adapter

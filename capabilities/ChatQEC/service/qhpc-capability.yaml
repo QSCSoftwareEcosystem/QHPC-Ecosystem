@@ -35,8 +35,8 @@ spec:
       - Ask a focused QEC question and inspect the cited sources in the response.
     example_workflows: []
     limitations:
-      - The current canonical-corpus service is a deterministic development implementation and does not execute tools.
-      - EQO currently integrates ChatQEC through an authenticated service boundary rather than exposing every upstream CLI, library, Streamlit, and sandboxed-Stim feature.
+      - In `canonical-corpus-extractive-fallback` mode, the deterministic bundled corpus is read-only and does not execute tools.
+      - In the admitted `mcp-direct-tools` mode, ChatQEC executes explicitly supplied bounded circuits through the pinned Stim or Tsim path and records the completed tool call; this is not unrestricted upstream MCP, CLI, or browser execution.
   resources:
     - id: service-interface
       kind: adapter
