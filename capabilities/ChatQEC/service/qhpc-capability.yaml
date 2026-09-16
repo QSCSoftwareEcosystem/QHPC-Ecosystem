@@ -34,9 +34,9 @@ spec:
       - Open Assistant or the contextual ChatQEC panel.
       - Ask a focused QEC question and inspect the cited sources in the response.
     example_workflows: []
-    limitations:
-      - In `canonical-corpus-extractive-fallback` mode, the deterministic bundled corpus is read-only and does not execute tools.
-      - In the admitted `mcp-direct-tools` mode, ChatQEC executes explicitly supplied bounded circuits through the pinned Stim or Tsim path and records the completed tool call; this is not unrestricted upstream MCP, CLI, or browser execution.
+    service_modes:
+      - "mcp-direct-tools: executes explicitly supplied bounded circuits through the pinned Stim or Tsim path and records each completed tool call."
+      - "canonical-corpus-extractive-fallback: serves the deterministic bundled corpus read-only when direct tools are not active."
   resources:
     - id: service-interface
       kind: adapter

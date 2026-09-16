@@ -273,6 +273,12 @@
           "items": {"$ref": "#/$defs/identifier"},
           "default": []
         },
+        "service_modes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1},
+          "default": []
+        },
         "limitations": {
           "type": "array",
           "uniqueItems": true,

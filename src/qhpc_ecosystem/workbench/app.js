@@ -2545,6 +2545,9 @@ function openCapability(id) {
   const limitations = guidance.limitations?.length
     ? `<section class="tool-record-section tool-limitations"><h3>Current limitations</h3>${guidanceList(guidance.limitations)}</section>`
     : "";
+  const serviceModes = guidance.service_modes?.length
+    ? `<section class="tool-record-section"><h3>Service modes</h3>${guidanceList(guidance.service_modes)}</section>`
+    : "";
   const people = TOOL_PEOPLE[item.id] || {
     basis: "No source-reviewed developer attribution is recorded for this tool",
     people: [],
@@ -2590,6 +2593,7 @@ function openCapability(id) {
       ${resources}
     </section>
     ${attribution}
+    ${serviceModes}
     ${limitations}
     <details class="tool-provenance">
       <summary>Release, ownership, and provenance</summary>

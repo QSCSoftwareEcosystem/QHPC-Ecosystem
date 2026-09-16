@@ -5,7 +5,7 @@ metadata:
   catalog_digest: sha256:d835fd11bac21982f51d5883c78bda3f75394f29ec752883222720e64d93cb88
 spec:
   entries:
-  - descriptor_digest: sha256:223f970daf17e8cc32c1ed775f9194e092d067089168a13cd9e508f99d450ced
+  - descriptor_digest: sha256:91a1c528f4432d3e8e07f9e2e79b9c87032bb1ecea3c235d3ead0c0cb2db00f3
     catalog_repository: chatqec
     validation:
       contract: valid
@@ -57,12 +57,11 @@ spec:
           - Open Assistant or the contextual ChatQEC panel.
           - Ask a focused QEC question and inspect the cited sources in the response.
           example_workflows: []
-          limitations:
-          - In `canonical-corpus-extractive-fallback` mode, the deterministic bundled corpus is read-only
-            and does not execute tools.
-          - In the admitted `mcp-direct-tools` mode, ChatQEC executes explicitly supplied bounded circuits
-            through the pinned Stim or Tsim path and records the completed tool call; this is not unrestricted
-            upstream MCP, CLI, or browser execution.
+          service_modes:
+          - 'mcp-direct-tools: executes explicitly supplied bounded circuits through the pinned Stim or
+            Tsim path and records each completed tool call.'
+          - 'canonical-corpus-extractive-fallback: serves the deterministic bundled corpus read-only when
+            direct tools are not active.'
         resources:
         - id: service-interface
           kind: adapter
