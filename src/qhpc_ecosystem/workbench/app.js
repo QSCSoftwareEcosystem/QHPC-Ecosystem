@@ -19,7 +19,7 @@ const TOOL_PEOPLE = {
   "qsc-hardware-survey": { basis: "Named repository contributors", people: ["Swen Boehm", "Thomas Naughton", "Vicente Leyton-Ortega"] },
   "exachem-qflow-tasksets": { basis: "Publication authors named by the project", people: ["Ajay Panyala", "Nicholas Bauman", "Daniel Mejia Rodriguez", "Himadri Pathak", "Bo Peng", "Marcus Liebenthal", "David Murphy", "Giridhar Nandipati", "Erdal Mutlu", "Sriram Krishnamoorthy", "Edo Aprà", "Sotiris Xantheas", "Niranjan Govind", "Karol Kowalski"] },
   "ftprimitivebench-primitives": { basis: "Publication authors named by the project", people: ["Shuwen Kan", "Adrian Harkness", "Zefan Du", "Rod Rofougaran", "Sean Garner", "Chenxu Liu", "Ying Mao", "Samuel Stein"] },
-  "ftqc-compiler": { basis: "Named repository contributors", people: ["Narasinga Rao Miniskar", "Seyong Lee"] },
+  "ftqc-compiler": { basis: "Named repository contributors", people: ["Narasinga Rao Miniskar", "Seyong Lee", "Elaine Wong"] },
   "iris-qiris-runtime": { basis: "Package and publication authors", people: ["Narasinga Rao Miniskar", "Jungwon Kim", "Seyong Lee", "Beau Johnston", "Jeffrey S. Vetter"] },
   "lightstim-simulation": { basis: "Software and package authors", people: ["Xiang Fang", "Ming Wang", "Yue Wu", "Sharanya Prabhu", "Dean Tullsen", "Narasinga Rao Miniskar", "Frank Mueller", "Travis Humble", "Yufei Ding"] },
   "tn-sim-mps-simulation": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
