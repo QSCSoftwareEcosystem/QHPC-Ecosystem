@@ -64,5 +64,9 @@ install_image "eqo-chatqec-tsim" \
   "sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0" \
   "sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2" \
   "qhpc/chatqec-tsim:dd19a85-linux-amd64"
+install_image "eqo-qfw-slurm" \
+  "sha256:5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105" \
+  "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b" \
+  "qhpc/openqse-qfw-slurm:0.1.0-office"
 
 printf 'EQO public OCI images installed for %s (%s).\n' "${release_tag}" "${platform}"

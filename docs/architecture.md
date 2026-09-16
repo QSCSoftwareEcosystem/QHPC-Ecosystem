@@ -193,8 +193,9 @@ remain under the configured artifact root, and verifies size and SHA-256 before
 serving bytes. Executable or otherwise unsafe media is returned as an
 attachment; the Django proxy does not gain filesystem access.
 
-The implemented worker lifecycle, planned execution-target, storage, and pilot
-profiles, and site activation procedure are documented in
+The implemented worker lifecycle, validated development fixture, planned
+execution-target, storage, and pilot profiles, and site activation procedure
+are documented in
 [hpc-execution.md](hpc-execution.md).
 
 ## Deployment Units
@@ -296,13 +297,13 @@ storage contracts. The runner keeps host storage paths separate from
 scheduler-visible paths through an injected mapper, so transport-specific path
 translation does not alter operation contracts.
 
-The external OpenQSE QFw Slurm stack is cataloged as a planned,
-non-executable development-cluster reference. QHPC may pin and inspect its
-source under controlled `.qhpc/` state, and its multi-node, communication, and
-synthetic-resource patterns may inform future test cases. It is not an active
-provider, dependency, runtime, deployment component, or EQO service: QHPC does
-not build, run, or package it until its separate compatibility and release
-gates are met.
+The external OpenQSE QFw Slurm stack is a validated, non-executable
+development-cluster fixture. QHPC may prepare, build, and start its separately
+admitted office compatibility image under controlled ignored development
+state. Its multi-node, communication, and synthetic-resource patterns can
+inform test cases, but it is not an ecosystem runtime, deployment component,
+or EQO service. EQO workflow use remains gated on a separate reviewed QFw
+operation or target-adapter contract.
 
 ## Storage-Aware HPC Execution
 

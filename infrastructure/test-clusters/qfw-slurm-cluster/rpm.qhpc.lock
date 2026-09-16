@@ -1,0 +1,588 @@
+alternatives	0:1.30-2.el10	x86_64	GPL-2.0-only
+annobin-docs	0:13.02-2.el10	noarch	GPL-3.0-or-later AND LGPL-2.0-or-later AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (LGPL-2.0-or-later WITH GCC-exception-2.0) AND GFDL-1.3-or-later
+annobin-plugin-gcc	0:13.02-2.el10	x86_64	GPL-3.0-or-later AND LGPL-2.0-or-later AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (LGPL-2.0-or-later WITH GCC-exception-2.0) AND GFDL-1.3-or-later
+attr	0:2.5.2-5.el10	x86_64	GPL-2.0-or-later
+audit-libs	0:4.0.3-4.el10	x86_64	LGPL-2.0-or-later
+authselect	0:1.5.0-8.el10	x86_64	GPL-3.0-or-later
+authselect-libs	0:1.5.0-8.el10	x86_64	GPL-3.0-or-later
+autoconf	0:2.71-13.el10	noarch	GPL-2.0-or-later AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GFDL-1.3-or-later AND FSFAP AND X11 AND LicenseRef-Fedora-Public-Domain
+automake	0:1.16.5-20.el10	noarch	GPL-2.0-or-later AND GPL-2.0-or-later WITH Autoconf-exception-generic AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception AND GFDL-1.3-or-later AND FSFAP AND FSFUL AND FSFULLR AND FSFULLRWD AND X11 AND LicenseRef-Fedora-Public-Domain
+basesystem	0:11-22.el10	noarch	LicenseRef-Fedora-Public-Domain
+bash	0:5.2.26-6.el10	x86_64	GPL-3.0-or-later
+bash-completion	1:2.11-16.el10	noarch	GPL-2.0-or-later
+binutils	0:2.41-58.el10	x86_64	GPL-3.0-or-later AND (GPL-3.0-or-later WITH Bison-exception-2.2) AND (LGPL-2.0-or-later WITH GCC-exception-2.0) AND BSD-3-Clause AND GFDL-1.3-or-later AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LGPL-2.0-or-later
+binutils-gold	0:2.41-58.el10	x86_64	GPL-3.0-or-later AND (GPL-3.0-or-later WITH Bison-exception-2.2) AND (LGPL-2.0-or-later WITH GCC-exception-2.0) AND BSD-3-Clause AND GFDL-1.3-or-later AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LGPL-2.0-or-later
+bison	0:3.8.2-9.el10	x86_64	GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Bison-exception-2.2 AND GPL-2.0-or-later AND GPL-2.0-or-later WITH Autoconf-exception-generic AND LGPL-3.0-or-later AND LGPL-2.1-or-later AND LGPL-2.0-or-later AND FSFULLR AND GFDL-1.3-or-later AND X11
+brotli	0:1.1.0-7.el10_1	x86_64	MIT
+brotli-devel	0:1.1.0-7.el10_1	x86_64	MIT
+bzip2	0:1.0.8-25.el10	x86_64	BSD-4-Clause
+bzip2-devel	0:1.0.8-25.el10	x86_64	BSD-4-Clause
+bzip2-libs	0:1.0.8-25.el10	x86_64	BSD-4-Clause
+ca-certificates	0:2025.2.80_v9.0.305-102.el10	noarch	MIT AND GPL-2.0-or-later
+cairo	0:1.18.2-2.el10	x86_64	LGPL-2.1-only OR MPL-1.1
+cairo-devel	0:1.18.2-2.el10	x86_64	LGPL-2.1-only OR MPL-1.1
+cmake	0:3.31.8-1.el10	x86_64	BSD-3-Clause AND MIT-open-group AND Zlib AND Apache-2.0
+cmake-data	0:3.31.8-1.el10	noarch	BSD-3-Clause AND MIT-open-group AND Zlib AND Apache-2.0
+cmake-filesystem	0:3.31.8-1.el10	x86_64	BSD-3-Clause AND MIT-open-group AND Zlib AND Apache-2.0
+coreutils-single	0:9.5-6.el10	x86_64	GPL-3.0-or-later AND GFDL-1.3-no-invariants-or-later AND LGPL-2.1-or-later AND LGPL-3.0-or-later
+cpp	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+cracklib	0:2.9.11-8.el10	x86_64	LGPL-2.1-or-later
+cracklib-dicts	0:2.9.11-8.el10	x86_64	LGPL-2.1-or-later
+crypto-policies	0:20250905-2.gitc7eb7b2.el10	noarch	LGPL-2.1-or-later
+crypto-policies-scripts	0:20250905-2.gitc7eb7b2.el10	noarch	LGPL-2.1-or-later
+curl	0:8.12.1-4.el10_2.4	x86_64	curl
+cyrus-sasl-lib	0:2.1.28-29.el10	x86_64	BSD-Attribution-HPND-disclaimer
+dbus	1:1.14.10-5.el10	x86_64	(AFL-2.1 OR GPL-2.0-or-later) AND GPL-2.0-or-later
+dbus-broker	0:36-5.el10_2	x86_64	Apache-2.0 AND LGPL-2.0-or-later AND LGPL-2.1-or-later AND (Apache-2.0 OR LGPL-2.1-or-later)
+dbus-common	1:1.14.10-5.el10	noarch	(AFL-2.1 OR GPL-2.0-or-later) AND GPL-2.0-or-later
+dbus-libs	1:1.14.10-5.el10	x86_64	(AFL-2.1 OR GPL-2.0-or-later) AND GPL-2.0-or-later
+default-fonts-core-sans	0:4.1-3.el10	noarch	GPL-2.0-or-later
+diffutils	0:3.10-8.el10	x86_64	GPL-3.0-or-later
+dnf	0:4.20.0-18.el10.rocky.0.1	noarch	GPL-2.0-or-later AND GPL-1.0-only
+dnf-data	0:4.20.0-18.el10.rocky.0.1	noarch	GPL-2.0-or-later AND GPL-1.0-only
+dnf-plugins-core	0:4.7.0-10.el10	noarch	GPL-2.0-or-later
+dwz	0:0.16-1.el10	x86_64	GPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND GPL-2.0-or-later AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND LGPL-2.0-or-later
+ed	0:1.20-5.el10	x86_64	GPL-2.0-only AND GFDL-1.3-no-invariants-or-later
+efi-srpm-macros	0:6-7.el10.rocky.0.1	noarch	GPL-3.0-or-later
+elfutils-debuginfod-client	0:0.193-1.el10	x86_64	GPL-3.0-or-later AND (GPL-2.0-or-later OR LGPL-3.0-or-later)
+elfutils-default-yama-scope	0:0.193-1.el10	noarch	GPL-2.0-or-later OR LGPL-3.0-or-later
+elfutils-libelf	0:0.193-1.el10	x86_64	GPL-2.0-or-later OR LGPL-3.0-or-later
+elfutils-libs	0:0.193-1.el10	x86_64	GPL-2.0-or-later OR LGPL-3.0-or-later
+emacs-filesystem	1:29.4-13.el10_2	noarch	GPL-3.0-or-later AND CC0-1.0
+environment-modules	0:5.6.1-2.el10	x86_64	GPL-2.0-or-later
+epel-release	0:10-7.el10_1	noarch	GPL-2.0-only
+expat	0:2.7.3-1.el10_2.3	x86_64	MIT
+expat-devel	0:2.7.3-1.el10_2.3	x86_64	MIT
+file	0:5.45-9.el10	x86_64	BSD-2-Clause-Darwin AND BSD-2-Clause
+file-libs	0:5.45-9.el10	x86_64	BSD-2-Clause-Darwin AND BSD-2-Clause
+filesystem	0:3.18-17.el10	x86_64	LicenseRef-Fedora-Public-Domain
+findutils	1:4.10.0-5.el10	x86_64	GPL-3.0-or-later
+flex	0:2.6.4-19.el10	x86_64	BSD-3-Clause-flex AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Bison-exception-2.2 AND GPL-3.0-or-later WITH Texinfo-exception AND FSFAP AND FSFUL AND FSFULLR AND FSFULLRWD AND GPL-2.0-or-later AND X11
+fontconfig	0:2.15.0-7.el10	x86_64	HPND AND LicenseRef-Fedora-Public-Domain AND Unicode-DFS-2016
+fontconfig-devel	0:2.15.0-7.el10	x86_64	HPND AND LicenseRef-Fedora-Public-Domain AND Unicode-DFS-2016
+fonts-filesystem	1:2.0.5-18.el10	noarch	MIT
+fonts-srpm-macros	1:2.0.5-18.el10	noarch	GPL-3.0-or-later
+forge-srpm-macros	0:0.4.0-6.el10	noarch	GPL-1.0-or-later
+freetype	0:2.13.2-8.el10	x86_64	(FTL OR GPL-2.0-or-later) AND BSD-3-Clause AND MIT AND MIT-Modern-Variant AND LicenseRef-Fedora-Public-Domain AND Zlib
+freetype-devel	0:2.13.2-8.el10	x86_64	(FTL OR GPL-2.0-or-later) AND BSD-3-Clause AND MIT AND MIT-Modern-Variant AND LicenseRef-Fedora-Public-Domain AND Zlib
+gawk	0:5.3.0-6.el10	x86_64	GPL-3.0-or-later AND GPL-2.0-or-later AND LGPL-2.1-or-later AND BSD-3-Clause
+gcc	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+gcc-c++	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+gcc-gfortran	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+gcc-plugin-annobin	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+gdbm	1:1.23-14.el10	x86_64	GPL-3.0-or-later
+gdbm-devel	1:1.23-14.el10	x86_64	GPL-3.0-or-later
+gdbm-libs	1:1.23-14.el10	x86_64	GPL-3.0-or-later
+gettext	0:0.22.5-6.el10	x86_64	GPL-3.0-or-later AND LGPL-2.0-or-later AND GFDL-1.2-or-later
+gettext-envsubst	0:0.22.5-6.el10	x86_64	GPL-3.0-or-later AND LGPL-2.0-or-later AND GFDL-1.2-or-later
+gettext-libs	0:0.22.5-6.el10	x86_64	LGPL-2.0-or-later AND GPL-3.0-or-later
+gettext-runtime	0:0.22.5-6.el10	x86_64	GPL-3.0-or-later AND LGPL-2.0-or-later
+git	0:2.52.0-1.el10	x86_64	BSD-3-Clause AND GPL-2.0-only AND GPL-2.0-or-later AND LGPL-2.1-or-later AND MIT
+git-core	0:2.52.0-1.el10	x86_64	BSD-3-Clause AND GPL-2.0-only AND GPL-2.0-or-later AND LGPL-2.1-or-later AND MIT
+git-core-doc	0:2.52.0-1.el10	noarch	BSD-3-Clause AND GPL-2.0-only AND GPL-2.0-or-later AND LGPL-2.1-or-later AND MIT
+glib2	0:2.80.4-12.el10_2.22	x86_64	LGPL-2.1-or-later
+glib2-devel	0:2.80.4-12.el10_2.22	x86_64	LGPL-2.1-or-later
+glibc	0:2.39-128.el10_2	x86_64	LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.1-only AND LGPL-2.0-or-later AND Unicode-DFS-2015 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception
+glibc-common	0:2.39-128.el10_2	x86_64	LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.1-only AND LGPL-2.0-or-later AND Unicode-DFS-2015 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception
+glibc-devel	0:2.39-128.el10_2	x86_64	LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.1-only AND LGPL-2.0-or-later AND Unicode-DFS-2015 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception
+glibc-gconv-extra	0:2.39-128.el10_2	x86_64	LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.1-only AND LGPL-2.0-or-later AND Unicode-DFS-2015 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception
+glibc-minimal-langpack	0:2.39-128.el10_2	x86_64	LGPL-2.1-or-later AND SunPro AND LGPL-2.1-or-later WITH GCC-exception-2.0 AND BSD-3-Clause AND GPL-2.0-or-later AND LGPL-2.1-or-later WITH GNU-compiler-exception AND GPL-2.0-only AND ISC AND LicenseRef-Fedora-Public-Domain AND HPND AND CMU-Mach AND LGPL-2.1-only AND LGPL-2.0-or-later AND Unicode-DFS-2015 AND GFDL-1.1-or-later AND GPL-1.0-or-later AND FSFUL AND MIT AND Inner-Net-2.0 AND X11 AND GPL-2.0-or-later WITH GCC-exception-2.0 AND GFDL-1.3-only AND GFDL-1.1-only AND GPL-3.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND GPL-3.0-or-later WITH Texinfo-exception
+gmp	1:6.2.1-12.el10	x86_64	(LGPL-3.0-or-later OR GPL-2.0-or-later OR (LGPL-3.0-or-later AND GPL-2.0-or-later)) AND GFDL-1.3-invariants-or-later
+gnupg2	0:2.4.5-4.el10_1	x86_64	CC0-1.0 AND GPL-2.0-or-later AND GPL-3.0-or-later AND LGPL-2.1-or-later AND LGPL-3.0-or-later AND (BSD-3-Clause OR LGPL-3.0-or-later OR GPL-2.0-or-later) AND CC-BY-4.0 AND MIT
+gnutls	0:3.8.10-2.el10	x86_64	GPL-3.0-or-later AND LGPL-2.1-or-later
+go-srpm-macros	0:3.8.0-1.el10	noarch	GPL-3.0-or-later
+google-noto-fonts-common	0:20240401-5.el10	noarch	OFL-1.1
+google-noto-sans-vf-fonts	0:20240401-5.el10	noarch	OFL-1.1
+gpg-pubkey	0:6fedfc85-682ae1a9	(none)	pubkey
+gpg-pubkey	0:e37ed158-65785fa9	(none)	pubkey
+graphite2	0:1.3.14-17.el10	x86_64	LGPL-2.1-or-later OR MPL-2.0 OR GPL-2.0-or-later
+graphite2-devel	0:1.3.14-17.el10	x86_64	LGPL-2.1-or-later OR MPL-2.0 OR GPL-2.0-or-later
+grep	0:3.11-10.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND LGPL-2.1-or-later AND GPL-2.0-or-later AND LGPL-2.0-or-later AND GFDL-1.3-no-invariants-or-later
+groff-base	0:1.23.0-10.el10	x86_64	GPL-3.0-or-later AND GFDL-1.3-or-later AND BSD-4-Clause-UC AND MIT AND X11 AND LicenseRef-Fedora-Public-Domain
+gzip	0:1.13-4.el10_2	x86_64	GPL-3.0-or-later AND GFDL-1.3-only
+harfbuzz	0:8.4.0-6.el10	x86_64	MIT-Modern-Variant
+harfbuzz-cairo	0:8.4.0-6.el10	x86_64	MIT-Modern-Variant
+harfbuzz-devel	0:8.4.0-6.el10	x86_64	MIT-Modern-Variant
+harfbuzz-icu	0:8.4.0-6.el10	x86_64	MIT-Modern-Variant
+hostname	0:3.23-14.el10	x86_64	GPL-2.0-or-later
+ima-evm-utils	0:1.6.2-3.el10.rocky.0.2	x86_64	GPLv2
+info	0:7.1-6.el10	x86_64	GPL-3.0-or-later
+iproute	0:6.17.0-2.el10	x86_64	GPL-2.0-or-later AND NIST-PD
+iputils	0:20240905-4.el10	x86_64	BSD-4-Clause-UC AND GPL-2.0-or-later
+jansson	0:2.14-3.el10	x86_64	MIT AND LicenseRef-Fedora-Public-Domain
+json-c	0:0.18-3.el10	x86_64	MIT
+json-c-devel	0:0.18-3.el10	x86_64	MIT
+kernel-headers	0:6.12.0-211.54.1.el10_2	x86_64	((GPL-2.0-only WITH Linux-syscall-note) OR BSD-2-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-only WITH Linux-syscall-note) OR CDDL-1.0) AND ((GPL-2.0-only WITH Linux-syscall-note) OR Linux-OpenIB) AND ((GPL-2.0-only WITH Linux-syscall-note) OR MIT) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR BSD-3-Clause) AND ((GPL-2.0-or-later WITH Linux-syscall-note) OR MIT) AND 0BSD AND BSD-2-Clause AND (BSD-2-Clause OR Apache-2.0) AND BSD-3-Clause AND BSD-3-Clause-Clear AND CC0-1.0 AND GFDL-1.1-no-invariants-or-later AND GPL-1.0-or-later AND (GPL-1.0-or-later OR BSD-3-Clause) AND (GPL-1.0-or-later WITH Linux-syscall-note) AND GPL-2.0-only AND (GPL-2.0-only OR Apache-2.0) AND (GPL-2.0-only OR BSD-2-Clause) AND (GPL-2.0-only OR BSD-3-Clause) AND (GPL-2.0-only OR CDDL-1.0) AND (GPL-2.0-only OR GFDL-1.1-no-invariants-or-later) AND (GPL-2.0-only OR GFDL-1.2-no-invariants-only) AND (GPL-2.0-only WITH Linux-syscall-note) AND GPL-2.0-or-later AND (GPL-2.0-or-later OR BSD-2-Clause) AND (GPL-2.0-or-later OR BSD-3-Clause) AND (GPL-2.0-or-later OR CC-BY-4.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH Linux-syscall-note) AND ISC AND LGPL-2.0-or-later AND (LGPL-2.0-or-later OR BSD-2-Clause) AND (LGPL-2.0-or-later WITH Linux-syscall-note) AND LGPL-2.1-only AND (LGPL-2.1-only OR BSD-2-Clause) AND (LGPL-2.1-only WITH Linux-syscall-note) AND LGPL-2.1-or-later AND (LGPL-2.1-or-later WITH Linux-syscall-note) AND (Linux-OpenIB OR GPL-2.0-only) AND (Linux-OpenIB OR GPL-2.0-only OR BSD-2-Clause) AND Linux-man-pages-copyleft AND MIT AND (MIT OR Apache-2.0) AND (MIT OR GPL-2.0-only) AND (MIT OR GPL-2.0-or-later) AND (MIT OR LGPL-2.1-only) AND (MPL-1.1 OR GPL-2.0-only) AND (X11 OR GPL-2.0-only) AND (X11 OR GPL-2.0-or-later) AND Zlib AND (copyleft-next-0.3.1 OR GPL-2.0-or-later)
+kernel-srpm-macros	0:1.0-27.el10	noarch	MIT
+keyutils	0:1.6.3-5.el10	x86_64	GPL-2.0-or-later AND LGPL-2.1-or-later
+keyutils-libs	0:1.6.3-5.el10	x86_64	GPL-2.0-or-later AND LGPL-2.1-or-later
+keyutils-libs-devel	0:1.6.3-5.el10	x86_64	GPL-2.0-or-later AND LGPL-2.1-or-later
+krb5-devel	0:1.21.3-10.el10_2	x86_64	Brian-Gladman-2-Clause AND BSD-2-Clause AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-first-lines AND BSD-3-Clause AND BSD-4-Clause AND CMU-Mach-nodoc AND FSFULLRWD AND HPND AND HPND-export2-US AND HPND-export-US AND HPND-export-US-acknowledgement AND HPND-export-US-modify AND ISC AND MIT AND MIT-CMU AND OLDAP-2.8 AND OpenVision
+krb5-libs	0:1.21.3-10.el10_2	x86_64	Brian-Gladman-2-Clause AND BSD-2-Clause AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-first-lines AND BSD-3-Clause AND BSD-4-Clause AND CMU-Mach-nodoc AND FSFULLRWD AND HPND AND HPND-export2-US AND HPND-export-US AND HPND-export-US-acknowledgement AND HPND-export-US-modify AND ISC AND MIT AND MIT-CMU AND OLDAP-2.8 AND OpenVision
+less	0:661-3.el10	x86_64	GPL-3.0-only AND BSD-2-Clause
+libX11	0:1.8.10-1.el10	x86_64	MIT AND X11
+libX11-common	0:1.8.10-1.el10	noarch	MIT AND X11
+libX11-devel	0:1.8.10-1.el10	x86_64	MIT AND X11
+libX11-xcb	0:1.8.10-1.el10	x86_64	MIT AND X11
+libXau	0:1.0.11-8.el10	x86_64	MIT-open-group
+libXau-devel	0:1.0.11-8.el10	x86_64	MIT-open-group
+libXext	0:1.3.6-3.el10	x86_64	MIT-open-group AND X11 AND HPND AND HPND-sell-variant AND SMLNJ AND MIT AND ISC AND HPND-doc AND HPND-doc-sell
+libXext-devel	0:1.3.6-3.el10	x86_64	MIT-open-group AND X11 AND HPND AND HPND-sell-variant AND SMLNJ AND MIT AND ISC AND HPND-doc AND HPND-doc-sell
+libXft	0:2.3.8-8.el10	x86_64	HPND-sell-variant
+libXft-devel	0:2.3.8-8.el10	x86_64	HPND-sell-variant
+libXrender	0:0.9.11-8.el10	x86_64	HPND-sell-variant
+libXrender-devel	0:0.9.11-8.el10	x86_64	HPND-sell-variant
+libacl	0:2.3.2-4.el10	x86_64	LGPL-2.1-or-later
+libaio	0:0.3.111-22.el10	x86_64	LGPL-2.0-or-later
+libarchive	0:3.7.7-4.el10_0	x86_64	BSD-2-Clause AND FSFULLR AND GPL-2.0-or-later WITH Libtool-exception AND BSD-3-Clause AND FSFUL
+libassuan	0:2.5.6-6.el10	x86_64	GPL-3.0-or-later AND LGPL-2.1-or-later AND LGPL-3.0-or-later
+libattr	0:2.5.2-5.el10	x86_64	LGPL-2.1-or-later
+libblkid	0:2.40.2-18.el10	x86_64	LGPL-2.1-or-later
+libblkid-devel	0:2.40.2-18.el10	x86_64	LGPL-2.1-or-later
+libbpf	2:1.7.0-1.el10	x86_64	LGPL-2.1-only OR BSD-2-Clause
+libbrotli	0:1.1.0-7.el10_1	x86_64	MIT
+libcap	0:2.69-7.el10	x86_64	BSD-3-Clause OR GPL-2.0-only
+libcap-ng	0:0.8.4-6.el10	x86_64	LGPL-2.0-or-later
+libcbor	0:0.11.0-3.el10	x86_64	MIT
+libcom_err	0:1.47.1-5.el10	x86_64	MIT
+libcom_err-devel	0:1.47.1-5.el10	x86_64	MIT
+libcomps	0:0.1.21-3.el10	x86_64	GPL-2.0-or-later
+libcurl-devel	0:8.12.1-4.el10_2.4	x86_64	curl
+libcurl-minimal	0:8.12.1-4.el10_2.4	x86_64	curl
+libdnf	0:0.73.1-12.el10.rocky.0.1	x86_64	LGPL-2.1-or-later
+libeconf	0:0.6.2-4.el10	x86_64	MIT
+libedit	0:3.1-52.20230828cvs.el10	x86_64	BSD-3-Clause AND BSD-2-Clause AND ISC
+libevent	0:2.1.12-16.el10	x86_64	BSD-3-Clause AND ISC AND LicenseRef-Fedora-Public-Domain
+libfdisk	0:2.40.2-18.el10	x86_64	LGPL-2.1-or-later
+libffi	0:3.4.4-10.el10	x86_64	MIT
+libffi-devel	0:3.4.4-10.el10	x86_64	MIT
+libfido2	0:1.14.0-7.el10	x86_64	BSD-2-Clause
+libgcc	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+libgcrypt	0:1.11.0-7.el10_2	x86_64	BSD-3-Clause AND (BSD-3-Clause OR GPL-2.0-only) AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LGPL-2.0-or-later AND MIT-Modern-Variant
+libgfortran	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+libgomp	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+libgpg-error	0:1.50-2.el10	x86_64	LGPL-2.1-or-later AND (BSD-3-Clause OR LGPL-2.1-or-later) AND FSFULLR AND GPL-2.0-or-later
+libicu	0:74.2-5.el10_0	x86_64	Unicode-DFS-2016 AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-Fedora-Public-Domain
+libicu-devel	0:74.2-5.el10_0	x86_64	Unicode-DFS-2016 AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-Fedora-Public-Domain
+libidn2	0:2.3.7-3.el10	x86_64	(GPL-2.0-or-later OR LGPL-3.0-or-later) AND GPL-3.0-or-later
+libidn2-devel	0:2.3.7-3.el10	x86_64	(GPL-2.0-or-later OR LGPL-3.0-or-later) AND GPL-3.0-or-later
+libjwt	0:2.1.2-1.el10_1	x86_64	MPL-2.0
+libjwt-devel	0:2.1.2-1.el10_1	x86_64	MPL-2.0
+libkadm5	0:1.21.3-10.el10_2	x86_64	Brian-Gladman-2-Clause AND BSD-2-Clause AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-first-lines AND BSD-3-Clause AND BSD-4-Clause AND CMU-Mach-nodoc AND FSFULLRWD AND HPND AND HPND-export2-US AND HPND-export-US AND HPND-export-US-acknowledgement AND HPND-export-US-modify AND ISC AND MIT AND MIT-CMU AND OLDAP-2.8 AND OpenVision
+libksba	0:1.6.7-2.el10	x86_64	GPL-3.0-or-later AND LGPL-2.1-or-later AND (LGPL-3.0-or-later OR GPL-2.0-or-later)
+libmnl	0:1.0.5-7.el10	x86_64	LGPL-2.1-or-later
+libmodulemd	0:2.15.0-12.el10	x86_64	MIT
+libmount	0:2.40.2-18.el10	x86_64	LGPL-2.1-or-later
+libmount-devel	0:2.40.2-18.el10	x86_64	LGPL-2.1-or-later
+libmpc	0:1.3.1-7.el10	x86_64	LGPL-3.0-or-later AND FSFAP
+libnghttp2	0:1.68.0-3.el10_2.2	x86_64	MIT
+libnghttp2-devel	0:1.68.0-3.el10_2.2	x86_64	MIT
+libpipeline	0:1.5.7-7.el10	x86_64	GPL-3.0-or-later
+libpkgconf	0:2.1.0-3.el10	x86_64	ISC
+libpng	2:1.6.40-11.el10_2.1	x86_64	zlib
+libpng-devel	2:1.6.40-11.el10_2.1	x86_64	zlib
+libpsl	0:0.21.5-6.el10	x86_64	MIT
+libpsl-devel	0:0.21.5-6.el10	x86_64	MIT
+libpwquality	0:1.4.5-12.el10	x86_64	BSD-3-Clause OR GPL-2.0-or-later
+libquadmath	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+libquadmath-devel	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+librepo	0:1.18.0-6.el10_0	x86_64	LGPL-2.1-or-later
+libseccomp	0:2.5.6-1.el10	x86_64	LGPL-2.1-only
+libselinux	0:3.10-1.el10	x86_64	LicenseRef-Fedora-Public-Domain
+libselinux-devel	0:3.10-1.el10	x86_64	LicenseRef-Fedora-Public-Domain
+libsemanage	0:3.9-1.el10	x86_64	LGPL-2.1-or-later
+libsepol	0:3.10-1.el10	x86_64	LGPL-2.1-or-later
+libsepol-devel	0:3.10-1.el10	x86_64	LGPL-2.1-or-later
+libsmartcols	0:2.40.2-18.el10	x86_64	LGPL-2.1-or-later
+libsolv	0:0.7.29-8.el10	x86_64	BSD-3-Clause
+libssh	0:0.12.0-3.el10_2	x86_64	LGPL-2.1-or-later
+libssh-config	0:0.12.0-3.el10_2	noarch	LGPL-2.1-or-later
+libssh-devel	0:0.12.0-3.el10_2	x86_64	LGPL-2.1-or-later
+libstdc++	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+libstdc++-devel	0:14.3.1-4.4.el10	x86_64	GPL-3.0-or-later AND LGPL-3.0-or-later AND (GPL-3.0-or-later WITH GCC-exception-3.1) AND (GPL-3.0-or-later WITH Texinfo-exception) AND (LGPL-2.1-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GCC-exception-2.0) AND (GPL-2.0-or-later WITH GNU-compiler-exception) AND BSL-1.0 AND GFDL-1.3-or-later AND Linux-man-pages-copyleft-2-para AND SunPro AND BSD-1-Clause AND BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause AND BSD-4-Clause AND BSD-Source-Code AND Zlib AND MIT AND Apache-2.0 AND (Apache-2.0 WITH LLVM-Exception) AND ZPL-2.1 AND ISC AND LicenseRef-Fedora-Public-Domain AND HP-1986 AND curl AND Martin-Birgmeier AND HPND-Markus-Kuhn AND dtoa AND SMLNJ AND AMD-newlib AND OAR AND HPND-merchantability-variant AND HPND-Intel
+libtasn1	0:4.20.0-1.el10	x86_64	GPL-3.0-or-later AND LGPL-2.1-or-later
+libtool	0:2.4.7-14.el10	x86_64	GPL-2.0-or-later AND GPL-2.0-or-later WITH Autoconf-exception-generic AND GPL-2.0-or-later WITH Libtool-exception AND LGPL-2.0-or-later WITH Libtool-exception AND GPL-3.0-or-later WITH Autoconf-exception-generic-3.0 AND MIT AND FSFAP AND FSFULLR AND FSFULLRWD AND GFDL-1.3-or-later AND X11 AND LicenseRef-Fedora-public-domain
+libunistring	0:1.1-10.el10	x86_64	GPL-2.0-or-later OR LGPL-3.0-or-later
+libusb1	0:1.0.28-1.el10	x86_64	LGPL-2.1-or-later
+libuser	0:0.64-11.el10	x86_64	LGPL-2.0-or-later
+libutempter	0:1.2.1-15.el10	x86_64	LGPL-2.1-or-later AND LGPL-2.1-only AND BSD-2-Clause
+libuuid	0:2.40.2-18.el10	x86_64	BSD-3-Clause
+libuuid-devel	0:2.40.2-18.el10	x86_64	BSD-3-Clause AND LGPL-2.1-or-later
+libuv	1:1.52.1-1.el10_2	x86_64	MIT AND CC-BY-4.0 AND ISC AND BSD-2-Clause
+libverto	0:0.3.2-10.el10	x86_64	MIT
+libverto-devel	0:0.3.2-10.el10	x86_64	MIT
+libxcb	0:1.17.0-3.el10	x86_64	X11
+libxcb-devel	0:1.17.0-3.el10	x86_64	X11
+libxcrypt	0:4.4.36-10.el10	x86_64	LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-2-Clause-FreeBSD AND 0BSD AND CC0-1.0 AND LicenseRef-Fedora-Public-Domain
+libxcrypt-devel	0:4.4.36-10.el10	x86_64	LGPL-2.1-or-later AND BSD-3-Clause AND BSD-2-Clause AND BSD-2-Clause-FreeBSD AND 0BSD AND CC0-1.0 AND LicenseRef-Fedora-Public-Domain
+libxml2	0:2.12.5-10.el10_2.3	x86_64	MIT AND ISC-Veillard AND W3C
+libxml2-devel	0:2.12.5-10.el10_2.3	x86_64	MIT AND ISC-Veillard AND W3C
+libyaml	0:0.2.5-16.el10	x86_64	MIT
+libyaml-devel	0:0.2.5-16.el10	x86_64	GPL-2.0-or-later AND MIT
+libzstd	0:1.5.5-9.el10	x86_64	BSD-3-Clause AND GPL-2.0-only
+logrotate	0:3.22.0-5.el10	x86_64	GPL-2.0-or-later
+lua	0:5.4.6-7.el10	x86_64	MIT
+lua-devel	0:5.4.6-7.el10	x86_64	MIT
+lua-libs	0:5.4.6-7.el10	x86_64	MIT
+lua-srpm-macros	0:1-15.el10	noarch	MIT
+lz4-libs	0:1.9.4-8.el10	x86_64	GPL-2.0-or-later AND BSD-2-Clause
+lzo	0:2.10-14.el10	x86_64	gpl-2.0-or-later
+m4	0:1.4.19-11.el10	x86_64	GPL-3.0-or-later AND GFDL-1.3-or-later
+make	1:4.4.1-9.el10	x86_64	GPL-3.0-or-later AND LGPL-2.1-or-later AND GFDL-1.3-or-later AND FSFULLR
+man-db	0:2.12.0-10.el10	x86_64	GPL-2.0-or-later AND GPL-3.0-or-later
+mariadb	3:10.11.18-1.el10_2	x86_64	( GPL-2.0-only OR Apache-2.0 ) AND ( GPL-2.0-or-later OR Apache-2.0 ) AND BSD-2-Clause AND BSD-3-Clause AND CC-BY-4.0 AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ( GPL-3.0-or-later WITH Bison-exception-2.2 ) AND LGPL-2.0-only AND LGPL-2.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND OpenSSL AND MIT AND OFL-1.1 AND CC0-1.0 AND PHP-3.0 AND PHP-3.01 AND zlib AND dtoa AND FSFAP AND blessing AND Info-ZIP AND Boehm-GC
+mariadb-common	3:10.11.18-1.el10_2	noarch	( GPL-2.0-only OR Apache-2.0 ) AND ( GPL-2.0-or-later OR Apache-2.0 ) AND BSD-2-Clause AND BSD-3-Clause AND CC-BY-4.0 AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ( GPL-3.0-or-later WITH Bison-exception-2.2 ) AND LGPL-2.0-only AND LGPL-2.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND OpenSSL AND MIT AND OFL-1.1 AND CC0-1.0 AND PHP-3.0 AND PHP-3.01 AND zlib AND dtoa AND FSFAP AND blessing AND Info-ZIP AND Boehm-GC
+mariadb-connector-c	0:3.4.4-2.el10_2	x86_64	LGPL-2.1-or-later
+mariadb-connector-c-config	0:3.4.4-2.el10_2	noarch	LGPL-2.1-or-later
+mariadb-connector-c-devel	0:3.4.4-2.el10_2	x86_64	LGPL-2.1-or-later
+mariadb-devel	3:10.11.18-1.el10_2	x86_64	( GPL-2.0-only OR Apache-2.0 ) AND ( GPL-2.0-or-later OR Apache-2.0 ) AND BSD-2-Clause AND BSD-3-Clause AND CC-BY-4.0 AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ( GPL-3.0-or-later WITH Bison-exception-2.2 ) AND LGPL-2.0-only AND LGPL-2.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND OpenSSL AND MIT AND OFL-1.1 AND CC0-1.0 AND PHP-3.0 AND PHP-3.01 AND zlib AND dtoa AND FSFAP AND blessing AND Info-ZIP AND Boehm-GC
+mariadb-errmsg	3:10.11.18-1.el10_2	noarch	( GPL-2.0-only OR Apache-2.0 ) AND ( GPL-2.0-or-later OR Apache-2.0 ) AND BSD-2-Clause AND BSD-3-Clause AND CC-BY-4.0 AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ( GPL-3.0-or-later WITH Bison-exception-2.2 ) AND LGPL-2.0-only AND LGPL-2.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND OpenSSL AND MIT AND OFL-1.1 AND CC0-1.0 AND PHP-3.0 AND PHP-3.01 AND zlib AND dtoa AND FSFAP AND blessing AND Info-ZIP AND Boehm-GC
+mariadb-server	3:10.11.18-1.el10_2	x86_64	( GPL-2.0-only OR Apache-2.0 ) AND ( GPL-2.0-or-later OR Apache-2.0 ) AND BSD-2-Clause AND BSD-3-Clause AND CC-BY-4.0 AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND ( GPL-3.0-or-later WITH Bison-exception-2.2 ) AND LGPL-2.0-only AND LGPL-2.0-or-later AND LGPL-2.1-only AND LGPL-2.1-or-later AND OpenSSL AND MIT AND OFL-1.1 AND CC0-1.0 AND PHP-3.0 AND PHP-3.01 AND zlib AND dtoa AND FSFAP AND blessing AND Info-ZIP AND Boehm-GC
+mpdecimal	0:2.5.1-12.el10	x86_64	BSD-2-Clause
+mpfr	0:4.2.1-5.el10	x86_64	LGPL-3.0-or-later
+munge	0:0.5.15-11.el10_1	x86_64	GPLv3+ and LGPLv3+
+munge-devel	0:0.5.15-11.el10_1	x86_64	GPLv3+ and LGPLv3+
+munge-libs	0:0.5.15-11.el10_1	x86_64	GPLv3+ and LGPLv3+
+ncurses	0:6.4-15.20240127.el10_1	x86_64	MIT-open-group
+ncurses-base	0:6.4-15.20240127.el10_1	noarch	MIT-open-group
+ncurses-c++-libs	0:6.4-15.20240127.el10_1	x86_64	MIT-open-group
+ncurses-devel	0:6.4-15.20240127.el10_1	x86_64	MIT-open-group
+ncurses-libs	0:6.4-15.20240127.el10_1	x86_64	MIT-open-group
+ninja-build	0:1.11.1-9.el10	x86_64	Apache-2.0
+npth	0:1.6-21.el10	x86_64	LGPL-2.1-or-later
+ocaml-srpm-macros	0:10-4.el10	noarch	GPL-2.0-or-later
+openblas	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-devel	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-openmp	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-openmp64	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-openmp64_	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-serial	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-serial64	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-serial64_	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-srpm-macros	0:2-19.el10	noarch	MIT
+openblas-threads	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-threads64	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openblas-threads64_	0:0.3.29-2.el10	x86_64	BSD-3-Clause
+openldap	0:2.6.9-1.el10	x86_64	OLDAP-2.8
+openssh	0:9.9p1-25.el10_2.rocky.0.1	x86_64	BSD-3-Clause AND BSD-2-Clause AND ISC AND SSH-OpenSSH AND ssh-keyscan AND sprintf AND LicenseRef-Fedora-Public-Domain AND X11-distribute-modifications-variant
+openssh-clients	0:9.9p1-25.el10_2.rocky.0.1	x86_64	BSD-3-Clause AND BSD-2-Clause AND ISC AND SSH-OpenSSH AND ssh-keyscan AND sprintf AND LicenseRef-Fedora-Public-Domain AND X11-distribute-modifications-variant
+openssl	1:3.5.8-1.el10_2	x86_64	Apache-2.0
+openssl-devel	1:3.5.8-1.el10_2	x86_64	Apache-2.0
+openssl-fips-provider	1:3.5.8-1.el10_2	x86_64	Apache-2.0
+openssl-libs	1:3.5.8-1.el10_2	x86_64	Apache-2.0
+p11-kit	0:0.25.5-7.el10	x86_64	BSD-3-Clause
+p11-kit-trust	0:0.25.5-7.el10	x86_64	BSD-3-Clause
+package-notes-srpm-macros	0:0.5-13.el10	noarch	0BSD
+pam	0:1.6.1-8.el10	x86_64	BSD-3-Clause AND GPL-2.0-or-later
+pam-libs	0:1.6.1-8.el10	x86_64	BSD-3-Clause AND GPL-2.0-or-later
+patch	0:2.7.6-26.el10	x86_64	GPL-3.0-or-later
+pcre2	0:10.44-1.el10.3	x86_64	BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later
+pcre2-devel	0:10.44-1.el10.3	x86_64	BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later
+pcre2-syntax	0:10.44-1.el10.3	noarch	BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later
+pcre2-utf16	0:10.44-1.el10.3	x86_64	BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later
+pcre2-utf32	0:10.44-1.el10.3	x86_64	BSD-3-Clause AND FSFULLR AND X11 AND GPL-2.0-or-later AND FSFAP AND FSFUL AND GPL-3.0-or-later
+perl	4:5.40.2-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Algorithm-Diff	0:1.2010-14.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Archive-Tar	0:3.02-512.el10_2.2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Archive-Zip	0:1.68-17.el10	noarch	( GPL-1.0-or-later OR Artistic-1.0-Perl ) AND Info-ZIP
+perl-Attribute-Handlers	0:1.03-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-AutoLoader	0:5.74-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-AutoSplit	0:5.74-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-B	0:1.89-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Benchmark	0:1.25-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-CPAN	0:2.36-514.el10_0	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-CPAN-Meta	0:2.150010-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-CPAN-Meta-Requirements	0:2.143-11.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-CPAN-Meta-YAML	0:0.018-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Carp	0:1.54-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Class-Struct	0:0.68-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Compress-Bzip2	0:2.28-21.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Compress-Raw-Bzip2	0:2.212-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Compress-Raw-Lzma	0:2.212-3.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Compress-Raw-Zlib	0:2.212-513.el10_1	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND Zlib
+perl-Config-Extensions	0:0.03-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Config-Perl-V	0:0.36-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-DBM_Filter	0:0.06-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Data-Dumper	0:2.189-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Data-OptList	0:0.114-7.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Data-Section	0:0.200008-8.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Devel-PPPort	0:3.72-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Devel-Peek	0:1.34-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Devel-SelfStubber	0:1.06-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Devel-Size	0:0.84-3.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Digest	0:1.20-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Digest-MD5	0:2.59-6.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Digest-SHA	1:6.04-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-DirHandle	0:1.05-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Dumpvalue	0:2.27-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-DynaLoader	0:1.56-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Encode	4:3.21-511.el10	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND Artistic-2.0
+perl-Encode-devel	4:3.21-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-English	0:1.11-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Env	0:1.06-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Errno	0:1.38-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Error	1:0.17029-18.el10	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND X11
+perl-Exporter	0:5.78-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-CBuilder	1:0.280240-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-Command	2:7.70-513.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-Constant	0:0.25-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-Embed	0:1.35-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-Install	0:2.22-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-MM-Utils	2:7.70-513.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-MakeMaker	2:7.70-513.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-Manifest	1:1.75-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-Miniperl	0:1.14-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-ExtUtils-ParseXS	1:3.51-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Fcntl	0:1.18-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Basename	0:2.86-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Compare	0:1.100.800-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Copy	0:2.41-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-DosGlob	0:1.12-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Fetch	0:1.04-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Find	0:1.44-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-HomeDir	0:1.006-15.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Path	0:2.18-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Temp	1:0.231.100-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-Which	0:1.27-14.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-File-stat	0:1.14-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-FileCache	0:1.10-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-FileHandle	0:2.05-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Filter	2:1.64-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Filter-Simple	0:0.96-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-FindBin	0:1.54-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-GDBM_File	1:1.24-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Getopt-Long	1:2.58-3.el10	noarch	GPL-2.0-or-later OR Artistic-1.0-Perl
+perl-Getopt-Std	0:1.14-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Git	0:2.52.0-1.el10	noarch	BSD-3-Clause AND GPL-2.0-only AND GPL-2.0-or-later AND LGPL-2.1-or-later AND MIT
+perl-HTTP-Tiny	0:0.088-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Hash-Util	0:0.32-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Hash-Util-FieldHash	0:1.27-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-I18N-Collate	0:1.02-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-I18N-LangTags	0:0.45-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-I18N-Langinfo	0:0.24-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IO	0:1.55-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IO-Compress	0:2.212-512.el10_2.1	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IO-Compress-Lzma	0:2.206-8.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IO-Socket-IP	0:0.42-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IO-Socket-SSL	0:2.085-3.el10	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND MPL-2.0
+perl-IO-Zlib	1:1.15-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IPC-Cmd	2:1.04-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IPC-Open3	0:1.22-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IPC-SysV	0:2.09-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-IPC-System-Simple	0:1.30-16.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-JSON-PP	1:4.16-513.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Locale-Maketext	0:1.33-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Locale-Maketext-Simple	1:0.21-515.el10_2	noarch	MIT
+perl-MIME-Base64	0:3.16-511.el10	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND metamail
+perl-MRO-Compat	0:0.15-12.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Math-BigInt	1:2.0030.03-3.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Math-BigInt-FastCalc	0:0.501.800-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Math-Complex	0:1.62-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Memoize	0:1.16-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-Build	2:0.42.34-7.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-CoreList	1:5.20260119-1.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-CoreList-tools	1:5.20260119-1.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-Load	1:0.36-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-Load-Conditional	0:0.74-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-Loaded	1:0.08-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-Metadata	0:1.000038-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Module-Signature	0:0.88-12.el10	noarch	CC0-1.0
+perl-Mozilla-CA	0:20231213-5.el10	noarch	MPL-2.0
+perl-NDBM_File	0:1.17-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-NEXT	0:0.69-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Net	0:1.04-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Net-Ping	0:2.76-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Net-SSLeay	0:1.94-8.el10	x86_64	Artistic-2.0
+perl-ODBM_File	0:1.18-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Opcode	0:1.65-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-POSIX	0:2.20-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Package-Generator	0:1.106-34.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Params-Check	1:0.38-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Params-Util	0:1.102-19.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-PathTools	0:3.91-512.el10	x86_64	( GPL-1.0-or-later OR Artistic-1.0-Perl ) AND BSD-3-Clause
+perl-Perl-OSType	0:1.010-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-PerlIO-via-QuotedPrint	0:0.10-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Checker	4:1.77-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Escapes	1:1.07-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Functions	0:1.14-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Html	0:1.35-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Perldoc	0:3.28.01-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Simple	1:3.45-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Pod-Usage	4:2.03-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Safe	0:2.46-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Scalar-List-Utils	5:1.63-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Search-Dict	0:1.07-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-SelectSaver	0:1.02-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-SelfLoader	0:1.27-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Socket	4:2.038-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Software-License	0:0.104006-4.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Storable	1:3.32-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Sub-Exporter	0:0.991-7.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Sub-Install	0:0.929-8.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Symbol	0:1.09-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Sys-Hostname	0:1.25-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Sys-Syslog	0:0.36-512.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Term-ANSIColor	0:5.01-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Term-Cap	0:1.18-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Term-Complete	0:1.403-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Term-ReadLine	0:1.17-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Term-Table	0:0.018-513.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-TermReadKey	0:2.38-24.el10	x86_64	TermReadKey AND (GPL-1.0-or-later OR Artistic-1.0-Perl)
+perl-Test	0:1.31-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Test-Harness	1:3.48-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Test-Simple	3:1.302199-513.el10	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND CC0-1.0 AND LicenseRef-Fedora-Public-Domain
+perl-Test2-Suite	0:0.000163-4.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Text-Abbrev	0:1.02-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Text-Balanced	0:2.06-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Text-Diff	0:1.45-25.el10	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND (GPL-2.0-or-later OR Artistic-1.0-Perl) AND MIT
+perl-Text-Glob	0:0.11-26.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Text-ParseWords	0:3.31-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Text-Tabs+Wrap	0:2024.001-511.el10	noarch	TTWL
+perl-Text-Template	0:1.61-8.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Thread	0:3.05-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Thread-Queue	0:3.14-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Thread-Semaphore	0:2.13-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Tie	0:4.6-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Tie-File	0:1.09-515.el10_2	noarch	GPL-2.0-or-later OR Artistic-1.0-Perl
+perl-Tie-Memoize	0:1.1-515.el10_2	noarch	GPL-2.0-or-later OR Artistic-1.0-Perl
+perl-Tie-RefHash	0:1.40-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Time	0:1.04-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Time-HiRes	4:1.9777-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Time-Local	2:1.350-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Time-Piece	0:1.3401-515.el10_2	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND BSD-2-Clause-Views
+perl-URI	0:5.27-3.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Unicode-Collate	0:1.31-511.el10	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND Unicode-DFS-2016
+perl-Unicode-Normalize	0:1.32-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-Unicode-UCD	0:0.78-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-User-pwent	0:1.05-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-autodie	0:2.37-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-autouse	0:1.11-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-base	0:2.27-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-bignum	0:0.67-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-blib	0:1.07-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-constant	0:1.33-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-debugger	0:1.60-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-deprecate	0:0.04-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-devel	4:5.40.2-515.el10_2	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND Unicode-3.0
+perl-diagnostics	0:1.40-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-doc	0:5.40.2-515.el10_2	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND Unicode-3.0 AND LicenseRef-Fedora-UltraPermissive
+perl-encoding	4:3.00-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-encoding-warnings	0:0.14-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-experimental	0:0.032-511.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-fields	0:2.27-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-filetest	0:1.03-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-if	0:0.61.000-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-inc-latest	2:0.500-30.el10	noarch	Apache-2.0
+perl-interpreter	4:5.40.2-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-less	0:0.03-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-lib	0:0.65-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-libnet	0:3.15-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-libnetcfg	4:5.40.2-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-libs	4:5.40.2-515.el10_2	x86_64	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND Martin-Birgmeier AND Spencer-86 AND MIT AND Unicode-3.0 AND LicenseRef-Fedora-Public-Domain
+perl-local-lib	0:2.000029-9.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-locale	0:1.12-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-macros	4:5.40.2-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-meta-notation	0:5.40.2-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-mro	0:1.29-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-open	0:1.13-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-overload	0:1.37-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-overloading	0:0.02-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-parent	1:0.241-512.el10	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-perlfaq	0:5.20240218-511.el10	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND LicenseRef-Fedora-Public-Domain
+perl-ph	0:5.40.2-515.el10_2	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-podlators	1:5.01-511.el10	noarch	(GPL-1.0-or-later OR Artistic-1.0-Perl) AND FSFAP
+perl-sigtrap	0:1.10-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-sort	0:2.05-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-srpm-macros	0:1-57.el10	noarch	GPL-3.0-or-later
+perl-subs	0:1.04-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-threads	1:2.40-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-threads-shared	0:1.69-511.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-utils	0:5.40.2-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-vars	0:1.05-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-version	8:0.99.32-4.el10	x86_64	GPL-1.0-or-later OR Artistic-1.0-Perl
+perl-vmsish	0:1.04-515.el10_2	noarch	GPL-1.0-or-later OR Artistic-1.0-Perl
+pixman	0:0.43.4-2.el10	x86_64	MIT
+pixman-devel	0:0.43.4-2.el10	x86_64	MIT
+pkgconf	0:2.1.0-3.el10	x86_64	ISC
+pkgconf-m4	0:2.1.0-3.el10	noarch	GPLv2+ with exceptions
+pkgconf-pkg-config	0:2.1.0-3.el10	x86_64	ISC
+popt	0:1.19-8.el10	x86_64	MIT AND LicenseRef-Fedora-Public-Domain
+procps-ng	0:4.0.4-11.el10	x86_64	GPL-2.0-or-later AND LGPL-2.0-or-later AND LGPL-2.1-or-later
+psmisc	0:23.6-8.el10	x86_64	GPL-2.0-or-later
+publicsuffix-list	0:20240107-5.el10	noarch	MPL-2.0
+publicsuffix-list-dafsa	0:20240107-5.el10	noarch	MPL-2.0
+pyproject-srpm-macros	0:1.18.5-1.el10	noarch	MIT
+python-srpm-macros	0:3.12-11.el10	noarch	MIT AND PSF-2.0 AND GPL-2.0-or-later
+python3	0:3.12.14-1.el10_2	x86_64	Python-2.0.1
+python3-dateutil	1:2.9.0.post0-1.el10_0	noarch	(Apache-2.0 AND BSD-3-Clause) OR BSD-3-Clause
+python3-dbus	0:1.3.2-8.el10	x86_64	MIT
+python3-devel	0:3.12.14-1.el10_2	x86_64	Python-2.0.1
+python3-dnf	0:4.20.0-18.el10.rocky.0.1	noarch	GPL-2.0-or-later AND GPL-1.0-only
+python3-dnf-plugins-core	0:4.7.0-10.el10	noarch	GPL-2.0-or-later
+python3-hawkey	0:0.73.1-12.el10.rocky.0.1	x86_64	LGPL-2.1-or-later
+python3-libcomps	0:0.1.21-3.el10	x86_64	GPL-2.0-or-later
+python3-libdnf	0:0.73.1-12.el10.rocky.0.1	x86_64	LGPL-2.1-or-later
+python3-libs	0:3.12.14-1.el10_2	x86_64	Python-2.0.1 AND CC0-1.0
+python3-packaging	0:24.2-2.el10	noarch	BSD-2-Clause OR Apache-2.0
+python3-pip	0:23.3.2-11.el10_2	noarch	MIT AND Python-2.0.1 AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND ISC AND LGPL-2.1-only AND MPL-2.0 AND (Apache-2.0 OR BSD-2-Clause)
+python3-pip-wheel	0:23.3.2-7.el10	noarch	MIT AND Python-2.0.1 AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND ISC AND LGPL-2.1-only AND MPL-2.0 AND (Apache-2.0 OR BSD-2-Clause)
+python3-pyparsing	0:3.1.1-7.el10	noarch	MIT
+python3-rpm	0:4.19.1.1-20.el10	x86_64	GPL-2.0-or-later
+python3-six	0:1.16.0-16.el10	noarch	MIT
+python3-systemd	0:235-11.el10	x86_64	LGPL-2.1-or-later
+qt6-srpm-macros	0:6.10.1-1.el10	noarch	GPL-3.0-only
+readline	0:8.2-11.el10	x86_64	GPL-3.0-or-later AND GPL-2.0-or-later AND GFDL-1.3-no-invariants-or-later
+readline-devel	0:8.2-11.el10	x86_64	GPL-3.0-or-later AND GPL-2.0-or-later AND GFDL-1.3-no-invariants-or-later
+redhat-rpm-config	0:295-1.el10.rocky.0.2	noarch	GPL-1.0-or-later AND GPL-2.0-or-later AND GPL-3.0-or-later WITH Autoconf-exception-generic AND Boehm-GC
+redhat-text-vf-fonts	0:4.1.0-1.el10	noarch	OFL-1.1-RFN AND CC-BY-SA-4.0
+rocky-gpg-keys	0:10.1-1.2.el10	noarch	BSD-3-Clause
+rocky-release	0:10.1-1.2.el10	noarch	BSD-3-Clause
+rocky-repos	0:10.1-1.2.el10	noarch	BSD-3-Clause
+rootfiles	0:8.1-54.el10	noarch	LicenseRef-Not-Copyrightable
+rpm	0:4.19.1.1-20.el10	x86_64	GPL-2.0-or-later
+rpm-build-libs	0:4.19.1.1-20.el10	x86_64	GPL-2.0-or-later
+rpm-libs	0:4.19.1.1-20.el10	x86_64	GPL-2.0-or-later OR LGPL-2.1-or-later
+rpm-sequoia	0:1.9.0.3-1.el10_1	x86_64	LGPL-2.0-or-later AND Apache-2.0 AND BSL-1.0 AND MIT AND Unicode-DFS-2016 AND (Apache-2.0 OR MIT) AND (MIT OR Apache-2.0 OR Zlib) AND (Unlicense OR MIT)
+rpm-sign-libs	0:4.19.1.1-20.el10	x86_64	GPL-2.0-or-later
+rust-toolset-srpm-macros	0:1.92.0-2.el10_2	noarch	(Apache-2.0 OR MIT) AND (Artistic-2.0 AND BSD-3-Clause AND ISC AND MIT AND MPL-2.0 AND Unicode-3.0)
+sed	0:4.9-3.el10	x86_64	GPL-3.0-or-later
+setup	0:2.14.5-7.el10	noarch	LicenseRef-Fedora-Public-Domain
+shadow-utils	2:4.15.0-8.el10	x86_64	BSD-3-Clause AND GPL-2.0-or-later
+snappy	0:1.1.10-7.el10	x86_64	BSD-3-Clause
+sqlite	0:3.46.1-6.el10_2	x86_64	blessing
+sqlite-devel	0:3.46.1-6.el10_2	x86_64	blessing
+sqlite-libs	0:3.46.1-6.el10_2	x86_64	blessing
+swig	0:4.3.0-4.el10	x86_64	GPL-3.0-or-later AND BSD-3-Clause
+sysprof-capture-devel	0:47.2-1.el10	x86_64	BSD-2-Clause-Patent
+systemd	0:257-23.el10_2.2.rocky.0.1	x86_64	LGPL-2.1-or-later AND MIT AND GPL-2.0-or-later
+systemd-libs	0:257-23.el10_2.2.rocky.0.1	x86_64	LGPL-2.1-or-later AND MIT
+systemd-pam	0:257-23.el10_2.2.rocky.0.1	x86_64	LGPL-2.1-or-later AND MIT AND GPL-2.0-or-later
+systemtap-sdt-devel	0:5.4-3.el10	x86_64	GPL-2.0-or-later AND CC0-1.0
+systemtap-sdt-dtrace	0:5.4-3.el10	x86_64	GPL-2.0-or-later AND CC0-1.0
+tar	2:1.35-13.el10_2	x86_64	GPL-3.0-or-later
+tcl	1:8.6.13-4.el10	x86_64	TCL AND GPL-3.0-or-later WITH bison-exception-2.2 AND BSD-3-Clause
+tcl-devel	1:8.6.13-4.el10	x86_64	TCL AND GPL-3.0-or-later WITH bison-exception-2.2 AND BSD-3-Clause
+tk	1:8.6.13-5.el10	x86_64	TCL AND HPND-Pbmplus AND CC-BY-SA-3.0 AND MIT-open-group AND MIT
+tk-devel	1:8.6.13-5.el10	x86_64	TCL AND HPND-Pbmplus AND CC-BY-SA-3.0 AND MIT-open-group AND MIT
+tpm2-tss	0:4.1.3-5.el10	x86_64	BSD-2-Clause
+tzdata	0:2025b-2.el10	noarch	LicenseRef-Fedora-Public-Domain AND (GPL-2.0-only WITH ClassPath-exception-2.0)
+unzip	0:6.0-69.el10	x86_64	Info-ZIP
+usermode	0:1.114-13.el10	x86_64	GPL-2.0-or-later
+util-linux	0:2.40.2-18.el10	x86_64	GPL-1.0-or-later AND GPL-2.0-only AND GPL-2.0-or-later AND GPL-3.0-or-later AND LGPL-2.1-or-later AND EUPL-1.2 AND BSD-2-Clause AND BSD-3-Clause AND BSD-4-Clause-UC AND LicenseRef-Fedora-Public-Domain
+util-linux-core	0:2.40.2-18.el10	x86_64	GPL-2.0-only AND GPL-2.0-or-later AND BSD-2-Clause AND BSD-3-Clause AND BSD-4-Clause-UC AND LicenseRef-Fedora-Public-Domain
+vim-common	2:9.1.083-9.el10_2.20	x86_64	Vim AND LGPL-2.1-or-later AND MIT AND GPL-1.0-only AND (GPL-2.0-only OR Vim) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-or-later AND GPL-3.0-or-later AND OPUBL-1.0
+vim-data	2:9.1.083-9.el10_2.20	noarch	Vim AND LGPL-2.1-or-later AND MIT AND GPL-1.0-only AND (GPL-2.0-only OR Vim) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-or-later AND GPL-3.0-or-later AND OPUBL-1.0
+vim-enhanced	2:9.1.083-9.el10_2.20	x86_64	Vim AND LGPL-2.1-or-later AND MIT AND GPL-1.0-only AND (GPL-2.0-only OR Vim) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-or-later AND GPL-3.0-or-later AND OPUBL-1.0
+vim-filesystem	2:9.1.083-9.el10_2.20	noarch	Vim AND LGPL-2.1-or-later AND MIT AND GPL-1.0-only AND (GPL-2.0-only OR Vim) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-or-later AND GPL-3.0-or-later AND OPUBL-1.0
+vim-minimal	2:9.1.083-9.el10_2.20	x86_64	Vim AND LGPL-2.1-or-later AND MIT AND GPL-1.0-only AND (GPL-2.0-only OR Vim) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-or-later AND GPL-3.0-or-later AND OPUBL-1.0
+wget	0:1.24.5-8.el10_2	x86_64	GPL-3.0-or-later AND LGPL-2.1-or-later AND GFDL-1.3-or-later
+which	0:2.21-44.el10_0	x86_64	GPL-3.0-only
+xml-common	0:0.6.3-65.el10	noarch	GPL+
+xorg-x11-proto-devel	0:2024.1-3.el10	noarch	BSD-2-Clause AND HPND AND HPND-sell-variant AND ICU AND MIT AND MIT-open-group AND SGI-B-2.0 AND SMLNJ AND X11 AND X11-distribute-modifications-variant
+xxd	2:9.1.083-9.el10_2.20	x86_64	Vim AND LGPL-2.1-or-later AND MIT AND GPL-1.0-only AND (GPL-2.0-only OR Vim) AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-or-later AND GPL-3.0-or-later AND OPUBL-1.0
+xz-devel	1:5.6.2-4.el10_2.1	x86_64	0BSD
+xz-libs	1:5.6.2-4.el10_2.1	x86_64	0BSD
+yum	0:4.20.0-18.el10.rocky.0.1	noarch	GPL-2.0-or-later AND GPL-1.0-only
+zip	0:3.0-45.el10	x86_64	Info-ZIP
+zlib-ng-compat	0:2.2.3-3.el10_1	x86_64	Zlib
+zlib-ng-compat-devel	0:2.2.3-3.el10_1	x86_64	Zlib

@@ -139,13 +139,12 @@ The first live verification passed on 2026-07-27; the exact source, build,
 image, node, completion, accounting, and cancellation record is in
 [the scheduler smoke evidence](evidence/slurm-docker-cluster-smoke-2026-07-27.md).
 
-The external OpenQSE QFw Slurm stack is cataloged as a planned,
-non-executable development-cluster reference. QHPC may use its design ideas
-and prepare its pinned source for review when defining future multi-node or
-synthetic-resource tests, but it is not an active provider, dependency,
-runtime, or deployment component. No EQO operation may build, start, or submit
-to it until the separate compatibility-image, supply-chain, and QFw adapter
-gates are met.
+The external OpenQSE QFw Slurm stack is a validated, non-executable
+development-cluster fixture. QHPC may prepare, build, and start its separately
+admitted office compatibility image to collect development evidence. It is not
+an ecosystem runtime, deployment component, or facility-HPC provider. No EQO
+workflow may submit to it until a separately reviewed QFw operation or target
+adapter defines its inputs, outputs, runtime identity, and secret handling.
 
 ## Site Activation
 

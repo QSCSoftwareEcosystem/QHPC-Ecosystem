@@ -1,0 +1,123 @@
+{
+  "schema": "qhpc-source-lock-1",
+  "platform": "linux/amd64",
+  "images": {
+    "rockylinux": "docker.io/rockylinux/rockylinux@sha256:b86cb4305db4c29abb1e3a1257fefccc184b5e4a94378e02844b340845ef9460",
+    "mariadb": "docker.io/library/mariadb@sha256:5ae7fc7b20f8e07c0ee169ff24617b39cb99b4bfc147555cea758baa69834d9e",
+    "buildkit": "docker.io/moby/buildkit@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8",
+    "sbom-generator": "docker.io/docker/buildkit-syft-scanner@sha256:ae4f3b554449e7e25548e7d8ccc029d17357348e30c6e3df01b92bc93654d6a9"
+  },
+  "repositories": {
+    "qfw-slurm-cluster": {
+      "url": "https://github.com/openQSE/QFw-SLURM-Cluster.git",
+      "revision": "eeb42e601383f3d33020f823d4a387ef30b9dd7d"
+    },
+    "qfw": {
+      "url": "https://github.com/openQSE/QFw.git",
+      "revision": "38f54cde6c629cc3ede38bbf7605d416d4e82608",
+      "release": "v0.1.0-rc.1",
+      "tag_object": "41c265db424afa9026bbf7f45ac2761a9bcead15",
+      "submodules": {
+        "DEFw": "f1033c2f79bd4abacff56b513894947acd90b1e4",
+        "qhw-admission": "ab80d45d003beace53d09a673feaeb8f9633cb38",
+        "qhw-data": "63a24c88739a35bdafab3ef2cea88908f0845fb3",
+        "qhw-datastructures": "c01bcb3b1d561a393a48fb0257bedadcad8c2c2f",
+        "qhw-iqm": "e3078979455188e1bda41ac25e280d92214a7d1c",
+        "qhw-scheduler": "51d6161ffaf197ad1a05a317bde6f228b1bfdcad"
+      }
+    },
+    "qfw-slurm": {
+      "url": "https://github.com/openQSE/qfw-slurm.git",
+      "revision": "0c3694bb82a3413a4aaee3b2944db1b4dd346beb",
+      "release": "v0.1.0-rc.1",
+      "tag_object": "8c38bb9e3e13b60a2a36a905ddfcd58fb5c5de92"
+    },
+    "http-parser": "2343fd6b5214b2ded2cdcf76de2bf60903bb90cd",
+    "slurm": {
+      "revision": "91f6d444e368c96e38c9dc0be0c637737bb501d5",
+      "release": "slurm-25-05-0-1",
+      "tag_object": "b523b3deb8021d02357a93499094e009af81e8c5"
+    },
+    "libfabric": {
+      "revision": "413a2d315ee8485488fb4fdcc0012e029f570b6b",
+      "release": "v2.3.1",
+      "tag_object": "62fc62dd528d9132f857afc394e9aaed4de4e57d"
+    },
+    "openmpi": {
+      "revision": "b79100b3fbbf45b3c6ed82a6b67b6346f8cfdc41",
+      "release": "v5.0.9",
+      "tag_object": "07e34a5f85f345274ee59ec609adc8e1179a0fdc",
+      "submodules": {
+        "openpmix": "a84ed686ae84fb6a4b251b29b75ecc38f4621ad9",
+        "openpmix/config/oac": "3064f7bd191b49a5a5554170ef7be4762246b5ee",
+        "prrte": "2e893392405afd914717a2c077accf1c1ec9ee55",
+        "prrte/config/oac": "3064f7bd191b49a5a5554170ef7be4762246b5ee",
+        "oac": "dfff67569fb72dbf8d73a1dcf74d091dad93f71b"
+      }
+    },
+    "qrmi": "cd3852c49a551cfe9c8e16c689ef99d082f00675",
+    "qrmi-spank": "5c9439608f3aef4e1cdf2eaef022aa45b9b88fc9",
+    "nwq-sim": {
+      "revision": "b35763d846e6512ed817d3f88ac8ce79a7e82a7e",
+      "submodules": {
+        "nlopt": "7a7587e5ef1cb15f412515d852d1fc261c863e96",
+        "pybind11": "e6984c805ec09c0e5f826e3081a32f322a6bfe63"
+      }
+    },
+    "xacc": {
+      "revision": "d1edaa7ae53edc7e335f46d33160f93d6020aaa3",
+      "submodules": {
+        "minorminer": "05cac6db180adf8223a613dff808248e3048b07d",
+        "legacy-sapi-clients": "1956de9a1d3e2e442597e48e8396a3564b05420c",
+        "boost-cmake": "29b401f802739f076d0683c3d59696187617b198",
+        "cppmicroservices": "3dfb92faa2bd8e281d2ca85acccdf7eb93b9a442",
+        "cpr": "f88fd7737de3e640c61703eb57a0fa0ce00c60cd",
+        "eigen": "e7248b26a1ed53fa030c5c459f7ea095dfd276ac",
+        "nlohmann": "8968adcd53951b652f9f480ad62e66dc2714b061",
+        "pybind11": "1f04cc7062e33481c62c78231e9561b318bca67b",
+        "qsim": "0afeb2bae0981cccd3a92b75f6375ed8f6a213e4",
+        "qsim/googletest": "41b5f149ab306e96b5b2faf523505d75acffd98a",
+        "spdlog": "8be5b41a2fe79f356c9cc20124fef6dbb050df4c",
+        "triq": "c8c15f28c242857eba654f5357237b5d72f73cfb",
+        "nlopt": "945d055b98be2db327f694b36ba507c41e1955fc"
+      }
+    },
+    "exatn": {
+      "revision": "c528f7ec7323ab5f4485b85efcefa016c32e1a2d",
+      "submodules": {
+        "ExaTensor": "e9efb956366e49f6225b562607ce7839bd544e97",
+        "boost-cmake": "5d37de4f13b9e77b4362d07347ed685bf15c8ede",
+        "cppmicroservices": "3dfb92faa2bd8e281d2ca85acccdf7eb93b9a442",
+        "googletest": "191f9336bc9212b5f5410ab663176f685cafed2a",
+        "metis": "24788f317ad0a9bb1c9a3701fac27eaeff0beebe",
+        "metis/GKlib": "bc43ec4ea6d365efea7cd01c0ff03d2db58bf83a",
+        "pybind11-original": "25abf7efba0b2990f5a6dfb0a31bc65c0f2f4d17",
+        "pybind11/tools/clang": "6a00cbc4a9b8e68b71caf7f774b3f9c753ae84d5"
+      }
+    },
+    "tnqvm": "a70eed190a4448dbe3dae94189d066ac694dc798",
+    "googletest": {
+      "revision": "58d77fa8070e8cec2dc1ed015d66b454c8d78850",
+      "release": "release-1.12.1"
+    },
+    "pybind11": {
+      "revision": "45fab4087eaaff234227a10cf7845e8b07f28a98",
+      "release": "v3.0.2",
+      "tag_object": "e6c503bb0b0c13f76ca0546eca7f8d986039517f"
+    }
+  },
+  "archives": {
+    "boost-1.64.0.tar.xz": "sha256:d964dfdab2f73d04a8f52303f1b141344447b78ab85dc79da78fa167fdd807f5",
+    "boost-1.75.0.tar.bz2": "sha256:953db31e016db7bb207f11432bef7df100516eeb746843fa0486a222e3fd49cb",
+    "gosu-amd64-1.17": "sha256:bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3",
+    "osu-micro-benchmarks-7.5.2.tar.gz": "sha256:618de3d0b1122f73a9229177d2da1e5cd62e431190580cb915f2605849cbbbdc",
+    "rustup-init-1.28.2-x86_64": "sha256:20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c"
+  },
+  "toolchains": {
+    "rust": "1.91.0"
+  },
+  "python_lock": "sha256:481424a8bcedb6a484f4f0d469df7b345d89a96e0e018a3996c1c4a071e7ad79",
+  "python_build_lock": "sha256:274b2eceb1e3e611afb2e5b6859bfd6fda6686026d1a0883bfb1a906929e3bc6",
+  "rpm_lock": "sha256:1f1671e859e7ee60451c486261f22b4b4231885bf025b361917be23f0b6855d3",
+  "qfw_dependency_patch": "sha256:40af0ec4af72df2e7f5721ce170dcb296e7b6b8377d58d93a15ecd08af929754"
+}

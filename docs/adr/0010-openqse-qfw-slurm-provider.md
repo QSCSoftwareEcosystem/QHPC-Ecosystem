@@ -32,8 +32,10 @@ QHPC-reviewed supply-chain evidence.
 
 ## Decision
 
-QHPC onboards the repository as a second, separately governed, planned
-development provider:
+QHPC onboards the repository as a second, separately governed development
+provider. The pinned Linux/AMD64 compatibility image was admitted on
+2026-09-15 with the evidence listed in
+`docs/evidence/qfw-slurm-office-validation-2026-09-15.md`:
 
 1. The exact repository commit is recorded in a `SlurmTestCluster` manifest.
 2. The provider is Tier 1C project-stack infrastructure and does not replace the
@@ -50,6 +52,10 @@ development provider:
 7. Hardware credentials must enter through approved secret references and must
    never be placed in command history, Compose files, images, logs, or committed
    environment files.
+
+The resulting fixture is `validated` for isolated office development
+simulation. It still has no Slurm-PMIx path for cross-node Open MPI/OSU latency
+and is not facility-HPC evidence. Requirement 6 remains an independent gate.
 
 ## Consequences
 

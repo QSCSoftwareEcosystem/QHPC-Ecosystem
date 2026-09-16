@@ -1229,11 +1229,11 @@ function renderOpenQSE() {
       </article>
 
       <article class="openqse-resource-card openqse-qfw-card">
-        <header><span>CATALOGED SOURCE INTAKE</span><h3>QFw–SLURM Cluster</h3></header>
+        <header><span>VALIDATED DEVELOPMENT FIXTURE</span><h3>QFw–SLURM Cluster</h3></header>
         <p>OpenQSE’s Docker Compose environment for QFw development, integration testing, and profiling. It is a distinct development-cluster reference, not the EQO scheduler-conformance cluster.</p>
         <dl>
           <div><dt>PINNED SOURCE</dt><dd><code>${qfwRevision.slice(0, 12)}</code></dd></div>
-          <div><dt>STATUS</dt><dd>Planned; activation blocked</dd></div>
+          <div><dt>STATUS</dt><dd>Validated office development simulation</dd></div>
         </dl>
         <footer>
           ${externalResourceLink(`https://github.com/openQSE/QFw-SLURM-Cluster/tree/${qfwRevision}`, "Source and README")}
@@ -1245,9 +1245,9 @@ function renderOpenQSE() {
     <section class="openqse-admission-note" aria-labelledby="openqse-admission-title">
       <div>
         <span class="panel-label">QFW–SLURM ADMISSION</span>
-        <h2 id="openqse-admission-title">Cataloged without being operational</h2>
+        <h2 id="openqse-admission-title">Validated without becoming a workflow target</h2>
       </div>
-      <p>The source is pinned for review, but EQO will not build or start it until a compatibility image restores secure transport, pins material inputs, and supplies an SBOM, signature, attestation, and source-to-image provenance. A separately reviewed QFw operation or target adapter is also required before workflow use.</p>
+      <p>The public immutable Linux/AMD64 compatibility image is admitted with pinned material inputs, secure transport, SBOM, signature, provenance, and office scheduler evidence. EQO may start this development fixture, but it is not a workflow, CLI, or Workbench execution target: a separately reviewed QFw operation or target-adapter contract is still required.</p>
     </section>`;
 }
 

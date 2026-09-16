@@ -1,0 +1,45 @@
+diff --git a/tools/dependencies/tnqvm/build.sh b/tools/dependencies/tnqvm/build.sh
+index d992ffd..65c3bd3 100755
+--- a/tools/dependencies/tnqvm/build.sh
++++ b/tools/dependencies/tnqvm/build.sh
+@@ -9,9 +9,9 @@ TNQVM_REPOSITORY="https://github.com/ornl-qci/tnqvm.git"
+ XACC_REF="d1edaa7ae53edc7e335f46d33160f93d6020aaa3"
+ EXATN_REF="c528f7ec7323ab5f4485b85efcefa016c32e1a2d"
+ TNQVM_REF="a70eed190a4448dbe3dae94189d066ac694dc798"
+-PYBIND_REF="v3.0.2"
+-BOOST_URL="https://archives.boost.io/release/1.75.0/source/"\
+-"boost_1_75_0.tar.bz2"
++PYBIND_REF="45fab4087eaaff234227a10cf7845e8b07f28a98"
++GTEST_REF="58d77fa8070e8cec2dc1ed015d66b454c8d78850"
++BOOST_URL="file:///tmp/boost_1_75_0.tar.bz2"
+ WORK_DIR=""
+ INSTALL_PREFIX=""
+ MPI_PREFIX=""
+@@ -130,6 +130,10 @@ mkdir -p "${SOURCE_ROOT}" "${BUILD_ROOT}" "${INSTALL_PREFIX}/bin"
+ git clone --recursive "${XACC_REPOSITORY}" "${XACC_SOURCE}"
+ git -C "${XACC_SOURCE}" checkout --detach "${XACC_REF}"
+ git -C "${XACC_SOURCE}" submodule update --init --recursive
++sed -i "s/GIT_TAG[[:space:]]*release-1.12.1/GIT_TAG        ${GTEST_REF}/" \
++	"${XACC_SOURCE}/tpls/CMakeLists.txt"
++grep -F "GIT_TAG        ${GTEST_REF}" \
++	"${XACC_SOURCE}/tpls/CMakeLists.txt"
+ git clone --recursive "${EXATN_REPOSITORY}" "${EXATN_SOURCE}"
+ git -C "${EXATN_SOURCE}" checkout --detach "${EXATN_REF}"
+ git -C "${EXATN_SOURCE}" submodule update --init --recursive
+@@ -139,8 +143,14 @@ git -C "${TNQVM_SOURCE}" checkout --detach "${TNQVM_REF}"
+ # The pinned ExaTN pybind11 revision predates Python 3.11. Replace only that
+ # vendored dependency with the validated release used by the prior builder.
+ rm -rf "${EXATN_SOURCE}/tpls/pybind11"
+-git clone --depth 1 --branch "${PYBIND_REF}" \
+-	https://github.com/pybind/pybind11.git "${EXATN_SOURCE}/tpls/pybind11"
++git init "${EXATN_SOURCE}/tpls/pybind11"
++git -C "${EXATN_SOURCE}/tpls/pybind11" remote add origin \
++	https://github.com/pybind/pybind11.git
++git -C "${EXATN_SOURCE}/tpls/pybind11" fetch --depth 1 origin \
++	"${PYBIND_REF}"
++git -C "${EXATN_SOURCE}/tpls/pybind11" checkout --detach FETCH_HEAD
++test "$(git -C "${EXATN_SOURCE}/tpls/pybind11" rev-parse HEAD)" = \
++	"${PYBIND_REF}"
+ 
+ apply_patch_file() {
+ 	local target="$1"

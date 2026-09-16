@@ -176,5 +176,15 @@ def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> Non
         "chatqec-qec-tools",
         "chatqec-lightstim",
         "chatqec-tsim",
+        "qfw-slurm-development",
     ]
     assert all(image.source.startswith("ghcr.io/qscsoftwareecosystem/") for image in images)
+    qfw = next(image for image in images if image.id == "qfw-slurm-development")
+    assert qfw.source == (
+        "ghcr.io/qscsoftwareecosystem/eqo-qfw-slurm@sha256:"
+        "5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105"
+    )
+    assert qfw.local_reference == "qhpc/openqse-qfw-slurm:0.1.0-office"
+    assert qfw.local_id == (
+        "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b"
+    )

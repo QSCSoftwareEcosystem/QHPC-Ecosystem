@@ -1,0 +1,39 @@
+# Direct Python inputs for the QHPC OpenQSE QFw compatibility image.
+# The generated requirements.qhpc.lock pins the complete transitive graph and
+# includes hashes for every admitted distribution.
+Cython==3.3.0
+PyYAML
+iqm-client==34.0.1
+iqm-data-definitions==2.24
+iqm-exa-common==27.5.1
+iqm-pulse==13.0.1
+iqm-station-control-client==12.1.1
+iqm-qdmi==1.4.0
+ipopo==3.2.2
+jsonschema>=4
+matplotlib
+mpi4py
+mqt-core==3.9.2
+netifaces
+networkx
+numpy
+openfermion>=1.5.2
+opentelemetry-api>=1.44.0
+opentelemetry-exporter-otlp-proto-common>=1.44.0
+opentelemetry-sdk>=1.44.0
+paramiko
+pennylane
+pennylane-qiskit
+psutil
+pyscf
+pytest==9.1.1
+qiskit==2.2.3
+qiskit-aer==0.17.2
+qiskit-algorithms
+qiskit-ibm-runtime
+qiskit-nature
+qiskit-optimization
+qrmi==0.24.4
+rich
+scipy
+supermarq

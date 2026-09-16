@@ -48,5 +48,7 @@ or rely on mutable tags. Package visibility must be changed to public only
 after the image contents have been cleared for external distribution.
 
 The published set for this release comprises QASMTrans, STABSim, NWQEC,
-FTPrimitiveBench, LightStim, FTQC, and the ChatQEC QEC-tools, LightStim, and
-Tsim images.
+FTPrimitiveBench, LightStim, FTQC, the ChatQEC QEC-tools, LightStim, and Tsim
+images, plus the separately admitted QFw-SLURM development fixture. The QFw
+image is downloaded only as a pinned local fixture image; it is not an EQO
+workflow runtime, hardware target, or facility-HPC claim.

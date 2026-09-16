@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_updated: '2026-09-14'
+catalog_updated: '2026-09-15'
 source_manifest: catalog/repositories.tsv
 environments:
   python-lib:
@@ -40,9 +40,9 @@ repositories:
   display_name: QFw-SLURM Cluster
   source_url: https://github.com/openQSE/QFw-SLURM-Cluster
   notes: OpenQSE Docker Compose Slurm environment for QFw development, integration
-    testing, and profiling. Cataloged as a non-executable development-cluster reference
-    at eeb42e601383f3d33020f823d4a387ef30b9dd7d; QHPC runtime admission is blocked
-    pending a reviewed compatibility image and release evidence.
+    testing, and profiling. Validated as an isolated QHPC office development fixture
+    at eeb42e601383f3d33020f823d4a387ef30b9dd7d with a public immutable GHCR
+    compatibility image; it is not an EQO workflow or execution target.
   qsc_project: cross-project
   package_role: framework
   capabilities:
@@ -58,7 +58,7 @@ repositories:
   - cli
   - metadata-bundle
   environment: hpc-build
-  container_status: blocked
+  container_status: ready
   visibility: public
   canonical_status: canonical
 - slug: OpenQEvo
