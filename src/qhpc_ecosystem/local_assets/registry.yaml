@@ -78,7 +78,7 @@ spec:
         documentation:
           qappswiki: packages/chatqec.md
           url: https://github.com/QSCSoftwareEcosystem/ChatQEC/blob/a1ddc2e4916b1f4152fba4c94c9c7512eea0d977/README.md
-  - descriptor_digest: sha256:c4dc18f559538b3eacd3bcef163925f05ab14fda7490c7359f213edb46cd48c6
+  - descriptor_digest: sha256:bfc0dc8b8bf1b064a785c755d5b6c15afb023b423593ea1c94ad7b13464d0dd3
     catalog_repository: chatqec-mcp-tools
     validation:
       contract: valid
@@ -167,8 +167,8 @@ spec:
               maximum: 15
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-qec-tools
@@ -198,8 +198,8 @@ spec:
               maximum: 1000000
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-qec-tools
@@ -223,8 +223,8 @@ spec:
           parameters: {}
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-qec-tools
@@ -255,8 +255,8 @@ spec:
               maximum: 1000000
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-qec-tools
@@ -309,8 +309,8 @@ spec:
               maximum: 1000000
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-qec-tools
@@ -361,8 +361,8 @@ spec:
               - memory
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-lightstim@sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
-            digest: sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+            reference: docker://qhpc/chatqec-lightstim@sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
+            digest: sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-lightstim-build
@@ -396,8 +396,8 @@ spec:
               default: false
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-tsim@sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
-            digest: sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+            reference: docker://qhpc/chatqec-tsim@sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
+            digest: sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-tsim
@@ -420,8 +420,8 @@ spec:
           parameters: {}
           runtime:
             type: oci
-            reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-            digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+            reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+            digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-chatqec-qec-tools
@@ -570,7 +570,7 @@ spec:
         documentation:
           qappswiki: packages/exachem-qflow.md
           url: https://github.com/ExaChem/exachem/blob/0991cb52ce687ccf35ba29f3746a6fb13a13c464/README.md
-  - descriptor_digest: sha256:73a3d68d1d85aa96513965cf0f766f0ca5176be21d01197364f09c34be4b543f
+  - descriptor_digest: sha256:1a815f4b711eb2b29d96c298e1524814c87b1a25592e3939be36b3fd8e7a5556
     catalog_repository: FTPrimitiveBench
     validation:
       contract: valid
@@ -669,8 +669,8 @@ spec:
               maximum: 0.5
           runtime:
             type: oci
-            reference: docker://qhpc/ftprimitivebench@sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
-            digest: sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9
+            reference: docker://qhpc/ftprimitivebench@sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3
+            digest: sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-ftprimitivebench-memory
@@ -692,7 +692,7 @@ spec:
         documentation:
           qappswiki: packages/ftprimitivebench.md
           url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md
-  - descriptor_digest: sha256:27d0a65a6248bd85351ea2d614200ee7448c94af8cd9f2e898475de9a2b7a739
+  - descriptor_digest: sha256:638f420aeb32023b85a9109988c9031e605e3a7866660a901111c000b172cd55
     catalog_repository: ftqc
     validation:
       contract: valid
@@ -842,8 +842,8 @@ spec:
               default: circuit
           runtime:
             type: oci
-            reference: docker://qhpc/ftqc@sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
-            digest: sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96
+            reference: docker://qhpc/ftqc@sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac
+            digest: sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac
           invocation:
             entrypoint:
             - qhpc-ftqc-prepare-iqm
@@ -1007,7 +1007,7 @@ spec:
         documentation:
           qappswiki: packages/iris-qiris.md
           url: https://github.com/ORNL/iris/blob/ff57e620a92fcf62eff3568d9c6eeaaf078f0340/README.md
-  - descriptor_digest: sha256:e9dd6fdb792b90fdc672ddf88ca8814b7ea3c105bf894daeddcd2bd4fd9559e6
+  - descriptor_digest: sha256:7de05c0ff815cc28fe3b9db354710cd22648faf0eb7166e5392d26288d20a491
     catalog_repository: LightStim
     validation:
       contract: valid
@@ -1109,8 +1109,8 @@ spec:
               maximum: 256
           runtime:
             type: oci
-            reference: docker://qhpc/lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
-            digest: sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
+            reference: docker://qhpc/lightstim@sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2
+            digest: sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-lightstim-estimate
@@ -1132,7 +1132,7 @@ spec:
         documentation:
           qappswiki: packages/lightstim.md
           url: https://github.com/QSCSoftwareThrust/LightStim/blob/23924ee997a27af7a0aa17623357bf8bc7170625/README.md
-  - descriptor_digest: sha256:6970dae83ac494bfd553c39b14f0b589c60711355f9907998c97e1d071d51e25
+  - descriptor_digest: sha256:026408833ff237d6eb248b8841a1c8424dc8aa279c965edd07edfd4c4b1ab694
     catalog_repository: nwqec
     validation:
       contract: valid
@@ -1217,8 +1217,8 @@ spec:
               maximum: 0.5
           runtime:
             type: oci
-            reference: docker://qhpc/nwqec@sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
-            digest: sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+            reference: docker://qhpc/nwqec@sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43
+            digest: sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-nwqec-counts
@@ -1792,7 +1792,7 @@ spec:
         documentation:
           qappswiki: docs/qsc-integration.md
           url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md
-  - descriptor_digest: sha256:e193a05f775c7100343b4ce790625043cabedd15522d9c5711f29110f5ac5635
+  - descriptor_digest: sha256:2d78009f67b26cf005efa943309beab5d701cf7c8f1c348d102a37beb8150d13
     catalog_repository: qasmtrans
     validation:
       contract: valid
@@ -1872,8 +1872,8 @@ spec:
               - ibmq_toronto
           runtime:
             type: oci
-            reference: docker://qhpc/qasmtrans@sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
-            digest: sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
+            reference: docker://qhpc/qasmtrans@sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf
+            digest: sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-qasmtrans
@@ -2185,7 +2185,7 @@ spec:
         documentation:
           qappswiki: packages/quantum-sdk-ranking.md
           url: https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard/blob/e7568760747752e29397f4fcc800bd475c6011a1/README.md
-  - descriptor_digest: sha256:63fdf79b3f7ddd84eb591b47a77728d0c01c1373468559c97d656bda15120329
+  - descriptor_digest: sha256:94d53c789e9003537a8fd17ce4e6460bd25b27a99fcd91318d0d257e4bcde615
     catalog_repository: STABSim
     validation:
       contract: valid
@@ -2256,8 +2256,8 @@ spec:
               minimum: 0
           runtime:
             type: oci
-            reference: docker://qhpc/stabsim@sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
-            digest: sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b
+            reference: docker://qhpc/stabsim@sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e
+            digest: sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e
           invocation:
             entrypoint:
             - /opt/qhpc/bin/qhpc-stabsim-metrics

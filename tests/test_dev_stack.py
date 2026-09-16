@@ -74,6 +74,48 @@ def test_dev_stack_builds_separate_api_and_worker_processes() -> None:
     )
 
 
+def test_dev_stack_allows_explicit_reverse_proxy_host_for_workbench_only() -> None:
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "workbench_allowed_hosts": ("128.219.7.192",),
+        }
+    )
+
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+    workbench = next(service for service in services if service.name == "workbench")
+
+    assert workbench.environment == (
+        ("QHPC_WORKBENCH_ALLOWED_HOSTS", "128.219.7.192"),
+    )
+    assert all(
+        "QHPC_WORKBENCH_ALLOWED_HOSTS" not in dict(service.environment)
+        for service in services
+        if service is not workbench
+    )
+
+
+def test_dev_stack_passes_explicit_qappswiki_graph_to_api_only() -> None:
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "qappswiki_graph": "/opt/eqo/qappswiki-graph-v1.json",
+        }
+    )
+
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+    api = next(service for service in services if service.name == "api")
+
+    assert api.command[api.command.index("--qappswiki-graph") + 1] == (
+        "/opt/eqo/qappswiki-graph-v1.json"
+    )
+    assert all(
+        "--qappswiki-graph" not in service.command
+        for service in services
+        if service is not api
+    )
+
+
 def test_dev_stack_injects_databucket_credentials_into_api_only() -> None:
     databucket_config = DevStackConfig(
         **{

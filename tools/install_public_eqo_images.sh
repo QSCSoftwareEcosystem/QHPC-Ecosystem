@@ -10,9 +10,10 @@ readonly platform="linux/amd64"
 
 install_image() {
   local package_name="$1"
-  local expected_id="$2"
-  local local_reference="$3"
-  local remote_reference="ghcr.io/qscsoftwareecosystem/${package_name}@${expected_id}"
+  local source_digest="$2"
+  local expected_id="$3"
+  local local_reference="$4"
+  local remote_reference="ghcr.io/qscsoftwareecosystem/${package_name}@${source_digest}"
 
   printf 'Installing %s\n' "${local_reference}"
   docker pull --platform "${platform}" "${remote_reference}"
@@ -29,30 +30,39 @@ install_image() {
 
 install_image "eqo-qasmtrans" \
   "sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df" \
+  "sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf" \
   "qhpc/qasmtrans:1843c98-linux-amd64"
 install_image "eqo-stabsim" \
   "sha256:4ee1a6deae715be6c22d44447b6f6a655a81c0ee1be63c67ab601431c44a904b" \
+  "sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e" \
   "qhpc/stabsim:a0d8d2e-linux-amd64"
 install_image "eqo-nwqec" \
   "sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b" \
+  "sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43" \
   "qhpc/nwqec:d93299c-linux-amd64"
 install_image "eqo-ftprimitivebench" \
   "sha256:329c0f99e7fb2373323a5d3fae5f1f4266d290914ec6f6a8bdd60ef2326259c9" \
+  "sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3" \
   "qhpc/ftprimitivebench:ba15eba-linux-amd64"
 install_image "eqo-lightstim" \
   "sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074" \
+  "sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2" \
   "qhpc/lightstim:23924ee-linux-amd64"
 install_image "eqo-ftqc" \
   "sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96" \
+  "sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac" \
   "qhpc/ftqc:779216de-linux-amd64"
 install_image "eqo-chatqec-qec-tools" \
   "sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2" \
+  "sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a" \
   "qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2"
 install_image "eqo-chatqec-lightstim" \
   "sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21" \
+  "sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399" \
   "qhpc/chatqec-lightstim:dd19a85-linux-amd64-v3"
 install_image "eqo-chatqec-tsim" \
   "sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0" \
+  "sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2" \
   "qhpc/chatqec-tsim:dd19a85-linux-amd64"
 
 printf 'EQO public OCI images installed for %s (%s).\n' "${release_tag}" "${platform}"

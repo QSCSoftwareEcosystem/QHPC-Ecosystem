@@ -12,6 +12,7 @@ ASSETS = {
     "deployment-profile": "deployment.yaml",
     "assistant-interface": "assistant-service.yaml",
     "public-image-manifest": "images/public-ghcr-v1.json",
+    "qappswiki-graph": "knowledge/qappswiki-graph-v1.json",
     "workflow-chatqec-code-parameters": "workflows/chatqec-code-parameters.yaml",
     "workflow-chatqec-qec-toolchain": "workflows/chatqec-qec-toolchain.yaml",
     "workflow-chatqec-threshold-sweep": "workflows/chatqec-threshold-sweep.yaml",

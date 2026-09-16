@@ -44,6 +44,14 @@ def config(**overrides) -> LocalStackConfig:
         "workflows": (),
         "assistant_interface": str(ROOT / "integrations" / "chatqec" / "service.yaml"),
         "assistant_source_checkout": None,
+        "qappswiki_graph": str(
+            ROOT
+            / "src"
+            / "qhpc_ecosystem"
+            / "local_assets"
+            / "knowledge"
+            / "qappswiki-graph-v1.json"
+        ),
         "host": "127.0.0.1",
         "workbench_port": 18080,
         "api_port": 18081,
@@ -84,11 +92,17 @@ def test_linux_paths_follow_xdg_locations(tmp_path: Path) -> None:
     assert paths.log_root == tmp_path / "state" / "eqo" / "logs"
 
 
-def test_local_config_rejects_non_loopback_and_port_collisions() -> None:
+def test_local_config_rejects_non_loopback_and_port_collisions(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(LocalReleaseError, match="loopback"):
         config(host="0.0.0.0").validate()
     with pytest.raises(LocalReleaseError, match="must be different"):
         config(api_port=18080).validate()
+    with pytest.raises(LocalReleaseError, match="allowed hosts"):
+        config(workbench_allowed_hosts=("*",)).validate()
+    with pytest.raises(LocalReleaseError, match="QAppsWiki graph"):
+        config(qappswiki_graph=str(tmp_path / "missing-graph.json")).validate()
 
 
 def test_dependency_preflight_explains_how_to_install_workbench(monkeypatch) -> None:
@@ -360,6 +374,7 @@ def test_supervisor_command_preserves_distinct_os_paths(tmp_path: Path) -> None:
     ):
         assert command[command.index(option) + 1] == str(value)
     assert "--no-assistant" in command
+    assert "--no-ecosystem-execution" in command
     assert "slurm" not in " ".join(command).lower()
     assert command[command.index("--startup-timeout") + 1] == "60.0"
 
@@ -374,6 +389,24 @@ def test_supervisor_command_uses_the_requested_startup_timeout(tmp_path: Path) -
     )
 
     assert command[command.index("--startup-timeout") + 1] == "75.5"
+
+
+def test_supervisor_command_preserves_explicit_workbench_allowed_hosts(
+    tmp_path: Path,
+) -> None:
+    command = supervisor_command(
+        config(
+            assistant_enabled=False,
+            workbench_allowed_hosts=("128.219.7.192", "eqo.example.test"),
+        ),
+        LocalPaths.discover(tmp_path),
+    )
+
+    assert command.count("--workbench-allowed-host") == 2
+    first = command.index("--workbench-allowed-host")
+    second = command.index("--workbench-allowed-host", first + 1)
+    assert command[first + 1] == "128.219.7.192"
+    assert command[second + 1] == "eqo.example.test"
 
 
 def test_supervisor_command_can_enable_the_safe_iqm_simulation(tmp_path: Path) -> None:

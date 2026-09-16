@@ -30,6 +30,12 @@ source eqo-local/bin/activate
 python -m pip install './qhpc_ecosystem-0.1.0-py3-none-any.whl[local]'
 ```
 
+The wheel includes the revision-pinned, read-only QAppsWiki graph used by the
+Knowledge workspace. No sibling QAppsWiki checkout or first-run compilation is
+required. Release maintainers may test a different immutable graph with
+`eqo local up --qappswiki-graph /path/to/graph.json`; ordinary installations
+should use the bundled default.
+
 On Windows, activate with `eqo-local\Scripts\activate` instead. Native launchers
 and installers are deliberately deferred until this shared portable core has
 passed its release gates.

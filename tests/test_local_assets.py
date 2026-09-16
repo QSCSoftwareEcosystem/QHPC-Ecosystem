@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from qhpc_ecosystem.chatqec_service import CanonicalChatQEC, ChatQECSource
 from qhpc_ecosystem.contract import validate_contract
 from qhpc_ecosystem.local_assets import ASSETS, assistant_source_path, asset_path
 from qhpc_ecosystem.local_images import load_public_images
+from qhpc_ecosystem.knowledge import QAppsWikiKnowledge
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,6 +141,26 @@ def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> No
     assert responder.corpus_revision == (
         "sha256:95e43b52660f4789457ef54b0b5c3ffc557b0610e24fc4780ed709c800928330"
     )
+
+
+def test_packaged_qappswiki_graph_is_immutable_and_requires_no_checkout() -> None:
+    graph = asset_path("qappswiki-graph")
+    knowledge = QAppsWikiKnowledge(
+        graph,
+        source_revision="d5f0248945516a4198f92edd9764a2fe5b676549",
+    )
+    summary = knowledge.summary()
+
+    assert summary["available"] is True
+    assert summary["schema_version"] == "qappswiki-graph-0"
+    assert summary["stats"]["content_nodes"] == 711
+    assert summary["stats"]["all_nodes"] == 1413
+    assert summary["stats"]["edges"] == 4660
+    assert summary["stats"]["communities"] == 9
+    assert hashlib.sha256(graph.read_bytes()).hexdigest() == (
+        "ba8abcdf70dfecd1c041f39f5a4d84aaa5691189956e5ab959835c054809d05e"
+    )
+    assert graph.stat().st_size < 2 * 1024 * 1024
 
 
 def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> None:

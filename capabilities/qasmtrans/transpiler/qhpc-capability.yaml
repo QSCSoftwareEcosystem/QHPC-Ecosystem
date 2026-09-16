@@ -59,8 +59,8 @@ spec:
           enum: [ibmq_toronto]
       runtime:
         type: oci
-        reference: docker://qhpc/qasmtrans@sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
-        digest: sha256:28e761efbd030c01e51edb96c7da6bafed7f18155c5b3973aa54aa030dbac9df
+        reference: docker://qhpc/qasmtrans@sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf
+        digest: sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-qasmtrans]
       resources:

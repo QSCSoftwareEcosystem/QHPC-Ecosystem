@@ -63,8 +63,8 @@ spec:
           maximum: 0.5
       runtime:
         type: oci
-        reference: docker://qhpc/nwqec@sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
-        digest: sha256:ec487f7735925388fb960ea3a0c97aca2298f51c05beb1b96f3d90a81f7b9e7b
+        reference: docker://qhpc/nwqec@sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43
+        digest: sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-nwqec-counts]
       resources:

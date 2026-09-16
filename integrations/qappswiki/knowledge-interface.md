@@ -16,9 +16,13 @@ The API publishes these read-only routes:
 | `GET /api/v1/knowledge/neighborhood/{id}` | One- or two-hop focused graph around a node |
 | `GET /api/v1/knowledge/path` | Shortest undirected connection between two nodes |
 
-The default artifact location is
-`<QAppsWiki catalog local_path>/wiki-out/graph.json`. Deployments may supply a
-different immutable artifact with `eqo serve --qappswiki-graph`.
+EQO Local packages the graph compiled from its pinned QAppsWiki revision and
+passes that immutable asset to the API explicitly, so a first-time installation
+does not need a sibling checkout or graph compiler. Deployments may supply a
+different immutable artifact with `eqo local up --qappswiki-graph` or
+`eqo serve --qappswiki-graph`. The lower-level `eqo serve` command otherwise
+discovers `<QAppsWiki catalog local_path>/wiki-out/graph.json` for source-workspace
+development.
 
 The Workbench deliberately starts at the community level and requests focused
 subgraphs on demand. Synthetic missing and external nodes remain available in

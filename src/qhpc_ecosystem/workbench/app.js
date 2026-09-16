@@ -356,7 +356,7 @@ async function api(path, options = {}) {
   if (csrfToken && !["GET", "HEAD", "OPTIONS", "TRACE"].includes(options.method || "GET")) {
     headers["X-CSRFToken"] = decodeURIComponent(csrfToken);
   }
-  const response = await fetch(`/api/v1${path}`, { ...options, headers });
+  const response = await fetch(`api/v1${path}`, { ...options, headers });
   const body = await response.json();
   if (!response.ok) throw new Error(body.error || `Request failed: ${response.status}`);
   return body;
@@ -996,7 +996,7 @@ function dataDetail(item) {
         ? `<p class="tool-record-empty">databucket/Garage is not configured for this Workbench — start it with <code>eqo dev up</code> (without <code>--no-databucket</code>).</p>`
         : objectsState.objects.length
           ? `<table class="data-table"><thead><tr><th>KEY</th><th>SIZE</th><th>LAST MODIFIED</th><th>ACTIONS</th></tr></thead><tbody>${objectsState.objects.map(object => {
-              const contentPath = `/api/v1/data/objects/content?key=${encodeURIComponent(object.key)}`;
+              const contentPath = `api/v1/data/objects/content?key=${encodeURIComponent(object.key)}`;
               return `<tr><td><code>${escapeHtml(object.key)}</code></td><td>${escapeHtml(object.size)} B</td><td>${escapeHtml(object.last_modified)}</td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}&download=1">Download</a></span></td></tr>`;
             }).join("")}</tbody></table>`
           : `<p class="tool-record-empty">Bucket '${escapeHtml(objectsState.bucket || "")}' has no objects under this prefix yet.</p>`;
@@ -1724,7 +1724,7 @@ function assignAssistantResponse(message, response) {
 }
 
 async function streamAssistantAnswer(payload, signal, onEvent) {
-  const response = await fetch("/api/v1/assistant/chatqec/answers/stream", {
+  const response = await fetch("api/v1/assistant/chatqec/answers/stream", {
     method: "POST",
     headers: assistantRequestHeaders(),
     body: JSON.stringify(payload),
@@ -2125,7 +2125,7 @@ function renderArtifacts() {
     return;
   }
   const rows = artifacts.map(item => {
-    const contentPath = `/api/v1/artifacts/${encodeURIComponent(item.id)}/content`;
+    const contentPath = `api/v1/artifacts/${encodeURIComponent(item.id)}/content`;
     return `<tr><td><span class="cell-title"><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.artifact_type)}</small></span></td><td>${escapeHtml(item.provenance)}</td><td>${escapeHtml(item.size_bytes)} B</td><td><span class="cell-title"><strong>${escapeHtml(item.checksum.slice(0, 24))}…</strong><small>${escapeHtml(item.uri)}</small></span></td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></td></tr>`;
   }).join("");
   workspace.innerHTML = sectionHeader("Artifact index", `${artifacts.length} checksummed artifacts`) + `<table class="data-table"><thead><tr><th>ARTIFACT</th><th>PROVENANCE</th><th>SIZE</th><th>CHECKSUM / URI</th><th>ACTIONS</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -2617,7 +2617,7 @@ function openRun(id) {
     ? `<section class="run-execution-status"><span class="panel-label">IQM EXECUTION LIFECYCLE</span><strong>${escapeHtml(lifecycle.status)}</strong><p>${escapeHtml(lifecycle.detail)}</p></section>`
     : "";
   const outputs = Object.entries(run.outputs || {}).map(([name, artifactId]) => {
-    const contentPath = `/api/v1/artifacts/${encodeURIComponent(artifactId)}/content`;
+    const contentPath = `api/v1/artifacts/${encodeURIComponent(artifactId)}/content`;
     return `<div class="run-output"><span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(artifactId)}</small></span><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></div>`;
   }).join("");
   openInspector(`<h2>${escapeHtml(run.workflow_id)}</h2>

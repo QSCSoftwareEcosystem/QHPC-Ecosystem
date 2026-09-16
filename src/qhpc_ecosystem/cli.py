@@ -440,6 +440,11 @@ def build_parser() -> argparse.ArgumentParser:
             "--assistant-interface",
             default=str(local_asset_path("assistant-interface")),
         )
+        command.add_argument(
+            "--qappswiki-graph",
+            default=str(local_asset_path("qappswiki-graph")),
+            help="immutable QAppsWiki graph; defaults to the graph bundled with EQO Local",
+        )
         command.add_argument("--assistant-source-checkout")
         command.add_argument(
             "--ftqc-source-checkout",
@@ -479,6 +484,15 @@ def build_parser() -> argparse.ArgumentParser:
             help="workflow published at startup; repeat to replace release defaults",
         )
         command.add_argument("--host", default="127.0.0.1")
+        command.add_argument(
+            "--workbench-allowed-host",
+            action="append",
+            default=[],
+            help=(
+                "additional hostname or IP accepted by the loopback Workbench; "
+                "repeat for reverse-proxy access"
+            ),
+        )
         command.add_argument("--port", type=int, default=8080)
         command.add_argument("--api-port", type=int, default=8081)
         command.add_argument("--assistant-port", type=int, default=8082)
@@ -1702,7 +1716,9 @@ def dispatch(args: argparse.Namespace) -> int:
                 Path(args.assistant_interface).expanduser().resolve()
             ),
             assistant_source_checkout=assistant_checkout,
+            qappswiki_graph=str(Path(args.qappswiki_graph).expanduser().resolve()),
             host=args.host,
+            workbench_allowed_hosts=tuple(args.workbench_allowed_host),
             workbench_port=args.port,
             api_port=args.api_port,
             assistant_port=args.assistant_port,

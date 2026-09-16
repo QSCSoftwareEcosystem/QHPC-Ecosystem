@@ -62,8 +62,8 @@ spec:
           maximum: 15
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+        digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, code-params]
       resources:
@@ -89,8 +89,8 @@ spec:
           maximum: 1000000
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+        digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, stim-simulate]
       resources:
@@ -110,8 +110,8 @@ spec:
       parameters: {}
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+        digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, stim-diagram]
       resources:
@@ -137,8 +137,8 @@ spec:
           maximum: 1000000
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+        digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, pymatching-decode]
       resources:
@@ -183,8 +183,8 @@ spec:
           maximum: 1000000
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+        digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, threshold-sweep]
       resources:
@@ -226,8 +226,8 @@ spec:
           enum: [memory]
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-lightstim@sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
-        digest: sha256:476e66c70130e8f413827a3264659581d92a80fbc4e5ec9113e67f596d760d21
+        reference: docker://qhpc/chatqec-lightstim@sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
+        digest: sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-lightstim-build]
       resources:
@@ -257,8 +257,8 @@ spec:
           default: false
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-tsim@sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
-        digest: sha256:05524a6a1cb04618fc0797c46f071ac5447cd2f89aa7fe36598c2fa550538db0
+        reference: docker://qhpc/chatqec-tsim@sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
+        digest: sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-tsim]
       resources:
@@ -278,8 +278,8 @@ spec:
       parameters: {}
       runtime:
         type: oci
-        reference: docker://qhpc/chatqec-qec-tools@sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
-        digest: sha256:b3b7a84fd409ef979df26e37dad4ef45f946782238ec6c085a345a154ef125e2
+        reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+        digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-chatqec-qec-tools, glcb-visualize-url]
       resources:

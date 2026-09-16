@@ -29,7 +29,7 @@ def test_initial_hpc_acceptance_profile_covers_only_initial_components() -> None
     validate_contract("hpc-acceptance", PROFILE)
     report = inspect_hpc_acceptance(PROFILE)
 
-    assert len(report.cases) == 15
+    assert len(report.cases) == 16
     assert [case.component_id for case in report.cases] == [
         "stabsim",
         "tn-sim",
@@ -43,6 +43,7 @@ def test_initial_hpc_acceptance_profile_covers_only_initial_components() -> None
         "qappswiki",
         "qsc-materials-db",
         "chatqec",
+        "chatqec-mcp-tools",
         "exachem-qflow",
         "iris-qiris",
         "nwqsim-qflow",
@@ -74,6 +75,7 @@ def test_initial_hpc_acceptance_profile_covers_only_initial_components() -> None
         "qappswiki",
         "qsc-materials-db",
         "chatqec",
+        "chatqec-mcp-tools",
         "exachem-qflow",
         "iris-qiris",
         "nwqsim-qflow",
@@ -117,7 +119,7 @@ def test_hpc_acceptance_cli_reports_status_and_enforces_gate(
 ) -> None:
     assert cli.main(["hpc-acceptance", "status", str(PROFILE)]) == 0
     output = capsys.readouterr().out
-    assert "HPC acceptance: initial@0.4.0 (planned)" in output
+    assert "HPC acceptance: initial@0.5.0 (planned)" in output
     assert "Batch operations: 7 (oci-verified=6, runtime-pending=1)" in output
     assert "Ready: false" in output
 

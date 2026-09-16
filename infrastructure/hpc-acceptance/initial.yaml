@@ -3,7 +3,7 @@ kind: HpcAcceptanceProfile
 metadata:
   id: initial
   name: Initial ecosystem HPC acceptance
-  version: 0.4.0
+  version: 0.5.0
   owners:
     - qhpc-ecosystem
   status: planned
@@ -84,6 +84,11 @@ spec:
       acceptance: not-applicable
       integration: integrations/chatqec/integration.yaml
       rationale: ChatQEC is an authenticated internal service with a separate deployment boundary.
+    - component: chatqec-mcp-tools
+      classification: library-resource
+      acceptance: not-applicable
+      integration: integrations/chatqec-mcp-tools/integration.yaml
+      rationale: The onboarding record publishes reviewed operation candidates, but immutable target-worker releases and HPC acceptance remain deferred.
     - component: exachem-qflow
       classification: library-resource
       acceptance: not-applicable

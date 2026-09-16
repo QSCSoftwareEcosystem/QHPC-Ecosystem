@@ -30,7 +30,9 @@ python -m pip install -e ".[local]"
 ```
 
 This installs the **EQO Local Python profile**: the CLI, Workbench, control
-services, and bundled catalog and guidance. The reviewed scientific OCI images
+services, bundled catalog and guidance, and the immutable QAppsWiki knowledge
+graph used by the Knowledge workspace. A first launch does not require a
+separate QAppsWiki checkout or graph build. The reviewed scientific OCI images
 remain separate from the Python package; EQO runs those tools in their admitted
 containers and never replaces an unavailable tool with a host-Python
 substitute.

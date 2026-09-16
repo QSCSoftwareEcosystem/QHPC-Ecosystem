@@ -323,9 +323,9 @@ def test_ftqc_uses_private_ecosystem_source_and_oci_preparation_runtime() -> Non
         "type": "oci",
         "reference": (
             "docker://qhpc/ftqc@sha256:"
-            "f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96"
+            "710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac"
         ),
-        "digest": "sha256:f46f1c36dc78310453776706316e8cc6baa0bb112ff2dea8512697cd0f005c96",
+        "digest": "sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac",
     }
     assert operations["prepare-iqm"]["execution_targets"] == [
         "local-development"

@@ -79,8 +79,8 @@ spec:
           maximum: 256
       runtime:
         type: oci
-        reference: docker://qhpc/lightstim@sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
-        digest: sha256:7731c5d9188a4eb5ad8f9448323b60e6ab722786d8f00f9b691d082edf6ec074
+        reference: docker://qhpc/lightstim@sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2
+        digest: sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2
       invocation:
         entrypoint: [/opt/qhpc/bin/qhpc-lightstim-estimate]
       resources:
