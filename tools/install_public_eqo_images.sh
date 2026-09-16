@@ -76,5 +76,9 @@ install_image "eqo-qfw-slurm" \
   "sha256:5d6a15ba9338e54c4eda135381cc74d1f65e582da9fc861abfb1c0b1dd359105" \
   "sha256:1ee74220fa86caec44abe12993e794e9e911abef7c4ef37fdbc1e3fa6d9cd95b" \
   "qhpc/openqse-qfw-slurm:0.1.0-office"
+install_image "eqo-nwqsim" \
+  "sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf" \
+  "sha256:9e0dfb6168bd03d98165315144150a386314e855c4aacf206da76116a0b8c5bc" \
+  "qhpc/nwqsim:0.1.0-linux-amd64"
 
 printf 'EQO public OCI images installed for %s (%s).\n' "${release_tag}" "${platform}"

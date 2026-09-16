@@ -44,7 +44,6 @@ spec:
     - capabilities/ChatQEC/tools/qhpc-capability.yaml
     - containers/operations/chatqec-mcp-tools/threshold-sweep.runtime.yaml
     - containers/operations/chatqec-lightstim/runtime.yaml
-    - containers/operations/tsim/runtime.yaml
     - artifact-types/stim-simulation-samples-v1.yaml
     - artifact-types/stim-diagram-v1.yaml
   evidence:

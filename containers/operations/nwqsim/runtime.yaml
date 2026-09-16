@@ -1,0 +1,86 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: nwqsim-simulate-qasm-linux-amd64
+  name: NWQ-Sim CPU state-vector Linux runtime
+  version: 0.1.0
+  component: nwqsim
+  capability: nwqsim-cpu-simulation
+  operation: simulate-qasm
+  project: hybrid-workflows
+  owners: [nwqsim, qhpc-ecosystem]
+  source:
+    url: https://github.com/pnnl/NWQ-Sim
+    revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/nwqsim-cpu-source-audit-2026-09-16.md
+    - docs/evidence/nwqsim-cpu-oci-smoke-2026-09-16.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/nwqsim/Containerfile
+      digest: sha256:ca7e4f9a2f44e7a54b2bae9150595e33ba843a8b2452f4882ba121fb868efd9c
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:87ece7adc6b991eb8f1b5fb35a1825be77abdfb9cdf0f83f9ccd460a9f383589
+      source_date_epoch: 1776445008
+    context_files:
+      - source: containers/operations/nwqsim/entrypoint.sh
+        destination: entrypoint.sh
+        digest: sha256:45ce48b92fcd057462b5d91d0779f801b94a6e012aa38649ef0bb46e2ac3eadb
+        mode: "0755"
+    builder:
+      reference: docker.io/library/gcc:13.4.0-bookworm@sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+      digest: sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+    runtime_base:
+      reference: docker.io/library/debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+      digest: sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-nwqsim-simulate]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: measurements-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.qasm
+      outputs:
+        measurements: /outputs/measurements.json
+    parameters:
+      shots:
+        argument: --shots
+        type: integer
+      random_seed:
+        argument: --random-seed
+        type: integer
+      max_qubits:
+        argument: --max-qubits
+        type: integer
+  verification:
+    fixture:
+      path: containers/operations/nwqsim/fixtures/bell.qasm
+      digest: sha256:2fb143875ed170f0535a9227c3f6bece9ac82278de05a5a9513aec75dc9ada33
+      mount_path: /inputs/circuit.qasm
+    arguments: [--shots, "128", --random-seed, "42", --max-qubits, "16"]
+    expected_outputs:
+      - path: /outputs/measurements.json
+        nonempty: true
+        text_contains: ['"backend": "CPU"', '"qubits": 2', '"simulation_method": "sv"']
+    timeout_seconds: 60
+  release:
+    status: unpublished

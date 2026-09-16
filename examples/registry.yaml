@@ -1,8 +1,8 @@
 api_version: qhpc/v1
 kind: Registry
 metadata:
-  entry_count: 21
-  catalog_digest: sha256:d835fd11bac21982f51d5883c78bda3f75394f29ec752883222720e64d93cb88
+  entry_count: 22
+  catalog_digest: sha256:aa0ead04aa9834cdbee3f0c1ab45ae34b0e11fd2e25a1faf0e58d34fffe02bda
 spec:
   entries:
   - descriptor_digest: sha256:1ffb401a8a6827593cc0c1dfc6f91bc1f50276fefbe32372cff3368479488308
@@ -1138,7 +1138,7 @@ spec:
         documentation:
           qappswiki: packages/nwqec.md
           url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md
-  - descriptor_digest: sha256:b529f09c1278a66b9ab07cbd31e8de5abc6f53be277370502ef5aea13e28c7a6
+  - descriptor_digest: sha256:8d2587a78959ae3a08361b291175e71ccc9f3a356bebfa2733a97975454b9aa1
     catalog_repository: NWQSim-QFlow
     validation:
       contract: valid
@@ -1147,10 +1147,133 @@ spec:
       curated_by: &id017
       - qhpc-ecosystem
       project_reviewed: false
-      runtime: not-applicable
+      runtime: verified
       documentation: linked
       status: integration-tested
       evidence: &id018
+      - docs/evidence/nwqsim-cpu-source-audit-2026-09-16.md
+      - docs/evidence/nwqsim-cpu-oci-smoke-2026-09-16.md
+    capability:
+      api_version: qhpc/v1
+      kind: Capability
+      metadata:
+        id: nwqsim-cpu-simulation
+        name: NWQ-Sim CPU State-Vector Simulation
+        version: 0.1.0
+        project: hybrid-workflows
+        owners:
+        - nwqsim
+        repository:
+          url: https://github.com/pnnl/nwq-sim
+          revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+        integration:
+          authority: ecosystem
+          maintainers: *id017
+          project_reviewed: false
+          runtime_status: verified
+          validation_status: integration-tested
+          evidence: *id018
+        visibility: public
+        maturity: pre-alpha
+      spec:
+        component:
+          name: NWQ-Sim
+          description: Pinned NWQ-Sim mainline CPU state-vector runner, exposed through one bounded OpenQASM
+            2.0 sampling operation.
+        guidance:
+          use_when:
+          - Sample a small OpenQASM 2.0 circuit on the pinned NWQ-Sim CPU state-vector implementation.
+          - Compare a circuit produced by the OpenQEvo development bridge with an independent CPU simulator
+            path.
+          quick_start:
+          - Open Compose and choose NWQ-Sim CPU simulation.
+          - Upload or connect an OpenQASM 2.0 circuit with at most sixteen qubits.
+          - Set bounded shots and a random seed, then inspect normalized measurement counts.
+          example_workflows:
+          - nwqsim-bell-simulation
+          limitations:
+          - This is a local, development-only CPU state-vector operation; it is not an HPC target, a GPU
+            path, or a QFw workflow runtime.
+          - Only the fixed CPU `sv` runner is exposed. MPI, GPU, noise, state import/export, Qobj, benchmarks,
+            and arbitrary runner flags are unavailable.
+          - Input is bounded to one OpenQASM 2.0 qreg of at most sixteen qubits and one million shots.
+          - The existing TN-Sim MPS contract and the proposed QFlow VQE plugin remain separate records
+            with their own readiness states.
+        operations:
+        - id: simulate-qasm
+          title: Simulate bounded OpenQASM on CPU
+          description: Run the pinned NWQ-Sim CPU state-vector QASM runner with fixed backend and simulation
+            method, returning seeded measurement counts.
+          inputs:
+            circuit:
+              artifact_type: qhpc.quantum-circuit@1
+              description: One-register OpenQASM 2.0 circuit with at most sixteen qubits.
+          outputs:
+            measurements:
+              artifact_type: qhpc.nwqsim-measurement-counts@1
+              description: Computational-basis shot counts and the effective fixed CPU state-vector runtime
+                details.
+          parameters:
+            shots:
+              type: integer
+              title: Measurement shots
+              default: 1024
+              minimum: 1
+              maximum: 1000000
+            random_seed:
+              type: integer
+              title: Sampling random seed
+              default: 42
+              minimum: 0
+              maximum: 2147483647
+            max_qubits:
+              type: integer
+              title: Maximum admitted circuit qubits
+              default: 16
+              minimum: 1
+              maximum: 16
+          runtime:
+            type: oci
+            reference: docker://ghcr.io/qscsoftwareecosystem/eqo-nwqsim@sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf
+            digest: sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf
+          invocation:
+            entrypoint:
+            - /opt/qhpc/bin/qhpc-nwqsim-simulate
+          resources:
+            cpu: 1
+            memory_mb: 2048
+            walltime_seconds: 60
+          execution_targets:
+          - local-development
+        resources:
+        - id: nwqsim-source
+          kind: library
+          version: 0.1.0
+          uri: https://github.com/pnnl/nwq-sim/tree/b35763d846e6512ed817d3f88ac8ce79a7e82a7e
+        - id: cpu-runtime-contract
+          kind: adapter
+          version: 0.1.0
+          uri: containers/operations/nwqsim/runtime.yaml
+        - id: developer-attribution
+          kind: documentation
+          version: 1.0.0
+          uri: docs/tool-attribution.md#nwqsim-qflow
+        documentation:
+          qappswiki: packages/nwqsim.md
+          url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
+  - descriptor_digest: sha256:b529f09c1278a66b9ab07cbd31e8de5abc6f53be277370502ef5aea13e28c7a6
+    catalog_repository: NWQSim-QFlow
+    validation:
+      contract: valid
+      attribution: valid
+      authority: ecosystem
+      curated_by: &id019
+      - qhpc-ecosystem
+      project_reviewed: false
+      runtime: not-applicable
+      documentation: linked
+      status: integration-tested
+      evidence: &id020
       - docs/evidence/qiris-qflow-incubation-2026-07-29.md
     capability:
       api_version: qhpc/v1
@@ -1167,11 +1290,11 @@ spec:
           revision: b35763d846e6512ed817d3f88ac8ce79a7e82a7e
         integration:
           authority: ecosystem
-          maintainers: *id017
+          maintainers: *id019
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id018
+          evidence: *id020
         visibility: public
         maturity: prototype
       spec:
@@ -1237,13 +1360,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id019
+      curated_by: &id021
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id020
+      evidence: &id022
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/openqevo-synthesis-smoke-2026-07-29.md
     capability:
@@ -1261,11 +1384,11 @@ spec:
           revision: 7ad8ef14b9730adb200d3d0b001ec93730ec360a
         integration:
           authority: ecosystem
-          maintainers: *id019
+          maintainers: *id021
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id020
+          evidence: *id022
         visibility: public
         maturity: pre-alpha
       spec:
@@ -1548,13 +1671,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id021
+      curated_by: &id023
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id022
+      evidence: &id024
       - docs/evidence/openqse-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -1571,11 +1694,11 @@ spec:
           revision: c172c716e6566bd0a7502b34896dce7467f5a474
         integration:
           authority: ecosystem
-          maintainers: *id021
+          maintainers: *id023
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id022
+          evidence: *id024
         visibility: public
         maturity: alpha
       spec:
@@ -1619,13 +1742,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id023
+      curated_by: &id025
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id024
+      evidence: &id026
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1642,11 +1765,11 @@ spec:
           revision: d5f0248945516a4198f92edd9764a2fe5b676549
         integration:
           authority: ecosystem
-          maintainers: *id023
+          maintainers: *id025
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id024
+          evidence: *id026
         visibility: public
         maturity: alpha
       spec:
@@ -1696,13 +1819,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id025
+      curated_by: &id027
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id026
+      evidence: &id028
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/qasmtrans-oci-smoke-2026-07-27.md
     capability:
@@ -1720,11 +1843,11 @@ spec:
           revision: 1843c98fa4bac9cf6b88412145b69457e9176124
         integration:
           authority: ecosystem
-          maintainers: *id025
+          maintainers: *id027
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id026
+          evidence: *id028
         visibility: public
         maturity: alpha
       spec:
@@ -1799,13 +1922,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id027
+      curated_by: &id029
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: discovered
-      evidence: &id028
+      evidence: &id030
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1822,11 +1945,11 @@ spec:
           revision: 704c1800614b37f0909cc8e5e15438b1be06b983
         integration:
           authority: ecosystem
-          maintainers: *id027
+          maintainers: *id029
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: discovered
-          evidence: *id028
+          evidence: *id030
         visibility: public
         maturity: prototype
       spec:
@@ -1862,13 +1985,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id029
+      curated_by: &id031
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id030
+      evidence: &id032
       - docs/evidence/sdl-qsc-materials-schema-admission-2026-08-28.md
     capability:
       api_version: qhpc/v1
@@ -1885,11 +2008,11 @@ spec:
           revision: 51373be831a94cc06c669346ca5d1fccc3a6ed76
         integration:
           authority: ecosystem
-          maintainers: *id029
+          maintainers: *id031
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id030
+          evidence: *id032
         visibility: internal
         maturity: prototype
       spec:
@@ -1962,13 +2085,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id031
+      curated_by: &id033
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id032
+      evidence: &id034
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -1985,11 +2108,11 @@ spec:
           revision: 11edfc3b95af9b4352c1554d6492b48d5977628c
         integration:
           authority: ecosystem
-          maintainers: *id031
+          maintainers: *id033
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id032
+          evidence: *id034
         visibility: public
         maturity: prototype
       spec:
@@ -2025,13 +2148,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id033
+      curated_by: &id035
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id034
+      evidence: &id036
       - docs/evidence/repository-audit-2026-07-11.md
     capability:
       api_version: qhpc/v1
@@ -2048,11 +2171,11 @@ spec:
           revision: e7568760747752e29397f4fcc800bd475c6011a1
         integration:
           authority: ecosystem
-          maintainers: *id033
+          maintainers: *id035
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: contract-valid
-          evidence: *id034
+          evidence: *id036
         visibility: public
         maturity: prototype
       spec:
@@ -2089,13 +2212,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id035
+      curated_by: &id037
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id036
+      evidence: &id038
       - docs/evidence/repository-audit-2026-07-11.md
       - docs/evidence/stabsim-oci-smoke-2026-07-27.md
     capability:
@@ -2113,11 +2236,11 @@ spec:
           revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
         integration:
           authority: ecosystem
-          maintainers: *id035
+          maintainers: *id037
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id036
+          evidence: *id038
         visibility: public
         maturity: prototype
       spec:
@@ -2183,13 +2306,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id037
+      curated_by: &id039
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id038
+      evidence: &id040
       - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
       - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
     capability:
@@ -2207,11 +2330,11 @@ spec:
           revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
         integration:
           authority: ecosystem
-          maintainers: *id037
+          maintainers: *id039
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id038
+          evidence: *id040
         visibility: internal
         maturity: pre-alpha
       spec:
@@ -2317,13 +2440,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id039
+      curated_by: &id041
       - qhpc-ecosystem
       project_reviewed: false
       runtime: not-applicable
       documentation: linked
       status: integration-tested
-      evidence: &id040
+      evidence: &id042
       - docs/evidence/tn-sim-source-audit-2026-07-24.md
     capability:
       api_version: qhpc/v1
@@ -2340,11 +2463,11 @@ spec:
           revision: 0f15b60012ccc62e2c9f71ceb2c411ad07d3b13b
         integration:
           authority: ecosystem
-          maintainers: *id039
+          maintainers: *id041
           project_reviewed: false
           runtime_status: not-applicable
           validation_status: integration-tested
-          evidence: *id040
+          evidence: *id042
         visibility: public
         maturity: pre-alpha
       spec:
@@ -2387,13 +2510,13 @@ spec:
       contract: valid
       attribution: valid
       authority: ecosystem
-      curated_by: &id041
+      curated_by: &id043
       - qhpc-ecosystem
       project_reviewed: false
       runtime: verified
       documentation: linked
       status: integration-tested
-      evidence: &id042
+      evidence: &id044
       - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
       - docs/evidence/chatqec-code-params-oci-smoke-2026-09-14.md
     capability:
@@ -2411,11 +2534,11 @@ spec:
           revision: dd19a85b08637a61dc1afc124d2f4b32745b527b
         integration:
           authority: ecosystem
-          maintainers: *id041
+          maintainers: *id043
           project_reviewed: false
           runtime_status: verified
           validation_status: integration-tested
-          evidence: *id042
+          evidence: *id044
         visibility: internal
         maturity: pre-alpha
       spec:

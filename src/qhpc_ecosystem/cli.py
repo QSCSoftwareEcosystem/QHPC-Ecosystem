@@ -615,6 +615,7 @@ def build_parser() -> argparse.ArgumentParser:
             "examples/workflows/ct-hw-qasm-analysis.yaml",
             "examples/workflows/qec-memory-estimation.yaml",
             "examples/workflows/nwqec-counts.yaml",
+            "examples/workflows/nwqsim-bell-simulation.yaml",
             "examples/workflows/ftqc-iqm-bell-preparation.yaml",
             "examples/workflows/ftqc-iqm-steane-preparation.yaml",
             "examples/workflows/ftqc-iqm-bell-execution.yaml",

@@ -31,7 +31,7 @@ def test_published_capabilities_separate_tool_and_integration_identity() -> None
         (ROOT / "capabilities").rglob("qhpc-capability.yaml")
     )
 
-    assert len(descriptors) == 21
+    assert len(descriptors) == 22
     for descriptor in descriptors:
         capability = validate_contract("capability", descriptor)
         assert capability["spec"]["component"]["name"]

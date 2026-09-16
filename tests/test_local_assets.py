@@ -177,8 +177,9 @@ def test_packaged_public_image_manifest_declares_the_admitted_image_set() -> Non
         "chatqec-lightstim",
         "chatqec-tsim",
         "stim",
-        "tsim",
-        "qfw-slurm-development",
+            "tsim",
+            "qfw-slurm-development",
+            "nwqsim",
     ]
     assert all(image.source.startswith("ghcr.io/qscsoftwareecosystem/") for image in images)
     qfw = next(image for image in images if image.id == "qfw-slurm-development")

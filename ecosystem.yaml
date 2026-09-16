@@ -464,12 +464,13 @@ repositories:
   canonical_status: canonical
   local_path: ../qiris-qflow/iris
 - slug: NWQSim-QFlow
-  display_name: NWQSim QFlow VQE Plugin
+  display_name: NWQ-Sim Mainline Integrations
   source_url: https://github.com/pnnl/nwq-sim
-  notes: Main-branch NWQSim source for the proposed formed-Hamiltonian VQE plugin. This is separate from the admitted tn_sim branch and the plugin remains an uncommitted qiris-qflow development patch.
+  notes: Mainline NWQ-Sim source for the locally smoke-tested bounded CPU state-vector OpenQASM operation and the separate proposed formed-Hamiltonian QFlow VQE plugin. The QFlow plugin remains an uncommitted qiris-qflow development patch; neither record changes the admitted tn_sim branch.
   qsc_project: hybrid-workflows
   package_role: simulator
   capabilities:
+  - cpu-statevector-simulation
   - vqe
   - qflow-plugin
   - formed-hamiltonian-solve
@@ -479,11 +480,12 @@ repositories:
   - hpc
   - simulator
   interfaces:
+  - qasm
   - json-context
   - adapter
   - cli
   environment: hpc-build
-  container_status: planned
+  container_status: ready
   visibility: public
   canonical_status: canonical
   local_path: ../qiris-qflow/nwq-sim

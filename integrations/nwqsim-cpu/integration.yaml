@@ -1,0 +1,44 @@
+api_version: qhpc/v1
+kind: IntegrationScaffold
+metadata:
+  id: nwqsim-cpu
+  name: NWQ-Sim CPU State-Vector Simulation
+  version: 0.1.0
+  project: hybrid-workflows
+  role: operation-provider
+  owners: [nwqsim]
+  visibility: public
+  integration_status: published
+spec:
+  source:
+    kind: repository
+    url: https://github.com/pnnl/nwq-sim
+    catalog_repository: NWQSim-QFlow
+  mirror:
+    status: not-applicable
+  development_environment:
+    status: assigned
+    class: hpc-build
+  interfaces: [qasm, cli]
+  scope:
+    status: defined
+    summary: Expose only the pinned mainline CPU state-vector OpenQASM sampling path as a bounded local-development operation.
+  deliverables:
+    source_audit: complete
+    interface_contract: complete
+    adapter: complete
+    fixtures: complete
+    integration_tests: complete
+    registry_publication: complete
+  contract_refs:
+    - capabilities/NWQSim/cpu-simulation/qhpc-capability.yaml
+    - integrations/nwqsim-cpu/interface.yaml
+    - containers/operations/nwqsim/runtime.yaml
+  evidence:
+    - docs/evidence/nwqsim-cpu-source-audit-2026-09-16.md
+    - docs/evidence/nwqsim-cpu-oci-smoke-2026-09-16.md
+  production_runtime:
+    status: deferred
+    technology: apptainer
+    reason: The local OCI operation has not yet completed smoke, reproducibility, registry publication, supply-chain evidence, SIF conversion, or target acceptance.
+  blockers: []

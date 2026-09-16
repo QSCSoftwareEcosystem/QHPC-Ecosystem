@@ -23,6 +23,7 @@ const TOOL_PEOPLE = {
   "iris-qiris-runtime": { basis: "Package and publication authors", people: ["Narasinga Rao Miniskar", "Jungwon Kim", "Seyong Lee", "Beau Johnston", "Jeffrey S. Vetter"] },
   "lightstim-simulation": { basis: "Software and package authors", people: ["Xiang Fang", "Ming Wang", "Yue Wu", "Sharanya Prabhu", "Dean Tullsen", "Narasinga Rao Miniskar", "Frank Mueller", "Travis Humble", "Yufei Ding"] },
   "tn-sim-mps-simulation": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
+  "nwqsim-cpu-simulation": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
   "nwqsim-qflow-vqe-plugin": { basis: "Publication authors named by the project", people: ["Ang Li", "Omer Subasi", "Xiu Yang", "Sriram Krishnamoorthy"] },
   "openqevo-library": { basis: "Named repository contributors", people: ["Thomas Naughton", "Vicente Leyton-Ortega"] },
   "qappswiki-tooling": { basis: "Named repository contributor", people: ["Vicente Leyton-Ortega"] },
