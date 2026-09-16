@@ -28,7 +28,11 @@ from urllib.request import ProxyHandler, build_opener
 from .container_engine import ContainerEngineError, apptainer_requested, verified_sif
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
 from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
-from .local_images import LocalImageError, ensure_public_images
+from .local_images import (
+    LocalImageError,
+    admitted_source_digest,
+    ensure_public_images,
+)
 from .local_runtime import list_local_runtimes
 from .operation_runtime import (
     OperationRuntimeError,
@@ -446,7 +450,7 @@ def ensure_ftqc_oci_runtime(config: LocalStackConfig, paths: LocalPaths) -> str:
         # ensure_public_images; there is no daemon build. Confirm that verified
         # SIF is present rather than invoking an OCI builder.
         try:
-            verified_sif(FTQC_OCI_IMAGE, FTQC_OCI_DIGEST)
+            verified_sif(FTQC_OCI_IMAGE, admitted_source_digest(FTQC_OCI_IMAGE))
         except ContainerEngineError as error:
             raise LocalReleaseError(
                 f"the admitted FTQC Apptainer runtime is unavailable: {error}"

@@ -24,6 +24,7 @@ from .container_engine import (
     verified_sif,
 )
 from .engine import ArtifactResult, FunctionRunner, TaskRequest, TaskResult
+from .local_images import admitted_source_digest
 from .local_runtime import resolve_native_runtime, resolve_wheel_runtime
 
 
@@ -163,7 +164,9 @@ def _ftqc_run_target(request: TaskRequest) -> tuple[ContainerEngine, str]:
         raise RuntimeError(str(error)) from error
     if engine.is_apptainer:
         try:
-            sif = verified_sif(FTQC_OCI_IMAGE, request.runtime_digest)
+            sif = verified_sif(
+                FTQC_OCI_IMAGE, admitted_source_digest(FTQC_OCI_IMAGE)
+            )
         except ContainerEngineError as error:
             raise RuntimeError(str(error)) from error
         return engine, str(sif)

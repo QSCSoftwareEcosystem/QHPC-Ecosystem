@@ -121,6 +121,25 @@ def load_public_images(path: str | Path | None = None) -> tuple[PublicImage, ...
     return tuple(images)
 
 
+def admitted_source_digest(
+    local_reference: str, *, manifest: str | Path | None = None
+) -> str:
+    """Return the immutable ``sha256:`` source pull digest for a local reference.
+
+    This is the digest by which the image is fetched (``…@sha256:``) and the
+    identity Apptainer verifies at pull time — distinct from a manifest
+    ``local_id`` (the Docker daemon's content id, which a SIF has no equivalent
+    of). Apptainer admission verifies a SIF against this value.
+    """
+
+    for image in load_public_images(manifest):
+        if image.local_reference == local_reference:
+            return image.source.split("@", 1)[1]
+    raise LocalImageError(
+        f"no admitted image for local reference: {local_reference}"
+    )
+
+
 def _run(
     command: Sequence[str],
     *,
