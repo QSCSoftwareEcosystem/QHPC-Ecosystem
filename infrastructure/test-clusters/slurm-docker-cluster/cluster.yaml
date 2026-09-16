@@ -60,11 +60,11 @@ spec:
       local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
       digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
       required_on_start: false
-    - runtime_id: chatqec-stim-simulate-linux-amd64
-      runtime_manifest: containers/operations/chatqec-mcp-tools/stim-simulate.runtime.yaml
-      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
-      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
-      digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+    - runtime_id: stim-simulation-linux-amd64
+      runtime_manifest: containers/operations/stim/runtime.yaml
+      registry_reference: docker://qhpc/stim@sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678
+      local_reference: qhpc/stim:0.1.0-linux-amd64
+      digest: sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678
       required_on_start: false
     - runtime_id: chatqec-stim-diagram-linux-amd64
       runtime_manifest: containers/operations/chatqec-mcp-tools/stim-diagram.runtime.yaml
@@ -90,11 +90,11 @@ spec:
       local_reference: qhpc/chatqec-lightstim:dd19a85-linux-amd64-v3
       digest: sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
       required_on_start: false
-    - runtime_id: chatqec-tsim-simulate-linux-amd64
-      runtime_manifest: containers/operations/chatqec-tsim/runtime.yaml
-      registry_reference: docker://qhpc/chatqec-tsim@sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
-      local_reference: qhpc/chatqec-tsim:dd19a85-linux-amd64
-      digest: sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2
+    - runtime_id: tsim-simulation-linux-amd64
+      runtime_manifest: containers/operations/tsim/runtime.yaml
+      registry_reference: docker://qhpc/tsim@sha256:2201fe400234a451f6a0bd38902f8c0c83e9a444001d035cdabde6aee22b4b17
+      local_reference: qhpc/tsim:0.1.0-linux-amd64
+      digest: sha256:2201fe400234a451f6a0bd38902f8c0c83e9a444001d035cdabde6aee22b4b17
       required_on_start: false
     - runtime_id: chatqec-glcb-visualize-url-linux-amd64
       runtime_manifest: containers/operations/chatqec-mcp-tools/glcb-visualize-url.runtime.yaml

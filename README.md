@@ -18,7 +18,21 @@ admitted tools—not merely their diagrams—while services remain bound to
 loopback by default. No QPU, cloud, model-provider, or registry credential is
 needed for the default scientific demonstrations.
 
-### 1. Install
+### 1. Prerequisites
+
+EQO Local requires a working Docker CLI connected to a running Docker daemon.
+Install **Docker Engine** on Linux or **Docker Desktop** on macOS, then verify
+that the invoking user can run:
+
+```bash
+docker version
+```
+
+Docker is required because EQO runs admitted tools in immutable OCI images; it
+is not an optional add-on for the complete local profile. The first startup
+downloads the Linux/AMD64 image set and can require several GB of disk space.
+
+### 2. Install
 
 From this repository, create an isolated Python environment and install the
 local profile:
@@ -48,7 +62,7 @@ substitute.
 The primary command is `eqo`. `qhpc-ecosystem` remains available as a
 compatibility alias for existing scripts.
 
-### 2. Start and open the Workbench
+### 3. Start and open the Workbench
 
 ```bash
 eqo local up --open
@@ -58,7 +72,7 @@ The command prints the Workbench address and opens it when your system permits.
 Keep that terminal open while you use EQO. To reopen an already running
 Workbench, use `eqo local open`.
 
-### 3. Let EQO start the complete execution profile
+### 4. Let EQO start the complete execution profile
 
 The first `eqo local up` starts the isolated virtual-Slurm fixture and obtains
 or verifies the exact OCI images used by the guided workflows: **QASMTrans,
@@ -83,7 +97,7 @@ If you only need discovery and the lightweight interactive tools, use
 ecosystem execution profile. See [the EQO Local guide](docs/local-release.md)
 for its container and lifecycle details.
 
-### 4. Explore the Workbench
+### 5. Explore the Workbench
 
 | Area | Start here when you want to… |
 | --- | --- |
@@ -96,7 +110,7 @@ for its container and lifecycle details.
 | **Compose** | Start a guided workflow or build an advanced typed workflow. |
 | **Runs** and **Artifacts** | Follow execution and inspect provenance-linked results. |
 
-### 5. Check, stop, or recover
+### 6. Check, stop, or recover
 
 ```bash
 eqo local status

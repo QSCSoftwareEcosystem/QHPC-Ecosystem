@@ -6,6 +6,21 @@ virtual-Slurm worker for the admitted containerized ecosystem tools. The
 current artifact is a release candidate; it is not signed or approved for
 publication.
 
+## Prerequisites
+
+EQO Local requires Python and a working Docker CLI connected to a running
+Docker daemon. Install **Docker Engine** on Linux or **Docker Desktop** on
+macOS, then confirm that the user who will run EQO can execute:
+
+```bash
+docker version
+```
+
+Docker is a required dependency for the complete local profile: admitted
+tools run in immutable OCI images, and the first `eqo local up` may download
+several GB of Linux/AMD64 images. If Docker is unavailable, install and start
+it before launching EQO Local.
+
 ## Build and install the release candidate
 
 From a reviewed source checkout, build the candidate:
@@ -97,6 +112,21 @@ supervisors, invalid state, and unverified stale process identifiers. Startup
 requires at least 512 MiB free on the application-data volume. `status` reports
 service health, the compatible local worker, release version, registry digest,
 database path, artifact path, and supervisor log.
+
+### Accessing a remote Linux installation over SSH
+
+Keep the default loopback binding on the Linux host; do not expose the
+Workbench with `--host 0.0.0.0`. Start EQO there with `eqo local up`, then run
+this command on the computer with your browser:
+
+```bash
+ssh -N -L 8080:127.0.0.1:8080 USER@EQO_HOST
+```
+
+Open `http://127.0.0.1:8080` locally. If you selected a different EQO
+Workbench port, replace both `8080` values. The control API and Assistant
+ports remain private on the remote host; the browser needs only the Workbench
+tunnel.
 
 ## Portable paths
 
