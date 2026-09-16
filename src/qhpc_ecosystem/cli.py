@@ -612,6 +612,7 @@ def build_parser() -> argparse.ArgumentParser:
             "examples/workflows/openqevo-method-catalog.yaml",
             "examples/workflows/openqevo-dense-reference.yaml",
             "examples/workflows/openqevo-trotter-synthesis.yaml",
+            "examples/workflows/openqevo-nwqsim-tour.yaml",
             "examples/workflows/ct-hw-qasm-analysis.yaml",
             "examples/workflows/qec-memory-estimation.yaml",
             "examples/workflows/nwqec-counts.yaml",

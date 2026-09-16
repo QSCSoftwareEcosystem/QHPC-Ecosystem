@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   id: chatqec-qec-toolchain
   name: Build, simulate, diagram, and decode a QEC circuit
-  version: 0.1.0
+  version: 0.1.1
   owner: qhpc-ecosystem
   visibility: internal
   description: Combine the pinned ChatQEC LightStim circuit builder and decoder with the independently published Stim simulator and SVG diagrammer through one typed circuit artifact.

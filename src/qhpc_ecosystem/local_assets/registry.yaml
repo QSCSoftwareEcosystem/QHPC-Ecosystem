@@ -1138,7 +1138,7 @@ spec:
         documentation:
           qappswiki: packages/nwqec.md
           url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md
-  - descriptor_digest: sha256:8d2587a78959ae3a08361b291175e71ccc9f3a356bebfa2733a97975454b9aa1
+  - descriptor_digest: sha256:d9f3f07bcb3c22ebc4224f7d34074cbf231bc60cae304d11d31c2e5d38a789f0
     catalog_repository: NWQSim-QFlow
     validation:
       contract: valid
@@ -1191,6 +1191,7 @@ spec:
           - Set bounded shots and a random seed, then inspect normalized measurement counts.
           example_workflows:
           - nwqsim-bell-simulation
+          - openqevo-nwqsim-tour
           limitations:
           - This is a local, development-only CPU state-vector operation; it is not an HPC target, a GPU
             path, or a QFw workflow runtime.
@@ -1354,7 +1355,7 @@ spec:
         documentation:
           qappswiki: packages/nwqsim-qflow.md
           url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
-  - descriptor_digest: sha256:5dfda853047d57b6c01bf7a0cf875588a4ae500484cc25e1811e33578a8ba44f
+  - descriptor_digest: sha256:8c791c51b7253dd716f30a4e4677c00dcc790ac6c3137c64c14c02ccfcf0030d
     catalog_repository: OpenQEvo
     validation:
       contract: valid
@@ -1416,6 +1417,7 @@ spec:
           - openqevo-method-context
           - openqevo-dense-reference
           - openqevo-trotter-synthesis
+          - openqevo-nwqsim-tour
           - showcase-evolution-readiness
           limitations:
           - EQO exposes the full available method catalog and context snapshot, a bounded dense-reference

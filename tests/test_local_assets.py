@@ -55,6 +55,10 @@ SOURCE_ASSETS = {
     / "examples"
     / "workflows"
     / "openqevo-trotter-synthesis.yaml",
+    "workflow-openqevo-nwqsim-tour": ROOT
+    / "examples"
+    / "workflows"
+    / "openqevo-nwqsim-tour.yaml",
     "workflow-showcase-evolution-readiness": ROOT
     / "examples"
     / "workflows"
@@ -122,7 +126,7 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     assert registry["metadata"]["entry_count"] == len(registry["spec"]["entries"])
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"
-    assert len(workflows) == 18
+    assert len(workflows) == 19
 
 
 def test_packaged_assistant_corpus_is_immutable_and_requires_no_checkout() -> None:

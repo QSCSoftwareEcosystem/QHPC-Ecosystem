@@ -139,6 +139,32 @@ def test_evolution_showcase_resolves_four_tools_and_five_outputs() -> None:
         assert nodes[node_id]["execution_class"] == "batch-hpc"
 
 
+def test_openqevo_nwqsim_tour_connects_synthesis_to_cpu_simulation() -> None:
+    workflow = load_document(ROOT / "examples/workflows/openqevo-nwqsim-tour.yaml")
+    registry = load_registry(ROOT / "examples/registry.yaml")
+
+    resolved = resolve_workflow(workflow, registry)
+
+    assert topological_nodes(workflow) == ("synthesize", "simulate")
+    assert {
+        operation.capability_id for operation in resolved.operations.values()
+    } == {"openqevo-library", "nwqsim-cpu-simulation"}
+    assert workflow["spec"]["edges"] == [
+        {
+            "from": {
+                "node": "synthesize",
+                "port": "circuit",
+                "artifact_type": "qhpc.quantum-circuit@1",
+            },
+            "to": {
+                "node": "simulate",
+                "port": "circuit",
+                "artifact_type": "qhpc.quantum-circuit@1",
+            },
+        }
+    ]
+
+
 def test_qec_distance_showcase_resolves_two_parallel_experiments() -> None:
     workflow = load_document(
         ROOT / "examples/workflows/showcase-qec-distance-study.yaml"

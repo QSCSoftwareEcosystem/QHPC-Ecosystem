@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   id: chatqec-tsim-simulation
   name: Simulate a non-Clifford Tsim circuit
-  version: 0.1.0
+  version: 0.1.1
   owner: qhpc-ecosystem
   visibility: internal
   description: Submit a typed Tsim circuit to the independently published, pinned non-Clifford Tsim capability and retain bounded detector and observable samples.

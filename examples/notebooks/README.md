@@ -21,6 +21,8 @@ Set `EQO_ENDPOINT` only when the API is not at `http://127.0.0.1:8080`.
 | `eqo_chatqec_tools.ipynb` | All eight ChatQEC tools | Code parameters; LightStim → Stim simulation, diagram, and PyMatching; threshold sweep; Tsim; and opt-in GLCB link generation. |
 | `eqo_openqevo_methods.ipynb` | OpenQEvo catalog, context, dense reference | Registered methods, one method's documented boundary, and a bounded numerical reference. |
 | `eqo_openqevo_trotter.ipynb` | `openqevo-trotter-synthesis` | Pauli Hamiltonian to an attributed OpenQASM circuit. |
+| `eqo_nwqsim_cpu.ipynb` | `nwqsim-bell-simulation` | Bounded OpenQASM 2.0 simulation through the published NWQ-Sim CPU operation. |
+| `eqo_openqevo_nwqsim_tour.ipynb` | `openqevo-nwqsim-tour` | Hamiltonian to attributed OpenQASM, then simulate the workflow's exact handoff artifact with NWQ-Sim. |
 | `eqo_evolution_readiness.ipynb` | `showcase-evolution-readiness` | OpenQEvo → QASMTrans → STABSim, plus NWQEC resource counting. |
 | `eqo_qec_memory_study.ipynb` | `qec-memory-estimation` | FTPrimitiveBench → LightStim logical-error estimate. |
 | `eqo_ftqc_preparation.ipynb` | `ftqc-iqm-steane-preparation` | FTQC preparation boundary with no IQM submission. |
@@ -38,6 +40,13 @@ the ChatQEC tool gallery, install the exact image identities recorded in
 The IQM experiment requires either `eqo local up --iqm-simulation` or an
 admitted internal IQM worker. A notebook neither accepts nor transmits an IQM
 token.
+
+The NWQ-Sim CPU notebook uses the image included in the Local profile. The
+OpenQEvo-to-NWQ-Sim tour additionally requires the separately admitted
+OpenQEvo wheel. It is not bundled or downloaded automatically while its
+upstream redistribution license remains unresolved; install an
+organization-provided copy with `eqo local runtime install`, the exact runtime
+reference, and the SHA-256 declared by the `openqevo-library` capability.
 
 The H6/QFlow notebook has no runtime precondition because it is not an
 executable integration. Its documented gates must be resolved before it can
