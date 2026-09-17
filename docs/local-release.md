@@ -145,6 +145,34 @@ The versioned configuration and runtime-state documents contain no generated
 Assistant identity token. Runtime identity is generated inside the detached
 supervisor and scoped only to the API and Assistant processes.
 
+## Container runtime: Docker (default) or Apptainer
+
+By default EQO runs its scientific tools through Docker, falling back to Podman.
+Set `USE_APPTAINER=1` to run on Apptainer instead — the rootless runtime present
+on HPC systems that lack a Docker daemon:
+
+```bash
+USE_APPTAINER=1 eqo local up --open
+```
+
+The opt-in is explicit: without the variable EQO never chooses Apptainer on its
+own. When it is set, `eqo local up`:
+
+- pulls each admitted image by its immutable digest into a verified SIF under
+  `~/.cache/qhpc-ecosystem/images/operations/` (see
+  [public image distribution](public-image-distribution.md));
+- admits and runs the FTQC and ChatQEC operation runtimes from those SIFs with
+  `apptainer run --containall --net --network none`, preserving the read-only,
+  no-network, no-new-privileges posture of the Docker path;
+- runs the citation-backed Assistant in-process rather than as a published-port
+  service container, which has no Apptainer equivalent.
+
+The isolated-network flag needs an Apptainer install that permits an
+unprivileged network namespace (setuid, or `allow net`). Image building and the
+Docker Compose development fixtures (databucket/Garage and the Slurm test
+cluster) remain Docker/Podman operations and refuse to run under
+`USE_APPTAINER=1` with an explanatory message.
+
 ## Optional library runtimes
 
 The complete Local execution profile uses its admitted operation containers.

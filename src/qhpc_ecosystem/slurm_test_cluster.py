@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Sequence
 from uuid import uuid4
 
+from .container_engine import apptainer_requested
 from .contract import validate_contract, validate_contract_data
 from .operation_runtime import load_operation_runtime
 from .slurm import CommandResult, SlurmClient
@@ -485,6 +486,12 @@ class SlurmDockerCluster:
         return ["git", "-C", str(self.checkout), *arguments]
 
     def prepare(self, build_ca: str | Path | None = None) -> Path:
+        if apptainer_requested():
+            raise SlurmTestClusterError(
+                "the development Slurm cluster is a Docker Compose fixture with no "
+                "Apptainer equivalent (it validates real Docker-based scheduling); "
+                "unset USE_APPTAINER to use it"
+            )
         if self.checkout.exists() and not self.checkout.is_dir():
             raise SlurmTestClusterError(
                 f"test-cluster checkout is not a directory: {self.checkout}"

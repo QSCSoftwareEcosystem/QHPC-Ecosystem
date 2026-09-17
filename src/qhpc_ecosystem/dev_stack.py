@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -13,6 +14,7 @@ from typing import Callable, Sequence
 from urllib.error import URLError
 from urllib.request import ProxyHandler, build_opener
 
+from .container_engine import apptainer_requested
 from .operation_runtime import find_oci_builder
 
 
@@ -145,7 +147,9 @@ def build_service_specs(
         api_command.extend(("--workflow", workflow))
     services = [ServiceSpec("api", tuple(api_command), api_environment)]
     if config.start_chatqec:
-        if config.chatqec_container_image:
+        # Under USE_APPTAINER=1 there is no daemon to publish a service container;
+        # run the same citation-backed assistant in-process instead.
+        if config.chatqec_container_image and not apptainer_requested():
             try:
                 container_engine = find_oci_builder()
             except Exception as error:
@@ -395,9 +399,14 @@ class DevStackSupervisor:
         for name in service.secret_environment_names:
             environment.pop(name, None)
         environment.update(dict(service.environment))
+        # Start each service as its own session/process-group leader so that on
+        # shutdown the whole tree can be signalled — a worker plus any container
+        # process it launched (notably `apptainer run`, which runs the tool as a
+        # descendant rather than in a separate daemon).
         process = self.process_factory(
             service.command,
             env=environment,
+            start_new_session=True,
         )
         self.processes[service.name] = process
         print(f"{self.service_label} service started: {service.name} (pid {process.pid})")
@@ -495,11 +504,30 @@ class DevStackSupervisor:
                     return
                 self._start(service)
 
+    def _signal_tree(self, process: "subprocess.Popen[bytes]", sig: int) -> bool:
+        """Signal a service's whole process group; report whether that worked.
+
+        Real services lead their own group (``start_new_session=True``), so this
+        also reaps descendants such as a worker's ``apptainer run`` container.
+        Only real ``subprocess.Popen`` handles are group-signalled; test doubles
+        are not, so their pids can never collide with a live system process. When
+        this returns ``False`` the caller falls back to ``terminate``/``kill``.
+        """
+
+        if not isinstance(process, subprocess.Popen):
+            return False
+        try:
+            os.killpg(os.getpgid(process.pid), sig)
+        except (ProcessLookupError, PermissionError, OSError):
+            return False
+        return True
+
     def stop(self, *, timeout_seconds: float = 10.0) -> None:
         processes = list(reversed(tuple(self.processes.items())))
         for _name, process in processes:
             if process.poll() is None:
-                process.terminate()
+                if not self._signal_tree(process, signal.SIGTERM):
+                    process.terminate()
         deadline = time.monotonic() + timeout_seconds
         for name, process in processes:
             remaining = max(0.0, deadline - time.monotonic())
@@ -510,7 +538,8 @@ class DevStackSupervisor:
                     f"{self.service_label} service did not stop cleanly: "
                     f"{name}; killing"
                 )
-                process.kill()
+                if not self._signal_tree(process, signal.SIGKILL):
+                    process.kill()
                 process.wait()
         for service in reversed(self.services):
             self._cleanup(service)
