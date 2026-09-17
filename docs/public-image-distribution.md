@@ -31,6 +31,20 @@ Building images and the Docker Compose development fixtures remain Docker/Podman
 operations; `USE_APPTAINER=1` governs image acquisition and tool execution, not
 image builds.
 
+### Non-amd64 hosts (Apple Silicon, arm64 Linux)
+
+The admitted image set is `linux/amd64` only, so acquisition always pulls with
+`apptainer pull --arch amd64` regardless of the host processor — that succeeds
+on any host, including an arm64 one. Unlike Docker Desktop, Apptainer has no
+built-in emulation for *running* a mismatched-arch image: on an arm64 host,
+`eqo local up` prints a one-time warning naming the mismatch, and executing a
+tool later fails with a bare "exec format error" unless the Linux environment
+that runs Apptainer has x86_64 emulation registered (`qemu-user-static` and
+`binfmt-support`/`binfmt_misc`, e.g. `sudo apt-get install -y qemu-user-static
+binfmt-support` on Debian/Ubuntu). On macOS this means the Linux VM or
+container that hosts Apptainer (for example a Lima instance) needs that
+emulation enabled, not the host itself.
+
 ## External tester installation
 
 Install Docker Desktop (or a compatible Docker engine), clone the EQO source

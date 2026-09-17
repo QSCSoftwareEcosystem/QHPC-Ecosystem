@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
 from .container_engine import (
     apptainer_requested,
+    host_oci_arch,
     read_locks,
     sha256_file,
     sif_path_for,
@@ -197,11 +200,70 @@ def _apptainer_arch(platform: str) -> str:
     return platform.split("/", 1)[1] if "/" in platform else platform
 
 
+def _warn_on_arch_mismatch(images: Sequence[PublicImage]) -> None:
+    """Warn once when this host cannot natively run the admitted image set.
+
+    ``apptainer pull --arch`` always names the admitted image's architecture
+    (see :func:`_apptainer_arch`), so acquisition succeeds regardless of the
+    host processor. But Apptainer has no build-time emulation the way Docker
+    Desktop does; running a mismatched-arch SIF later fails with a bare
+    "exec format error" deep inside a workflow run. Surface that up front,
+    keyed off the actual host OS/processor, instead.
+    """
+
+    host_arch = host_oci_arch()
+    image_arches = sorted({_apptainer_arch(image.platform) for image in images})
+    if host_arch in image_arches:
+        return
+    print(
+        f"[EQO] Apptainer is running on a '{host_arch}' processor, but the "
+        f"admitted EQO image set targets {', '.join(image_arches)} only. "
+        "Pulling proceeds by explicit --arch, but executing these tools will "
+        "fail with an 'exec format error' unless the Linux environment that "
+        "runs Apptainer (a VM such as Lima/UTM, or the host itself) has that "
+        "architecture's qemu-user/binfmt emulation registered. See "
+        "docs/public-image-distribution.md for Apptainer distribution notes.",
+        file=sys.stderr,
+    )
+
+
+def _apptainer_pull_environment() -> dict[str, str]:
+    """Return the environment for Apptainer's OCI-to-SIF pull.
+
+    Apptainer unpacks a full container rootfs under its temp directory before
+    packing the SIF, which routinely exceeds the size of a small or
+    memory-backed ``/tmp`` (the default on many HPC login nodes and on a
+    tmpfs-backed Linux VM). An operator or scheduler may already point
+    ``APPTAINER_TMPDIR`` at suitable node-local scratch, and that choice is
+    left untouched; otherwise this defaults it to ``/var/tmp``, conventionally
+    larger and longer-lived than a tmpfs ``/tmp``. Apptainer's own precedence
+    always prefers ``APPTAINER_TMPDIR`` over the generic ``TMPDIR``, so
+    setting it here does not fight a real site configuration — and the
+    generic variable is deliberately *not* treated as configuration by
+    itself: macOS (and many shells) export a per-session ``TMPDIR`` on every
+    process, including one that only crosses into Apptainer's actual Linux
+    environment through a VM wrapper, where that host-side path does not
+    exist and Apptainer has been observed to silently fall back to ``/tmp``.
+
+    This also never defaults to a path under the user's home directory:
+    unpacking a rootfs preserves POSIX xattrs, and a home directory is
+    routinely a network mount (common on HPC login nodes) or, for an
+    Apptainer-in-a-VM setup, a virtiofs share from the host — neither of
+    which reliably supports them.
+    """
+
+    environment = dict(os.environ)
+    if not environment.get("APPTAINER_TMPDIR"):
+        environment["APPTAINER_TMPDIR"] = "/var/tmp"
+    return environment
+
+
 def _run_apptainer(
     command: Sequence[str],
     *,
     runner: Runner,
     capture_output: bool,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     try:
         result = runner(
@@ -209,6 +271,7 @@ def _run_apptainer(
             check=False,
             text=True,
             capture_output=capture_output,
+            env=env,
         )
     except OSError as error:
         raise LocalImageError(
@@ -236,11 +299,14 @@ def _ensure_public_sifs(
     in the committed manifest).
     """
 
+    images = load_public_images(manifest)
+    _warn_on_arch_mismatch(images)
     store = sif_store_dir()
     store.mkdir(parents=True, exist_ok=True)
+    pull_environment = _apptainer_pull_environment()
     locks = read_locks()
     results: list[ImageInstallResult] = []
-    for image in load_public_images(manifest):
+    for image in images:
         source_digest = image.source.split("@", 1)[1]
         sif = sif_path_for(image.id)
         entry = locks.get(image.local_reference)
@@ -271,6 +337,7 @@ def _ensure_public_sifs(
             ],
             runner=runner,
             capture_output=False,
+            env=pull_environment,
         )
         if not sif.is_file():
             raise LocalImageError(

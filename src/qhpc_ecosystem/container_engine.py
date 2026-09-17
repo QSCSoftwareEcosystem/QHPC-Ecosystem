@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,6 +34,16 @@ APPTAINER_ENV = "USE_APPTAINER"
 _SIF_LOCK_API_VERSION = "eqo.sif-locks/v1"
 _CHUNK = 1024 * 1024
 
+# Normalizes ``platform.machine()`` spellings onto the OCI/Apptainer ``--arch``
+# vocabulary (the same names used in operation-runtime platform contracts).
+_MACHINE_TO_OCI_ARCH = {
+    "x86_64": "amd64",
+    "amd64": "amd64",
+    "aarch64": "arm64",
+    "arm64": "arm64",
+    "ppc64le": "ppc64le",
+}
+
 
 class ContainerEngineError(RuntimeError):
     """Raised when no admitted container engine or verified SIF is available."""
@@ -42,6 +53,20 @@ def apptainer_requested() -> bool:
     """Return ``True`` only when ``USE_APPTAINER=1`` is set in the environment."""
 
     return os.environ.get(APPTAINER_ENV, "").strip() == "1"
+
+
+def host_oci_arch() -> str:
+    """Return this machine's processor as an OCI/Apptainer arch name.
+
+    Apptainer normally selects an image's architecture to match the host it
+    runs on. EQO's admitted operation images currently publish only
+    ``linux/amd64``, so a caller uses this to detect a mismatch (for example
+    an Apple Silicon or other arm64 host) and explain the emulation it needs,
+    rather than surfacing a bare "exec format error" mid-workflow.
+    """
+
+    machine = platform.machine().lower()
+    return _MACHINE_TO_OCI_ARCH.get(machine, machine)
 
 
 def _apptainer_shares_network() -> bool:
