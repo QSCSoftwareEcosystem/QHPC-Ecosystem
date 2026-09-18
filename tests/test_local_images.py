@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import qhpc_ecosystem.container_engine as container_engine
 from qhpc_ecosystem.local_images import (
     LocalImageError,
     ensure_public_images,
@@ -109,3 +110,168 @@ def test_ensure_public_images_pulls_and_tags_a_missing_image(tmp_path: Path) -> 
         ["docker", "tag", source, "qhpc/test:1.0"],
         ["docker", "image", "inspect", "--format", "{{.Id}}", "qhpc/test:1.0"],
     ]
+
+
+def apptainer_runner(commands: list[list[str]]):
+    def run(command, **_kwargs):
+        commands.append(command)
+        if command[1] == "pull":
+            sif = Path(command[command.index("--arch") + 2])
+            sif.parent.mkdir(parents=True, exist_ok=True)
+            sif.write_bytes(b"pulled-sif-" + command[-1].encode())
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        raise AssertionError(f"unexpected Apptainer command: {command}")
+
+    return run
+
+
+def test_ensure_public_images_pulls_a_verified_sif_under_apptainer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+    manifest, digest = write_manifest(tmp_path)
+    commands: list[list[str]] = []
+
+    result = ensure_public_images(
+        manifest=manifest, runner=apptainer_runner(commands)
+    )
+
+    assert [(entry.id, entry.action) for entry in result] == [
+        ("test-image", "installed")
+    ]
+    source = f"ghcr.io/qscsoftwareecosystem/eqo-test@{digest}"
+    sif = container_engine.sif_path_for("test-image")
+    assert commands == [
+        ["apptainer", "pull", "--force", "--arch", "amd64", str(sif), f"docker://{source}"]
+    ]
+    assert sif.is_file()
+
+    lock = container_engine.read_locks()["qhpc/test:1.0"]
+    assert lock["source_digest"] == digest
+    assert lock["sif_sha256"] == container_engine.sha256_file(sif)
+
+    # A second call with the recorded, unmodified SIF reuses it without pulling.
+    reuse_commands: list[list[str]] = []
+    reuse = ensure_public_images(
+        manifest=manifest, runner=apptainer_runner(reuse_commands)
+    )
+    assert [(entry.id, entry.action) for entry in reuse] == [("test-image", "reused")]
+    assert reuse_commands == []
+
+
+def _capturing_apptainer_runner(seen_envs: list[dict[str, str] | None]):
+    def run(command, **kwargs):
+        seen_envs.append(kwargs.get("env"))
+        if command[1] == "pull":
+            sif = Path(command[command.index("--arch") + 2])
+            sif.parent.mkdir(parents=True, exist_ok=True)
+            sif.write_bytes(b"pulled-sif")
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        raise AssertionError(f"unexpected Apptainer command: {command}")
+
+    return run
+
+
+def test_ensure_public_images_defaults_apptainer_tmpdir_to_var_tmp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Apptainer's OCI-to-SIF unpack must not depend on a small ``/tmp``.
+
+    HPC login nodes and tmpfs-backed Linux VMs routinely cap ``/tmp`` well
+    below the size of an unpacked container rootfs, which fails the pull with
+    "no space left on device". EQO defaults ``APPTAINER_TMPDIR`` to
+    ``/var/tmp`` instead, which conventionally holds larger, longer-lived
+    scratch data than a tmpfs-backed ``/tmp`` — and, unlike a directory under
+    the user's home, is never a network or virtiofs share that could reject
+    the xattr operations a rootfs unpack performs.
+    """
+
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.delenv("APPTAINER_TMPDIR", raising=False)
+    monkeypatch.delenv("TMPDIR", raising=False)
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+    manifest, _digest = write_manifest(tmp_path)
+    seen_envs: list[dict[str, str] | None] = []
+
+    ensure_public_images(
+        manifest=manifest, runner=_capturing_apptainer_runner(seen_envs)
+    )
+
+    assert len(seen_envs) == 1
+    env = seen_envs[0]
+    assert env is not None
+    assert env["APPTAINER_TMPDIR"] == "/var/tmp"
+
+
+def test_ensure_public_images_ignores_an_incidental_tmpdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A merely-present ``TMPDIR`` must not suppress the ``/var/tmp`` default.
+
+    macOS (and many shells) export a per-session ``TMPDIR`` on every process
+    regardless of whether anyone configured Apptainer's scratch space. That
+    was observed to reach Apptainer running inside a Linux VM through a shell
+    wrapper, name a host-only path that does not exist in the guest, and
+    silently fall back to the guest's small ``/tmp`` — reproducing the
+    original "no space left on device" failure. Only the Apptainer-specific
+    variable counts as deliberate configuration.
+    """
+
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.delenv("APPTAINER_TMPDIR", raising=False)
+    monkeypatch.setenv("TMPDIR", "/var/folders/incidental-macos-tmpdir/T")
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+    manifest, _digest = write_manifest(tmp_path)
+    seen_envs: list[dict[str, str] | None] = []
+
+    ensure_public_images(
+        manifest=manifest, runner=_capturing_apptainer_runner(seen_envs)
+    )
+
+    assert len(seen_envs) == 1
+    env = seen_envs[0]
+    assert env is not None
+    assert env["APPTAINER_TMPDIR"] == "/var/tmp"
+
+
+def test_ensure_public_images_respects_an_existing_apptainer_tmpdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An operator- or scheduler-supplied scratch directory is never overridden."""
+
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setenv("APPTAINER_TMPDIR", "/scratch/site-scheduler-scratch")
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+    manifest, _digest = write_manifest(tmp_path)
+    seen_envs: list[dict[str, str] | None] = []
+
+    ensure_public_images(
+        manifest=manifest, runner=_capturing_apptainer_runner(seen_envs)
+    )
+
+    assert len(seen_envs) == 1
+    env = seen_envs[0]
+    assert env is not None
+    assert env["APPTAINER_TMPDIR"] == "/scratch/site-scheduler-scratch"
+
+
+def test_ensure_public_images_warns_on_apptainer_arch_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+    manifest, _digest = write_manifest(tmp_path)
+    commands: list[list[str]] = []
+
+    result = ensure_public_images(manifest=manifest, runner=apptainer_runner(commands))
+
+    assert [(entry.id, entry.action) for entry in result] == [
+        ("test-image", "installed")
+    ]
+    assert commands, "the pull still proceeds despite the arch mismatch"
+    warning = capsys.readouterr().err
+    assert "arm64" in warning
+    assert "amd64" in warning
+    assert "exec format error" in warning

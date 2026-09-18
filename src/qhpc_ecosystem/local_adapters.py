@@ -16,7 +16,16 @@ from urllib.parse import unquote, urlparse
 
 import numpy as np
 
+from .container_engine import (
+    ContainerEngine,
+    ContainerEngineError,
+    require_network_isolation,
+    run_command,
+    select_engine,
+    verified_sif,
+)
 from .engine import ArtifactResult, FunctionRunner, TaskRequest, TaskResult
+from .local_images import admitted_source_digest
 from .local_runtime import resolve_native_runtime, resolve_wheel_runtime
 
 
@@ -112,35 +121,69 @@ def _ftqc_container_parameters(request: TaskRequest) -> tuple[str, str]:
     return preparation, function_name
 
 
-def _ftqc_container_engine(request: TaskRequest) -> str:
-    """Admit the exact locally built FTQC OCI image before it is executed."""
+def _admit_oci_image_docker(
+    engine: ContainerEngine,
+    image: str,
+    expected_digest: str,
+    *,
+    label: str,
+) -> None:
+    """Confirm a daemon-resident OCI image matches its admitted digest."""
 
-    if request.runtime_reference != FTQC_OCI_REFERENCE:
-        raise RuntimeError("FTQC preparation requires the admitted OCI runtime")
-    engine = shutil.which("docker") or shutil.which("podman")
-    if engine is None:
-        raise RuntimeError(
-            "FTQC preparation requires Docker or Podman; build the admitted OCI runtime first"
-        )
     try:
         inspected = subprocess.run(
-            [engine, "image", "inspect", "--format", "{{.Id}}", FTQC_OCI_IMAGE],
+            [engine.executable, "image", "inspect", "--format", "{{.Id}}", image],
             check=False,
             capture_output=True,
             text=True,
         )
     except OSError as error:
-        raise RuntimeError("FTQC OCI runtime inspection failed") from error
+        raise RuntimeError(f"{label} OCI runtime inspection failed") from error
     image_id = (inspected.stdout or "").strip()
     if inspected.returncode != 0 or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
         raise RuntimeError(
-            "FTQC OCI runtime is not installed; run the documented operation-runtime build"
+            f"{label} OCI runtime is not installed; run the documented operation-runtime build"
         )
-    if image_id != request.runtime_digest:
+    if image_id != expected_digest:
         raise RuntimeError(
-            "FTQC OCI runtime digest does not match the admitted registry"
+            f"{label} OCI runtime digest does not match the admitted registry"
         )
-    return engine
+
+
+def _verified_apptainer_target(
+    engine: ContainerEngine, local_reference: str, expected_digest: str
+) -> str:
+    """Return a tamper-checked SIF after proving network isolation is available."""
+
+    try:
+        sif = verified_sif(local_reference, expected_digest)
+        require_network_isolation(engine, str(sif))
+    except ContainerEngineError as error:
+        raise RuntimeError(str(error)) from error
+    return str(sif)
+
+
+def _ftqc_run_target(request: TaskRequest) -> tuple[ContainerEngine, str]:
+    """Admit the exact FTQC runtime and return its engine and run target.
+
+    Under Docker/Podman the target is the daemon image reference; under
+    ``USE_APPTAINER=1`` it is the verified SIF pulled by the admitted digest.
+    """
+
+    if request.runtime_reference != FTQC_OCI_REFERENCE:
+        raise RuntimeError("FTQC preparation requires the admitted OCI runtime")
+    try:
+        engine = select_engine(purpose="FTQC preparation")
+    except ContainerEngineError as error:
+        raise RuntimeError(str(error)) from error
+    if engine.is_apptainer:
+        return engine, _verified_apptainer_target(
+            engine, FTQC_OCI_IMAGE, admitted_source_digest(FTQC_OCI_IMAGE)
+        )
+    _admit_oci_image_docker(
+        engine, FTQC_OCI_IMAGE, request.runtime_digest, label="FTQC"
+    )
+    return engine, FTQC_OCI_IMAGE
 
 
 def _ftqc_container_output(directory: Path, name: str) -> Path:
@@ -150,45 +193,29 @@ def _ftqc_container_output(directory: Path, name: str) -> Path:
     return path
 
 
-def _chatqec_qec_tools_container_engine(request: TaskRequest) -> str:
-    """Admit only the reviewed ChatQEC QEC-tools image for a local run."""
+def _chatqec_qec_tools_run_target(request: TaskRequest) -> tuple[ContainerEngine, str]:
+    """Admit the reviewed ChatQEC QEC-tools runtime and return its run target."""
 
     if (
         request.runtime_reference != CHATQEC_QEC_TOOLS_OCI_REFERENCE
         or request.runtime_digest != CHATQEC_QEC_TOOLS_OCI_DIGEST
     ):
         raise RuntimeError("ChatQEC Stim operations require the admitted OCI runtime")
-    engine = shutil.which("docker") or shutil.which("podman")
-    if engine is None:
-        raise RuntimeError(
-            "ChatQEC Stim operations require Docker or Podman and the admitted OCI runtime"
-        )
     try:
-        inspected = subprocess.run(
-            [
-                engine,
-                "image",
-                "inspect",
-                "--format",
-                "{{.Id}}",
-                CHATQEC_QEC_TOOLS_OCI_IMAGE,
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
+        engine = select_engine(purpose="ChatQEC Stim operations")
+    except ContainerEngineError as error:
+        raise RuntimeError(str(error)) from error
+    if engine.is_apptainer:
+        return engine, _verified_apptainer_target(
+            engine, CHATQEC_QEC_TOOLS_OCI_IMAGE, CHATQEC_QEC_TOOLS_OCI_DIGEST
         )
-    except OSError as error:
-        raise RuntimeError("ChatQEC QEC-tools OCI runtime inspection failed") from error
-    image_id = (inspected.stdout or "").strip()
-    if inspected.returncode != 0 or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
-        raise RuntimeError(
-            "ChatQEC QEC-tools OCI runtime is not installed; run the documented operation-runtime build"
-        )
-    if image_id != CHATQEC_QEC_TOOLS_OCI_LOCAL_ID:
-        raise RuntimeError(
-            "ChatQEC QEC-tools OCI runtime digest does not match the admitted registry"
-        )
-    return engine
+    _admit_oci_image_docker(
+        engine,
+        CHATQEC_QEC_TOOLS_OCI_IMAGE,
+        CHATQEC_QEC_TOOLS_OCI_LOCAL_ID,
+        label="ChatQEC QEC-tools",
+    )
+    return engine, CHATQEC_QEC_TOOLS_OCI_IMAGE
 
 
 def _chatqec_stim_shots(request: TaskRequest) -> int:
@@ -216,36 +243,26 @@ def _chatqec_container_output(directory: Path, name: str) -> Path:
     return path
 
 
-def _nwqsim_container_engine(request: TaskRequest) -> str:
-    """Admit only the reviewed local NWQ-Sim CPU operation image."""
+def _nwqsim_run_target(request: TaskRequest) -> tuple[ContainerEngine, str]:
+    """Admit the reviewed NWQ-Sim CPU image for Docker/Podman or Apptainer."""
 
     if (
         request.runtime_reference != NWQSIM_OCI_REFERENCE
         or request.runtime_digest != NWQSIM_OCI_DIGEST
     ):
         raise RuntimeError("NWQ-Sim simulation requires the admitted OCI runtime")
-    engine = shutil.which("docker") or shutil.which("podman")
-    if engine is None:
-        raise RuntimeError(
-            "NWQ-Sim simulation requires Docker or Podman and the admitted OCI runtime"
-        )
     try:
-        inspected = subprocess.run(
-            [engine, "image", "inspect", "--format", "{{.Id}}", NWQSIM_OCI_IMAGE],
-            check=False,
-            capture_output=True,
-            text=True,
+        engine = select_engine(purpose="NWQ-Sim simulation")
+    except ContainerEngineError as error:
+        raise RuntimeError(str(error)) from error
+    if engine.is_apptainer:
+        return engine, _verified_apptainer_target(
+            engine, NWQSIM_OCI_IMAGE, NWQSIM_OCI_DIGEST
         )
-    except OSError as error:
-        raise RuntimeError("NWQ-Sim OCI runtime inspection failed") from error
-    image_id = (inspected.stdout or "").strip()
-    if inspected.returncode != 0 or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
-        raise RuntimeError(
-            "NWQ-Sim OCI runtime is not installed; run the documented operation-runtime build"
-        )
-    if image_id != NWQSIM_OCI_LOCAL_ID:
-        raise RuntimeError("NWQ-Sim OCI runtime digest does not match the admitted registry")
-    return engine
+    _admit_oci_image_docker(
+        engine, NWQSIM_OCI_IMAGE, NWQSIM_OCI_LOCAL_ID, label="NWQ-Sim"
+    )
+    return engine, NWQSIM_OCI_IMAGE
 
 
 def _nwqsim_parameters(request: TaskRequest) -> tuple[int, int, int]:
@@ -326,7 +343,7 @@ def _run_chatqec_stim_container(
     tool: str,
     arguments: tuple[str, ...] = (),
 ) -> Path:
-    engine = _chatqec_qec_tools_container_engine(request)
+    engine, target = _chatqec_qec_tools_run_target(request)
     input_directory = request.work_directory / "chatqec-stim-input"
     output_directory = request.work_directory / "chatqec-stim-output"
     if input_directory.exists() or output_directory.exists():
@@ -335,29 +352,14 @@ def _run_chatqec_stim_container(
     output_directory.mkdir()
     output_directory.chmod(0o777)
     shutil.copyfile(_input_file(request, "circuit"), input_directory / "circuit.stim")
-    command = [
+    command = run_command(
         engine,
-        "run",
-        "--rm",
-        "--platform",
-        CHATQEC_QEC_TOOLS_OCI_PLATFORM,
-        "--network",
-        "none",
-        "--read-only",
-        "--cap-drop",
-        "ALL",
-        "--security-opt",
-        "no-new-privileges",
-        "--tmpfs",
-        "/tmp:rw,noexec,nosuid,size=16m",
-        "--mount",
-        f"type=bind,src={input_directory},dst=/inputs,readonly",
-        "--mount",
-        f"type=bind,src={output_directory},dst=/outputs",
-        CHATQEC_QEC_TOOLS_OCI_IMAGE,
-        tool,
-        *arguments,
-    ]
+        target,
+        (tool, *arguments),
+        input_bind=(input_directory, "/inputs"),
+        output_bind=(output_directory, "/outputs"),
+        platform=CHATQEC_QEC_TOOLS_OCI_PLATFORM,
+    )
     try:
         completed = subprocess.run(
             command,
@@ -910,7 +912,7 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
 
     def prepare_ftqc_iqm_circuit(request: TaskRequest) -> TaskResult:
         preparation, function_name = _ftqc_container_parameters(request)
-        engine = _ftqc_container_engine(request)
+        engine, target = _ftqc_run_target(request)
         input_directory = request.work_directory / "ftqc-container-input"
         output_directory = request.work_directory / "ftqc-container-output"
         if input_directory.exists() or output_directory.exists():
@@ -921,31 +923,19 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
         shutil.copyfile(
             _input_file(request, "circuit"), input_directory / "circuit.qasm"
         )
-        command = [
+        command = run_command(
             engine,
-            "run",
-            "--rm",
-            "--platform",
-            FTQC_OCI_PLATFORM,
-            "--network",
-            "none",
-            "--read-only",
-            "--cap-drop",
-            "ALL",
-            "--security-opt",
-            "no-new-privileges",
-            "--tmpfs",
-            "/tmp:rw,noexec,nosuid,size=16m",
-            "--mount",
-            f"type=bind,src={input_directory},dst=/inputs,readonly",
-            "--mount",
-            f"type=bind,src={output_directory},dst=/outputs",
-            FTQC_OCI_IMAGE,
-            "--preparation",
-            preparation,
-            "--function-name",
-            function_name,
-        ]
+            target,
+            (
+                "--preparation",
+                preparation,
+                "--function-name",
+                function_name,
+            ),
+            input_bind=(input_directory, "/inputs"),
+            output_bind=(output_directory, "/outputs"),
+            platform=FTQC_OCI_PLATFORM,
+        )
         try:
             completed = subprocess.run(
                 command,
@@ -1049,7 +1039,7 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
 
     def simulate_nwqsim_qasm(request: TaskRequest) -> TaskResult:
         shots, random_seed, max_qubits = _nwqsim_parameters(request)
-        engine = _nwqsim_container_engine(request)
+        engine, target = _nwqsim_run_target(request)
         input_directory = request.work_directory / "nwqsim-container-input"
         output_directory = request.work_directory / "nwqsim-container-output"
         if input_directory.exists() or output_directory.exists():
@@ -1058,33 +1048,21 @@ def build_local_runner(runtime_root: str | Path) -> FunctionRunner:
         output_directory.mkdir()
         output_directory.chmod(0o777)
         shutil.copyfile(_input_file(request, "circuit"), input_directory / "circuit.qasm")
-        command = [
+        command = run_command(
             engine,
-            "run",
-            "--rm",
-            "--platform",
-            NWQSIM_OCI_PLATFORM,
-            "--network",
-            "none",
-            "--read-only",
-            "--cap-drop",
-            "ALL",
-            "--security-opt",
-            "no-new-privileges",
-            "--tmpfs",
-            "/tmp:rw,noexec,nosuid,size=16m",
-            "--mount",
-            f"type=bind,src={input_directory},dst=/inputs,readonly",
-            "--mount",
-            f"type=bind,src={output_directory},dst=/outputs",
-            NWQSIM_OCI_IMAGE,
-            "--shots",
-            str(shots),
-            "--random-seed",
-            str(random_seed),
-            "--max-qubits",
-            str(max_qubits),
-        ]
+            target,
+            (
+                "--shots",
+                str(shots),
+                "--random-seed",
+                str(random_seed),
+                "--max-qubits",
+                str(max_qubits),
+            ),
+            input_bind=(input_directory, "/inputs"),
+            output_bind=(output_directory, "/outputs"),
+            platform=NWQSIM_OCI_PLATFORM,
+        )
         try:
             completed = subprocess.run(
                 command,

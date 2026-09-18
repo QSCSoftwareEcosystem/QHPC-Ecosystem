@@ -25,9 +25,14 @@ from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import ProxyHandler, build_opener
 
+from .container_engine import ContainerEngineError, apptainer_requested, verified_sif
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
 from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
-from .local_images import LocalImageError, ensure_public_images
+from .local_images import (
+    LocalImageError,
+    admitted_source_digest,
+    ensure_public_images,
+)
 from .local_runtime import list_local_runtimes
 from .operation_runtime import (
     OperationRuntimeError,
@@ -440,6 +445,18 @@ def _ftqc_image_id(builder: str) -> str | None:
 def ensure_ftqc_oci_runtime(config: LocalStackConfig, paths: LocalPaths) -> str:
     """Require the exact FTQC OCI image, building it from its pinned contract if needed."""
 
+    if apptainer_requested():
+        # Under Apptainer the FTQC image is acquired by digest as a SIF by
+        # ensure_public_images; there is no daemon build. Confirm that verified
+        # SIF is present rather than invoking an OCI builder.
+        try:
+            verified_sif(FTQC_OCI_IMAGE, admitted_source_digest(FTQC_OCI_IMAGE))
+        except ContainerEngineError as error:
+            raise LocalReleaseError(
+                f"the admitted FTQC Apptainer runtime is unavailable: {error}"
+            ) from error
+        return "available"
+
     try:
         builder = find_oci_builder()
     except OperationRuntimeError as error:
@@ -552,6 +569,12 @@ def _local_image_label(builder: str, image: str, label: str) -> str | None:
 def ensure_chatqec_agent_oci_runtime() -> str:
     """Build the local ChatQEC service image from admitted parent images only."""
 
+    if apptainer_requested():
+        # The containerized ChatQEC agent is a published-port service that has no
+        # Apptainer equivalent; under USE_APPTAINER=1 the supervisor runs the
+        # same citation-backed assistant in-process instead of building it.
+        return "in-process"
+
     try:
         builder = find_oci_builder()
     except OperationRuntimeError as error:
@@ -616,7 +639,7 @@ def remove_stale_chatqec_agent_container(config: LocalStackConfig) -> bool:
     checks to explain.
     """
 
-    if not config.assistant_enabled:
+    if not config.assistant_enabled or apptainer_requested():
         return False
     try:
         builder = find_oci_builder()
@@ -1433,7 +1456,14 @@ def supervise_local(
     cluster_started_by_local = False
     cluster_manifest = ""
     cluster_checkout = ""
-    if config.ecosystem_execution_enabled:
+    # The virtual-Slurm execution fixture is a Docker Compose stack with no
+    # Apptainer equivalent. Under USE_APPTAINER=1 the ecosystem tools run on the
+    # local worker via `apptainer run`, so the Compose cluster and its
+    # virtual-Slurm target worker are not started.
+    slurm_fixture_enabled = (
+        config.ecosystem_execution_enabled and not apptainer_requested()
+    )
+    if slurm_fixture_enabled:
         from .slurm_test_cluster import SlurmDockerCluster
 
         default_manifest, default_checkout = default_slurm_test_cluster_inputs(
@@ -1475,13 +1505,15 @@ def supervise_local(
         chatqec_identity_token=assistant_identity_token,
         qappswiki_graph=config.qappswiki_graph,
         chatqec_container_image=(
-            CHATQEC_AGENT_OCI_IMAGE if config.assistant_enabled else ""
+            CHATQEC_AGENT_OCI_IMAGE
+            if config.assistant_enabled and not apptainer_requested()
+            else ""
         ),
         poll_interval_seconds=config.poll_interval_seconds,
         lease_seconds=config.lease_seconds,
         worker_stale_after_seconds=config.worker_stale_after_seconds,
         start_local_worker=True,
-        start_target_worker=config.ecosystem_execution_enabled,
+        start_target_worker=slurm_fixture_enabled,
         start_workbench=True,
         start_chatqec=config.assistant_enabled,
         start_repository_updates=False,
@@ -1557,7 +1589,7 @@ def supervise_local(
             timeout_seconds=remaining_startup_time(),
         )
         expected_workers = {"eqo-local-worker"}
-        if config.ecosystem_execution_enabled:
+        if slurm_fixture_enabled:
             expected_workers.add("eqo-local-virtual-slurm-worker")
         if config.iqm_worker_enabled:
             expected_workers.add("eqo-local-iqm-worker")

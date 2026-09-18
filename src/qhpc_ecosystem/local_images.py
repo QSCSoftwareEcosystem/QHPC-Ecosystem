@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
+from .container_engine import (
+    apptainer_requested,
+    host_oci_arch,
+    read_locks,
+    sha256_file,
+    sif_path_for,
+    sif_store_dir,
+    write_lock_entry,
+)
 from .local_assets import asset_path
 
 
@@ -113,6 +124,25 @@ def load_public_images(path: str | Path | None = None) -> tuple[PublicImage, ...
     return tuple(images)
 
 
+def admitted_source_digest(
+    local_reference: str, *, manifest: str | Path | None = None
+) -> str:
+    """Return the immutable ``sha256:`` source pull digest for a local reference.
+
+    This is the digest by which the image is fetched (``…@sha256:``) and the
+    identity Apptainer verifies at pull time — distinct from a manifest
+    ``local_id`` (the Docker daemon's content id, which a SIF has no equivalent
+    of). Apptainer admission verifies a SIF against this value.
+    """
+
+    for image in load_public_images(manifest):
+        if image.local_reference == local_reference:
+            return image.source.split("@", 1)[1]
+    raise LocalImageError(
+        f"no admitted image for local reference: {local_reference}"
+    )
+
+
 def _run(
     command: Sequence[str],
     *,
@@ -164,18 +194,194 @@ def _local_image_id(
     return value
 
 
+def _apptainer_arch(platform: str) -> str:
+    """Map an OCI ``os/arch`` platform onto Apptainer's ``--arch`` value."""
+
+    return platform.split("/", 1)[1] if "/" in platform else platform
+
+
+def _warn_on_arch_mismatch(images: Sequence[PublicImage]) -> None:
+    """Warn once when this host cannot natively run the admitted image set.
+
+    ``apptainer pull --arch`` always names the admitted image's architecture
+    (see :func:`_apptainer_arch`), so acquisition succeeds regardless of the
+    host processor. But Apptainer has no build-time emulation the way Docker
+    Desktop does; running a mismatched-arch SIF later fails with a bare
+    "exec format error" deep inside a workflow run. Surface that up front,
+    keyed off the actual host OS/processor, instead.
+    """
+
+    host_arch = host_oci_arch()
+    image_arches = sorted({_apptainer_arch(image.platform) for image in images})
+    if host_arch in image_arches:
+        return
+    print(
+        f"[EQO] Apptainer is running on a '{host_arch}' processor, but the "
+        f"admitted EQO image set targets {', '.join(image_arches)} only. "
+        "Pulling proceeds by explicit --arch, but executing these tools will "
+        "fail with an 'exec format error' unless the Linux environment that "
+        "runs Apptainer (a VM such as Lima/UTM, or the host itself) has that "
+        "architecture's qemu-user/binfmt emulation registered. See "
+        "docs/public-image-distribution.md for Apptainer distribution notes.",
+        file=sys.stderr,
+    )
+
+
+def _apptainer_pull_environment() -> dict[str, str]:
+    """Return the environment for Apptainer's OCI-to-SIF pull.
+
+    Apptainer unpacks a full container rootfs under its temp directory before
+    packing the SIF, which routinely exceeds the size of a small or
+    memory-backed ``/tmp`` (the default on many HPC login nodes and on a
+    tmpfs-backed Linux VM). An operator or scheduler may already point
+    ``APPTAINER_TMPDIR`` at suitable node-local scratch, and that choice is
+    left untouched; otherwise this defaults it to ``/var/tmp``, conventionally
+    larger and longer-lived than a tmpfs ``/tmp``. Apptainer's own precedence
+    always prefers ``APPTAINER_TMPDIR`` over the generic ``TMPDIR``, so
+    setting it here does not fight a real site configuration — and the
+    generic variable is deliberately *not* treated as configuration by
+    itself: macOS (and many shells) export a per-session ``TMPDIR`` on every
+    process, including one that only crosses into Apptainer's actual Linux
+    environment through a VM wrapper, where that host-side path does not
+    exist and Apptainer has been observed to silently fall back to ``/tmp``.
+
+    This also never defaults to a path under the user's home directory:
+    unpacking a rootfs preserves POSIX xattrs, and a home directory is
+    routinely a network mount (common on HPC login nodes) or, for an
+    Apptainer-in-a-VM setup, a virtiofs share from the host — neither of
+    which reliably supports them.
+    """
+
+    environment = dict(os.environ)
+    if not environment.get("APPTAINER_TMPDIR"):
+        environment["APPTAINER_TMPDIR"] = "/var/tmp"
+    return environment
+
+
+def _run_apptainer(
+    command: Sequence[str],
+    *,
+    runner: Runner,
+    capture_output: bool,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        result = runner(
+            list(command),
+            check=False,
+            text=True,
+            capture_output=capture_output,
+            env=env,
+        )
+    except OSError as error:
+        raise LocalImageError(
+            "Apptainer is required to install EQO Local SIF images "
+            "(requested via USE_APPTAINER=1); install Apptainer first"
+        ) from error
+    if result.returncode:
+        detail = (result.stderr or "").strip()
+        suffix = f": {detail}" if detail else ""
+        raise LocalImageError(f"Apptainer command failed: {' '.join(command)}{suffix}")
+    return result
+
+
+def _ensure_public_sifs(
+    *,
+    manifest: str | Path | None,
+    runner: Runner,
+    apptainer: str,
+) -> tuple[ImageInstallResult, ...]:
+    """Pull each admitted image into a verified SIF by its immutable digest.
+
+    Identity is guaranteed by pulling ``docker://…@sha256:`` by digest. The
+    resulting SIF hash is recorded in the cache-side lock so a reuse can detect
+    local tampering (a SIF is not byte-reproducible, so no fixed hash is pinned
+    in the committed manifest).
+    """
+
+    images = load_public_images(manifest)
+    _warn_on_arch_mismatch(images)
+    store = sif_store_dir()
+    store.mkdir(parents=True, exist_ok=True)
+    pull_environment = _apptainer_pull_environment()
+    locks = read_locks()
+    results: list[ImageInstallResult] = []
+    for image in images:
+        source_digest = image.source.split("@", 1)[1]
+        sif = sif_path_for(image.id)
+        entry = locks.get(image.local_reference)
+        if (
+            sif.is_file()
+            and entry is not None
+            and entry.get("source_digest") == source_digest
+            and entry.get("sif_sha256") == sha256_file(sif)
+        ):
+            results.append(
+                ImageInstallResult(
+                    id=image.id,
+                    local_reference=image.local_reference,
+                    action="reused",
+                )
+            )
+            continue
+
+        _run_apptainer(
+            [
+                apptainer,
+                "pull",
+                "--force",
+                "--arch",
+                _apptainer_arch(image.platform),
+                str(sif),
+                f"docker://{image.source}",
+            ],
+            runner=runner,
+            capture_output=False,
+            env=pull_environment,
+        )
+        if not sif.is_file():
+            raise LocalImageError(
+                f"Apptainer pull did not produce a SIF for {image.local_reference}"
+            )
+        digest = sha256_file(sif)
+        write_lock_entry(
+            image.local_reference,
+            image_id=image.id,
+            source=image.source,
+            source_digest=source_digest,
+            sif_path=sif,
+            sif_sha256=digest,
+        )
+        results.append(
+            ImageInstallResult(
+                id=image.id,
+                local_reference=image.local_reference,
+                action="installed",
+            )
+        )
+    return tuple(results)
+
+
 def ensure_public_images(
     *,
     manifest: str | Path | None = None,
     runner: Runner = subprocess.run,
     docker: str = "docker",
+    apptainer: str = "apptainer",
 ) -> tuple[ImageInstallResult, ...]:
     """Install only absent or mismatched admitted images, then verify all IDs.
 
     Every network request names a GHCR digest recorded in the reviewed release
-    manifest. A tag is applied locally only after that immutable payload has
-    been downloaded. No mutable tag or host-native fallback is used.
+    manifest. Under Docker (the default) a tag is applied locally only after that
+    immutable payload has been downloaded. Under ``USE_APPTAINER=1`` each image is
+    pulled by digest into a verified SIF. No mutable tag or host-native fallback
+    is used by either path.
     """
+
+    if apptainer_requested():
+        return _ensure_public_sifs(
+            manifest=manifest, runner=runner, apptainer=apptainer
+        )
 
     results: list[ImageInstallResult] = []
     for image in load_public_images(manifest):
