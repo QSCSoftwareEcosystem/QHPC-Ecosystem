@@ -13,10 +13,14 @@ EQO operations built on an Apple Silicon M2 host:
 | `ghcr.io/qscsoftwareecosystem/eqo-nwqsim:0.1.0-linux-arm64` | NWQ-Sim CPU simulation | `b35763d846e6512ed817d3f88ac8ce79a7e82a7e` |
 | `ghcr.io/qscsoftwareecosystem/eqo-ftqc:0.1.0-linux-arm64` | FTQC IQM preparation | `779216de8805ea0c1d473c640eaf17d6cbfa04e8` |
 
-These are **unsigned internal-alpha candidates**. They were not pushed to a
-registry, made public, added to the admitted public image manifest, or marked
-released. **signature pending approved QSC release identity.** No Cosign key
-was generated and no credential was read or exposed.
+These are **unsigned internal-alpha candidates**. The exact attested OCI
+archives were published under the versioned names above, with the OCI indexes
+shown below. The organization packages currently have public visibility, so
+those immutable objects are publicly retrievable; that visibility does **not**
+make them a signed EQO release or add them to the default public image manifest.
+They are admitted only through the explicit Linux/ARM64 Apptainer alpha opt-in
+(`USE_APPTAINER=1 EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1`). **Signature pending
+approved QSC release identity.** No Cosign key was generated.
 
 QFw-SLURM, virtual Slurm, and every other Docker fixture are outside this
 ARM64 candidate scope.
@@ -45,10 +49,10 @@ The contract verifies them before the OCI build begins.
 
 ## OCI archives and attestations
 
-The archives are local-only, attested OCI layout tarballs under
-`.development/arm64-internal-alpha/archives/`. The listed subject manifest is
-the future immutable registry identity if the exact candidate is published;
-it is **not** a GHCR digest yet.
+The source archives remain local attested OCI layout tarballs under
+`.development/arm64-internal-alpha/archives/`. The listed OCI indexes are the
+published immutable GHCR index digests; their ARM64 subject manifests remain
+the attestation subjects.
 
 | Candidate | Subject manifest | OCI index | Archive SHA-256 | SPDX SBOM | SLSA provenance |
 | --- | --- | --- | --- | --- | --- |
@@ -99,5 +103,5 @@ this non-clean full upstream-suite result remains a release limitation.
 
 Promotion requires an approved QSC Cosign identity (managed key or approved
 keyless GitHub OIDC workflow), signature creation and verification, review of
-the FTQC suite finding, immutable GHCR publication, anonymous digest-pull
-verification, and only then an admitted platform-specific installer entry.
+the FTQC suite finding, anonymous digest-pull verification, and only then a
+signed, admitted platform-specific installer entry.

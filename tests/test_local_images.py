@@ -127,6 +127,34 @@ def test_linux_arm64_refuses_an_amd64_only_admitted_release_set(
     assert commands == []
 
 
+def test_unsigned_arm64_alpha_manifest_requires_explicit_native_opt_in(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, "1")
+    monkeypatch.setattr(local_images.sys, "platform", "linux")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+
+    images = load_public_images()
+
+    assert {image.id for image in images} == {
+        "stim-arm64-alpha",
+        "nwqsim-arm64-alpha",
+        "ftqc-arm64-alpha",
+    }
+    assert {image.platform for image in images} == {"linux/arm64"}
+    assert all("linux-arm64-alpha" in image.local_reference for image in images)
+
+
+def test_unsigned_arm64_alpha_environment_rejects_other_hosts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, "1")
+    monkeypatch.setattr(local_images.sys, "platform", "darwin")
+
+    with pytest.raises(LocalImageError, match="supported only on Linux/ARM64"):
+        ensure_public_images(manifest=write_manifest(tmp_path)[0])
+
+
 def apptainer_runner(commands: list[list[str]]):
     def run(command, **_kwargs):
         commands.append(command)
@@ -276,7 +304,7 @@ def test_ensure_public_images_warns_on_apptainer_arch_mismatch(
 ) -> None:
     monkeypatch.setenv("USE_APPTAINER", "1")
     monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
-    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "ppc64le")
     manifest, _digest = write_manifest(tmp_path)
     commands: list[list[str]] = []
 
@@ -287,6 +315,18 @@ def test_ensure_public_images_warns_on_apptainer_arch_mismatch(
     ]
     assert commands, "the pull still proceeds despite the arch mismatch"
     warning = capsys.readouterr().err
-    assert "arm64" in warning
+    assert "ppc64le" in warning
     assert "amd64" in warning
     assert "exec format error" in warning
+
+
+def test_ensure_public_images_refuses_unsigned_arm64_candidates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+    monkeypatch.setattr(local_images.sys, "platform", "linux")
+    manifest, _digest = write_manifest(tmp_path)
+
+    with pytest.raises(LocalImageError, match="ARM64 internal-alpha candidates remain unsigned"):
+        ensure_public_images(manifest=manifest, runner=apptainer_runner([]))

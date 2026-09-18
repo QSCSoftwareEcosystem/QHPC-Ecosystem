@@ -47,6 +47,31 @@ binfmt-support` on Debian/Ubuntu). On macOS this means the Linux VM or
 container that hosts Apptainer (for example a Lima instance) needs that
 emulation enabled, not the host itself.
 
+### Explicit unsigned Linux/ARM64 internal alpha
+
+Three native ARM64 operation images (Stim, NWQ-Sim CPU, and FTQC preparation)
+are available only for internal alpha evaluation. They have immutable OCI
+digests plus SBOM and provenance attestations, but do **not** have an approved
+QSC Cosign signature and are not part of the default release image manifest.
+They must not be treated as a public release, facility-HPC runtime, or a
+general first-user installation path.
+
+On a native Linux/ARM64 environment with an Apptainer installation that permits
+an isolated network namespace, an evaluator may opt in explicitly:
+
+```bash
+USE_APPTAINER=1 EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1 eqo local up --open
+```
+
+EQO refuses that flag on any other platform and also refuses it without
+`USE_APPTAINER=1`. It writes a per-user derived registry at
+`~/.config/eqo/registry-arm64-unsigned-alpha.yaml`, reports the
+`unsigned-internal-alpha` channel in `eqo local status`, and records the ARM64
+immutable OCI index digest in every affected runtime record. The normal
+installer remains AMD64-only. See the
+[ARM64 evidence record](evidence/arm64-operation-images-internal-alpha-2026-09-18.md)
+for the exact scope and release gates.
+
 ## External tester installation
 
 Install Docker Desktop (or a compatible Docker engine), clone the EQO source

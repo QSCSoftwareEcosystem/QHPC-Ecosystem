@@ -25,7 +25,7 @@ from .container_engine import (
     verified_sif,
 )
 from .engine import ArtifactResult, FunctionRunner, TaskRequest, TaskResult
-from .local_images import admitted_source_digest
+from .local_images import admitted_source_digest, unsigned_arm64_alpha_enabled
 from .local_runtime import resolve_native_runtime, resolve_wheel_runtime
 
 
@@ -46,6 +46,7 @@ FTQC_OCI_DIGEST = "sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e61873
 FTQC_OCI_REFERENCE = f"docker://qhpc/ftqc@{FTQC_OCI_DIGEST}"
 FTQC_OCI_IMAGE = "qhpc/ftqc:779216de-linux-amd64"
 FTQC_OCI_PLATFORM = "linux/amd64"
+FTQC_OCI_LOCAL_ID = FTQC_OCI_DIGEST
 CHATQEC_QEC_TOOLS_OCI_DIGEST = (
     "sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c"
 )
@@ -62,6 +63,27 @@ NWQSIM_OCI_REFERENCE = (
 NWQSIM_OCI_IMAGE = "qhpc/nwqsim:0.1.0-linux-amd64"
 NWQSIM_OCI_LOCAL_ID = "sha256:9e0dfb6168bd03d98165315144150a386314e855c4aacf206da76116a0b8c5bc"
 NWQSIM_OCI_PLATFORM = "linux/amd64"
+
+# This profile is deliberately process-local and opt-in.  The unsigned ARM64
+# images are for internal alpha evaluation only; a signed public release keeps
+# the normal defaults above.  The runtime digest remains the remotely published
+# OCI index digest, while Docker admission uses its distinct config digest.
+if unsigned_arm64_alpha_enabled():
+    FTQC_OCI_DIGEST = "sha256:a97fb05603b1b8ee370ad04096798c1cbaa397135877b0bdf8428a7d08a70f37"
+    FTQC_OCI_REFERENCE = f"docker://ghcr.io/qscsoftwareecosystem/eqo-ftqc@{FTQC_OCI_DIGEST}"
+    FTQC_OCI_IMAGE = "qhpc/ftqc:0.1.0-linux-arm64-alpha"
+    FTQC_OCI_LOCAL_ID = "sha256:da459bebf51c527ffea750a8ed96c7896a4245160b5235643896cdb66aa6208c"
+    FTQC_OCI_PLATFORM = "linux/arm64"
+    CHATQEC_QEC_TOOLS_OCI_DIGEST = "sha256:f0efb9d55beebb4a691553eceab064846159ee4056552f138ce1582a564daa75"
+    CHATQEC_QEC_TOOLS_OCI_REFERENCE = f"docker://ghcr.io/qscsoftwareecosystem/eqo-stim@{CHATQEC_QEC_TOOLS_OCI_DIGEST}"
+    CHATQEC_QEC_TOOLS_OCI_IMAGE = "qhpc/stim:0.1.0-linux-arm64-alpha"
+    CHATQEC_QEC_TOOLS_OCI_LOCAL_ID = "sha256:3a1c74e249997c7c35490b1d01db67e772d80ac9fe56b13d0088e3e93556c05d"
+    CHATQEC_QEC_TOOLS_OCI_PLATFORM = "linux/arm64"
+    NWQSIM_OCI_DIGEST = "sha256:1afbab53b85670d02053366fb3fd1c0e796d35f9353cc0a2b53da33d274cb8dd"
+    NWQSIM_OCI_REFERENCE = f"docker://ghcr.io/qscsoftwareecosystem/eqo-nwqsim@{NWQSIM_OCI_DIGEST}"
+    NWQSIM_OCI_IMAGE = "qhpc/nwqsim:0.1.0-linux-arm64-alpha"
+    NWQSIM_OCI_LOCAL_ID = "sha256:795e051599836e4980e0343d17c0d60c3d9c98298a860091f5d37ae110e15599"
+    NWQSIM_OCI_PLATFORM = "linux/arm64"
 _MAX_CHATQEC_SVG_BYTES = 10 * 1024 * 1024
 _FORBIDDEN_SVG_ELEMENTS = {
     "animate",
@@ -181,7 +203,7 @@ def _ftqc_run_target(request: TaskRequest) -> tuple[ContainerEngine, str]:
             engine, FTQC_OCI_IMAGE, admitted_source_digest(FTQC_OCI_IMAGE)
         )
     _admit_oci_image_docker(
-        engine, FTQC_OCI_IMAGE, request.runtime_digest, label="FTQC"
+        engine, FTQC_OCI_IMAGE, FTQC_OCI_LOCAL_ID, label="FTQC"
     )
     return engine, FTQC_OCI_IMAGE
 

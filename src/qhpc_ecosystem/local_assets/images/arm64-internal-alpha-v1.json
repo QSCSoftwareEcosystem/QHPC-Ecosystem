@@ -1,0 +1,10 @@
+{
+  "api_version": "eqo.local-images/v1",
+  "platform": "linux/arm64",
+  "release_channel": "unsigned-internal-alpha",
+  "images": [
+    {"id": "stim-arm64-alpha", "source": "ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:f0efb9d55beebb4a691553eceab064846159ee4056552f138ce1582a564daa75", "local_reference": "qhpc/stim:0.1.0-linux-arm64-alpha", "local_id": "sha256:3a1c74e249997c7c35490b1d01db67e772d80ac9fe56b13d0088e3e93556c05d"},
+    {"id": "nwqsim-arm64-alpha", "source": "ghcr.io/qscsoftwareecosystem/eqo-nwqsim@sha256:1afbab53b85670d02053366fb3fd1c0e796d35f9353cc0a2b53da33d274cb8dd", "local_reference": "qhpc/nwqsim:0.1.0-linux-arm64-alpha", "local_id": "sha256:795e051599836e4980e0343d17c0d60c3d9c98298a860091f5d37ae110e15599"},
+    {"id": "ftqc-arm64-alpha", "source": "ghcr.io/qscsoftwareecosystem/eqo-ftqc@sha256:a97fb05603b1b8ee370ad04096798c1cbaa397135877b0bdf8428a7d08a70f37", "local_reference": "qhpc/ftqc:0.1.0-linux-arm64-alpha", "local_id": "sha256:da459bebf51c527ffea750a8ed96c7896a4245160b5235643896cdb66aa6208c"}
+  ]
+}

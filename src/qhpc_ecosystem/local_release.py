@@ -17,7 +17,7 @@ import tempfile
 import time
 import uuid
 import webbrowser
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from threading import Event
 from typing import Any, Mapping, Sequence
@@ -26,13 +26,16 @@ from urllib.parse import urlparse
 from urllib.request import ProxyHandler, build_opener
 
 from .container_engine import ContainerEngineError, apptainer_requested, verified_sif
+from .contract import document_digest
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
 from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
 from .local_images import (
     LocalImageError,
     admitted_source_digest,
     ensure_public_images,
+    unsigned_arm64_alpha_enabled,
 )
+from .registry import load_document, write_registry
 from .local_runtime import list_local_runtimes
 from .operation_runtime import (
     OperationRuntimeError,
@@ -58,6 +61,21 @@ _CHATQEC_AGENT_INPUTS = (
     "src/qhpc_ecosystem/chatqec_readiness.py",
     "src/qhpc_ecosystem/chatqec_agent_service.py",
 )
+
+_ARM64_ALPHA_RUNTIME_REPLACEMENTS = {
+    "docker://qhpc/ftqc@sha256:710cac493de63ca727a38ba55bbf80329511f16295951312e618732189dd51ac": (
+        "docker://ghcr.io/qscsoftwareecosystem/eqo-ftqc@sha256:a97fb05603b1b8ee370ad04096798c1cbaa397135877b0bdf8428a7d08a70f37",
+        "sha256:a97fb05603b1b8ee370ad04096798c1cbaa397135877b0bdf8428a7d08a70f37",
+    ),
+    "docker://ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:4daf23c6253a6ddd3fe36e6f1b6d2e4ac8c655d4d8c1aad8c74a9fc6481e434c": (
+        "docker://ghcr.io/qscsoftwareecosystem/eqo-stim@sha256:f0efb9d55beebb4a691553eceab064846159ee4056552f138ce1582a564daa75",
+        "sha256:f0efb9d55beebb4a691553eceab064846159ee4056552f138ce1582a564daa75",
+    ),
+    "docker://ghcr.io/qscsoftwareecosystem/eqo-nwqsim@sha256:80200dfd967c5575b6ca8cf1a71a071ff6aaa03500564d0b412f71d3671f6bbf": (
+        "docker://ghcr.io/qscsoftwareecosystem/eqo-nwqsim@sha256:1afbab53b85670d02053366fb3fd1c0e796d35f9353cc0a2b53da33d274cb8dd",
+        "sha256:1afbab53b85670d02053366fb3fd1c0e796d35f9353cc0a2b53da33d274cb8dd",
+    ),
+}
 
 
 class LocalReleaseError(RuntimeError):
@@ -354,6 +372,68 @@ class LocalStackConfig:
             "worker_stale_after_seconds": self.worker_stale_after_seconds,
             "restart_delay_seconds": self.restart_delay_seconds,
         }
+
+
+def _arm64_alpha_registry_config(
+    config: LocalStackConfig, paths: LocalPaths
+) -> LocalStackConfig:
+    """Materialize the explicit unsigned ARM64-alpha runtime registry.
+
+    The checked-in registry remains the signed/default release contract.  This
+    per-user derivative changes only exact OCI runtime identities, making the
+    alpha boundary visible in the local configuration and task provenance.
+    """
+
+    if not unsigned_arm64_alpha_enabled():
+        return config
+    if not apptainer_requested():
+        raise LocalReleaseError(
+            "EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1 requires USE_APPTAINER=1; "
+            "the unsigned ARM64 internal alpha is supported only through the "
+            "isolated Apptainer path"
+        )
+
+    try:
+        document = load_document(config.registry)
+    except Exception as error:
+        raise LocalReleaseError(
+            f"cannot read the registry required for the ARM64 internal alpha: {config.registry}"
+        ) from error
+
+    replacements = 0
+
+    def visit(value: Any) -> None:
+        nonlocal replacements
+        if isinstance(value, dict):
+            runtime = value.get("runtime")
+            if isinstance(runtime, dict):
+                reference = runtime.get("reference")
+                replacement = _ARM64_ALPHA_RUNTIME_REPLACEMENTS.get(reference)
+                if replacement is not None:
+                    runtime["reference"], runtime["digest"] = replacement
+                    replacements += 1
+            for nested in value.values():
+                visit(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                visit(nested)
+
+    visit(document)
+    if replacements < 3:
+        raise LocalReleaseError(
+            "the registry does not contain all admitted FTQC, Stim, and NWQ-Sim "
+            "runtime identities required by the ARM64 internal alpha"
+        )
+    entries = document.get("spec", {}).get("entries", [])
+    if not isinstance(entries, list):
+        raise LocalReleaseError("the ARM64 internal-alpha registry has invalid entries")
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("capability"), dict):
+            raise LocalReleaseError("the ARM64 internal-alpha registry has invalid capability entries")
+        entry["descriptor_digest"] = document_digest(entry["capability"])
+    destination = paths.config_root / "registry-arm64-unsigned-alpha.yaml"
+    write_registry(destination, document)
+    return replace(config, registry=str(destination))
 
 
 def _write_json(path: Path, document: Mapping[str, Any]) -> None:
@@ -1187,6 +1267,8 @@ def state_document(
         "artifact_root": str(paths.artifact_root),
         "log_file": str(paths.log_file),
     }
+    if unsigned_arm64_alpha_enabled():
+        document["release_channel"] = "unsigned-internal-alpha"
     if database_schema_version is not None:
         document["database_schema_version"] = database_schema_version
     if database_backup:
@@ -1300,6 +1382,7 @@ def launch_local(
     require_available_ports(config)
     require_storage_capacity(paths)
     paths.ensure()
+    config = _arm64_alpha_registry_config(config, paths)
     try:
         ensure_public_images()
     except LocalImageError as error:
@@ -1663,6 +1746,9 @@ def format_status(report: Mapping[str, Any]) -> str:
     version = report.get("release_version")
     if version:
         lines.append(f"Release: {version}")
+    channel = report.get("release_channel")
+    if channel:
+        lines.append(f"Channel: {channel}")
     endpoints = report.get("endpoints")
     if isinstance(endpoints, dict) and endpoints.get("workbench"):
         lines.append(f"Workbench: {endpoints['workbench']}")
