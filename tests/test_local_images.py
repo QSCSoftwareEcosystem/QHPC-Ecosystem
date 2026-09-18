@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 import qhpc_ecosystem.container_engine as container_engine
+import qhpc_ecosystem.local_images as local_images
 from qhpc_ecosystem.local_images import (
     LocalImageError,
     ensure_public_images,
@@ -110,6 +111,20 @@ def test_ensure_public_images_pulls_and_tags_a_missing_image(tmp_path: Path) -> 
         ["docker", "tag", source, "qhpc/test:1.0"],
         ["docker", "image", "inspect", "--format", "{{.Id}}", "qhpc/test:1.0"],
     ]
+
+
+def test_linux_arm64_refuses_an_amd64_only_admitted_release_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, _digest = write_manifest(tmp_path)
+    commands: list[list[str]] = []
+    monkeypatch.setattr(local_images.sys, "platform", "linux")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+
+    with pytest.raises(LocalImageError, match="no admitted public EQO Linux/ARM64"):
+        ensure_public_images(manifest=manifest, runner=docker_runner({}, commands))
+
+    assert commands == []
 
 
 def apptainer_runner(commands: list[list[str]]):
