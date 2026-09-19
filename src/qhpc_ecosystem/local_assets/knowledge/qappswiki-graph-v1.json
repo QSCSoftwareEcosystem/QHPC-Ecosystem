@@ -1,9 +1,9 @@
 {
   "schema_version": "qappswiki-graph-0",
-  "generated": "2026-09-15",
+  "generated": "2026-09-18",
   "stats": {
-    "nodes": 1413,
-    "edges": 4660,
+    "nodes": 1432,
+    "edges": 4702,
     "by_type": {
       "operating-manual": 2,
       "project-plan": 1,
@@ -15,32 +15,25 @@
       "index": 1,
       "integration": 1,
       "activity-log": 1,
-      "package": 5,
+      "package": 14,
       "source": 3,
       "schema": 1,
-      "external": 702
+      "external": 712
     },
     "by_confidence": {
-      "EXTRACTED": 4657,
+      "EXTRACTED": 4699,
       "INFERRED": 3
     },
-    "communities": 9,
-    "modularity": 0.4146
+    "communities": 10,
+    "modularity": 0.4262
   },
   "communities": [
     {
       "index": 0,
       "label": "quantum-error-correction",
-      "size": 179,
+      "size": 100,
       "members": [
-        "concepts/qec/1d-stabilizer",
         "concepts/qec/2d-bosonization",
-        "concepts/qec/2t-qutrit",
-        "concepts/qec/ae",
-        "concepts/qec/ampdamp-post-selected",
-        "concepts/qec/analog-repetition",
-        "concepts/qec/analog-stabilizer",
-        "concepts/qec/approximate-log-depth",
         "concepts/qec/aqm",
         "concepts/qec/bare-7-1-3",
         "concepts/qec/bb108",
@@ -48,42 +41,22 @@
         "concepts/qec/bb5",
         "concepts/qec/bb72",
         "concepts/qec/bb90",
-        "concepts/qec/binary-dihedral-permutation-invariant",
-        "concepts/qec/binomial",
         "concepts/qec/bksf",
         "concepts/qec/bkt",
         "concepts/qec/bosonic-classical-into-quantum",
-        "concepts/qec/bosonic-q-ary-expansion",
-        "concepts/qec/bosonic-rotation",
         "concepts/qec/bvc",
-        "concepts/qec/cat",
-        "concepts/qec/cat-concatenated",
-        "concepts/qec/cat-repetition",
-        "concepts/qec/chebyshev",
-        "concepts/qec/chi2",
         "concepts/qec/classical-into-quantum",
-        "concepts/qec/clifford-qsc",
-        "concepts/qec/coherent-constellation",
         "concepts/qec/coherent-state-c-q",
-        "concepts/qec/coherent-state-repetition",
-        "concepts/qec/combinatorial-permutation-invariant",
         "concepts/qec/concatenated-c-q",
-        "concepts/qec/constant-excitation-permutation-invariant",
-        "concepts/qec/css",
-        "concepts/qec/current-mirror",
-        "concepts/qec/cv-cluster-state",
+        "concepts/qec/cpc",
+        "concepts/qec/cubic-surface",
         "concepts/qec/derby-klassen",
-        "concepts/qec/dfour-gkp",
-        "concepts/qec/diatomic-molecular",
-        "concepts/qec/ea-3-1-3-2",
-        "concepts/qec/ea-analog-stabilizer",
         "concepts/qec/ea-classical-into-quantum",
         "concepts/qec/ea-design-qldpc",
         "concepts/qec/ea-galois-into-galois",
         "concepts/qec/ea-galois-stabilizer",
         "concepts/qec/ea-mds",
         "concepts/qec/ea-mixed-alphabet-reed-solomon",
-        "concepts/qec/ea-oscillators",
         "concepts/qec/ea-pg-qldpc",
         "concepts/qec/ea-qc-qldpc",
         "concepts/qec/ea-qldpc",
@@ -91,126 +64,74 @@
         "concepts/qec/ea-quantum-lcd",
         "concepts/qec/ea-qubits-into-qubits",
         "concepts/qec/ea-turbo",
-        "concepts/qec/eaoecc",
-        "concepts/qec/eaqecc",
+        "concepts/qec/eaoa-hamming",
+        "concepts/qec/eaoa-qubits-into-qubits",
+        "concepts/qec/eaoa-stabilizer",
         "concepts/qec/eastab",
-        "concepts/qec/fermions",
         "concepts/qec/fermions-into-qubits",
-        "concepts/qec/fiber",
         "concepts/qec/five-squares",
-        "concepts/qec/fock-state",
         "concepts/qec/fock-state-ook",
         "concepts/qec/four-dimensional-hyperbolic",
-        "concepts/qec/four-qubit-permutation-invariant",
-        "concepts/qec/fourier-bosonic",
-        "concepts/qec/gkp",
-        "concepts/qec/gkp-cluster-state",
-        "concepts/qec/gkp-stabilizer",
-        "concepts/qec/gnu-permutation-invariant",
+        "concepts/qec/generalized-shor",
         "concepts/qec/golden",
         "concepts/qec/gross",
-        "concepts/qec/group-gkp",
-        "concepts/qec/group-representation",
-        "concepts/qec/hessian-qsc",
-        "concepts/qec/hexagonal-gkp",
-        "concepts/qec/hnss",
-        "concepts/qec/homogeneous-space-quantum",
-        "concepts/qec/homological-number-phase",
-        "concepts/qec/homological-rotor",
+        "concepts/qec/holographic-6-1-3",
+        "concepts/qec/hybrid-7-1-1-3",
         "concepts/qec/hybrid-8-2-1-3",
-        "concepts/qec/hybrid-cat",
+        "concepts/qec/hybrid-bacon-shor",
         "concepts/qec/hybrid-convolutional",
         "concepts/qec/hybrid-qubits-into-qubits",
-        "concepts/qec/hybrid-qudit-oscillator",
+        "concepts/qec/hybrid-stabilizer",
         "concepts/qec/hybridqecc",
-        "concepts/qec/icosahedral-fock",
-        "concepts/qec/icosahedral-permutation-invariant",
-        "concepts/qec/icosahedral-spin",
-        "concepts/qec/j-gross",
         "concepts/qec/jw",
-        "concepts/qec/knill",
-        "concepts/qec/landau-level",
-        "concepts/qec/lca-stabilizer",
         "concepts/qec/lhz",
-        "concepts/qec/lloyd-slotine",
         "concepts/qec/maximal-entanglement-galois-stabilizer",
-        "concepts/qec/metrological",
         "concepts/qec/mlsc",
-        "concepts/qec/molecular",
-        "concepts/qec/multimodegkp",
-        "concepts/qec/niset-andersen-cerf",
-        "concepts/qec/ntru-gkp",
-        "concepts/qec/number-phase",
-        "concepts/qec/oecc",
-        "concepts/qec/okada",
-        "concepts/qec/oscillator-css",
-        "concepts/qec/oscillator-stabilizer",
-        "concepts/qec/oscillators",
-        "concepts/qec/oscillators-concatenated",
-        "concepts/qec/oscillators-into-oscillators",
-        "concepts/qec/paircat",
-        "concepts/qec/pauli-qsc",
-        "concepts/qec/penrose",
-        "concepts/qec/permutation-invariant",
-        "concepts/qec/pg-qldpc",
+        "concepts/qec/non-stabilizer",
+        "concepts/qec/oa-qubits-into-qubits",
         "concepts/qec/polar-for-quantum",
         "concepts/qec/purity-testing",
         "concepts/qec/qcga",
-        "concepts/qec/qecc",
         "concepts/qec/qetc",
         "concepts/qec/qetc-7-2",
-        "concepts/qec/qsc",
+        "concepts/qec/quantum-bch",
         "concepts/qec/quantum-bpsk",
         "concepts/qec/quantum-convolutional",
         "concepts/qec/quantum-fsk",
-        "concepts/qec/quantum-gabidulin",
+        "concepts/qec/quantum-goethals-preparata",
         "concepts/qec/quantum-hadamard-bpsk",
         "concepts/qec/quantum-hamming",
         "concepts/qec/quantum-into-quantum",
         "concepts/qec/quantum-irregular-convolutional",
-        "concepts/qec/quantum-lattice",
         "concepts/qec/quantum-ook",
         "concepts/qec/quantum-ppm",
         "concepts/qec/quantum-psk",
-        "concepts/qec/quantum-repetition",
-        "concepts/qec/quantum-sidelnikov",
+        "concepts/qec/quantum-quasi-cyclic",
+        "concepts/qec/quantum-synchronizable",
         "concepts/qec/quantum-turbo",
+        "concepts/qec/quasi-cyclic-qldpc",
         "concepts/qec/qubit-classical-into-quantum",
-        "concepts/qec/qubit-permutation-invariant",
-        "concepts/qec/qudit-cubic",
-        "concepts/qec/qudit-gnu-permutation-invariant",
-        "concepts/qec/qudits-into-oscillators",
-        "concepts/qec/qutrit-pauli-gkp-subcode",
-        "concepts/qec/rg-cat",
-        "concepts/qec/rotor-4-2-2",
-        "concepts/qec/single-mode",
-        "concepts/qec/single-spin",
-        "concepts/qec/spin-cat",
-        "concepts/qec/spin-gkp",
-        "concepts/qec/squeezed-cat",
-        "concepts/qec/squeezed-coherent-bpsk",
-        "concepts/qec/squeezed-fock-state",
-        "concepts/qec/squeezed-vacuum",
-        "concepts/qec/sslp",
-        "concepts/qec/stab-5-1-2-convolutional",
+        "concepts/qec/qubit-stabilizer",
+        "concepts/qec/qubit-stabilizer-oaqecc",
+        "concepts/qec/qubit-subsystem-stabilizer",
+        "concepts/qec/rhombic-dodecahedron-surface",
+        "concepts/qec/ring-cpc",
+        "concepts/qec/shyps",
+        "concepts/qec/spacetime-circuit",
+        "concepts/qec/stab-6-1-3",
         "concepts/qec/stab-8-3-3",
-        "concepts/qec/stabilizer",
-        "concepts/qec/su3-sigma360",
-        "concepts/qec/su3-spin",
-        "concepts/qec/su3-tverberg-spin",
-        "concepts/qec/su4-tverberg-spin",
+        "concepts/qec/stellated-color",
+        "concepts/qec/stellated-surface",
         "concepts/qec/subsystem-hypergraph",
+        "concepts/qec/subsystem-lifted-product",
+        "concepts/qec/subsystem-quantum-parity",
+        "concepts/qec/subsystem-spacetime-circuit",
         "concepts/qec/super-compact",
-        "concepts/qec/t-group",
         "concepts/qec/ternary-tree-fermion",
-        "concepts/qec/tesselation",
-        "concepts/qec/tfim",
-        "concepts/qec/tiger",
-        "concepts/qec/two-legged-cat",
-        "concepts/qec/two-mode-binomial",
-        "concepts/qec/unentangled-permutation-invariant",
-        "concepts/qec/very-small-logical-qubit",
-        "concepts/qec/zero-pi",
+        "concepts/qec/triangle-surface",
+        "concepts/qec/twist-defect-7-1-3",
+        "concepts/qec/twist-defect-color",
+        "concepts/qec/twist-defect-surface",
         "raw/error-correction-zoo"
       ],
       "god_node": "raw/error-correction-zoo",
@@ -218,277 +139,275 @@
         "quantum-error-correction",
         "quantum-information"
       ],
-      "internal_edges": 504,
-      "external_edges": 751,
-      "cohesion": 0.402
+      "internal_edges": 228,
+      "external_edges": 739,
+      "cohesion": 0.236
     },
     {
       "index": 1,
       "label": "quantum-error-correction",
-      "size": 105,
+      "size": 99,
       "members": [
-        "concepts/qec/ampdamp",
-        "concepts/qec/approximate-qecc",
+        "concepts/qec/1d-stabilizer",
+        "concepts/qec/ame",
+        "concepts/qec/analog-repetition",
+        "concepts/qec/analog-stabilizer",
+        "concepts/qec/approximate-log-depth",
+        "concepts/qec/arvind",
         "concepts/qec/binary-quantum-goppa",
-        "concepts/qec/bipartite-cyclic-cluster",
-        "concepts/qec/cage-net",
-        "concepts/qec/cft",
-        "concepts/qec/chuang-leung-yamamoto",
-        "concepts/qec/circuit-to-hamiltonian",
-        "concepts/qec/clifford-hierarchy",
-        "concepts/qec/cluster-state",
-        "concepts/qec/commuting-projector",
-        "concepts/qec/constant-excitation",
-        "concepts/qec/covariant",
-        "concepts/qec/cpc",
-        "concepts/qec/crystalline-dynamic-gen",
-        "concepts/qec/css-12-1-3",
-        "concepts/qec/cubic-theory",
-        "concepts/qec/dual-rail",
-        "concepts/qec/dynamic-gen",
-        "concepts/qec/eaoa-qubits-into-qubits",
-        "concepts/qec/eaoa-stabilizer",
-        "concepts/qec/enriched-walker-wang",
-        "concepts/qec/eth",
-        "concepts/qec/frustration-free",
-        "concepts/qec/fusion",
-        "concepts/qec/g-covariant-erasure",
+        "concepts/qec/braunstein",
+        "concepts/qec/css-5-1-3",
+        "concepts/qec/current-mirror",
+        "concepts/qec/cv-cluster-state",
+        "concepts/qec/cws",
+        "concepts/qec/ea-analog-stabilizer",
+        "concepts/qec/fractal-liquid",
+        "concepts/qec/galois-3-1-2",
+        "concepts/qec/galois-5-1-3",
+        "concepts/qec/galois-6-2-3",
+        "concepts/qec/galois-7-3-3",
         "concepts/qec/galois-bch",
         "concepts/qec/galois-css",
+        "concepts/qec/galois-cws",
         "concepts/qec/galois-duadic",
+        "concepts/qec/galois-fqrs",
         "concepts/qec/galois-grs",
+        "concepts/qec/galois-non-stabilizer",
+        "concepts/qec/galois-polynomial",
+        "concepts/qec/galois-quad-residue",
         "concepts/qec/galois-reed-muller",
+        "concepts/qec/galois-stabilizer",
         "concepts/qec/galois-subsystem-css",
         "concepts/qec/galois-subsystem-stabilizer",
         "concepts/qec/galois-true-stabilizer",
-        "concepts/qec/general-qldpc",
-        "concepts/qec/generalized-bicycle",
-        "concepts/qec/haar-random",
-        "concepts/qec/hamiltonian",
+        "concepts/qec/gkp",
+        "concepts/qec/graph-quantum",
+        "concepts/qec/group-10-1-4",
+        "concepts/qec/group-4-2-2",
+        "concepts/qec/group-quantum-parity",
+        "concepts/qec/group-quantum-repetition",
         "concepts/qec/happy",
-        "concepts/qec/holographic",
-        "concepts/qec/holographic-6-1-3",
-        "concepts/qec/holographic-hyperinvariant",
-        "concepts/qec/holographic-subsystem",
-        "concepts/qec/holographic-tensor",
-        "concepts/qec/hybrid-stabilizer",
-        "concepts/qec/iceberg",
-        "concepts/qec/invertible",
-        "concepts/qec/jump",
-        "concepts/qec/kitaev-honeycomb",
-        "concepts/qec/kpt",
-        "concepts/qec/local-haar-random",
-        "concepts/qec/majorana-subsystem",
-        "concepts/qec/matrix-qm",
-        "concepts/qec/metopt",
-        "concepts/qec/monitored-random-circuits",
-        "concepts/qec/movassagh-ouyang",
-        "concepts/qec/mps",
-        "concepts/qec/non-stabilizer",
-        "concepts/qec/nonabelian-covariant-erasure",
-        "concepts/qec/nonabelian-kitaev-honeycomb",
-        "concepts/qec/nonlocal-lowdepth",
-        "concepts/qec/oa-qubits-into-qubits",
-        "concepts/qec/one-hot-quantum",
-        "concepts/qec/qlwc",
-        "concepts/qec/qmdpc",
+        "concepts/qec/hnss",
+        "concepts/qec/homological-cv",
+        "concepts/qec/homological-number-phase",
+        "concepts/qec/homological-rotor",
+        "concepts/qec/lloyd-slotine",
+        "concepts/qec/niset-andersen-cerf",
+        "concepts/qec/oscillator-css",
+        "concepts/qec/polynomial",
         "concepts/qec/quantum-ag",
-        "concepts/qec/quantum-bch",
-        "concepts/qec/quantum-goethals-preparata",
+        "concepts/qec/quantum-concatenated",
+        "concepts/qec/quantum-cyclic",
+        "concepts/qec/quantum-gabidulin",
         "concepts/qec/quantum-hermitian-ag",
         "concepts/qec/quantum-locally-recoverable",
+        "concepts/qec/quantum-mds",
+        "concepts/qec/quantum-perfect",
         "concepts/qec/quantum-plane-curve",
-        "concepts/qec/quantum-random",
-        "concepts/qec/quantum-synchronizable",
+        "concepts/qec/quantum-secret-sharing",
+        "concepts/qec/quantum-singleton",
         "concepts/qec/quantum-tamo-barg",
-        "concepts/qec/quasi-cyclic-qldpc",
+        "concepts/qec/quantum-twisted",
+        "concepts/qec/qubit-10-24-3",
+        "concepts/qec/qubit-5-6-2",
         "concepts/qec/qubit-6-2-3",
         "concepts/qec/qubit-8-1-3",
-        "concepts/qec/qubit-css",
-        "concepts/qec/qubit-stabilizer",
-        "concepts/qec/qubit-stabilizer-oaqecc",
-        "concepts/qec/qubit-subsystem-stabilizer",
-        "concepts/qec/qubits-into-qubits",
-        "concepts/qec/qudit-da",
-        "concepts/qec/random-circuit",
-        "concepts/qec/random-stabilizer",
-        "concepts/qec/sc-qldpc",
-        "concepts/qec/spacetime-circuit",
-        "concepts/qec/spins-into-spins",
-        "concepts/qec/stab-6-1-3",
-        "concepts/qec/stab-8-1-2",
+        "concepts/qec/qubit-9-12-3",
+        "concepts/qec/qudit-3-6-2",
+        "concepts/qec/qudit-5-1-3",
+        "concepts/qec/qudit-cluster-state",
+        "concepts/qec/qudit-css",
+        "concepts/qec/qudit-cubic",
+        "concepts/qec/qudit-cws",
+        "concepts/qec/qudit-gkp",
+        "concepts/qec/qudit-hamming-css",
+        "concepts/qec/qudit-non-stabilizer",
+        "concepts/qec/qudit-reed-muller",
+        "concepts/qec/qudit-sign",
+        "concepts/qec/qudit-stabilizer",
+        "concepts/qec/qudit-triorthogonal",
+        "concepts/qec/qutrit-golay",
+        "concepts/qec/qutrit-small-triorthogonal",
+        "concepts/qec/rains",
+        "concepts/qec/rotor",
+        "concepts/qec/rotor-3-1-2",
+        "concepts/qec/rotor-4-2-2",
+        "concepts/qec/rotor-5-1-3",
+        "concepts/qec/rotor-cluster",
+        "concepts/qec/rotor-gkp",
+        "concepts/qec/rotor-stabilizer",
+        "concepts/qec/single-subsystem",
+        "concepts/qec/skew-cyclic-galois-css",
+        "concepts/qec/small-distance-quantum",
+        "concepts/qec/ssw",
+        "concepts/qec/stab-3-1-2",
+        "concepts/qec/stab-47-1-11",
+        "concepts/qec/stab-9-1-3",
+        "concepts/qec/stab-9-1-5",
         "concepts/qec/stabilizer-over-gfqsq",
-        "concepts/qec/subsystem-galois-into-galois",
-        "concepts/qec/subsystem-qubits-into-qubits",
-        "concepts/qec/subsystem-spacetime-circuit",
-        "concepts/qec/syk",
-        "concepts/qec/tetron",
-        "concepts/qec/topological",
-        "concepts/qec/translationally-invariant-stabilizer",
-        "concepts/qec/tree-cluster",
-        "concepts/qec/two-block-quantum",
-        "concepts/qec/vbs",
-        "concepts/qec/w-state",
-        "concepts/qec/xp-stabilizer",
-        "concepts/qec/yetter-gauge-theory",
-        "concepts/qec/yoked-surface"
+        "concepts/qec/tfim",
+        "concepts/qec/zero-pi"
       ],
-      "god_node": "concepts/qec/qubit-css",
+      "god_node": "concepts/qec/small-distance-quantum",
       "domains": [
         "quantum-error-correction"
       ],
-      "internal_edges": 265,
-      "external_edges": 512,
-      "cohesion": 0.341
+      "internal_edges": 237,
+      "external_edges": 321,
+      "cohesion": 0.425
     },
     {
       "index": 2,
       "label": "quantum-error-correction",
       "size": 98,
       "members": [
-        "concepts/qec/2d-color",
-        "concepts/qec/2d-stabilizer",
-        "concepts/qec/2d-subsystem-color",
+        "concepts/qec/2bga",
         "concepts/qec/3d-bosonization",
         "concepts/qec/3d-color",
-        "concepts/qec/3d-fermionic-surface",
-        "concepts/qec/3d-kitaev-honeycomb",
-        "concepts/qec/3d-semion",
         "concepts/qec/3d-stabilizer",
         "concepts/qec/3d-subsystem-color",
-        "concepts/qec/analog-surface",
+        "concepts/qec/3d-subsystem-surface",
+        "concepts/qec/3d-surface",
+        "concepts/qec/4d-13-surface",
+        "concepts/qec/4d-stabilizer",
+        "concepts/qec/4d-surface",
+        "concepts/qec/abelian-lifted-product",
         "concepts/qec/anisotropic-z2-laplacian",
+        "concepts/qec/balanced-product",
+        "concepts/qec/bicycle",
         "concepts/qec/bosonization",
-        "concepts/qec/brickwork",
-        "concepts/qec/capped-color",
+        "concepts/qec/chamon",
+        "concepts/qec/check-product",
         "concepts/qec/checkerboard",
-        "concepts/qec/chern-simons-gkp",
-        "concepts/qec/compactified-r",
+        "concepts/qec/classical-product",
+        "concepts/qec/cluster-state",
         "concepts/qec/cubic-honeycomb-color",
-        "concepts/qec/da",
-        "concepts/qec/da-color-2d",
         "concepts/qec/da-color-3d",
-        "concepts/qec/dijkgraaf-witten",
-        "concepts/qec/double-semion",
-        "concepts/qec/double-semion-string-net",
-        "concepts/qec/enriched-string-net",
+        "concepts/qec/dhlv",
+        "concepts/qec/distance-balanced",
+        "concepts/qec/dlv",
+        "concepts/qec/double-homological-product",
+        "concepts/qec/expander-lifted-product",
         "concepts/qec/fcc-fracton",
-        "concepts/qec/fibonacci",
-        "concepts/qec/floquet",
-        "concepts/qec/floquet-3d-fermionic-surface",
-        "concepts/qec/floquet-3d-surface",
-        "concepts/qec/floquet-color",
-        "concepts/qec/floquet-fracton",
-        "concepts/qec/floquet-xcube",
-        "concepts/qec/floquet-xyz-ruby",
-        "concepts/qec/fractal-liquid",
+        "concepts/qec/fiber-bundle",
+        "concepts/qec/fibonacci-fractal-liquid",
+        "concepts/qec/fractal-surface",
         "concepts/qec/fracton",
-        "concepts/qec/galois-color",
-        "concepts/qec/galois-topological",
-        "concepts/qec/generalized-color",
-        "concepts/qec/generalized-homological-product-css",
+        "concepts/qec/freedman-meyer-luo",
+        "concepts/qec/galois-expander",
+        "concepts/qec/galois-hypergraph-product",
+        "concepts/qec/general-qldpc",
+        "concepts/qec/generalized-bicycle",
+        "concepts/qec/generalized-homological-product",
+        "concepts/qec/generalized-quantum-tanner",
+        "concepts/qec/good-qldpc",
         "concepts/qec/groupoid-surface",
-        "concepts/qec/hexagonal-cz",
+        "concepts/qec/haah-cubic",
+        "concepts/qec/hemicubic",
         "concepts/qec/hh-fracton",
         "concepts/qec/hhb-fracton",
         "concepts/qec/hierarchical",
-        "concepts/qec/homological-cv",
-        "concepts/qec/hopf-quantum-double",
-        "concepts/qec/hyperbolic-floquet",
+        "concepts/qec/higher-dimensional-surface",
+        "concepts/qec/higher-dimensional-toric",
+        "concepts/qec/homological-product",
+        "concepts/qec/hurwitz-surface",
+        "concepts/qec/hyperbolic-surface",
+        "concepts/qec/hypergraph-product",
+        "concepts/qec/hypersphere-product",
+        "concepts/qec/iterated-ramanujan",
         "concepts/qec/kitaev-chain",
         "concepts/qec/layer",
+        "concepts/qec/lcs",
+        "concepts/qec/lifted-product",
+        "concepts/qec/lossless-expander",
         "concepts/qec/majorana-6-1-3",
         "concepts/qec/majorana-checkerboard",
         "concepts/qec/majorana-color",
         "concepts/qec/majorana-stab",
+        "concepts/qec/majorana-subsystem",
         "concepts/qec/majorana-surface",
-        "concepts/qec/matching",
         "concepts/qec/mbq",
+        "concepts/qec/multisector-hypergraph",
+        "concepts/qec/pg-qldpc",
         "concepts/qec/qldpc",
-        "concepts/qec/quantum-double",
-        "concepts/qec/quantum-double-abelian",
-        "concepts/qec/quantum-double-dihedral",
-        "concepts/qec/quantum-triple",
-        "concepts/qec/qudit-3d-surface",
+        "concepts/qec/qltc",
+        "concepts/qec/quantum-expander",
+        "concepts/qec/quantum-tanner",
+        "concepts/qec/quantum-tensor-product",
+        "concepts/qec/qubit-css",
+        "concepts/qec/qubit-generalized-homological-product-css",
         "concepts/qec/qudit-color",
-        "concepts/qec/qudit-css",
-        "concepts/qec/qudit-subsystem-color",
-        "concepts/qec/qudit-subsystem-css",
-        "concepts/qec/qudit-subsystem-stabilizer",
-        "concepts/qec/qudit-surface",
         "concepts/qec/qudit-xcube",
-        "concepts/qec/qudit-znone",
+        "concepts/qec/ramanujan-tensor-product",
         "concepts/qec/rbh",
-        "concepts/qec/semion",
-        "concepts/qec/sparse-subsystem",
+        "concepts/qec/sc-qldpc",
+        "concepts/qec/self-correct",
+        "concepts/qec/sierpinsky-fractal-liquid",
+        "concepts/qec/single-shot",
         "concepts/qec/spt",
+        "concepts/qec/square-homological-product",
         "concepts/qec/square-lattice-cluster",
-        "concepts/qec/string-net",
-        "concepts/qec/subsystem-color",
-        "concepts/qec/subsystem-css",
-        "concepts/qec/subsystem-group-quantum",
-        "concepts/qec/subsystem-qudits-into-qudits",
-        "concepts/qec/subsystem-stabilizer",
-        "concepts/qec/subsystem-three-fermion",
+        "concepts/qec/subsystem-product",
         "concepts/qec/symmetry-protected-self-correct",
+        "concepts/qec/tetrahedral-color",
+        "concepts/qec/tetron",
         "concepts/qec/three-fermion",
-        "concepts/qec/tiger-surface",
-        "concepts/qec/topological-abelian",
-        "concepts/qec/tqd",
-        "concepts/qec/tqd-abelian",
-        "concepts/qec/tqd-abelian-stabilizer",
-        "concepts/qec/tqt",
-        "concepts/qec/translationally-invariant-subsystem",
+        "concepts/qec/tillichzemor",
+        "concepts/qec/translationally-invariant-stabilizer",
+        "concepts/qec/tree-cluster",
+        "concepts/qec/two-block-quantum",
         "concepts/qec/two-foliated",
-        "concepts/qec/walker-wang",
         "concepts/qec/xcube",
-        "concepts/qec/xs-stabilizer",
-        "concepts/qec/zthree-znine"
+        "concepts/qec/xyz-product"
       ],
-      "god_node": "concepts/qec/qldpc",
+      "god_node": "concepts/qec/qubit-css",
       "domains": [
         "quantum-error-correction"
       ],
-      "internal_edges": 258,
-      "external_edges": 380,
-      "cohesion": 0.404
+      "internal_edges": 267,
+      "external_edges": 427,
+      "cohesion": 0.385
     },
     {
       "index": 3,
       "label": "quantum-error-correction",
-      "size": 91,
+      "size": 96,
       "members": [
+        "concepts/qec/2d-subsystem-color",
         "concepts/qec/4612-color",
-        "concepts/qec/488-color",
+        "concepts/qec/ampdamp-cws",
+        "concepts/qec/ampdamp-stabilizer",
         "concepts/qec/bacon-shor-4",
         "concepts/qec/ball-color",
         "concepts/qec/bc-phantom",
+        "concepts/qec/bipartite-cyclic-cluster",
         "concepts/qec/block-perfect",
         "concepts/qec/bravyi-bacon-shor-6",
         "concepts/qec/campbell-howard",
+        "concepts/qec/capped-color",
         "concepts/qec/carbon",
         "concepts/qec/color",
         "concepts/qec/concatenated-steane",
+        "concepts/qec/css-4-1-2",
         "concepts/qec/css-6-1-2",
         "concepts/qec/css-t",
-        "concepts/qec/cubic-surface",
         "concepts/qec/data-syndrome",
         "concepts/qec/diagonal-clifford",
         "concepts/qec/doubled-color",
-        "concepts/qec/eaoa-hamming",
+        "concepts/qec/ea-3-1-3-2",
         "concepts/qec/frobenius",
-        "concepts/qec/galois-3-1-2",
-        "concepts/qec/galois-quad-residue",
         "concepts/qec/generalized-quantum-divisible",
-        "concepts/qec/gkp-concatenated",
         "concepts/qec/goy",
         "concepts/qec/hermitian-qldpc",
         "concepts/qec/hgp-7-2-2",
         "concepts/qec/holographic-5-1-2",
+        "concepts/qec/holographic-hyperinvariant",
         "concepts/qec/holographic-steane",
-        "concepts/qec/hybrid-7-1-1-3",
+        "concepts/qec/holographic-subsystem",
+        "concepts/qec/holographic-tensor",
         "concepts/qec/hyperbolic-color",
         "concepts/qec/hypercube-quantum",
+        "concepts/qec/iceberg",
         "concepts/qec/kls",
         "concepts/qec/ladder",
         "concepts/qec/majorana-hamming",
@@ -496,6 +415,7 @@
         "concepts/qec/morphed-diagonal-clifford",
         "concepts/qec/phantom",
         "concepts/qec/phantom-14-3-3",
+        "concepts/qec/qmdpc",
         "concepts/qec/quad-residue-13-1-5",
         "concepts/qec/quantum-cap",
         "concepts/qec/quantum-divisible",
@@ -509,13 +429,10 @@
         "concepts/qec/quantum-reed-muller",
         "concepts/qec/quantum-triorthogonal",
         "concepts/qec/quasi-hyperbolic-color",
+        "concepts/qec/qubit-8-4-2",
         "concepts/qec/qubit-concatenated",
         "concepts/qec/qubit-golay",
-        "concepts/qec/qudit-hamming-css",
-        "concepts/qec/qudit-reed-muller",
-        "concepts/qec/qutrit-golay",
-        "concepts/qec/rhombic-dodecahedron-surface",
-        "concepts/qec/ring-cpc",
+        "concepts/qec/self-complementary",
         "concepts/qec/self-dual-css",
         "concepts/qec/single-qubit-clifford",
         "concepts/qec/small-distance-qubit-stabilizer",
@@ -531,10 +448,12 @@
         "concepts/qec/stab-17-1-5",
         "concepts/qec/stab-18-2-5",
         "concepts/qec/stab-20-2-6",
+        "concepts/qec/stab-4-1-2",
         "concepts/qec/stab-4-2-2",
-        "concepts/qec/stab-47-1-11",
         "concepts/qec/stab-49-1-5",
         "concepts/qec/stab-5-1-2",
+        "concepts/qec/stab-5-1-2-convolutional",
+        "concepts/qec/stab-5-1-3",
         "concepts/qec/stab-6-2-2",
         "concepts/qec/stab-6-4-2",
         "concepts/qec/stab-8-2-2",
@@ -543,227 +462,255 @@
         "concepts/qec/stab-9-3-3",
         "concepts/qec/stabilizer-over-gf4",
         "concepts/qec/steane",
+        "concepts/qec/subsystem-color",
         "concepts/qec/trapezoid",
-        "concepts/qec/triangular-color",
         "concepts/qec/twisted-xzzx",
         "concepts/qec/xz-7-3-2",
         "concepts/qec/xzzx-10-2-3",
-        "concepts/qec/xzzx-7-1-3"
+        "concepts/qec/xzzx-7-1-3",
+        "concepts/qec/yoked-surface"
       ],
       "god_node": "concepts/qec/small-distance-qubit-stabilizer",
       "domains": [
         "quantum-error-correction"
       ],
-      "internal_edges": 236,
-      "external_edges": 331,
+      "internal_edges": 256,
+      "external_edges": 359,
       "cohesion": 0.416
     },
     {
       "index": 4,
       "label": "quantum-error-correction",
-      "size": 69,
+      "size": 84,
       "members": [
-        "concepts/qec/ame",
-        "concepts/qec/ampdamp-cws",
-        "concepts/qec/ampdamp-stabilizer",
-        "concepts/qec/arvind",
+        "concepts/qec/ampdamp-numopt",
+        "concepts/qec/approximate-qecc",
         "concepts/qec/block-quantum",
-        "concepts/qec/braunstein",
+        "concepts/qec/cage-net",
         "concepts/qec/category-quantum",
-        "concepts/qec/css-5-1-3",
-        "concepts/qec/cws",
-        "concepts/qec/galois-5-1-3",
-        "concepts/qec/galois-6-2-3",
-        "concepts/qec/galois-7-3-3",
-        "concepts/qec/galois-cws",
-        "concepts/qec/galois-fqrs",
+        "concepts/qec/cft",
+        "concepts/qec/circuit-to-hamiltonian",
+        "concepts/qec/coherent-constellation",
+        "concepts/qec/commuting-projector",
+        "concepts/qec/covariant",
+        "concepts/qec/crystalline-dynamic-gen",
+        "concepts/qec/css",
+        "concepts/qec/da",
+        "concepts/qec/dynamic-gen",
+        "concepts/qec/ea-oscillators",
+        "concepts/qec/eaoecc",
+        "concepts/qec/eaqecc",
+        "concepts/qec/enriched-string-net",
+        "concepts/qec/enriched-walker-wang",
+        "concepts/qec/eth",
+        "concepts/qec/fermions",
+        "concepts/qec/fibonacci",
+        "concepts/qec/frustration-free",
+        "concepts/qec/fusion",
+        "concepts/qec/g-covariant-erasure",
         "concepts/qec/galois-into-galois",
-        "concepts/qec/galois-non-stabilizer",
-        "concepts/qec/galois-polynomial",
-        "concepts/qec/galois-stabilizer",
-        "concepts/qec/graph-quantum",
-        "concepts/qec/group-10-1-4",
-        "concepts/qec/group-4-2-2",
+        "concepts/qec/generalized-color",
         "concepts/qec/group-cluster-state",
+        "concepts/qec/group-gkp",
         "concepts/qec/group-quantum",
-        "concepts/qec/group-quantum-parity",
-        "concepts/qec/group-quantum-repetition",
+        "concepts/qec/haar-random",
+        "concepts/qec/hamiltonian",
+        "concepts/qec/holographic",
         "concepts/qec/hopf-cluster-state",
-        "concepts/qec/polynomial",
+        "concepts/qec/hopf-quantum-double",
+        "concepts/qec/hybrid-cat",
+        "concepts/qec/hybrid-qudit-oscillator",
+        "concepts/qec/knill",
+        "concepts/qec/kpt",
+        "concepts/qec/lca-stabilizer",
+        "concepts/qec/local-haar-random",
+        "concepts/qec/matrix-qm",
+        "concepts/qec/metopt",
+        "concepts/qec/metrological",
+        "concepts/qec/monitored-random-circuits",
+        "concepts/qec/movassagh-ouyang",
+        "concepts/qec/mps",
+        "concepts/qec/multimodegkp",
+        "concepts/qec/nonabelian-covariant-erasure",
+        "concepts/qec/nonabelian-kitaev-honeycomb",
+        "concepts/qec/nonlocal-lowdepth",
+        "concepts/qec/ntru-gkp",
+        "concepts/qec/numopt",
+        "concepts/qec/oecc",
+        "concepts/qec/oscillator-stabilizer",
+        "concepts/qec/oscillators",
+        "concepts/qec/oscillators-concatenated",
+        "concepts/qec/penrose",
+        "concepts/qec/qecc",
         "concepts/qec/qecc-finite",
-        "concepts/qec/quantum-concatenated",
-        "concepts/qec/quantum-cyclic",
-        "concepts/qec/quantum-mds",
-        "concepts/qec/quantum-perfect",
-        "concepts/qec/quantum-quasi-cyclic",
-        "concepts/qec/quantum-secret-sharing",
-        "concepts/qec/quantum-singleton",
-        "concepts/qec/quantum-twisted",
-        "concepts/qec/qubit-10-24-3",
-        "concepts/qec/qubit-5-6-2",
-        "concepts/qec/qubit-8-4-2",
-        "concepts/qec/qubit-9-12-3",
-        "concepts/qec/qudit-3-6-2",
-        "concepts/qec/qudit-5-1-3",
-        "concepts/qec/qudit-cluster-state",
-        "concepts/qec/qudit-cws",
-        "concepts/qec/qudit-gkp",
-        "concepts/qec/qudit-non-stabilizer",
-        "concepts/qec/qudit-sign",
-        "concepts/qec/qudit-stabilizer",
-        "concepts/qec/qudit-triorthogonal",
+        "concepts/qec/qlwc",
+        "concepts/qec/quantum-lattice",
+        "concepts/qec/quantum-random",
+        "concepts/qec/qubits-into-qubits",
+        "concepts/qec/qudit-da",
+        "concepts/qec/qudits-into-oscillators",
         "concepts/qec/qudits-into-qudits",
-        "concepts/qec/qutrit-small-triorthogonal",
-        "concepts/qec/rains",
-        "concepts/qec/rotor",
-        "concepts/qec/rotor-3-1-2",
-        "concepts/qec/rotor-5-1-3",
-        "concepts/qec/rotor-cluster",
-        "concepts/qec/rotor-gkp",
-        "concepts/qec/rotor-stabilizer",
-        "concepts/qec/self-complementary",
-        "concepts/qec/single-subsystem",
-        "concepts/qec/skew-cyclic-galois-css",
-        "concepts/qec/small-distance-quantum",
-        "concepts/qec/ssw",
-        "concepts/qec/stab-3-1-2",
-        "concepts/qec/stab-5-1-3",
-        "concepts/qec/stab-9-1-3",
-        "concepts/qec/stab-9-1-5",
-        "concepts/qec/three-qutrit-permutation-invariant",
-        "concepts/qec/wasilewski-banaszek"
+        "concepts/qec/random-circuit",
+        "concepts/qec/random-stabilizer",
+        "concepts/qec/reinforcement-learning",
+        "concepts/qec/rg-cat",
+        "concepts/qec/spins-into-spins",
+        "concepts/qec/stabilizer",
+        "concepts/qec/string-net",
+        "concepts/qec/subsystem-galois-into-galois",
+        "concepts/qec/subsystem-group-quantum",
+        "concepts/qec/subsystem-qubits-into-qubits",
+        "concepts/qec/subsystem-qudits-into-qudits",
+        "concepts/qec/syk",
+        "concepts/qec/topological",
+        "concepts/qec/vbs",
+        "concepts/qec/w-state",
+        "concepts/qec/walker-wang",
+        "concepts/qec/yetter-gauge-theory"
       ],
-      "god_node": "concepts/qec/small-distance-quantum",
+      "god_node": "concepts/qec/qubits-into-qubits",
       "domains": [
         "quantum-error-correction"
       ],
-      "internal_edges": 159,
-      "external_edges": 287,
-      "cohesion": 0.357
+      "internal_edges": 205,
+      "external_edges": 337,
+      "cohesion": 0.378
     },
     {
       "index": 5,
       "label": "quantum-error-correction",
-      "size": 68,
+      "size": 67,
       "members": [
-        "concepts/qec/2bga",
-        "concepts/qec/3d-bacon-shor",
-        "concepts/qec/3d-subsystem-surface",
-        "concepts/qec/3d-surface",
-        "concepts/qec/4d-13-surface",
-        "concepts/qec/4d-stabilizer",
-        "concepts/qec/4d-surface",
-        "concepts/qec/abelian-lifted-product",
-        "concepts/qec/balanced-product",
-        "concepts/qec/bicycle",
-        "concepts/qec/bravyi-bacon-shor",
-        "concepts/qec/chamon",
-        "concepts/qec/check-product",
-        "concepts/qec/classical-product",
-        "concepts/qec/css-plaquette",
-        "concepts/qec/dhlv",
-        "concepts/qec/distance-balanced",
-        "concepts/qec/dlv",
-        "concepts/qec/double-homological-product",
-        "concepts/qec/expander-lifted-product",
-        "concepts/qec/fiber-bundle",
-        "concepts/qec/fibonacci-fractal-liquid",
-        "concepts/qec/fractal-surface",
-        "concepts/qec/freedman-meyer-luo",
-        "concepts/qec/galois-expander",
-        "concepts/qec/galois-hypergraph-product",
-        "concepts/qec/generalized-homological-product",
-        "concepts/qec/generalized-quantum-tanner",
-        "concepts/qec/generalized-shor",
-        "concepts/qec/good-qldpc",
-        "concepts/qec/haah-cubic",
-        "concepts/qec/hemicubic",
-        "concepts/qec/higher-dimensional-surface",
-        "concepts/qec/higher-dimensional-toric",
-        "concepts/qec/homological-product",
-        "concepts/qec/hurwitz-surface",
-        "concepts/qec/hyperbolic-surface",
-        "concepts/qec/hypergraph-product",
-        "concepts/qec/hypersphere-product",
-        "concepts/qec/iterated-ramanujan",
-        "concepts/qec/klein-bottle",
-        "concepts/qec/lcs",
-        "concepts/qec/lifted-product",
-        "concepts/qec/lossless-expander",
-        "concepts/qec/multisector-hypergraph",
-        "concepts/qec/qltc",
-        "concepts/qec/quantum-expander",
-        "concepts/qec/quantum-tanner",
-        "concepts/qec/quantum-tensor-product",
-        "concepts/qec/qubit-generalized-homological-product-css",
-        "concepts/qec/qubit-subsystem-css",
-        "concepts/qec/ramanujan-tensor-product",
-        "concepts/qec/self-correct",
-        "concepts/qec/shyps",
-        "concepts/qec/sierpinsky-fractal-liquid",
-        "concepts/qec/single-shot",
-        "concepts/qec/square-homological-product",
-        "concepts/qec/stellated-dodecahedron-css",
-        "concepts/qec/subsystem-higher-dimensional-surface",
-        "concepts/qec/subsystem-hyperbolic-surface",
-        "concepts/qec/subsystem-lifted-product",
-        "concepts/qec/subsystem-product",
-        "concepts/qec/subsystem-quantum-parity",
-        "concepts/qec/subsystem-rotated-surface",
-        "concepts/qec/tetrahedral-color",
-        "concepts/qec/tillichzemor",
-        "concepts/qec/two-dimensional-hyperbolic-surface",
-        "concepts/qec/xyz-product"
+        "concepts/qec/2t-qutrit",
+        "concepts/qec/ae",
+        "concepts/qec/ampdamp",
+        "concepts/qec/ampdamp-post-selected",
+        "concepts/qec/binary-dihedral-permutation-invariant",
+        "concepts/qec/binomial",
+        "concepts/qec/bosonic-q-ary-expansion",
+        "concepts/qec/bosonic-rotation",
+        "concepts/qec/cat",
+        "concepts/qec/chebyshev",
+        "concepts/qec/chi2",
+        "concepts/qec/chuang-leung-yamamoto",
+        "concepts/qec/clifford-qsc",
+        "concepts/qec/combinatorial-permutation-invariant",
+        "concepts/qec/constant-excitation",
+        "concepts/qec/constant-excitation-permutation-invariant",
+        "concepts/qec/css-12-1-3",
+        "concepts/qec/diatomic-molecular",
+        "concepts/qec/fiber",
+        "concepts/qec/fock-state",
+        "concepts/qec/four-qubit-permutation-invariant",
+        "concepts/qec/fourier-bosonic",
+        "concepts/qec/gnu-permutation-invariant",
+        "concepts/qec/group-representation",
+        "concepts/qec/hessian-qsc",
+        "concepts/qec/hexagonal-gkp",
+        "concepts/qec/homogeneous-space-quantum",
+        "concepts/qec/icosahedral-fock",
+        "concepts/qec/icosahedral-permutation-invariant",
+        "concepts/qec/icosahedral-spin",
+        "concepts/qec/j-gross",
+        "concepts/qec/jump",
+        "concepts/qec/landau-level",
+        "concepts/qec/molecular",
+        "concepts/qec/number-phase",
+        "concepts/qec/okada",
+        "concepts/qec/one-hot-quantum",
+        "concepts/qec/oscillators-into-oscillators",
+        "concepts/qec/paircat",
+        "concepts/qec/pauli-qsc",
+        "concepts/qec/permutation-invariant",
+        "concepts/qec/qsc",
+        "concepts/qec/quantum-sidelnikov",
+        "concepts/qec/qubit-permutation-invariant",
+        "concepts/qec/qudit-gnu-permutation-invariant",
+        "concepts/qec/qutrit-pauli-gkp-subcode",
+        "concepts/qec/single-mode",
+        "concepts/qec/single-spin",
+        "concepts/qec/spin-cat",
+        "concepts/qec/spin-gkp",
+        "concepts/qec/squeezed-cat",
+        "concepts/qec/squeezed-coherent-bpsk",
+        "concepts/qec/squeezed-fock-state",
+        "concepts/qec/squeezed-vacuum",
+        "concepts/qec/sslp",
+        "concepts/qec/su3-sigma360",
+        "concepts/qec/su3-spin",
+        "concepts/qec/su3-tverberg-spin",
+        "concepts/qec/su4-tverberg-spin",
+        "concepts/qec/t-group",
+        "concepts/qec/tesselation",
+        "concepts/qec/three-qutrit-permutation-invariant",
+        "concepts/qec/tiger",
+        "concepts/qec/two-mode-binomial",
+        "concepts/qec/unentangled-permutation-invariant",
+        "concepts/qec/very-small-logical-qubit",
+        "concepts/qec/wasilewski-banaszek"
       ],
-      "god_node": "concepts/qec/hypergraph-product",
+      "god_node": "concepts/qec/ampdamp",
       "domains": [
         "quantum-error-correction"
       ],
-      "internal_edges": 139,
-      "external_edges": 243,
-      "cohesion": 0.364
+      "internal_edges": 132,
+      "external_edges": 186,
+      "cohesion": 0.415
     },
     {
       "index": 6,
       "label": "quantum-error-correction",
-      "size": 40,
+      "size": 53,
       "members": [
-        "concepts/qec/ampdamp-numopt",
+        "concepts/qec/2d-color",
+        "concepts/qec/488-color",
         "concepts/qec/asymmetric-qecc",
         "concepts/qec/bacon-shor",
         "concepts/qec/bacon-shor-9",
         "concepts/qec/branching-mera",
+        "concepts/qec/cat-concatenated",
+        "concepts/qec/cat-repetition",
         "concepts/qec/clifford-deformed-surface",
+        "concepts/qec/coherent-state-repetition",
         "concepts/qec/compass-model",
-        "concepts/qec/css-4-1-2",
         "concepts/qec/cyclic-hgp",
+        "concepts/qec/da-color-2d",
+        "concepts/qec/dfour-gkp",
+        "concepts/qec/dual-rail",
+        "concepts/qec/floquet",
+        "concepts/qec/floquet-3d-surface",
+        "concepts/qec/floquet-color",
+        "concepts/qec/floquet-fracton",
+        "concepts/qec/floquet-xcube",
+        "concepts/qec/floquet-xyz-ruby",
+        "concepts/qec/gkp-cluster-state",
+        "concepts/qec/gkp-concatenated",
+        "concepts/qec/gkp-stabilizer",
         "concepts/qec/gkp-surface-concatenated",
         "concepts/qec/heavy-hex",
         "concepts/qec/honeycomb-floquet",
-        "concepts/qec/hybrid-bacon-shor",
+        "concepts/qec/hyperbolic-floquet",
+        "concepts/qec/klein-bottle",
         "concepts/qec/lacross",
         "concepts/qec/lresc",
-        "concepts/qec/numopt",
         "concepts/qec/quantum-lego",
         "concepts/qec/quantum-parity",
         "concepts/qec/quantum-polar",
+        "concepts/qec/quantum-repetition",
         "concepts/qec/qudit-honeycomb",
         "concepts/qec/real-projective-plane",
-        "concepts/qec/reinforcement-learning",
         "concepts/qec/rotated-surface",
         "concepts/qec/ruskai",
         "concepts/qec/shor-nine",
-        "concepts/qec/stab-4-1-2",
-        "concepts/qec/stellated-color",
-        "concepts/qec/stellated-surface",
-        "concepts/qec/subsystem-surface",
+        "concepts/qec/stellated-dodecahedron-css",
+        "concepts/qec/subsystem-hyperbolic-surface",
+        "concepts/qec/subsystem-three-fermion",
         "concepts/qec/surface",
         "concepts/qec/surface-17",
         "concepts/qec/toric",
-        "concepts/qec/triangle-surface",
-        "concepts/qec/twist-defect-7-1-3",
-        "concepts/qec/twist-defect-color",
-        "concepts/qec/twist-defect-surface",
+        "concepts/qec/triangular-color",
+        "concepts/qec/two-dimensional-hyperbolic-surface",
+        "concepts/qec/two-legged-cat",
         "concepts/qec/xysurface",
         "concepts/qec/xyz-color",
         "concepts/qec/xyz-hexagonal",
@@ -773,12 +720,79 @@
       "domains": [
         "quantum-error-correction"
       ],
-      "internal_edges": 89,
-      "external_edges": 235,
-      "cohesion": 0.275
+      "internal_edges": 123,
+      "external_edges": 310,
+      "cohesion": 0.284
     },
     {
       "index": 7,
+      "label": "quantum-error-correction",
+      "size": 53,
+      "members": [
+        "concepts/qec/2d-stabilizer",
+        "concepts/qec/3d-bacon-shor",
+        "concepts/qec/3d-fermionic-surface",
+        "concepts/qec/3d-kitaev-honeycomb",
+        "concepts/qec/3d-semion",
+        "concepts/qec/analog-surface",
+        "concepts/qec/bravyi-bacon-shor",
+        "concepts/qec/brickwork",
+        "concepts/qec/chern-simons-gkp",
+        "concepts/qec/clifford-hierarchy",
+        "concepts/qec/compactified-r",
+        "concepts/qec/css-plaquette",
+        "concepts/qec/cubic-theory",
+        "concepts/qec/dijkgraaf-witten",
+        "concepts/qec/double-semion",
+        "concepts/qec/double-semion-string-net",
+        "concepts/qec/floquet-3d-fermionic-surface",
+        "concepts/qec/galois-color",
+        "concepts/qec/galois-topological",
+        "concepts/qec/generalized-homological-product-css",
+        "concepts/qec/hexagonal-cz",
+        "concepts/qec/invertible",
+        "concepts/qec/kitaev-honeycomb",
+        "concepts/qec/matching",
+        "concepts/qec/quantum-double",
+        "concepts/qec/quantum-double-abelian",
+        "concepts/qec/quantum-double-dihedral",
+        "concepts/qec/quantum-triple",
+        "concepts/qec/qubit-subsystem-css",
+        "concepts/qec/qudit-3d-surface",
+        "concepts/qec/qudit-subsystem-color",
+        "concepts/qec/qudit-subsystem-css",
+        "concepts/qec/qudit-subsystem-stabilizer",
+        "concepts/qec/qudit-surface",
+        "concepts/qec/qudit-znone",
+        "concepts/qec/semion",
+        "concepts/qec/sparse-subsystem",
+        "concepts/qec/stab-8-1-2",
+        "concepts/qec/subsystem-css",
+        "concepts/qec/subsystem-higher-dimensional-surface",
+        "concepts/qec/subsystem-rotated-surface",
+        "concepts/qec/subsystem-stabilizer",
+        "concepts/qec/subsystem-surface",
+        "concepts/qec/tiger-surface",
+        "concepts/qec/topological-abelian",
+        "concepts/qec/tqd",
+        "concepts/qec/tqd-abelian",
+        "concepts/qec/tqd-abelian-stabilizer",
+        "concepts/qec/tqt",
+        "concepts/qec/translationally-invariant-subsystem",
+        "concepts/qec/xp-stabilizer",
+        "concepts/qec/xs-stabilizer",
+        "concepts/qec/zthree-znine"
+      ],
+      "god_node": "concepts/qec/topological-abelian",
+      "domains": [
+        "quantum-error-correction"
+      ],
+      "internal_edges": 118,
+      "external_edges": 231,
+      "cohesion": 0.338
+    },
+    {
+      "index": 8,
       "label": "quantum-error-correction",
       "size": 40,
       "members": [
@@ -833,17 +847,26 @@
       "cohesion": 0.985
     },
     {
-      "index": 8,
+      "index": 9,
       "label": "quantum-simulation / quantum-software",
-      "size": 11,
+      "size": 20,
       "members": [
         "concepts/markdown-compilation",
         "concepts/quantum-hpc-qec-llm-wiki",
         "concepts/self-refreshing-context",
         "how-to/openqevo-first-run",
         "integrations/qiskit-to-openqevo",
+        "packages/chatqec",
+        "packages/chatqec-mcp-tools",
+        "packages/data-schema",
+        "packages/ftqc",
+        "packages/hardware-aware-mapping",
+        "packages/iqm-calibration",
+        "packages/lightstim",
         "packages/openqevo",
         "packages/pennylane",
+        "packages/qhpc-ecosystem",
+        "packages/qiris-qflow",
         "packages/qiskit",
         "packages/stim",
         "packages/tnqvm",
@@ -853,17 +876,17 @@
       "domains": [
         "quantum-software",
         "quantum-simulation",
-        "wiki-infrastructure",
-        "quantum-algorithms",
-        "quantum-languages",
-        "compilation",
         "quantum-error-correction",
+        "wiki-infrastructure",
+        "quantum-hpc",
+        "compilation",
         "benchmarking-validation",
-        "quantum-hpc"
+        "quantum-languages",
+        "quantum-algorithms"
       ],
-      "internal_edges": 17,
-      "external_edges": 5,
-      "cohesion": 0.773
+      "internal_edges": 31,
+      "external_edges": 8,
+      "cohesion": 0.795
     }
   ],
   "nodes": [
@@ -941,7 +964,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -960,7 +983,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -979,7 +1002,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1017,7 +1040,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1036,7 +1059,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1055,7 +1078,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1074,7 +1097,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1093,7 +1116,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1150,7 +1173,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1169,7 +1192,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1188,7 +1211,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1245,7 +1268,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1264,7 +1287,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1302,7 +1325,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1321,7 +1344,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1340,7 +1363,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1359,7 +1382,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1378,7 +1401,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1397,7 +1420,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1416,7 +1439,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1435,7 +1458,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1454,7 +1477,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1473,7 +1496,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1492,7 +1515,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1511,7 +1534,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1530,7 +1553,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1549,7 +1572,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1568,7 +1591,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1606,7 +1629,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1625,7 +1648,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1663,7 +1686,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1758,7 +1781,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1929,7 +1952,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1948,7 +1971,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -1986,7 +2009,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2005,7 +2028,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2119,7 +2142,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2138,7 +2161,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2195,7 +2218,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2214,7 +2237,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2252,7 +2275,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2290,7 +2313,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2328,7 +2351,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2366,7 +2389,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2385,7 +2408,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2404,7 +2427,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2442,7 +2465,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2461,7 +2484,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2480,7 +2503,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2499,7 +2522,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2537,7 +2560,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2556,7 +2579,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2575,7 +2598,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2594,7 +2617,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2632,7 +2655,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2670,7 +2693,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2689,7 +2712,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2708,7 +2731,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2727,7 +2750,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2765,7 +2788,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2803,7 +2826,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2822,7 +2845,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2841,7 +2864,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2917,7 +2940,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2936,7 +2959,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2955,7 +2978,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2974,7 +2997,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -2993,7 +3016,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3012,7 +3035,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3031,7 +3054,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3050,7 +3073,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3069,7 +3092,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3107,7 +3130,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3164,7 +3187,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3183,7 +3206,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3202,7 +3225,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3221,7 +3244,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3240,7 +3263,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3278,7 +3301,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3297,7 +3320,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3373,7 +3396,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3392,7 +3415,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3430,7 +3453,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3449,7 +3472,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3468,7 +3491,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3487,7 +3510,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3506,7 +3529,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3525,7 +3548,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3544,7 +3567,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3582,7 +3605,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3601,7 +3624,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3620,7 +3643,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3639,7 +3662,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3772,7 +3795,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3924,7 +3947,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3943,7 +3966,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3962,7 +3985,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -3981,7 +4004,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4000,7 +4023,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4038,7 +4061,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4057,7 +4080,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4076,7 +4099,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4095,7 +4118,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4133,7 +4156,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4171,7 +4194,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4190,7 +4213,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4209,7 +4232,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4228,7 +4251,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4266,7 +4289,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4285,7 +4308,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4304,7 +4327,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4323,7 +4346,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4342,7 +4365,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4361,7 +4384,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4380,7 +4403,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4399,7 +4422,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4456,7 +4479,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4475,7 +4498,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4494,7 +4517,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4513,7 +4536,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4551,7 +4574,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4589,7 +4612,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4608,7 +4631,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4627,7 +4650,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4646,7 +4669,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4665,7 +4688,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4684,7 +4707,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4703,7 +4726,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4741,7 +4764,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4779,7 +4802,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4817,7 +4840,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4836,7 +4859,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4874,7 +4897,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4912,7 +4935,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4931,7 +4954,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4950,7 +4973,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -4988,7 +5011,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5045,7 +5068,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5083,7 +5106,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5102,7 +5125,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5121,7 +5144,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5140,7 +5163,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5159,7 +5182,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5197,7 +5220,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5216,7 +5239,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5235,7 +5258,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5254,7 +5277,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5273,7 +5296,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5292,7 +5315,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5330,7 +5353,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5368,7 +5391,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5406,7 +5429,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5444,7 +5467,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5463,7 +5486,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5501,7 +5524,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5539,7 +5562,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5558,7 +5581,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5577,7 +5600,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5615,7 +5638,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5634,7 +5657,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5653,7 +5676,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5710,7 +5733,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5748,7 +5771,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5767,7 +5790,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5786,7 +5809,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5881,7 +5904,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5900,7 +5923,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5919,7 +5942,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5938,7 +5961,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5976,7 +5999,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -5995,7 +6018,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6033,7 +6056,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6052,7 +6075,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6071,7 +6094,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6090,7 +6113,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6109,7 +6132,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6128,7 +6151,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6147,7 +6170,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6204,7 +6227,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6223,7 +6246,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6242,7 +6265,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6280,7 +6303,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6299,7 +6322,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6356,7 +6379,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6375,7 +6398,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6432,7 +6455,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6451,7 +6474,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6489,7 +6512,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6508,7 +6531,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6527,7 +6550,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6546,7 +6569,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6565,7 +6588,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6584,7 +6607,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6603,7 +6626,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6622,7 +6645,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6641,7 +6664,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6660,7 +6683,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6717,7 +6740,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6736,7 +6759,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6774,7 +6797,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6793,7 +6816,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6850,7 +6873,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6888,7 +6911,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6907,7 +6930,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6945,7 +6968,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6964,7 +6987,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -6983,7 +7006,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7002,7 +7025,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7154,7 +7177,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7192,7 +7215,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7211,7 +7234,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7268,7 +7291,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7287,7 +7310,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7325,7 +7348,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7344,7 +7367,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7382,7 +7405,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7401,7 +7424,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7420,7 +7443,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7439,7 +7462,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7458,7 +7481,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7477,7 +7500,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7496,7 +7519,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7515,7 +7538,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7534,7 +7557,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7553,7 +7576,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7572,7 +7595,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7591,7 +7614,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7610,7 +7633,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7629,7 +7652,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7648,7 +7671,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7667,7 +7690,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7686,7 +7709,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7705,7 +7728,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7724,7 +7747,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7743,7 +7766,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7762,7 +7785,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7781,7 +7804,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7800,7 +7823,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7819,7 +7842,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7838,7 +7861,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7857,7 +7880,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7933,7 +7956,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -7990,7 +8013,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8085,7 +8108,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8104,7 +8127,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8123,7 +8146,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8142,7 +8165,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8199,7 +8222,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8256,7 +8279,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8294,7 +8317,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8351,7 +8374,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8370,7 +8393,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8389,7 +8412,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8408,7 +8431,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8446,7 +8469,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8465,7 +8488,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8655,7 +8678,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8712,7 +8735,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8769,7 +8792,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8883,7 +8906,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8921,7 +8944,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8959,7 +8982,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8978,7 +9001,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -8997,7 +9020,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9016,7 +9039,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9035,7 +9058,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9073,7 +9096,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9092,7 +9115,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9130,7 +9153,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9168,7 +9191,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9187,7 +9210,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9225,7 +9248,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9244,7 +9267,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9301,7 +9324,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9320,7 +9343,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9377,7 +9400,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9396,7 +9419,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9434,7 +9457,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9453,7 +9476,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9472,7 +9495,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9491,7 +9514,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9510,7 +9533,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9529,7 +9552,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9548,7 +9571,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9567,7 +9590,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9586,7 +9609,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9605,7 +9628,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9643,7 +9666,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9662,7 +9685,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9681,7 +9704,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9700,7 +9723,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9719,7 +9742,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9738,7 +9761,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9757,7 +9780,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9795,7 +9818,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9814,7 +9837,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9833,7 +9856,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9852,7 +9875,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9871,7 +9894,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9890,7 +9913,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9909,7 +9932,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9928,7 +9951,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9947,7 +9970,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -9985,7 +10008,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10004,7 +10027,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10042,7 +10065,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10061,7 +10084,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10080,7 +10103,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10099,7 +10122,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10118,7 +10141,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10137,7 +10160,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10156,7 +10179,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10213,7 +10236,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10232,7 +10255,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10251,7 +10274,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10270,7 +10293,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10308,7 +10331,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10327,7 +10350,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10346,7 +10369,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10365,7 +10388,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10384,7 +10407,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10403,7 +10426,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10422,7 +10445,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10460,7 +10483,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10479,7 +10502,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10498,7 +10521,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10536,7 +10559,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10574,7 +10597,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10593,7 +10616,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10612,7 +10635,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10650,7 +10673,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10669,7 +10692,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10688,7 +10711,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10707,7 +10730,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10726,7 +10749,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10783,7 +10806,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10802,7 +10825,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10821,7 +10844,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10840,7 +10863,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10859,7 +10882,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10897,7 +10920,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10935,7 +10958,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10954,7 +10977,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10973,7 +10996,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -10992,7 +11015,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11011,7 +11034,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11030,7 +11053,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11258,7 +11281,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11277,7 +11300,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11315,7 +11338,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11372,7 +11395,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11391,7 +11414,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11410,7 +11433,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11467,7 +11490,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11562,7 +11585,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11581,7 +11604,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11619,7 +11642,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11695,7 +11718,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11714,7 +11737,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11733,7 +11756,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11752,7 +11775,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11771,7 +11794,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11790,7 +11813,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11809,7 +11832,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11828,7 +11851,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11847,7 +11870,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11866,7 +11889,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11885,7 +11908,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11904,7 +11927,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11923,7 +11946,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11942,7 +11965,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11980,7 +12003,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -11999,7 +12022,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12018,7 +12041,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12037,7 +12060,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12056,7 +12079,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12075,7 +12098,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12094,7 +12117,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12113,7 +12136,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12132,7 +12155,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12151,7 +12174,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12227,7 +12250,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12265,7 +12288,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12303,7 +12326,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12322,7 +12345,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12341,7 +12364,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12360,7 +12383,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12398,7 +12421,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12417,7 +12440,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12436,7 +12459,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12455,7 +12478,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12474,7 +12497,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12493,7 +12516,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12531,7 +12554,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12550,7 +12573,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12569,7 +12592,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12588,7 +12611,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12607,7 +12630,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12626,7 +12649,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12664,7 +12687,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12683,7 +12706,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12702,7 +12725,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 3,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12721,7 +12744,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12740,7 +12763,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12759,7 +12782,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 6,
+      "community": 0,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12797,7 +12820,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12816,7 +12839,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12854,7 +12877,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 6,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12873,7 +12896,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12892,7 +12915,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12911,7 +12934,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12930,7 +12953,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12949,7 +12972,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12968,7 +12991,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -12987,7 +13010,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 4,
+      "community": 5,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13025,7 +13048,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13044,7 +13067,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13120,7 +13143,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 5,
+      "community": 2,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13215,7 +13238,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 4,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13234,7 +13257,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 1,
+      "community": 3,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13253,7 +13276,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 0,
+      "community": 1,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13272,7 +13295,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 2,
+      "community": 7,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13291,7 +13314,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13310,7 +13333,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13329,7 +13352,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13348,7 +13371,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13367,7 +13390,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13386,7 +13409,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13405,7 +13428,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13424,7 +13447,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13443,7 +13466,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13462,7 +13485,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13481,7 +13504,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13500,7 +13523,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13519,7 +13542,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13538,7 +13561,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13557,7 +13580,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13576,7 +13599,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13595,7 +13618,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13614,7 +13637,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13633,7 +13656,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13652,7 +13675,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13671,7 +13694,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13690,7 +13713,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13709,7 +13732,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13728,7 +13751,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13747,7 +13770,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13766,7 +13789,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13785,7 +13808,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13804,7 +13827,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13823,7 +13846,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13842,7 +13865,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13861,7 +13884,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13880,7 +13903,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13899,7 +13922,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13918,7 +13941,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13937,7 +13960,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13956,7 +13979,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13975,7 +13998,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -13994,7 +14017,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -14013,7 +14036,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -14030,7 +14053,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14050,7 +14073,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14112,7 +14135,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14144,7 +14167,7 @@
       "synthetic": false,
       "freshness_rollup": null,
       "freshness_basis": [],
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14163,6 +14186,145 @@
       "community_label": null
     },
     {
+      "id": "packages/chatqec",
+      "type": "package",
+      "title": "ChatQEC",
+      "domains": [
+        "quantum-error-correction",
+        "wiki-infrastructure",
+        "quantum-simulation"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/chatqec.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/chatqec-mcp-tools",
+      "type": "package",
+      "title": "chatqec-mcp-tools",
+      "domains": [
+        "quantum-error-correction",
+        "wiki-infrastructure",
+        "quantum-simulation"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/chatqec-mcp-tools.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/data-schema",
+      "type": "package",
+      "title": "DataSchema",
+      "domains": [
+        "wiki-infrastructure",
+        "quantum-hpc",
+        "quantum-software"
+      ],
+      "status": "draft",
+      "provenance_status": "needs-verification",
+      "rel_path": "packages/data-schema.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/ftqc",
+      "type": "package",
+      "title": "FTQC",
+      "domains": [
+        "compilation",
+        "quantum-error-correction",
+        "quantum-languages"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/ftqc.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/hardware-aware-mapping",
+      "type": "package",
+      "title": "HardwareAwareMapping",
+      "domains": [
+        "compilation",
+        "quantum-error-correction",
+        "quantum-software"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/hardware-aware-mapping.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/iqm-calibration",
+      "type": "package",
+      "title": "IQM-Calibration",
+      "domains": [
+        "quantum-hpc",
+        "benchmarking-validation"
+      ],
+      "status": "draft",
+      "provenance_status": "needs-verification",
+      "rel_path": "packages/iqm-calibration.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/lightstim",
+      "type": "package",
+      "title": "LightStim",
+      "domains": [
+        "quantum-error-correction",
+        "quantum-simulation",
+        "benchmarking-validation"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/lightstim.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
       "id": "packages/openqevo",
       "type": "package",
       "title": "OpenQEvo",
@@ -14178,7 +14340,7 @@
       },
       "synthetic": false,
       "freshness": "untracked",
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14201,7 +14363,47 @@
       },
       "synthetic": false,
       "freshness": "untracked",
-      "community": 8,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/qhpc-ecosystem",
+      "type": "package",
+      "title": "QHPC-Ecosystem",
+      "domains": [
+        "quantum-hpc",
+        "wiki-infrastructure",
+        "quantum-software"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/qhpc-ecosystem.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
+      "community_label": "quantum-simulation / quantum-software"
+    },
+    {
+      "id": "packages/qiris-qflow",
+      "type": "package",
+      "title": "qiris-qflow",
+      "domains": [
+        "quantum-hpc",
+        "quantum-simulation",
+        "quantum-software"
+      ],
+      "status": "active",
+      "provenance_status": "source-backed",
+      "rel_path": "packages/qiris-qflow.md",
+      "version_built": null,
+      "version_scope": null,
+      "version_source": null,
+      "synthetic": false,
+      "freshness": null,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14225,7 +14427,7 @@
       },
       "synthetic": false,
       "freshness": "untracked",
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14248,7 +14450,7 @@
       },
       "synthetic": false,
       "freshness": "untracked",
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14271,7 +14473,7 @@
       },
       "synthetic": false,
       "freshness": "untracked",
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -14307,7 +14509,7 @@
       "version_scope": null,
       "version_source": null,
       "synthetic": false,
-      "community": 7,
+      "community": 8,
       "community_label": "quantum-error-correction"
     },
     {
@@ -14322,7 +14524,7 @@
       "version_scope": null,
       "version_source": null,
       "synthetic": false,
-      "community": 8,
+      "community": 9,
       "community_label": "quantum-simulation / quantum-software"
     },
     {
@@ -22669,6 +22871,102 @@
       "community_label": null
     },
     {
+      "id": "https://github.com/QSCSoftwareEcosystem/ChatQEC",
+      "type": "external",
+      "title": "ChatQEC",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/ChatQEC#enable-qappswiki-search",
+      "type": "external",
+      "title": "ChatQEC#enable-qappswiki-search",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools",
+      "type": "external",
+      "title": "chatqec-mcp-tools",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/DataSchema",
+      "type": "external",
+      "title": "DataSchema",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/FTQC",
+      "type": "external",
+      "title": "FTQC",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/HardwareAwareMapping",
+      "type": "external",
+      "title": "HardwareAwareMapping",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/IQM-Calibration",
+      "type": "external",
+      "title": "IQM-Calibration",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/LightStim",
+      "type": "external",
+      "title": "LightStim",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
       "id": "ext:../OpenQEvo/docs/architecture.md",
       "type": "external",
       "title": "architecture.md",
@@ -22708,6 +23006,30 @@
       "id": "https://docs.pennylane.ai/",
       "type": "external",
       "title": "",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/QHPC-Ecosystem",
+      "type": "external",
+      "title": "QHPC-Ecosystem",
+      "domains": [],
+      "status": null,
+      "provenance_status": null,
+      "rel_path": null,
+      "synthetic": true,
+      "community": null,
+      "community_label": null
+    },
+    {
+      "id": "https://github.com/QSCSoftwareEcosystem/qiris-qflow",
+      "type": "external",
+      "title": "qiris-qflow",
       "domains": [],
       "status": null,
       "provenance_status": null,
@@ -50229,6 +50551,69 @@
     },
     {
       "source": "index",
+      "target": "packages/chatqec",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/chatqec-mcp-tools",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/data-schema",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/ftqc",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/hardware-aware-mapping",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/iqm-calibration",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/lightstim",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/qhpc-ecosystem",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
+      "target": "packages/qiris-qflow",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "index",
       "target": "concepts/markdown-compilation",
       "relation": "related",
       "confidence": "EXTRACTED",
@@ -55149,6 +55534,188 @@
       "origin": "wikilink"
     },
     {
+      "source": "packages/chatqec",
+      "target": "packages/chatqec-mcp-tools",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/chatqec",
+      "target": "packages/lightstim",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/chatqec",
+      "target": "concepts/quantum-hpc-qec-llm-wiki",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/chatqec",
+      "target": "https://github.com/QSCSoftwareEcosystem/ChatQEC",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/chatqec",
+      "target": "https://github.com/QSCSoftwareEcosystem/ChatQEC#enable-qappswiki-search",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/chatqec-mcp-tools",
+      "target": "packages/chatqec",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/chatqec-mcp-tools",
+      "target": "packages/lightstim",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/chatqec-mcp-tools",
+      "target": "packages/stim",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/chatqec-mcp-tools",
+      "target": "https://github.com/QSCSoftwareEcosystem/chatqec-mcp-tools",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/data-schema",
+      "target": "schema/frontmatter-v0",
+      "relation": "related",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/data-schema",
+      "target": "packages/qhpc-ecosystem",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/data-schema",
+      "target": "https://github.com/QSCSoftwareEcosystem/DataSchema",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/ftqc",
+      "target": "packages/qhpc-ecosystem",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/ftqc",
+      "target": "packages/hardware-aware-mapping",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/ftqc",
+      "target": "concepts/qec/steane",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/ftqc",
+      "target": "concepts/qec/surface",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/ftqc",
+      "target": "https://github.com/QSCSoftwareEcosystem/FTQC",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/hardware-aware-mapping",
+      "target": "packages/ftqc",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/hardware-aware-mapping",
+      "target": "packages/chatqec",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/hardware-aware-mapping",
+      "target": "https://github.com/QSCSoftwareEcosystem/HardwareAwareMapping",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/iqm-calibration",
+      "target": "packages/hardware-aware-mapping",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/iqm-calibration",
+      "target": "https://github.com/QSCSoftwareEcosystem/IQM-Calibration",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/lightstim",
+      "target": "packages/stim",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/lightstim",
+      "target": "packages/chatqec-mcp-tools",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/lightstim",
+      "target": "concepts/qec/surface",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/lightstim",
+      "target": "https://github.com/QSCSoftwareEcosystem/LightStim",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
       "source": "packages/openqevo",
       "target": "how-to/openqevo-first-run",
       "relation": "has-how-to",
@@ -55238,6 +55805,55 @@
       "relation": "cites",
       "confidence": "EXTRACTED",
       "origin": "sources"
+    },
+    {
+      "source": "packages/qhpc-ecosystem",
+      "target": "packages/ftqc",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/qhpc-ecosystem",
+      "target": "packages/qiris-qflow",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/qhpc-ecosystem",
+      "target": "packages/chatqec",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/qhpc-ecosystem",
+      "target": "https://github.com/QSCSoftwareEcosystem/QHPC-Ecosystem",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
+    },
+    {
+      "source": "packages/qiris-qflow",
+      "target": "packages/qhpc-ecosystem",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/qiris-qflow",
+      "target": "packages/openqevo",
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "origin": "wikilink"
+    },
+    {
+      "source": "packages/qiris-qflow",
+      "target": "https://github.com/QSCSoftwareEcosystem/qiris-qflow",
+      "relation": "cites",
+      "confidence": "EXTRACTED",
+      "origin": "inline-citation"
     },
     {
       "source": "packages/qiskit",

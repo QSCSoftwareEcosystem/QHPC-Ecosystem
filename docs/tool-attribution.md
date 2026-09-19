@@ -94,7 +94,7 @@ this page: **Vicente Leyton-Ortega**, as shown in the
 
 - Named repository contributor: Vicente Leyton-Ortega.
 - Current maintainer: unresolved in the pinned project documentation.
-- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareThrust/QAppsWiki/commits/d5f0248945516a4198f92edd9764a2fe5b676549) and [README](https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md).
+- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareThrust/QAppsWiki/commits/125157e1b7e37c379a0e6e38fb692c4058845a7f) and [README](https://github.com/QSCSoftwareThrust/QAppsWiki/blob/125157e1b7e37c379a0e6e38fb692c4058845a7f/README.md).
 
 ## STABSim
 
