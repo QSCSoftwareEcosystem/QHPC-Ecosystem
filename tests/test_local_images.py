@@ -15,7 +15,9 @@ from qhpc_ecosystem.local_images import (
 )
 
 
-def write_manifest(tmp_path: Path, *, source: str | None = None) -> tuple[Path, str]:
+def write_manifest(
+    tmp_path: Path, *, source: str | None = None, local_id: str | None = None
+) -> tuple[Path, str]:
     digest = "sha256:" + "a" * 64
     manifest = tmp_path / "public-images.json"
     manifest.write_text(
@@ -29,7 +31,7 @@ def write_manifest(tmp_path: Path, *, source: str | None = None) -> tuple[Path, 
                         "source": source
                         or f"ghcr.io/qscsoftwareecosystem/eqo-test@{digest}",
                         "local_reference": "qhpc/test:1.0",
-                        "local_id": digest,
+                        "local_id": local_id or digest,
                     }
                 ],
             }
@@ -89,6 +91,30 @@ def test_ensure_public_images_reuses_a_verified_local_image(tmp_path: Path) -> N
     assert commands == [
         ["docker", "image", "inspect", "--format", "{{.Id}}", "qhpc/test:1.0"]
     ]
+
+
+def test_ensure_public_images_accepts_containerd_manifest_identity(
+    tmp_path: Path,
+) -> None:
+    config_digest = "sha256:" + "b" * 64
+    manifest, manifest_digest = write_manifest(tmp_path, local_id=config_digest)
+    commands: list[list[str]] = []
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=f"{manifest_digest}\n",
+            stderr="",
+        )
+
+    result = ensure_public_images(manifest=manifest, runner=run)
+
+    assert [(entry.id, entry.action) for entry in result] == [
+        ("test-image", "reused")
+    ]
+    assert len(commands) == 1
 
 
 def test_ensure_public_images_pulls_and_tags_a_missing_image(tmp_path: Path) -> None:

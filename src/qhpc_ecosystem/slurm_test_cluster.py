@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from .container_engine import apptainer_requested
 from .contract import validate_contract, validate_contract_data
+from .local_images import admitted_docker_image_ids
 from .operation_runtime import load_operation_runtime
 from .slurm import CommandResult, SlurmClient
 
@@ -284,7 +285,8 @@ class SlurmDockerCluster:
                     f"development OCI image is unavailable "
                     f"({image['local_reference']}): {detail}"
                 )
-            if actual != image["digest"]:
+            admitted_ids = admitted_docker_image_ids(image["local_reference"])
+            if image["digest"] not in admitted_ids or actual not in admitted_ids:
                 raise SlurmTestClusterError(
                     "development OCI image digest mismatch for "
                     f"{image['local_reference']}: expected {image['digest']}, "
@@ -314,7 +316,8 @@ class SlurmDockerCluster:
                 "compatibility image is unavailable "
                 f"({image['local_reference']}): {detail}"
             )
-        if actual != image["config_digest"]:
+        admitted_ids = admitted_docker_image_ids(image["local_reference"])
+        if image["config_digest"] not in admitted_ids or actual not in admitted_ids:
             raise SlurmTestClusterError(
                 "compatibility image digest mismatch for "
                 f"{image['local_reference']}: expected {image['config_digest']}, "

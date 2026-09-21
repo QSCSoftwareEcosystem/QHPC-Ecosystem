@@ -159,6 +159,23 @@ def admitted_source_digest(
     )
 
 
+def admitted_docker_image_ids(
+    local_reference: str, *, manifest: str | Path | None = None
+) -> frozenset[str]:
+    """Return the config and manifest IDs used by Docker's two image stores."""
+
+    for image in load_public_images(manifest):
+        if image.local_reference == local_reference:
+            return _docker_image_ids(image)
+    raise LocalImageError(
+        f"no admitted image for local reference: {local_reference}"
+    )
+
+
+def _docker_image_ids(image: PublicImage) -> frozenset[str]:
+    return frozenset((image.local_id, image.source.split("@", 1)[1]))
+
+
 def _run(
     command: Sequence[str],
     *,
@@ -441,7 +458,8 @@ def ensure_public_images(
     results: list[ImageInstallResult] = []
     for image in images:
         actual = _local_image_id(image, runner=runner, docker=docker)
-        if actual == image.local_id:
+        admitted_ids = _docker_image_ids(image)
+        if actual in admitted_ids:
             results.append(
                 ImageInstallResult(
                     id=image.id,
@@ -462,10 +480,11 @@ def ensure_public_images(
             capture_output=True,
         )
         actual = _local_image_id(image, runner=runner, docker=docker)
-        if actual != image.local_id:
+        if actual not in admitted_ids:
             raise LocalImageError(
                 f"downloaded EQO image identity mismatch for {image.local_reference}: "
-                f"expected {image.local_id}, found {actual or 'missing'}"
+                f"expected one of {', '.join(sorted(admitted_ids))}, "
+                f"found {actual or 'missing'}"
             )
         results.append(
             ImageInstallResult(
