@@ -130,6 +130,19 @@ def test_compose_override_isolates_names_and_persists_controller_state() -> None
     assert "/var/run/docker.sock:/var/run/docker.sock" in services["c2"]["volumes"]
 
 
+def test_compose_selects_linux_amd64_for_slurm_services() -> None:
+    document = load_document(MANIFEST)
+    override_name = "compose.linux-amd64.yaml"
+    override = yaml.safe_load((MANIFEST.parent / override_name).read_text())
+
+    assert override_name in document["spec"]["compose"]["overrides"]
+    assert set(override["services"]) == {"slurmdbd", "slurmctld", "c1", "c2"}
+    assert all(
+        service["platform"] == "linux/amd64"
+        for service in override["services"].values()
+    )
+
+
 def test_prepare_rejects_private_key_as_build_ca(tmp_path: Path) -> None:
     checkout = tmp_path / "cluster"
     _prepared_checkout(checkout)
