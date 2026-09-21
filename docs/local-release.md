@@ -17,6 +17,9 @@ who will run EQO can execute:
 docker version
 ```
 
+Building the bundled Workbench additionally requires Node.js 20.19 or newer.
+The checked-in `.nvmrc` pins the release-build version for NVM users.
+
 Docker is the default dependency for the complete local profile: admitted
 tools run in immutable OCI images, and the first `eqo local up` may download
 several GB of Linux/AMD64 images. On a Linux host where Docker is unavailable,

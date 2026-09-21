@@ -102,13 +102,17 @@ def test_ftqc_preparation_uses_only_the_admitted_oci_runtime(
     source.write_text("OPENQASM 3.0;\nqubit[2] q;\n", encoding="utf-8")
     work = tmp_path / "work"
     work.mkdir()
-    digest = "sha256:" + "f" * 64
+    digest = local_adapters.FTQC_OCI_DIGEST
     calls: list[list[str]] = []
 
     def run(command, **_options):
         calls.append(command)
         if command[1:3] == ["image", "inspect"]:
-            return SimpleNamespace(returncode=0, stdout=digest + "\n", stderr="")
+            return SimpleNamespace(
+                returncode=0,
+                stdout=local_adapters.FTQC_OCI_LOCAL_ID + "\n",
+                stderr="",
+            )
         assert command[:3] == ["/usr/bin/docker", "run", "--rm"]
         assert "--network" in command
         assert command[command.index("--network") + 1] == "none"

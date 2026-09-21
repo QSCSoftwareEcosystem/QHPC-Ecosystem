@@ -1,0 +1,140 @@
+api_version: qhpc/v1
+kind: SlurmTestCluster
+metadata:
+  id: thomas-slurm-docker
+  name: Thomas Naughton Slurm Docker development cluster
+  owners:
+    - QSC Software Thrust
+  contributors:
+    - Thomas Naughton
+  status: validated
+  evidence:
+    - ../../../docs/adr/0009-development-slurm-test-cluster.md
+    - ../../../docs/hpc-execution.md
+    - ../../../docs/evidence/slurm-docker-cluster-smoke-2026-07-27.md
+spec:
+  scheduler: slurm
+  scope: development-only
+  production_evidence: false
+  source:
+    repository: https://github.com/naughtont3/slurm-docker-cluster.git
+    branch: tjn-main
+    revision: 8c8065cbebb475a512a66cabff9aceda5f2c57b0
+    license: MIT
+  compatibility:
+    build_ca_destination: qhpc-build-ca.pem
+    files:
+      - source: Dockerfile.qhpc
+        destination: Dockerfile.qhpc
+      - source: qhpc-oci-shim.py
+        destination: qhpc-oci-shim.py
+  runtime_images:
+    - runtime_id: qasmtrans-transpile-linux-amd64
+      runtime_manifest: containers/operations/qasmtrans/runtime.yaml
+      registry_reference: docker://qhpc/qasmtrans@sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf
+      local_reference: qhpc/qasmtrans:1843c98-linux-amd64
+      digest: sha256:c35dcde1cef25b97ee31a97f3834a6a0e2afee15cc6de676dcb6bac2c32eccbf
+    - runtime_id: stabsim-analyze-metrics-linux-amd64
+      runtime_manifest: containers/operations/stabsim/runtime.yaml
+      registry_reference: docker://qhpc/stabsim@sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e
+      local_reference: qhpc/stabsim:a0d8d2e-linux-amd64
+      digest: sha256:e5f33fadc0f9522ec56bd94dae2e46a01576d1d6f7cdc7e8d3c339576160453e
+    - runtime_id: nwqec-count-clifford-t-linux-amd64
+      runtime_manifest: containers/operations/nwqec/runtime.yaml
+      registry_reference: docker://qhpc/nwqec@sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43
+      local_reference: qhpc/nwqec:d93299c-linux-amd64
+      digest: sha256:91ccd96643fdf04fa58d13c5feb132297ab75da44cb128bb0064d1bf57c51c43
+    - runtime_id: ftprimitivebench-build-memory-linux-amd64
+      runtime_manifest: containers/operations/ftprimitivebench/runtime.yaml
+      registry_reference: docker://qhpc/ftprimitivebench@sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3
+      local_reference: qhpc/ftprimitivebench:ba15eba-linux-amd64
+      digest: sha256:a5d08a83224df9e9dc7d063c16ee44afdbe09f5aa33710e2b39bc6b35b163dc3
+    - runtime_id: lightstim-estimate-logical-error-linux-amd64
+      runtime_manifest: containers/operations/lightstim/runtime.yaml
+      registry_reference: docker://qhpc/lightstim@sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2
+      local_reference: qhpc/lightstim:23924ee-linux-amd64
+      digest: sha256:dda92c8c12c1a5271dfa72dd7a4c8b284911000c2b157a6666ffd4094de4dcc2
+    - runtime_id: chatqec-code-params-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/code-params.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      required_on_start: false
+    - runtime_id: stim-simulation-linux-amd64
+      runtime_manifest: containers/operations/stim/runtime.yaml
+      registry_reference: docker://qhpc/stim@sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678
+      local_reference: qhpc/stim:0.1.0-linux-amd64
+      digest: sha256:6e71488fd8cc36581295ab23807a538acd9e6b978a1cbc7e77b4f342e0448678
+      required_on_start: false
+    - runtime_id: chatqec-stim-diagram-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/stim-diagram.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      required_on_start: false
+    - runtime_id: chatqec-pymatching-decode-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/pymatching-decode.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      required_on_start: false
+    - runtime_id: chatqec-threshold-sweep-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/threshold-sweep.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      required_on_start: false
+    - runtime_id: chatqec-qec-circuit-build-linux-amd64
+      runtime_manifest: containers/operations/chatqec-lightstim/runtime.yaml
+      registry_reference: docker://qhpc/chatqec-lightstim@sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
+      local_reference: qhpc/chatqec-lightstim:dd19a85-linux-amd64-v3
+      digest: sha256:433d7e9c8520c9858f0a9a5f15f4a8c84acb14c74d514f83195b6db2663a1399
+      required_on_start: false
+    - runtime_id: tsim-simulation-linux-amd64
+      runtime_manifest: containers/operations/tsim/runtime.yaml
+      registry_reference: docker://qhpc/tsim@sha256:2201fe400234a451f6a0bd38902f8c0c83e9a444001d035cdabde6aee22b4b17
+      local_reference: qhpc/tsim:0.1.0-linux-amd64
+      digest: sha256:2201fe400234a451f6a0bd38902f8c0c83e9a444001d035cdabde6aee22b4b17
+      required_on_start: false
+    - runtime_id: chatqec-glcb-visualize-url-linux-amd64
+      runtime_manifest: containers/operations/chatqec-mcp-tools/glcb-visualize-url.runtime.yaml
+      registry_reference: docker://qhpc/chatqec-qec-tools@sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      local_reference: qhpc/chatqec-qec-tools:dd19a85-linux-amd64-v2
+      digest: sha256:7dc81e271909f18ba8e1f236b02627eb5145dd7c34b85c2ff55eceaf779b564a
+      required_on_start: false
+  compose:
+    project_name: qhpc-slurm-test
+    compose_file: docker-compose.yml
+    overrides:
+      - compose.qhpc.yaml
+    services:
+      - mysql
+      - slurmdbd
+      - slurmctld
+      - c1
+      - c2
+    controller_service: slurmctld
+    worker_services:
+      - c1
+      - c2
+    cluster_name: linux
+    partition: normal
+    shared_directory:
+      host: shared-dir
+      container: /mnt
+    readiness_timeout_seconds: 300
+    poll_interval_seconds: 2
+  security:
+    start_rest_api: false
+    default_credentials: true
+    isolated_test_data_only: true
+  limitations:
+    - Scheduler lifecycle testing only; this cluster is not a DOE deployment target.
+    - The selected source uses development database credentials and must not receive sensitive data.
+    - The upstream Dockerfile is not used; the tracked QHPC compatibility Dockerfile is required.
+    - Intercepting development networks require an explicitly supplied approved public CA certificate.
+    - The compatibility build remains a development image and is not a signed runtime release.
+    - The QHPC override replaces the source's global container and image names so unrelated Compose stacks can coexist; one QHPC fixture instance may run per Docker host.
+    - Development operation jobs use a constrained OCI shim over the host Docker socket; possession of that socket is host-equivalent authority, so the fixture accepts isolated test data only and is never a multi-user target.
+    - Apptainer, parallel filesystems, MPI, RDMA, GPU, GPUDirect, and facility identity are not modeled.
+    - Queue latency and performance measurements are not representative of an HPC facility.

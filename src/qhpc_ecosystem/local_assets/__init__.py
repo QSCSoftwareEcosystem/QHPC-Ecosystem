@@ -13,6 +13,7 @@ ASSETS = {
     "assistant-interface": "assistant-service.yaml",
     "public-image-manifest": "images/public-ghcr-v1.json",
     "arm64-alpha-image-manifest": "images/arm64-internal-alpha-v1.json",
+    "slurm-test-cluster": "test-clusters/slurm-docker-cluster/cluster.yaml",
     "qappswiki-graph": "knowledge/qappswiki-graph-v1.json",
     "workflow-chatqec-code-parameters": "workflows/chatqec-code-parameters.yaml",
     "workflow-chatqec-qec-toolchain": "workflows/chatqec-qec-toolchain.yaml",

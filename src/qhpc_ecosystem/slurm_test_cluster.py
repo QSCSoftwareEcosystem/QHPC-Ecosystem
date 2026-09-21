@@ -215,6 +215,13 @@ class SlurmDockerCluster:
 
     @property
     def workspace_root(self) -> Path:
+        package_assets = Path(__file__).with_name("local_assets").resolve()
+        try:
+            self.manifest_path.relative_to(package_assets)
+        except ValueError:
+            pass
+        else:
+            return package_assets
         for candidate in self.manifest_path.parents:
             if (candidate / "pyproject.toml").is_file() and (
                 candidate / "src/qhpc_ecosystem"

@@ -4,6 +4,8 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+import pytest
+
 from qhpc_ecosystem.iqm_provider import QiskitIQMBackendClient
 from qhpc_ecosystem import iqm_worker
 
@@ -97,6 +99,7 @@ def steane_circuit() -> dict[str, Any]:
 
 
 def test_qiskit_iqm_client_routes_and_recovers_a_job_without_exposing_token() -> None:
+    pytest.importorskip("qiskit")
     client = QiskitIQMBackendClient(
         "https://iqm.example.test/cocos",
         "approved-qpu",

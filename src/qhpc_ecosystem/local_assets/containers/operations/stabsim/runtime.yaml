@@ -1,0 +1,80 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: stabsim-analyze-metrics-linux-amd64
+  name: STABSim metrics Linux runtime
+  version: 0.1.0
+  component: stabsim
+  capability: stabsim-simulator
+  operation: analyze-metrics
+  project: hybrid-workflows
+  owners: [qhpc-ecosystem]
+  source:
+    url: https://github.com/seangarn32/STABSim
+    revision: a0d8d2e2a9fdec9785857104220b8e7f0346c761
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/repository-audit-2026-07-11.md
+    - docs/evidence/stabsim-oci-smoke-2026-07-27.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/stabsim/Containerfile
+      digest: sha256:4c165ec499e90aab0f9106b93c190251495215ce1ad114b2860b06260b552655
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:760bcd2908389ea85071b743dec65ba8b1270aaf4fa7fc9e4e870fbc93c326f6
+      source_date_epoch: 1779411961
+    context_files:
+      - source: containers/operations/stabsim/entrypoint.sh
+        destination: entrypoint.sh
+        digest: sha256:7d0e8c4af49e74760934db05ea71494768b485e2ce5d199fe5ef45b299ec2ca4
+        mode: "0755"
+    builder:
+      reference: docker.io/library/gcc:13.4.0-bookworm@sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+      digest: sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+    runtime_base:
+      reference: docker.io/library/debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+      digest: sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-stabsim-metrics]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: metrics-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.qasm
+      outputs:
+        metrics: /outputs/metrics.json
+    parameters:
+      random_seed:
+        argument: --random-seed
+        type: integer
+  verification:
+    fixture:
+      path: containers/operations/stabsim/fixtures/bell.qasm
+      digest: sha256:7d44e21c07f288034b521edb642e70a4664d05b87b182d9d3604593e45ceee0b
+      mount_path: /inputs/circuit.qasm
+    arguments: [--random-seed, "42"]
+    expected_outputs:
+      - path: /outputs/metrics.json
+        nonempty: true
+        text_contains: ['"circuit_depth": 2', '"two_qubit_gates": 1']
+    timeout_seconds: 60
+  release:
+    status: unpublished

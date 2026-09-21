@@ -13,6 +13,7 @@ from qhpc_ecosystem.contract import (
     validate_contract,
     validate_contract_data,
 )
+from qhpc_ecosystem.local_assets import asset_path
 from qhpc_ecosystem.slurm import CommandResult
 from qhpc_ecosystem.slurm_test_cluster import (
     ClusterStatus,
@@ -110,6 +111,17 @@ def test_manifest_rejects_rest_service_and_unsafe_source_paths() -> None:
     message = str(error.value)
     assert "cannot include slurmrestd" in message
     assert "must be a safe relative path" in message
+
+
+def test_packaged_slurm_fixture_resolves_its_bundled_runtime_manifests(
+    tmp_path: Path,
+) -> None:
+    cluster = SlurmDockerCluster.from_manifest(
+        asset_path("slurm-test-cluster"), tmp_path / "cluster"
+    )
+
+    assert cluster.workspace_root == asset_path("slurm-test-cluster").parents[2]
+    assert len(cluster.development_runtimes()) == len(cluster.runtime_images)
 
 
 def test_compose_override_isolates_names_and_persists_controller_state() -> None:

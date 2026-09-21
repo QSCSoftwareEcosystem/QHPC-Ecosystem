@@ -1,0 +1,79 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: qasmtrans-transpile-linux-amd64
+  name: QASMTrans transpile Linux runtime
+  version: 0.1.0
+  component: qasmtrans
+  capability: qasmtrans-transpiler
+  operation: transpile
+  project: compilation-tools
+  owners: [qhpc-ecosystem]
+  source:
+    url: https://github.com/pnnl/qasmtrans
+    revision: 1843c98fa4bac9cf6b88412145b69457e9176124
+  status: oci-smoke-tested
+  evidence: [docs/evidence/qasmtrans-oci-smoke-2026-07-27.md]
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/qasmtrans/Containerfile
+      digest: sha256:ae6b180750248afb7e224393880b9ff52a72f8e12d6622d7c206837e670dbd3c
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:57a76bda6d6d440f54a22981972ccf24b647a5a13ffdec7c28d3efedfd4c5a3f
+      source_date_epoch: 1764775929
+    context_files:
+      - source: containers/operations/qasmtrans/entrypoint.sh
+        destination: entrypoint.sh
+        digest: sha256:2f8f5ed8800901e15e2e2f2531f473ba351d8c98034b86a08c82f5b321b9356c
+        mode: "0755"
+    builder:
+      reference: docker.io/library/gcc:13.4.0-bookworm@sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+      digest: sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+    runtime_base:
+      reference: docker.io/library/debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+      digest: sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-qasmtrans]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: circuit-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.qasm
+      outputs:
+        circuit: /outputs/circuit.qasm
+    parameters:
+      mode:
+        fixed: ibmq
+      backend:
+        fixed: ibmq_toronto
+  verification:
+    fixture:
+      path: containers/operations/qasmtrans/fixtures/bell.qasm
+      digest: sha256:a537711829321dfa9aae019f9e76c1cb530e9dfccf0fa2a88f6d732d43539b13
+      mount_path: /inputs/circuit.qasm
+    arguments: []
+    expected_outputs:
+      - path: /outputs/circuit.qasm
+        nonempty: true
+        text_contains: [OPENQASM 2.0;]
+    timeout_seconds: 60
+  release:
+    status: unpublished

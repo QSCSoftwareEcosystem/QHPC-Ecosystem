@@ -1,0 +1,92 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: nwqec-count-clifford-t-linux-amd64
+  name: NWQEC Clifford and T count Linux runtime
+  version: 0.1.0
+  component: nwqec
+  capability: nwqec-qec-transpilation
+  operation: count-clifford-t
+  project: compilation-tools
+  owners: [qhpc-ecosystem]
+  source:
+    url: https://github.com/pnnl/nwqec
+    revision: d93299c2a0fe47fb7758bff02b456acfb3ac4416
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/nwqec-oci-smoke-2026-07-27.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/nwqec/Containerfile
+      digest: sha256:25aaf63380377692866af9d011a0a4281d0d79f9ee716514a2653a0ecbbf9095
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:fe1b6185790329b864f58d05c43d49eb9f92e26f091d556c5426ec6f19d2d70e
+      source_date_epoch: 1781758769
+    context_files:
+      - source: containers/operations/nwqec/entrypoint.sh
+        destination: entrypoint.sh
+        digest: sha256:d6f96c55b5abdd809f07f9d035ea1d60d9ad7ea7004f26110675e2d87c109964
+        mode: "0755"
+    builder:
+      reference: docker.io/library/gcc:13.4.0-bookworm@sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+      digest: sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
+    runtime_base:
+      reference: docker.io/library/debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+      digest: sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-nwqec-counts]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-input
+        kind: input
+        path: /inputs
+        mode: ro
+      - name: counts-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs:
+        circuit: /inputs/circuit.qasm
+      outputs:
+        counts: /outputs/counts.json
+    parameters:
+      keep_ccx:
+        argument: --keep-ccx
+        type: boolean
+      rz_error_policy:
+        argument: --rz-error-policy
+        type: string
+      epsilon:
+        argument: --epsilon
+        type: number
+  verification:
+    fixture:
+      path: containers/operations/nwqec/fixtures/clifford.qasm
+      digest: sha256:7d44e21c07f288034b521edb642e70a4664d05b87b182d9d3604593e45ceee0b
+      mount_path: /inputs/circuit.qasm
+    arguments:
+      - --keep-ccx
+      - "false"
+      - --rz-error-policy
+      - total
+      - --epsilon
+      - "0.01"
+    expected_outputs:
+      - path: /outputs/counts.json
+        nonempty: true
+        text_contains: ['"source_qubits": 2', '"rz_error_policy": "total"']
+    timeout_seconds: 60
+  release:
+    status: unpublished

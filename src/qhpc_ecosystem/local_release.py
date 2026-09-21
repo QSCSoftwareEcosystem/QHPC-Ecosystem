@@ -55,11 +55,11 @@ CHATQEC_AGENT_TSIM_IMAGE = "qhpc/chatqec-tsim:dd19a85-linux-amd64"
 CHATQEC_AGENT_TSIM_DIGEST = "sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2"
 CHATQEC_AGENT_INPUT_LABEL = "org.qscsoftware.build-inputs-sha256"
 _CHATQEC_AGENT_INPUTS = (
-    "containers/services/chatqec-agent/Containerfile",
-    "src/qhpc_ecosystem/__init__.py",
-    "src/qhpc_ecosystem/service_adapters.py",
-    "src/qhpc_ecosystem/chatqec_readiness.py",
-    "src/qhpc_ecosystem/chatqec_agent_service.py",
+    "local_assets/chatqec-agent.Containerfile",
+    "__init__.py",
+    "service_adapters.py",
+    "chatqec_readiness.py",
+    "chatqec_agent_service.py",
 )
 
 _ARM64_ALPHA_RUNTIME_REPLACEMENTS = {
@@ -496,10 +496,8 @@ def default_slurm_test_cluster_inputs(
         if manifest.is_file():
             checkout = paths.data_root / "test-clusters" / "thomas-slurm-docker"
             return str(manifest), str(checkout)
-    raise LocalReleaseError(
-        "the complete EQO Local execution fixture is missing from this installation; "
-        "use the reviewed EQO source release containing infrastructure/test-clusters"
-    )
+    checkout = paths.data_root / "test-clusters" / "thomas-slurm-docker"
+    return str(asset_path("slurm-test-cluster")), str(checkout)
 
 
 def _ftqc_image_id(builder: str) -> str | None:
@@ -606,17 +604,17 @@ def _local_image_id(builder: str, image: str) -> str | None:
     return identifier
 
 
-def _chatqec_agent_input_digest(workspace: Path) -> str:
+def _chatqec_agent_input_digest(package_root: Path) -> str:
     """Fingerprint every source file copied into the local agent image."""
 
-    inputs = [workspace / relative for relative in _CHATQEC_AGENT_INPUTS]
-    asset_root = workspace / "src/qhpc_ecosystem/local_assets/chatqec"
+    inputs = [package_root / relative for relative in _CHATQEC_AGENT_INPUTS]
+    asset_root = package_root / "local_assets/chatqec"
     inputs.extend(sorted(path for path in asset_root.rglob("*") if path.is_file()))
     if not inputs or any(not path.is_file() for path in inputs):
         raise LocalReleaseError("ChatQEC agent image inputs are incomplete")
     digest = hashlib.sha256()
     for path in inputs:
-        digest.update(path.relative_to(workspace).as_posix().encode("utf-8"))
+        digest.update(path.relative_to(package_root).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(hashlib.sha256(path.read_bytes()).digest())
         digest.update(b"\0")
@@ -668,11 +666,11 @@ def ensure_chatqec_agent_oci_runtime() -> str:
             raise LocalReleaseError(
                 f"ChatQEC agent parent image {image} is {detail}; build its admitted runtime first"
             )
-    workspace = Path(__file__).resolve().parents[2]
-    recipe = workspace / "containers" / "services" / "chatqec-agent" / "Containerfile"
+    package_root = Path(__file__).resolve().parent
+    recipe = package_root / "local_assets" / "chatqec-agent.Containerfile"
     if not recipe.is_file():
         raise LocalReleaseError("ChatQEC agent container recipe is missing from this EQO installation")
-    input_digest = _chatqec_agent_input_digest(workspace)
+    input_digest = _chatqec_agent_input_digest(package_root)
     if (
         _local_image_id(builder, CHATQEC_AGENT_OCI_IMAGE) is not None
         and _local_image_label(builder, CHATQEC_AGENT_OCI_IMAGE, CHATQEC_AGENT_INPUT_LABEL)
@@ -693,7 +691,7 @@ def ensure_chatqec_agent_oci_runtime() -> str:
                 CHATQEC_AGENT_OCI_IMAGE,
                 "--label",
                 f"{CHATQEC_AGENT_INPUT_LABEL}={input_digest}",
-                str(workspace),
+                str(package_root),
             ],
             check=True,
         )

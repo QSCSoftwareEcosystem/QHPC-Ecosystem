@@ -1,0 +1,100 @@
+api_version: qhpc/v1
+kind: OperationRuntime
+metadata:
+  id: ftprimitivebench-build-memory-linux-amd64
+  name: FTPrimitiveBench memory Linux runtime
+  version: 0.1.0
+  component: ftprimitivebench
+  capability: ftprimitivebench-primitives
+  operation: build-memory
+  project: compilation-tools
+  owners: [qhpc-ecosystem]
+  source:
+    url: https://github.com/ShuwenKan/FTPrimitiveBench
+    revision: ba15eba263ac6d641d225984fa074f4ee25bb462
+  status: oci-smoke-tested
+  evidence:
+    - docs/evidence/initial-component-source-audit-2026-07-22.md
+    - docs/evidence/ftprimitivebench-oci-smoke-2026-07-27.md
+spec:
+  packaging: oci-to-apptainer
+  platform:
+    os: linux
+    architecture: amd64
+  build:
+    recipe:
+      path: containers/operations/ftprimitivebench/Containerfile
+      digest: sha256:681e6415fbe5232a44948ef4a2716fd212e622c9fb06bf1655dcbe56123a34bf
+    source_archive:
+      filename: source.tar
+      format: git-archive-tar
+      digest: sha256:3c9686257c7c4c27fe661c37525156d37b4457172e33ba256479cea70bf28076
+      source_date_epoch: 1778037194
+    context_files:
+      - source: containers/operations/ftprimitivebench/entrypoint.py
+        destination: entrypoint.py
+        digest: sha256:c126f97042ea1ac09ba481853e38d3e2e4cf48ea885312804f8c0adb7e279a7d
+        mode: "0755"
+    dependency_archives:
+      - filename: numpy-2.3.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+        url: https://pypi.org/project/numpy/2.3.2/
+        digest: sha256:8145dd6d10df13c559d1e4314df29695613575183fa2e2d11fac4c208c8a1f73
+      - filename: stim-1.15.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        url: https://pypi.org/project/stim/1.15.0/
+        digest: sha256:fdd9e5ab85ba2fb113b8834422518f6e46a4aea2e0f6f7305cfc2ad0fcd07086
+    builder:
+      reference: docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+      digest: sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+    runtime_base:
+      reference: docker.io/library/python:3.12.11-slim-bookworm@sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+      digest: sha256:c00fc7b44d844b6da22861ec24af43968a5200eac4ec607b4725d585165d6b49
+    network: disabled
+  execution:
+    entrypoint: [/opt/qhpc/bin/qhpc-ftprimitivebench-memory]
+    working_directory: /work
+    network: disabled
+    read_only_root: true
+    mounts:
+      - name: circuit-output
+        kind: output
+        path: /outputs
+        mode: rw
+    ports:
+      inputs: {}
+      outputs:
+        circuit: /outputs/circuit.stim
+    parameters:
+      x_distance:
+        argument: --x-distance
+        type: integer
+      z_distance:
+        argument: --z-distance
+        type: integer
+      rounds:
+        argument: --rounds
+        type: integer
+      measurement_basis:
+        argument: --measurement-basis
+        type: string
+      physical_error_rate:
+        argument: --physical-error-rate
+        type: number
+  verification:
+    arguments:
+      - --x-distance
+      - "3"
+      - --z-distance
+      - "3"
+      - --rounds
+      - "3"
+      - --measurement-basis
+      - Z
+      - --physical-error-rate
+      - "0.001"
+    expected_outputs:
+      - path: /outputs/circuit.stim
+        nonempty: true
+        text_contains: [DETECTOR, OBSERVABLE_INCLUDE]
+    timeout_seconds: 60
+  release:
+    status: unpublished

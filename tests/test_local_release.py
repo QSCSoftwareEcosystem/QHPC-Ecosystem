@@ -18,6 +18,7 @@ from qhpc_ecosystem.local_release import (
     LocalReleaseError,
     LocalStackConfig,
     _chatqec_agent_input_digest,
+    default_slurm_test_cluster_inputs,
     default_ftqc_build_inputs,
     diagnostic_report,
     ensure_ftqc_oci_runtime,
@@ -92,6 +93,20 @@ def test_linux_paths_follow_xdg_locations(tmp_path: Path) -> None:
     assert paths.cache_root == tmp_path / "cache" / "eqo"
     assert paths.state_root == tmp_path / "state" / "eqo"
     assert paths.log_root == tmp_path / "state" / "eqo" / "logs"
+
+
+def test_packaged_installation_uses_the_bundled_slurm_fixture(
+    tmp_path: Path,
+) -> None:
+    catalog = tmp_path / "catalog.yaml"
+    catalog.write_text("api_version: qhpc/v1\n", encoding="utf-8")
+    paths = LocalPaths.discover(tmp_path / "local-home")
+
+    manifest, checkout = default_slurm_test_cluster_inputs(catalog, paths)
+
+    assert Path(manifest).name == "cluster.yaml"
+    assert "local_assets/test-clusters/slurm-docker-cluster" in manifest
+    assert checkout == str(paths.data_root / "test-clusters" / "thomas-slurm-docker")
 
 
 def test_local_config_rejects_non_loopback_and_port_collisions(
@@ -287,7 +302,7 @@ def test_chatqec_agent_input_digest_changes_when_a_copied_asset_changes(
         path = tmp_path / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(relative, encoding="utf-8")
-    canonical = tmp_path / "src/qhpc_ecosystem/local_assets/chatqec/knowledge/canonical"
+    canonical = tmp_path / "local_assets/chatqec/knowledge/canonical"
     canonical.mkdir(parents=True)
     page = canonical / "surface-code.md"
     page.write_text("first revision", encoding="utf-8")
