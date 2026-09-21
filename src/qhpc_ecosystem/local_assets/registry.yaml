@@ -1138,7 +1138,7 @@ spec:
         documentation:
           qappswiki: packages/nwqec.md
           url: https://github.com/pnnl/nwqec/blob/d93299c2a0fe47fb7758bff02b456acfb3ac4416/README.md
-  - descriptor_digest: sha256:d9f3f07bcb3c22ebc4224f7d34074cbf231bc60cae304d11d31c2e5d38a789f0
+  - descriptor_digest: sha256:8d2587a78959ae3a08361b291175e71ccc9f3a356bebfa2733a97975454b9aa1
     catalog_repository: NWQSim-QFlow
     validation:
       contract: valid
@@ -1191,7 +1191,6 @@ spec:
           - Set bounded shots and a random seed, then inspect normalized measurement counts.
           example_workflows:
           - nwqsim-bell-simulation
-          - openqevo-nwqsim-tour
           limitations:
           - This is a local, development-only CPU state-vector operation; it is not an HPC target, a GPU
             path, or a QFw workflow runtime.
@@ -1355,7 +1354,7 @@ spec:
         documentation:
           qappswiki: packages/nwqsim-qflow.md
           url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
-  - descriptor_digest: sha256:8c791c51b7253dd716f30a4e4677c00dcc790ac6c3137c64c14c02ccfcf0030d
+  - descriptor_digest: sha256:5dfda853047d57b6c01bf7a0cf875588a4ae500484cc25e1811e33578a8ba44f
     catalog_repository: OpenQEvo
     validation:
       contract: valid
@@ -1417,7 +1416,6 @@ spec:
           - openqevo-method-context
           - openqevo-dense-reference
           - openqevo-trotter-synthesis
-          - openqevo-nwqsim-tour
           - showcase-evolution-readiness
           limitations:
           - EQO exposes the full available method catalog and context snapshot, a bounded dense-reference
@@ -1738,7 +1736,7 @@ spec:
         documentation:
           qappswiki: docs/qsc-integration.md
           url: https://github.com/openQSE/openqse-spec/blob/c172c716e6566bd0a7502b34896dce7467f5a474/README.md
-  - descriptor_digest: sha256:47ceff452da201ea453211ff4eab4dfd5b7b9092c32a2130b8cd6f6877d8081f
+  - descriptor_digest: sha256:107e0aab6330edb6772195c79b28e587eea504ee82b7d063162e679b80e40644
     catalog_repository: QAppsWiki
     validation:
       contract: valid
@@ -1764,7 +1762,7 @@ spec:
         - qappswiki
         repository:
           url: https://github.com/QSCSoftwareThrust/QAppsWiki
-          revision: d5f0248945516a4198f92edd9764a2fe5b676549
+          revision: 125157e1b7e37c379a0e6e38fb692c4058845a7f
         integration:
           authority: ecosystem
           maintainers: *id025
@@ -1803,18 +1801,18 @@ spec:
         - id: qappswiki-cli
           kind: library
           version: 0.1.0
-          uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549/tools
+          uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/125157e1b7e37c379a0e6e38fb692c4058845a7f/tools
         - id: qappswiki-corpus
           kind: dataset
           version: 0.1.0
-          uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/d5f0248945516a4198f92edd9764a2fe5b676549
+          uri: https://github.com/QSCSoftwareThrust/QAppsWiki/tree/125157e1b7e37c379a0e6e38fb692c4058845a7f
         - id: developer-attribution
           kind: documentation
           version: 1.0.0
           uri: docs/tool-attribution.md#qappswiki
         documentation:
           qappswiki: docs/qsc-integration.md
-          url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/d5f0248945516a4198f92edd9764a2fe5b676549/README.md
+          url: https://github.com/QSCSoftwareThrust/QAppsWiki/blob/125157e1b7e37c379a0e6e38fb692c4058845a7f/README.md
   - descriptor_digest: sha256:2d78009f67b26cf005efa943309beab5d701cf7c8f1c348d102a37beb8150d13
     catalog_repository: qasmtrans
     validation:

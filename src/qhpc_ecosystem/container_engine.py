@@ -22,6 +22,7 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -67,17 +68,6 @@ def host_oci_arch() -> str:
 
     machine = platform.machine().lower()
     return _MACHINE_TO_OCI_ARCH.get(machine, machine)
-
-
-def _apptainer_shares_network() -> bool:
-    """Return ``True`` when the user opted out of an isolated network namespace.
-
-    Some Apptainer installs do not let a plain local user create a network
-    namespace (no setuid, no ``allow net``). ``EQO_APPTAINER_SHARE_NETWORK=1``
-    lets such a user run the tools anyway by sharing the host network.
-    """
-
-    return os.environ.get("EQO_APPTAINER_SHARE_NETWORK", "").strip() == "1"
 
 
 @dataclass(frozen=True)
@@ -230,6 +220,47 @@ def verified_sif(local_reference: str, expected_source_digest: str) -> Path:
     return sif
 
 
+def require_network_isolation(engine: ContainerEngine, target: str) -> None:
+    """Prove that an Apptainer operation can create its required net namespace.
+
+    EQO never downgrades an admitted operation to the host network.  This
+    small, side-effect-free probe turns a site policy that prohibits
+    unprivileged network namespaces into a clear prerequisite error before
+    inputs are mounted or a scientific tool is invoked.
+    """
+
+    if not engine.is_apptainer:
+        return
+    command = [
+        engine.executable,
+        "exec",
+        "--containall",
+        "--cleanenv",
+        "--net",
+        "--network",
+        "none",
+        target,
+        "/bin/true",
+    ]
+    try:
+        completed = subprocess.run(
+            command, check=False, capture_output=True, text=True, timeout=20
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ContainerEngineError(
+            "Apptainer cannot verify EQO's required isolated network namespace; "
+            "EQO refuses to run an admitted tool with host networking"
+        ) from error
+    if completed.returncode:
+        detail = (completed.stderr or completed.stdout or "").strip()
+        suffix = f": {detail}" if detail else ""
+        raise ContainerEngineError(
+            "Apptainer cannot create EQO's required isolated network namespace; "
+            "configure Apptainer with unprivileged network support (setuid or "
+            "allow net). EQO refuses to share the host network" + suffix
+        )
+
+
 # --- run command construction --------------------------------------------------
 
 
@@ -263,11 +294,7 @@ def run_command(
             "--cleanenv",
             "--writable-tmpfs",
         ]
-        if network_none and not _apptainer_shares_network():
-            # Requires an Apptainer install that permits an isolated network
-            # namespace for unprivileged users (setuid or `allow net`). Where a
-            # plain local user cannot create one, EQO_APPTAINER_SHARE_NETWORK=1
-            # drops the flag so the tool still runs (sharing the host network).
+        if network_none:
             command += ["--net", "--network", "none"]
         if input_bind is not None:
             host, dest = input_bind

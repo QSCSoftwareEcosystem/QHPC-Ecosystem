@@ -186,6 +186,136 @@ def test_ftqc_preparation_rejects_a_native_or_tampered_runtime(
         local_adapters._ftqc_run_target(request)
 
 
+@pytest.mark.parametrize(
+    ("target_function", "reference", "digest", "local_reference"),
+    [
+        (
+            local_adapters._ftqc_run_target,
+            local_adapters.FTQC_OCI_REFERENCE,
+            local_adapters.FTQC_OCI_DIGEST,
+            local_adapters.FTQC_OCI_IMAGE,
+        ),
+        (
+            local_adapters._chatqec_qec_tools_run_target,
+            local_adapters.CHATQEC_QEC_TOOLS_OCI_REFERENCE,
+            local_adapters.CHATQEC_QEC_TOOLS_OCI_DIGEST,
+            local_adapters.CHATQEC_QEC_TOOLS_OCI_IMAGE,
+        ),
+        (
+            local_adapters._nwqsim_run_target,
+            local_adapters.NWQSIM_OCI_REFERENCE,
+            local_adapters.NWQSIM_OCI_DIGEST,
+            local_adapters.NWQSIM_OCI_IMAGE,
+        ),
+    ],
+)
+def test_admitted_operation_adapters_use_verified_isolated_apptainer_sifs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    target_function,
+    reference: str,
+    digest: str,
+    local_reference: str,
+) -> None:
+    """All admitted operation adapters must take the same safe Apptainer path."""
+
+    sif = tmp_path / "admitted.sif"
+    sif.write_bytes(b"sif")
+    isolated: list[tuple[object, str]] = []
+    monkeypatch.setattr(
+        local_adapters,
+        "select_engine",
+        lambda **_kwargs: container_engine.ContainerEngine(
+            "apptainer", "/usr/bin/apptainer"
+        ),
+    )
+    monkeypatch.setattr(local_adapters, "verified_sif", lambda *_args: sif)
+    monkeypatch.setattr(
+        local_adapters,
+        "require_network_isolation",
+        lambda engine, target: isolated.append((engine, target)),
+    )
+    request = TaskRequest(
+        run_id="apptainer",
+        node_id="operation",
+        capability_id="test",
+        capability_version="0.1.0",
+        operation_id="test",
+        runtime_reference=reference,
+        runtime_digest=digest,
+        parameters={},
+        inputs={},
+        output_types={},
+        work_directory=tmp_path,
+    )
+
+    engine, target = target_function(request)
+
+    assert engine.is_apptainer
+    assert target == str(sif)
+    assert isolated == [(engine, str(sif))]
+
+
+def test_nwqsim_apptainer_run_is_network_isolated_and_writes_only_outputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "bell.qasm"
+    source.write_text("OPENQASM 2.0;\nqreg q[1];\nmeasure q[0] -> c[0];\n")
+    work = tmp_path / "work"
+    work.mkdir()
+    sif = tmp_path / "nwqsim.sif"
+    sif.write_bytes(b"sif")
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        local_adapters,
+        "select_engine",
+        lambda **_kwargs: container_engine.ContainerEngine(
+            "apptainer", "/usr/bin/apptainer"
+        ),
+    )
+    monkeypatch.setattr(local_adapters, "verified_sif", lambda *_args: sif)
+    monkeypatch.setattr(local_adapters, "require_network_isolation", lambda *_args: None)
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        assert command[:4] == ["/usr/bin/apptainer", "run", "--containall", "--cleanenv"]
+        assert command[command.index("--network") + 1] == "none"
+        assert "--bind" in command
+        output_bind = next(
+            value
+            for index, value in enumerate(command)
+            if command[index - 1] == "--bind" and value.endswith(":/outputs")
+        )
+        output = Path(output_bind.removesuffix(":/outputs"))
+        (output / "measurements.json").write_text(
+            '{"counts":{"0":4},"backend":"CPU","simulation_method":"sv",'
+            '"source_revision":"b35763d846e6512ed817d3f88ac8ce79a7e82a7e",'
+            '"shots":4}\n',
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(local_adapters.subprocess, "run", run)
+    result = build_local_runner(tmp_path / "runtimes").execute(
+        TaskRequest(
+            run_id="nwqsim-apptainer",
+            node_id="simulate",
+            capability_id="nwqsim-cpu-simulation",
+            capability_version="0.1.0",
+            operation_id="simulate-qasm",
+            runtime_reference=local_adapters.NWQSIM_OCI_REFERENCE,
+            runtime_digest=local_adapters.NWQSIM_OCI_DIGEST,
+            parameters={"shots": 4},
+            inputs={"circuit": {"uri": source.as_uri()}},
+            output_types={"measurements": "qhpc.nwqsim-measurements@1"},
+            work_directory=work,
+        )
+    )
+
+    assert len(commands) == 1
+    assert Path(result.outputs["measurements"].uri.removeprefix("file://")).is_file()
+
+
 def test_chatqec_stim_simulation_uses_only_the_admitted_oci_runtime(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -8,18 +8,20 @@ publication.
 
 ## Prerequisites
 
-EQO Local requires Python and a working Docker CLI connected to a running
-Docker daemon. Install **Docker Engine** on Linux or **Docker Desktop** on
-macOS, then confirm that the user who will run EQO can execute:
+EQO Local requires Python and either a working Docker CLI connected to a
+running Docker daemon or Apptainer. Install **Docker Engine** on Linux or
+**Docker Desktop** on macOS for the default path, then confirm that the user
+who will run EQO can execute:
 
 ```bash
 docker version
 ```
 
-Docker is a required dependency for the complete local profile: admitted
+Docker is the default dependency for the complete local profile: admitted
 tools run in immutable OCI images, and the first `eqo local up` may download
-several GB of Linux/AMD64 images. If Docker is unavailable, install and start
-it before launching EQO Local.
+several GB of Linux/AMD64 images. On a Linux host where Docker is unavailable,
+set `USE_APPTAINER=1` and install Apptainer with unprivileged isolated-network
+support; see [Container runtime: Docker (default) or Apptainer](#container-runtime-docker-default-or-apptainer).
 
 ## Build and install the release candidate
 
@@ -155,20 +157,27 @@ on HPC systems that lack a Docker daemon:
 USE_APPTAINER=1 eqo local up --open
 ```
 
+For the separate unsigned Linux/ARM64 internal-alpha operation set, the Linux
+guest must additionally opt in with
+`EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1`. This is accepted only together with
+`USE_APPTAINER=1` on Linux/ARM64; it is not the default or a signed release
+path. See [public image distribution](public-image-distribution.md).
+
 The opt-in is explicit: without the variable EQO never chooses Apptainer on its
 own. When it is set, `eqo local up`:
 
 - pulls each admitted image by its immutable digest into a verified SIF under
   `~/.cache/qhpc-ecosystem/images/operations/` (see
   [public image distribution](public-image-distribution.md));
-- admits and runs the FTQC and ChatQEC operation runtimes from those SIFs with
+- admits and runs the FTQC, ChatQEC/Stim, and NWQ-Sim CPU operation runtimes from those SIFs with
   `apptainer run --containall --net --network none`, preserving the read-only,
   no-network, no-new-privileges posture of the Docker path;
 - runs the citation-backed Assistant in-process rather than as a published-port
   service container, which has no Apptainer equivalent.
 
 The isolated-network flag needs an Apptainer install that permits an
-unprivileged network namespace (setuid, or `allow net`). Image building and the
+unprivileged network namespace (setuid, or `allow net`). EQO probes this before
+an operation and fails rather than allowing a tool to share the host network. Image building and the
 Docker Compose development fixtures (databucket/Garage and the Slurm test
 cluster) remain Docker/Podman operations and refuse to run under
 `USE_APPTAINER=1` with an explanatory message.

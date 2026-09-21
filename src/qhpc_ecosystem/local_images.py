@@ -28,6 +28,7 @@ _LOCAL_REFERENCE = re.compile(r"^[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9_.-]+$")
 _PUBLIC_GHCR_REFERENCE = re.compile(
     r"^ghcr\.io/qscsoftwareecosystem/[a-z0-9][a-z0-9._-]*@sha256:[0-9a-f]{64}$"
 )
+UNSIGNED_ARM64_ALPHA_ENV = "EQO_ENABLE_UNSIGNED_ARM64_ALPHA"
 
 
 class LocalImageError(RuntimeError):
@@ -60,7 +61,19 @@ Runner = Callable[..., subprocess.CompletedProcess[str]]
 def public_image_manifest_path() -> Path:
     """Return the release-owned manifest for the public EQO image set."""
 
+    if unsigned_arm64_alpha_enabled():
+        return asset_path("arm64-alpha-image-manifest")
     return asset_path("public-image-manifest")
+
+
+def unsigned_arm64_alpha_enabled() -> bool:
+    """Whether this Linux/ARM64 process explicitly opted into unsigned alpha images."""
+
+    return (
+        os.environ.get(UNSIGNED_ARM64_ALPHA_ENV, "").strip() == "1"
+        and sys.platform == "linux"
+        and host_oci_arch() == "arm64"
+    )
 
 
 def load_public_images(path: str | Path | None = None) -> tuple[PublicImage, ...]:
@@ -78,8 +91,11 @@ def load_public_images(path: str | Path | None = None) -> tuple[PublicImage, ...
         raise LocalImageError("EQO public image manifest must be an object")
     if document.get("api_version") != "eqo.local-images/v1":
         raise LocalImageError("unsupported EQO public image manifest version")
-    if document.get("platform") != "linux/amd64":
-        raise LocalImageError("EQO public image manifest must target linux/amd64")
+    platform = document.get("platform")
+    if platform not in {"linux/amd64", "linux/arm64"}:
+        raise LocalImageError(
+            "EQO public image manifest must target linux/amd64 or linux/arm64"
+        )
     entries = document.get("images")
     if not isinstance(entries, list) or not entries:
         raise LocalImageError("EQO public image manifest must declare images")
@@ -96,7 +112,7 @@ def load_public_images(path: str | Path | None = None) -> tuple[PublicImage, ...
                 source=entry["source"],
                 local_reference=entry["local_reference"],
                 local_id=entry["local_id"],
-                platform=document["platform"],
+                platform=platform,
             )
         except KeyError as error:
             raise LocalImageError(
@@ -227,6 +243,28 @@ def _warn_on_arch_mismatch(images: Sequence[PublicImage]) -> None:
     )
 
 
+def _require_admitted_native_linux_images(images: Sequence[PublicImage]) -> None:
+    """Reject an AMD64-only release set on a native Linux/ARM64 host.
+
+    Docker Desktop on macOS can deliberately run an admitted AMD64 image set
+    under its own emulation policy, so this guard is intentionally restricted
+    to the Linux runtime that actually executes EQO operations.  It prevents a
+    native Linux/ARM64 installation from silently acquiring an AMD64-only
+    release while ARM64 candidates remain outside the signed admission set.
+    """
+
+    if sys.platform != "linux" or host_oci_arch() != "arm64":
+        return
+    admitted_platforms = {image.platform for image in images}
+    if "linux/arm64" in admitted_platforms:
+        return
+    raise LocalImageError(
+        "no admitted public EQO Linux/ARM64 image set is available; "
+        "the ARM64 internal-alpha candidates remain unsigned pending an "
+        "approved QSC release identity"
+    )
+
+
 def _apptainer_pull_environment() -> dict[str, str]:
     """Return the environment for Apptainer's OCI-to-SIF pull.
 
@@ -299,6 +337,13 @@ def _ensure_public_sifs(
     in the committed manifest).
     """
 
+    if (
+        os.environ.get(UNSIGNED_ARM64_ALPHA_ENV, "").strip() == "1"
+        and not unsigned_arm64_alpha_enabled()
+    ):
+        raise LocalImageError(
+            f"{UNSIGNED_ARM64_ALPHA_ENV}=1 is supported only on Linux/ARM64"
+        )
     images = load_public_images(manifest)
     _warn_on_arch_mismatch(images)
     store = sif_store_dir()
@@ -378,13 +423,23 @@ def ensure_public_images(
     is used by either path.
     """
 
+    if (
+        os.environ.get(UNSIGNED_ARM64_ALPHA_ENV, "").strip() == "1"
+        and not unsigned_arm64_alpha_enabled()
+    ):
+        raise LocalImageError(
+            f"{UNSIGNED_ARM64_ALPHA_ENV}=1 is supported only on Linux/ARM64"
+        )
+    images = load_public_images(manifest)
+    _require_admitted_native_linux_images(images)
+
     if apptainer_requested():
         return _ensure_public_sifs(
             manifest=manifest, runner=runner, apptainer=apptainer
         )
 
     results: list[ImageInstallResult] = []
-    for image in load_public_images(manifest):
+    for image in images:
         actual = _local_image_id(image, runner=runner, docker=docker)
         if actual == image.local_id:
             results.append(

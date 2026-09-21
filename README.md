@@ -68,13 +68,14 @@ compatibility alias for existing scripts.
 > opt-in, never a silent auto-switch. Under `USE_APPTAINER=1`, EQO pulls each
 > admitted image by its immutable `docker://…@sha256:` digest into a verified
 > `.sif` in `~/.cache/qhpc-ecosystem/images/operations/`, records the SIF hash
-> in a cache-side lock, and runs every scientific tool with
+> in a cache-side lock, and runs the supported local operation adapters with
 > `apptainer run --containall --net --network none`. Building OCI images and
 > the Docker Compose development fixtures (databucket/Garage, the Slurm test
 > cluster) stay on Docker/Podman — those are build-host and validation
 > concerns, not part of the Apptainer run path. The isolated network flag
 > requires an Apptainer install that permits an unprivileged network namespace
-> (a setuid install, or `allow net`). See
+> (a setuid install, or `allow net`); EQO fails rather than sharing the host
+> network. See
 > [public image distribution](docs/public-image-distribution.md).
 >
 > ```bash

@@ -11,6 +11,7 @@ from qhpc_ecosystem import cli
 from qhpc_ecosystem import dev_stack
 from qhpc_ecosystem import engine as engine_module
 from qhpc_ecosystem import local_release
+from qhpc_ecosystem.catalog import load_catalog
 from qhpc_ecosystem.engine import WorkflowEngine
 from qhpc_ecosystem.local_release import (
     LocalPaths,
@@ -31,6 +32,7 @@ from qhpc_ecosystem.local_release import (
     write_local_state,
     write_diagnostic_report,
 )
+from qhpc_ecosystem.registry import load_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -153,6 +155,24 @@ def test_config_and_state_files_contain_no_runtime_identity_token(tmp_path: Path
     assert "token" not in config_text.lower()
     assert "token" not in state_text.lower()
     assert json.loads(state_text)["registry_digest"].startswith("sha256:")
+
+
+def test_arm64_alpha_registry_is_a_per_user_runtime_derivative(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path / "local-home")
+    paths.ensure()
+    monkeypatch.setattr(local_release, "unsigned_arm64_alpha_enabled", lambda: True)
+    monkeypatch.setattr(local_release, "apptainer_requested", lambda: True)
+
+    selected = local_release._arm64_alpha_registry_config(config(), paths)
+
+    assert selected.registry != str(ROOT / "examples" / "registry.yaml")
+    generated = Path(selected.registry).read_text(encoding="utf-8")
+    assert "eqo-stim@sha256:f0efb9d55beebb4a691553eceab064846159ee4056552f138ce1582a564daa75" in generated
+    assert "eqo-nwqsim@sha256:1afbab53b85670d02053366fb3fd1c0e796d35f9353cc0a2b53da33d274cb8dd" in generated
+    assert "eqo-ftqc@sha256:a97fb05603b1b8ee370ad04096798c1cbaa397135877b0bdf8428a7d08a70f37" in generated
+    load_registry(selected.registry, load_catalog(ROOT / "ecosystem.yaml"))
 
 
 def test_iqm_worker_configuration_requires_a_credential_free_https_endpoint() -> None:

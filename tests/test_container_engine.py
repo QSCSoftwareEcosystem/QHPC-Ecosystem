@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from qhpc_ecosystem.container_engine import (
     ContainerEngine,
     ContainerEngineError,
     apptainer_requested,
+    require_network_isolation,
     run_command,
     select_engine,
     verified_sif,
@@ -139,9 +141,11 @@ def test_run_command_apptainer_argv(tmp_path: Path) -> None:
     ]
 
 
-def test_run_command_apptainer_can_share_network(
+def test_run_command_apptainer_never_drops_network_isolation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """An environment variable must never turn an admitted run into host networking."""
+
     monkeypatch.setenv("EQO_APPTAINER_SHARE_NETWORK", "1")
     command = run_command(
         ContainerEngine("apptainer", "/usr/bin/apptainer"),
@@ -149,8 +153,43 @@ def test_run_command_apptainer_can_share_network(
         (),
         network_none=True,
     )
-    assert "--net" not in command
-    assert "--network" not in command
+    assert "--net" in command
+    assert "--network" in command
+    assert command[command.index("--network") + 1] == "none"
+
+
+def test_require_network_isolation_rejects_a_host_that_cannot_create_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def denied(command, **_kwargs):
+        return subprocess.CompletedProcess(
+            command, 1, stdout="", stderr="network namespace is not permitted"
+        )
+
+    monkeypatch.setattr(container_engine.subprocess, "run", denied)
+    with pytest.raises(ContainerEngineError, match="refuses to share the host network"):
+        require_network_isolation(
+            ContainerEngine("apptainer", "/usr/bin/apptainer"), str(tmp_path / "x.sif")
+        )
+
+
+def test_require_network_isolation_uses_an_isolated_probe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[list[str]] = []
+
+    def allowed(command, **_kwargs):
+        seen.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(container_engine.subprocess, "run", allowed)
+    require_network_isolation(
+        ContainerEngine("apptainer", "/usr/bin/apptainer"), str(tmp_path / "x.sif")
+    )
+    assert seen == [[
+        "/usr/bin/apptainer", "exec", "--containall", "--cleanenv", "--net",
+        "--network", "none", str(tmp_path / "x.sif"), "/bin/true",
+    ]]
 
 
 def _record_sif(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:

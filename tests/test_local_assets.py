@@ -151,18 +151,18 @@ def test_packaged_qappswiki_graph_is_immutable_and_requires_no_checkout() -> Non
     graph = asset_path("qappswiki-graph")
     knowledge = QAppsWikiKnowledge(
         graph,
-        source_revision="d5f0248945516a4198f92edd9764a2fe5b676549",
+        source_revision="125157e1b7e37c379a0e6e38fb692c4058845a7f",
     )
     summary = knowledge.summary()
 
     assert summary["available"] is True
     assert summary["schema_version"] == "qappswiki-graph-0"
-    assert summary["stats"]["content_nodes"] == 711
-    assert summary["stats"]["all_nodes"] == 1413
-    assert summary["stats"]["edges"] == 4660
-    assert summary["stats"]["communities"] == 9
+    assert summary["stats"]["content_nodes"] == 720
+    assert summary["stats"]["all_nodes"] == 1432
+    assert summary["stats"]["edges"] == 4702
+    assert summary["stats"]["communities"] == 10
     assert hashlib.sha256(graph.read_bytes()).hexdigest() == (
-        "ba8abcdf70dfecd1c041f39f5a4d84aaa5691189956e5ab959835c054809d05e"
+        "a4a8f70f8af3d6eb311ed60325fd97ba17392a80d676431a5abdda68fefa2ca2"
     )
     assert graph.stat().st_size < 2 * 1024 * 1024
 
