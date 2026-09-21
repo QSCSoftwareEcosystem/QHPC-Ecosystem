@@ -4,6 +4,8 @@
 
 # EQO — the QSC quantum-HPC ecosystem
 
+TESTING 123
+
 EQO brings QSC quantum-HPC software, workflows, data, knowledge, and community
 resources into one local Workbench. Start locally first; use the Workbench to
 discover what is available, compose a workflow, and inspect its results.
