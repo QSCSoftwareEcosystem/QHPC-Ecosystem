@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "setuptools>=68", "wheel>=0.41", "Django>=5.2.15,<5.3"]
+dev = ["pytest>=7", "setuptools>=68", "wheel>=0.41", "Django>=5.2.15,<5.3", "qiskit>=1,<2.2"]
 local = ["Django>=5.2.15,<5.3"]
 workbench = ["Django>=5.2.15,<5.3"]
 iqm = ["iqm-client[qiskit]>=33.0.3,<34"]
