@@ -31,6 +31,7 @@ from .local_assets import asset_path, assistant_source_path, default_workflow_pa
 from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
 from .local_images import (
     LocalImageError,
+    admitted_docker_image_ids,
     admitted_source_digest,
     ensure_public_images,
     unsigned_arm64_alpha_enabled,
@@ -545,7 +546,7 @@ def ensure_ftqc_oci_runtime(config: LocalStackConfig, paths: LocalPaths) -> str:
         ) from error
 
     current_id = _ftqc_image_id(builder)
-    if current_id == FTQC_OCI_DIGEST:
+    if current_id in admitted_docker_image_ids(FTQC_OCI_IMAGE):
         return "available"
 
     if not (config.ftqc_source_checkout and config.ftqc_runtime_manifest):
@@ -663,7 +664,8 @@ def ensure_chatqec_agent_oci_runtime() -> str:
         ) from error
     for image, expected in ((CHATQEC_AGENT_TSIM_IMAGE, CHATQEC_AGENT_TSIM_DIGEST),):
         actual = _local_image_id(builder, image)
-        if actual != expected:
+        admitted_ids = admitted_docker_image_ids(image)
+        if expected not in admitted_ids or actual not in admitted_ids:
             detail = "missing" if actual is None else f"has unexpected identity {actual}"
             raise LocalReleaseError(
                 f"ChatQEC agent parent image {image} is {detail}; build its admitted runtime first"
