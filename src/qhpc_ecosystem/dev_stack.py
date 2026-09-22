@@ -49,6 +49,7 @@ class DevStackConfig:
     workspace_root: str = "."
     start_local_worker: bool = True
     start_target_worker: bool = True
+    local_worker_serves_batch: bool = False
     start_workbench: bool = True
     start_chatqec: bool = True
     start_repository_updates: bool = True
@@ -267,6 +268,18 @@ def build_service_specs(
                     "local-development",
                     "--execution-target",
                     "local-container",
+                    *(
+                        (
+                            "--execution-target",
+                            "development-slurm-docker",
+                            "--execution-class",
+                            "interactive-local",
+                            "--execution-class",
+                            "batch-hpc",
+                        )
+                        if config.local_worker_serves_batch
+                        else ()
+                    ),
                 ),
             )
         )
