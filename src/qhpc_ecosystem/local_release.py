@@ -1597,6 +1597,9 @@ def supervise_local(
         worker_stale_after_seconds=config.worker_stale_after_seconds,
         start_local_worker=True,
         start_target_worker=slurm_fixture_enabled,
+        local_worker_serves_batch=(
+            config.ecosystem_execution_enabled and not slurm_fixture_enabled
+        ),
         start_workbench=True,
         start_chatqec=config.assistant_enabled,
         start_repository_updates=False,

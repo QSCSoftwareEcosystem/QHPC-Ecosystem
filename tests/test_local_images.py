@@ -15,6 +15,18 @@ from qhpc_ecosystem.local_images import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _amd64_host_without_ambient_opt_ins(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default to a Linux/AMD64 host so results do not depend on the runner.
+
+    Tests that exercise Linux/ARM64 selection override these explicitly.
+    """
+
+    monkeypatch.delenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, raising=False)
+    monkeypatch.delenv("USE_APPTAINER", raising=False)
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "x86_64")
+
+
 def write_manifest(tmp_path: Path, *, source: str | None = None) -> tuple[Path, str]:
     digest = "sha256:" + "a" * 64
     manifest = tmp_path / "public-images.json"
@@ -127,10 +139,11 @@ def test_linux_arm64_refuses_an_amd64_only_admitted_release_set(
     assert commands == []
 
 
-def test_unsigned_arm64_alpha_manifest_requires_explicit_native_opt_in(
+def test_apptainer_on_native_arm64_selects_the_arm64_manifest_by_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, "1")
+    monkeypatch.delenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, raising=False)
+    monkeypatch.setenv("USE_APPTAINER", "1")
     monkeypatch.setattr(local_images.sys, "platform", "linux")
     monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
 
@@ -143,6 +156,29 @@ def test_unsigned_arm64_alpha_manifest_requires_explicit_native_opt_in(
     }
     assert {image.platform for image in images} == {"linux/arm64"}
     assert all("linux-arm64-alpha" in image.local_reference for image in images)
+
+
+def test_apptainer_on_amd64_keeps_the_amd64_manifest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, raising=False)
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setattr(local_images.sys, "platform", "linux")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "x86_64")
+
+    assert not local_images.unsigned_arm64_alpha_enabled()
+    assert {image.platform for image in load_public_images()} == {"linux/amd64"}
+
+
+def test_arm64_images_are_not_selected_without_apptainer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv(local_images.UNSIGNED_ARM64_ALPHA_ENV, raising=False)
+    monkeypatch.delenv("USE_APPTAINER", raising=False)
+    monkeypatch.setattr(local_images.sys, "platform", "linux")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+
+    assert not local_images.unsigned_arm64_alpha_enabled()
 
 
 def test_unsigned_arm64_alpha_environment_rejects_other_hosts(

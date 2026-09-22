@@ -67,12 +67,19 @@ def public_image_manifest_path() -> Path:
 
 
 def unsigned_arm64_alpha_enabled() -> bool:
-    """Whether this Linux/ARM64 process explicitly opted into unsigned alpha images."""
+    """Whether this process uses the unsigned Linux/ARM64 alpha image set.
 
+    Native Linux/ARM64 selects the ARM64 images by default under
+    ``USE_APPTAINER=1``; ``EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1`` remains an
+    accepted explicit form. Other hosts (for example Linux/AMD64) keep the
+    AMD64 release set.
+    """
+
+    if sys.platform != "linux" or host_oci_arch() != "arm64":
+        return False
     return (
-        os.environ.get(UNSIGNED_ARM64_ALPHA_ENV, "").strip() == "1"
-        and sys.platform == "linux"
-        and host_oci_arch() == "arm64"
+        apptainer_requested()
+        or os.environ.get(UNSIGNED_ARM64_ALPHA_ENV, "").strip() == "1"
     )
 
 

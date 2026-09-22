@@ -157,11 +157,11 @@ on HPC systems that lack a Docker daemon:
 USE_APPTAINER=1 eqo local up --open
 ```
 
-For the separate unsigned Linux/ARM64 internal-alpha operation set, the Linux
-guest must additionally opt in with
-`EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1`. This is accepted only together with
-`USE_APPTAINER=1` on Linux/ARM64; it is not the default or a signed release
-path. See [public image distribution](public-image-distribution.md).
+On native Linux/ARM64, `USE_APPTAINER=1` selects the separate unsigned
+internal-alpha ARM64 operation set by default; on Linux/AMD64 it selects the
+AMD64 release set. `EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1` remains an accepted
+explicit form, only together with `USE_APPTAINER=1` on Linux/ARM64. The ARM64
+set is not a signed release path. See [public image distribution](public-image-distribution.md).
 
 The opt-in is explicit: without the variable EQO never chooses Apptainer on its
 own. When it is set, `eqo local up`:

@@ -57,13 +57,16 @@ They must not be treated as a public release, facility-HPC runtime, or a
 general first-user installation path.
 
 On a native Linux/ARM64 environment with an Apptainer installation that permits
-an isolated network namespace, an evaluator may opt in explicitly:
+an isolated network namespace, `USE_APPTAINER=1` selects the ARM64 candidates
+by default; native Linux/AMD64 with `USE_APPTAINER=1` keeps the AMD64 release
+set:
 
 ```bash
-USE_APPTAINER=1 EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1 eqo local up --open
+USE_APPTAINER=1 eqo local up --open
 ```
 
-EQO refuses that flag on any other platform and also refuses it without
+`EQO_ENABLE_UNSIGNED_ARM64_ALPHA=1` remains accepted as an explicit form. EQO
+refuses it on any other platform and also refuses it without
 `USE_APPTAINER=1`. It writes a per-user derived registry at
 `~/.config/eqo/registry-arm64-unsigned-alpha.yaml`, reports the
 `unsigned-internal-alpha` channel in `eqo local status`, and records the ARM64
