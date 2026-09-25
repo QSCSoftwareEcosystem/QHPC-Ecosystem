@@ -351,7 +351,7 @@ default. To use an optional S3 mirror, supply a prepared
 DataSchema checkout when the mirror should be seeded with the verified files:
 
 ```bash
-eqo dev up --databucket-checkout /path/to/databucket \
+eqo dev up --databucket /path/to/databucket \
   --databucket-seed-source /path/to/DataSchema
 ```
 

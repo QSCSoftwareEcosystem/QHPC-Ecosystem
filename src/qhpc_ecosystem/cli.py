@@ -701,7 +701,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="stop the virtual Slurm fixture when the supervisor exits",
     )
     dev_up.add_argument(
+        "--databucket",
         "--databucket-checkout",
+        dest="databucket_checkout",
+        metavar="PATH",
         help="enable optional Garage storage using this prepared databucket checkout",
     )
     dev_up.add_argument(
@@ -712,11 +715,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--databucket-project",
         default="materials-db",
         help="databucket project name to provision (bucket 'proj-<name>')",
-    )
-    dev_up.add_argument(
-        "--no-databucket",
-        action="store_true",
-        help="disable databucket/Garage even when a checkout is supplied",
     )
     dev_up.add_argument(
         "--no-databucket-start",
@@ -2108,14 +2106,14 @@ def dispatch(args: argparse.Namespace) -> int:
 
         databucket_stack = None
         databucket_credentials = None
-        databucket_enabled = bool(args.databucket_checkout) and not args.no_databucket
+        databucket_enabled = bool(args.databucket_checkout)
         if args.databucket_seed_source and not databucket_enabled:
             raise ContractError(
-                "--databucket-seed-source requires --databucket-checkout"
+                "--databucket-seed-source requires --databucket PATH"
             )
         if args.no_databucket_start and not databucket_enabled:
             raise ContractError(
-                "--no-databucket-start requires --databucket-checkout"
+                "--no-databucket-start requires --databucket PATH"
             )
         if databucket_enabled:
             databucket_stack = GarageStack(args.databucket_checkout)

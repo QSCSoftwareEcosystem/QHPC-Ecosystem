@@ -26,11 +26,12 @@ start the development stack with both checkouts explicitly supplied:
 
 ```bash
 eqo dev up \
-  --databucket-checkout /path/to/databucket \
+  --databucket /path/to/databucket \
   --databucket-seed-source /path/to/DataSchema
 ```
 
-`--databucket-checkout` opts into Garage. `--databucket-seed-source` is
+`--databucket` opts into Garage using the supplied checkout. The older
+`--databucket-checkout` spelling remains an alias. `--databucket-seed-source` is
 optional and publishes the declared resources from a local DataSchema checkout
 after verifying every digest. A checkout at tag `tag-20260924` (commit
 `808e79f313376528aa40bf8f19279d0021360d0d`) satisfies the current contract.
@@ -40,14 +41,13 @@ Relevant `eqo dev up` flags:
 
 | Flag | Default | Effect |
 |---|---|---|
-| `--databucket-checkout PATH` | none | Enable Garage using a prepared databucket checkout. |
+| `--databucket PATH` | none | Enable Garage using a prepared databucket checkout. |
 | `--databucket-seed-source PATH` | none | Verify and upload the declared DataSchema resources from this checkout. |
 | `--databucket-project NAME` | `materials-db` | Provision bucket `proj-<name>`. |
 | `--no-databucket-start` | off | Require the opted-in Garage stack to already be running. |
 | `--stop-databucket-on-exit` | off | Stop the opted-in Garage stack when the supervisor exits. |
-| `--no-databucket` | off | Compatibility switch that disables Garage even if a checkout is supplied. |
 
-Without `--databucket-checkout`, no Garage process is started, no credentials
+Without `--databucket`, no Garage process is started, no credentials
 are required, and the Data panel does not display an unavailable-storage
 placeholder.
 

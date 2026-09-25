@@ -58,7 +58,7 @@ def test_dev_up_does_not_enable_databucket_by_default() -> None:
         [
             "dev",
             "up",
-            "--databucket-checkout",
+            "--databucket",
             "/tmp/databucket",
             "--databucket-seed-source",
             "/tmp/DataSchema",
