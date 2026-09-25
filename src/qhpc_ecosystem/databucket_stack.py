@@ -228,9 +228,8 @@ class GarageStack:
 
     def ensure_project(self, project: str) -> DatabucketCredentials:
         """Idempotently provision a project's bucket + scoped key, and return
-        the credentials to reach it — reimplements the same idiom as
-        databucket/scripts/seed-demo.sh (bucket create/key create/bucket
-        allow, skipped when the bucket already exists)."""
+        the credentials to reach it. Bucket and key existence are checked
+        independently so a partially provisioned project can be repaired."""
         if not _PROJECT_NAME.fullmatch(project):
             raise DatabucketStackError(f"invalid databucket project name: {project}")
         self.ensure_layout()
@@ -241,23 +240,24 @@ class GarageStack:
                 self._garage_command("bucket", "create", bucket),
                 "Garage bucket create",
             )
+        if self._garage("key", "info", key_name).returncode != 0:
             self._checked(
                 self._garage_command("key", "create", key_name),
                 "Garage key create",
             )
-            self._checked(
-                self._garage_command(
-                    "bucket",
-                    "allow",
-                    "--read",
-                    "--write",
-                    "--owner",
-                    bucket,
-                    "--key",
-                    key_name,
-                ),
-                "Garage bucket allow",
-            )
+        self._checked(
+            self._garage_command(
+                "bucket",
+                "allow",
+                "--read",
+                "--write",
+                "--owner",
+                bucket,
+                "--key",
+                key_name,
+            ),
+            "Garage bucket allow",
+        )
         info = self._checked(
             self._garage_command("key", "info", key_name, "--show-secret"),
             "Garage key info",

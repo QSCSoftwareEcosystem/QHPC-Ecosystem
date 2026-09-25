@@ -177,7 +177,7 @@ class S3Client:
                 f"databucket S3 endpoint is unavailable: {error.reason}"
             ) from error
         try:
-            response_body = response.read(10_000_000)
+            response_body = response.read()
             return response.status, response_body
         finally:
             response.close()

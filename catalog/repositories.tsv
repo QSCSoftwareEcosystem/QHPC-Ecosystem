@@ -9,7 +9,7 @@ qfw-slurm-cluster	QFw-SLURM Cluster	https://github.com/openQSE/QFw-SLURM-Cluster
 AS-popular_quantum_sdk_dashboard	QuantumSDK	https://github.com/QSCSoftwareThrust/AS-popular_quantum_sdk_dashboard	Quantum SDK dashboard.
 code_generation_agent	Q-Orch	https://code.ornl.gov/qsc-as/code_generation_agent	Internal GitLab source; access may require ORNL credentials.
 quantum-ai-assistants-benchmark	Q-Code Assistance	https://code.ornl.gov/pza/quantum-ai-assistants-benchmark	Internal GitLab source; access may require ORNL credentials.
-DataSchema	Platform-Hw-metadata	https://github.com/QSCSoftwareThrust/DataSchema	Also contains QSC data catalog branches and hardware information survey dataset.
+DataSchema	DataSchema	https://github.com/QSCSoftwareEcosystem/DataSchema	Versioned QSC data schemas, materials releases, and hardware information survey data.
 qasmtrans	QASMTrans	https://github.com/pnnl/qasmtrans	External GitHub source.
 FTCircuitBench	FTCircuitBench	https://github.com/AdrianHarkness/FTCircuitBench	External GitHub source.
 nwqec	NWQEC	https://github.com/pnnl/nwqec	External GitHub source.

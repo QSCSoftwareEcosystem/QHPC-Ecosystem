@@ -183,7 +183,7 @@ class FakeDatabucket:
         self.requested_prefixes: list[str] = []
         self.requested_keys: list[str] = []
         self.objects_by_key = {
-            "materials-db/materials-schema-v0.1.yaml": b"schema: {}\n",
+            "materials-db/v0.1.0/KCuF3_Hamiltonian.yaml": b"material: KCuF3\n",
         }
 
     def get_object(self, key: str) -> bytes:
@@ -201,7 +201,7 @@ class FakeDatabucket:
         self.requested_prefixes.append(prefix)
         return [
             ObjectSummary(
-                key=f"{prefix}materials-schema-v0.1.yaml",
+                key=f"{prefix}v0.1.0/KCuF3_Hamiltonian.yaml",
                 size=512,
                 last_modified="2026-08-31T00:00:00.000Z",
                 etag="abc123",
@@ -676,7 +676,7 @@ def test_api_data_objects_lists_bucket_contents(tmp_path: Path) -> None:
         assert body["prefix"] == "materials-db/"
         assert body["objects"] == [
             {
-                "key": "materials-db/materials-schema-v0.1.yaml",
+                "key": "materials-db/v0.1.0/KCuF3_Hamiltonian.yaml",
                 "size": 512,
                 "last_modified": "2026-08-31T00:00:00.000Z",
                 "etag": "abc123",
@@ -704,14 +704,14 @@ def test_api_data_object_content_downloads_bytes(tmp_path: Path) -> None:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     base = f"http://127.0.0.1:{server.server_port}"
-    key = "materials-db/materials-schema-v0.1.yaml"
+    key = "materials-db/v0.1.0/KCuF3_Hamiltonian.yaml"
     try:
         request = Request(
             f"{base}/api/v1/data/objects/content?key={quote(key, safe='')}"
         )
         with urlopen(request, timeout=3) as response:
             assert response.status == 200
-            assert response.read() == b"schema: {}\n"
+            assert response.read() == b"material: KCuF3\n"
             assert response.headers["Content-Type"] == "text/plain"
             assert "inline" in response.headers["Content-Disposition"]
         assert databucket.requested_keys == [key]

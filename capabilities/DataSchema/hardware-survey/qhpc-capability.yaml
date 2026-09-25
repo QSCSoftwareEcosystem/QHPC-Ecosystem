@@ -7,7 +7,7 @@ metadata:
   project: data-schema
   owners: [data-schema]
   repository:
-    url: https://github.com/QSCSoftwareThrust/DataSchema
+    url: https://github.com/QSCSoftwareEcosystem/DataSchema
     revision: 704c1800614b37f0909cc8e5e15438b1be06b983
   integration:
     authority: ecosystem
@@ -36,11 +36,11 @@ spec:
     - id: hardware-survey
       kind: dataset
       version: 0.1.0
-      uri: https://github.com/QSCSoftwareThrust/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
+      uri: https://github.com/QSCSoftwareEcosystem/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
     - id: developer-attribution
       kind: documentation
       version: 1.0.0
       uri: docs/tool-attribution.md#qsc-hardware-survey
   documentation:
     qappswiki: integrations/qsc-hardware-data.md
-    url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
+    url: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md

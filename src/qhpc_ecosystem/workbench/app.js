@@ -862,12 +862,8 @@ function dataResourceRole(resource) {
   if (resource.kind === "dataset") return "Dataset";
   if (resource.kind === "adapter") return "Adapter";
   if (resource.kind === "documentation") return "Documentation";
-  if (text.includes("provenance") || text.includes("lineage") || hasSdlToken(text)) return "Provenance";
+  if (text.includes("provenance") || text.includes("lineage")) return "Provenance";
   return titleLabel(resource.kind || "resource");
-}
-
-function hasSdlToken(text) {
-  return /(^|[^a-z0-9])sdl([^a-z0-9]|$)/.test(text);
 }
 
 function dataCapabilityText(item) {
@@ -892,9 +888,7 @@ function isDataCapability(item) {
   return item.project === "data-schema"
     || item.catalog_repository === "DataSchema"
     || text.includes("materials-db")
-    || text.includes("materials db")
-    || text.includes("scientific data layer")
-    || hasSdlToken(text);
+    || text.includes("materials db");
 }
 
 function dataCapabilities() {
@@ -914,21 +908,24 @@ function filteredDataCapabilities() {
 }
 
 function dataServiceKind(item) {
-  const text = dataCapabilityText(item);
-  if (text.includes("materials-db") || text.includes("materials db")) return "SDL service";
   if (item.resources.some(resource => dataResourceRole(resource) === "Dataset")) return "Dataset";
   if (item.resources.some(resource => dataResourceRole(resource) === "Schema")) return "Schema";
   return "Data resource";
 }
 
-function dataObjectsPrefix(item) {
-  // The registry doesn't publish a storage prefix per capability yet, so
-  // this reuses the same materials-db text heuristic as isDataCapability
-  // rather than inventing a second, more general mechanism for the one
-  // live-backed data service that exists so far.
-  const text = dataCapabilityText(item);
-  if (text.includes("materials-db") || text.includes("materials db")) return "materials-db/";
-  return null;
+function dataObjectsPrefixes(item) {
+  return [...new Set(item.resources
+    .map(resource => resource.storage_key || "")
+    .filter(Boolean)
+    .map(key => key.includes("/") ? key.slice(0, key.lastIndexOf("/") + 1) : ""))];
+}
+
+function mirroredDataObjects(item) {
+  const keys = new Set(item.resources.map(resource => resource.storage_key).filter(Boolean));
+  return dataObjectsPrefixes(item).flatMap(prefix => {
+    const current = state.dataObjectsByPrefix[prefix];
+    return current?.available ? current.objects.filter(object => keys.has(object.key)) : [];
+  });
 }
 
 function ensureDataObjectsLoaded(prefix) {
@@ -976,25 +973,36 @@ function evidenceList(item) {
   ])];
 }
 
-function resourceSourceLink(resource) {
+function resourceSourceLink(resource, mirroredKeys) {
   const href = safeHttpUrl(resource.uri);
-  return href
-    ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span></a>`
+  const remoteDownload = safeHttpUrl(resource.download_uri);
+  const mirrorDownload = resource.storage_key && mirroredKeys.has(resource.storage_key)
+    ? `api/v1/data/objects/content?key=${encodeURIComponent(resource.storage_key)}&download=1`
+    : null;
+  const download = mirrorDownload || remoteDownload;
+  const open = href
+    ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">Open <span aria-hidden="true">↗</span></a>`
     : `<code>${escapeHtml(resource.uri)}</code>`;
+  const downloadLink = download
+    ? `<a href="${escapeHtml(download)}" ${mirrorDownload ? "" : 'target="_blank" rel="noreferrer"'}>Download${mirrorDownload ? " from mirror" : ""}</a>`
+    : "";
+  return `<span class="artifact-actions">${open}${downloadLink}</span>`;
 }
 
 function dataDetail(item) {
   if (!item) {
     return `<section class="data-detail data-detail-empty">
       <span class="empty-code">DAT</span>
-      <h2>No data service selected</h2>
-      <p>Admitted SDL-backed services and governed datasets will appear here when their registry resources are available.</p>
+      <h2>No dataset selected</h2>
+      <p>Published datasets and schemas will appear here when their registry resources are available.</p>
     </section>`;
   }
   const repository = repositoryDisplay(item);
   const canonicalRepository = item.repository?.canonical_url || item.repository?.url || "";
   const documentationUrl = safeHttpUrl(item.documentation?.url);
   const knowledgeNodeId = qappswikiNodeId(item.documentation?.qappswiki);
+  const mirroredObjects = mirroredDataObjects(item);
+  const mirroredKeys = new Set(mirroredObjects.map(object => object.key));
   const resources = item.resources.map(resource => `
     <article class="data-resource-card">
       <header>
@@ -1007,31 +1015,17 @@ function dataDetail(item) {
         ${resource.digest ? `<div><dt>Digest</dt><dd>${escapeHtml(resource.digest)}</dd></div>` : ""}
       </dl>
       ${resource.description ? `<p>${escapeHtml(resource.description)}</p>` : ""}
-      <footer>${resourceSourceLink(resource)}</footer>
+      <footer>${resourceSourceLink(resource, mirroredKeys)}</footer>
     </article>`).join("");
   const evidence = evidenceList(item);
   const evidenceRows = evidence.length
     ? evidence.map(reference => `<li><code>${escapeHtml(reference)}</code></li>`).join("")
     : `<li><span>No separate evidence reference is published.</span></li>`;
   const sourceReviewed = item.integration?.project_reviewed ? "yes" : "no";
-  const objectsPrefix = dataObjectsPrefix(item);
-  const objectsState = objectsPrefix ? state.dataObjectsByPrefix[objectsPrefix] : null;
-  const liveObjectsBody = !objectsPrefix
-    ? ""
-    : !objectsState || objectsState.loading
-      ? `<p class="tool-record-empty">Loading live objects from databucket…</p>`
-      : !objectsState.available
-        ? `<p class="tool-record-empty">databucket/Garage is not configured for this Workbench — start it with <code>eqo dev up</code> (without <code>--no-databucket</code>).</p>`
-        : objectsState.objects.length
-          ? `<table class="data-table"><thead><tr><th>KEY</th><th>SIZE</th><th>LAST MODIFIED</th><th>ACTIONS</th></tr></thead><tbody>${objectsState.objects.map(object => {
-              const contentPath = `api/v1/data/objects/content?key=${encodeURIComponent(object.key)}`;
-              return `<tr><td><code>${escapeHtml(object.key)}</code></td><td>${escapeHtml(object.size)} B</td><td>${escapeHtml(object.last_modified)}</td><td><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}&download=1">Download</a></span></td></tr>`;
-            }).join("")}</tbody></table>`
-          : `<p class="tool-record-empty">Bucket '${escapeHtml(objectsState.bucket || "")}' has no objects under this prefix yet.</p>`;
-  const liveObjectsSection = !objectsPrefix ? "" : `
+  const liveObjectsSection = !mirroredObjects.length ? "" : `
     <section class="data-detail-section">
-      <div class="data-section-title"><h3>Live Object Storage (databucket)</h3><span>${objectsState?.objects?.length ?? 0}</span></div>
-      ${liveObjectsBody}
+      <div class="data-section-title"><h3>Optional S3 mirror</h3><span>${mirroredObjects.length}</span></div>
+      <p>${mirroredObjects.length} published resource${mirroredObjects.length === 1 ? " is" : "s are"} available from configured object storage. Resource Download actions prefer these matching mirror keys.</p>
     </section>`;
   return `<section class="data-detail">
     <header class="data-detail-head">
@@ -1087,16 +1081,12 @@ function renderData() {
     || null;
   if (selected) state.selectedDataService = selected.id;
   const totalResources = allData.reduce((count, item) => count + item.resources.length, 0);
-  const hasMaterialsDb = allData.some(item => {
-    const text = dataCapabilityText(item);
-    return text.includes("materials-db") || text.includes("materials db");
-  });
-  new Set(allData.map(dataObjectsPrefix).filter(Boolean)).forEach(ensureDataObjectsLoaded);
+  new Set(allData.flatMap(dataObjectsPrefixes).filter(Boolean)).forEach(ensureDataObjectsLoaded);
   const serviceRows = filtered.map(item => {
     const repository = repositoryDisplay(item);
-    const objectsState = state.dataObjectsByPrefix[dataObjectsPrefix(item)];
-    const liveBadge = objectsState?.available && objectsState.objects.length
-      ? `<span class="badge blue" data-glyph="●">Live · ${objectsState.objects.length} object${objectsState.objects.length === 1 ? "" : "s"}</span>`
+    const mirrorCount = mirroredDataObjects(item).length;
+    const liveBadge = mirrorCount
+      ? `<span class="badge blue" data-glyph="●">S3 mirror · ${mirrorCount}</span>`
       : "";
     return `<button class="data-service-card ${selected?.id === item.id ? "active" : ""}" type="button" data-data-service="${escapeHtml(item.id)}">
       <span>${escapeHtml(dataServiceKind(item))}</span>
@@ -1106,22 +1096,15 @@ function renderData() {
       <small>${escapeHtml(repository.label)}</small>
     </button>`;
   }).join("");
-  const materialsSlot = hasMaterialsDb
-    ? ""
-    : `<aside class="data-sdl-slot" aria-label="SDL materials-db integration slot">
-        <span class="panel-label">SDL SERVICE SLOT</span>
-        <strong>materials-db</strong>
-        <p>Awaiting an admitted data-service contract or registry resource from the Scientific Data Layer.</p>
-      </aside>`;
   workspace.innerHTML = sectionHeader(
-    "Data services",
+    "Data",
     `${allData.length} admitted data component${allData.length === 1 ? "" : "s"} · ${totalResources} published resource${totalResources === 1 ? "" : "s"}`,
   ) + `
     <section class="data-command" aria-labelledby="data-command-heading">
       <div>
-        <span class="panel-label">DATA / SCIENTIFIC DATA LAYER</span>
-        <h2 id="data-command-heading">Governed datasets and SDL-backed services</h2>
-        <p>Data stays discoverable without becoming an execution tool. Admitted records can show live object-storage contents from databucket when it's running; selected records can become QHPC artifacts only after an explicit materialization path exists.</p>
+        <span class="panel-label">DATA / PUBLISHED RESOURCES</span>
+        <h2 id="data-command-heading">Governed datasets and schemas</h2>
+        <p>Open or download immutable published resources directly. When an optional S3 mirror is configured, matching objects are used for downloads automatically.</p>
       </div>
       <dl>
         <div><dt>Components</dt><dd>${allData.length}</dd></div>
@@ -1138,7 +1121,6 @@ function renderData() {
         <div class="data-service-list">
           ${serviceRows || `<div class="data-empty"><strong>No matching data resources</strong><p>Clear search to show admitted data components.</p></div>`}
         </div>
-        ${materialsSlot}
       </aside>
       ${dataDetail(selected)}
     </div>`;

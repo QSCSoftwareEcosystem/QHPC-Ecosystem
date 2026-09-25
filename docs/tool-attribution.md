@@ -34,7 +34,7 @@ this page: **Vicente Leyton-Ortega**, as shown in the
 
 - Named repository contributors: Swen Boehm, Thomas Naughton, and Vicente Leyton-Ortega.
 - Current maintainer: unresolved in the pinned project documentation.
-- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareThrust/DataSchema/commits/704c1800614b37f0909cc8e5e15438b1be06b983) and [README](https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md).
+- Evidence: [repository history at the pinned revision](https://github.com/QSCSoftwareEcosystem/DataSchema/commits/704c1800614b37f0909cc8e5e15438b1be06b983) and [README](https://github.com/QSCSoftwareEcosystem/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md).
 
 ## ExaChem QFlow
 

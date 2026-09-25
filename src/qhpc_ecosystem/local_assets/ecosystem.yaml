@@ -1,5 +1,5 @@
 schema_version: 1
-catalog_updated: '2026-09-15'
+catalog_updated: '2026-09-24'
 source_manifest: catalog/repositories.tsv
 environments:
   python-lib:
@@ -247,9 +247,9 @@ repositories:
   visibility: internal
   canonical_status: canonical
 - slug: DataSchema
-  display_name: Platform-Hw-metadata
-  source_url: https://github.com/QSCSoftwareThrust/DataSchema
-  notes: Also contains QSC data catalog branches and hardware information survey dataset.
+  display_name: DataSchema
+  source_url: https://github.com/QSCSoftwareEcosystem/DataSchema
+  notes: Versioned QSC data schemas, materials releases, and hardware information survey data.
   qsc_project: data-science
   package_role: dataset
   capabilities:
@@ -267,27 +267,6 @@ repositories:
   visibility: public
   canonical_status: canonical
   local_path: ../DataSchema
-- slug: qsc-materials-db
-  display_name: QSC Materials Repository
-  source_url: https://code.ornl.gov/intersect/data/deployments
-  notes: SDL QSC deployment data repository containing the draft qsc-materials-db repository contract, KCuF3 seed payloads, and materials provenance notes.
-  qsc_project: data-schema
-  package_role: dataset
-  capabilities:
-  - schema
-  - provenance
-  hardware_targets:
-  - hpc
-  - quantum-hardware
-  interfaces:
-  - json-context
-  - metadata-bundle
-  - markdown-source
-  environment: schema-docs
-  container_status: ready
-  visibility: internal
-  canonical_status: canonical
-  local_path: ../sdl/intersect-sdl-workspace/deployments
 - slug: qasmtrans
   display_name: QASMTrans
   source_url: https://github.com/pnnl/qasmtrans

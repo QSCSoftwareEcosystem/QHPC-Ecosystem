@@ -15,12 +15,7 @@ from qhpc_ecosystem.deployment import (
     registry_for_deployment,
     validate_deployment_catalog,
 )
-from qhpc_ecosystem.registry import (
-    RegistryError,
-    find_registry_entry,
-    load_registry,
-    registry_entries,
-)
+from qhpc_ecosystem.registry import find_registry_entry, load_registry, registry_entries
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -138,10 +133,10 @@ def test_initial_deployment_profile_is_the_authoritative_component_allowlist() -
     )
     assert materials["role"] == "data-service"
     assert materials["onboarding_status"] == "registry-published"
-    assert materials["catalog_repository"] == "qsc-materials-db"
+    assert materials["catalog_repository"] == "DataSchema"
     assert materials["source"] == {
         "kind": "repository",
-        "url": "https://code.ornl.gov/intersect/data/deployments",
+        "url": "https://github.com/QSCSoftwareEcosystem/DataSchema",
     }
 
 
@@ -162,7 +157,7 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
             "OpenQEvo",
             "openqse-spec",
             "QAppsWiki",
-            "qsc-materials-db",
+            "DataSchema",
             "chatqec",
             "chatqec-mcp-tools",
             "ExaChem",
@@ -181,17 +176,20 @@ def test_deployment_registry_exposes_only_selected_published_capabilities() -> N
         "OpenQEvo",
         "openqse-spec",
         "QAppsWiki",
-        "qsc-materials-db",
+        "DataSchema",
         "chatqec",
         "chatqec-mcp-tools",
         "ExaChem",
         "IRIS-QIRIS",
         "NWQSim-QFlow",
     }
-    assert registry["metadata"]["entry_count"] == 19
+    # DataSchema owns both the existing hardware survey and the materials
+    # release, so selecting that repository admits both capabilities.
+    assert registry["metadata"]["entry_count"] == 20
     validate_contract_data("registry", registry)
-    with pytest.raises(RegistryError, match="capability not found"):
-        find_registry_entry(registry, "qsc-hardware-survey")
+    assert find_registry_entry(registry, "qsc-hardware-survey")["catalog_repository"] == (
+        "DataSchema"
+    )
 
 
 def test_deployment_profile_rejects_duplicate_components() -> None:
@@ -262,7 +260,7 @@ def test_serve_applies_the_deployment_profile_before_building_api_context(
         "OpenQEvo",
         "openqse-spec",
         "QAppsWiki",
-        "qsc-materials-db",
+        "DataSchema",
         "chatqec",
         "chatqec-mcp-tools",
         "ExaChem",
@@ -300,5 +298,5 @@ def test_worker_command_uses_the_same_deployment_profile(
     )
 
     output = capsys.readouterr().out
-    assert "QHPC Worker: initial@0.8.0 (19 published capabilities)" in output
+    assert "QHPC Worker: initial@0.8.0 (20 published capabilities)" in output
     assert "Worker stopped: 0 tasks processed" in output

@@ -12,13 +12,13 @@ LIST_RESPONSE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>proj-materials-db</Name>
   <Contents>
-    <Key>materials-db/schema/materials-schema-v0.1.yaml</Key>
+    <Key>materials-db/v0.1.0/KCuF3_Hamiltonian.yaml</Key>
     <LastModified>2026-08-31T00:00:00.000Z</LastModified>
     <ETag>"abc123"</ETag>
     <Size>512</Size>
   </Contents>
   <Contents>
-    <Key>materials-db/schema/provenance-v0.1.yaml</Key>
+    <Key>schema/spin_hamiltonian.yaml</Key>
     <LastModified>2026-08-31T00:00:01.000Z</LastModified>
     <ETag>"def456"</ETag>
     <Size>256</Size>
@@ -32,7 +32,7 @@ class FakeResponse:
         self.status = status
         self._buffer = BytesIO(body)
 
-    def read(self, size: int) -> bytes:
+    def read(self, size: int = -1) -> bytes:
         return self._buffer.read(size)
 
     def close(self) -> None:
@@ -75,13 +75,13 @@ def test_list_objects_parses_response(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert objects == [
         ObjectSummary(
-            key="materials-db/schema/materials-schema-v0.1.yaml",
+            key="materials-db/v0.1.0/KCuF3_Hamiltonian.yaml",
             size=512,
             last_modified="2026-08-31T00:00:00.000Z",
             etag="abc123",
         ),
         ObjectSummary(
-            key="materials-db/schema/provenance-v0.1.yaml",
+            key="schema/spin_hamiltonian.yaml",
             size=256,
             last_modified="2026-08-31T00:00:01.000Z",
             etag="def456",
@@ -114,7 +114,7 @@ def test_put_object_sends_body_and_content_type(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(s3_client, "urlopen", fake_urlopen)
 
     _client().put_object(
-        "materials-db/schema/materials-schema-v0.1.yaml",
+        "materials-db/v0.1.0/KCuF3_Hamiltonian.yaml",
         b"schema: {}\n",
         content_type="application/yaml",
     )
@@ -122,7 +122,7 @@ def test_put_object_sends_body_and_content_type(monkeypatch: pytest.MonkeyPatch)
     assert captured["method"] == "PUT"
     assert captured["data"] == b"schema: {}\n"
     assert captured["url"].endswith(
-        "/proj-materials-db/materials-db/schema/materials-schema-v0.1.yaml"
+        "/proj-materials-db/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml"
     )
     assert captured["headers"]["Content-type"] == "application/yaml"
 
@@ -150,13 +150,22 @@ def test_get_object_returns_body(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(s3_client, "urlopen", fake_urlopen)
 
-    body = _client().get_object("materials-db/schema/materials-schema-v0.1.yaml")
+    body = _client().get_object("materials-db/v0.1.0/KCuF3_Hamiltonian.yaml")
 
     assert body == b"schema: {}\n"
     assert captured["method"] == "GET"
     assert captured["url"].endswith(
-        "/proj-materials-db/materials-db/schema/materials-schema-v0.1.yaml"
+        "/proj-materials-db/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml"
     )
+
+
+def test_get_object_does_not_truncate_large_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = b"x" * 16_583_789
+    monkeypatch.setattr(
+        s3_client, "urlopen", lambda request, timeout: FakeResponse(200, payload)
+    )
+
+    assert _client().get_object("materials-db/v0.1.0/archive.zip") == payload
 
 
 def test_get_object_raises_on_error_status(monkeypatch: pytest.MonkeyPatch) -> None:

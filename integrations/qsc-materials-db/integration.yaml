@@ -7,13 +7,13 @@ metadata:
   project: data-schema
   role: data-service
   owners: [qsc-materials-db]
-  visibility: internal
+  visibility: public
   integration_status: published
 spec:
   source:
     kind: repository
-    url: https://code.ornl.gov/intersect/data/deployments
-    catalog_repository: qsc-materials-db
+    url: https://github.com/QSCSoftwareEcosystem/DataSchema
+    catalog_repository: DataSchema
   mirror:
     status: not-applicable
   development_environment:
@@ -22,7 +22,7 @@ spec:
   interfaces: [json-context, metadata-bundle, markdown-source]
   scope:
     status: defined
-    summary: Publish the static v0.1 QSC materials-db schema, seed data references, and SDL provenance pointers as a non-executable data service record.
+    summary: Publish immutable v0.1.0 materials data and schema links with an optional object-storage mirror.
   deliverables:
     source_audit: complete
     interface_contract: complete
@@ -33,10 +33,8 @@ spec:
   contract_refs:
     - capabilities/qsc-materials-db/schema/qhpc-capability.yaml
   evidence:
-    - docs/evidence/sdl-qsc-materials-schema-admission-2026-08-28.md
-    - data-services/qsc-materials-db/materials-schema-v0.1.yaml
-    - data-services/qsc-materials-db/provenance-v0.1.yaml
+    - capabilities/qsc-materials-db/schema/qhpc-capability.yaml
   production_runtime:
     status: not-applicable
-    reason: The admitted record is static schema and provenance metadata; live SDL service calls remain outside this deployment until a future service contract is approved.
+    reason: The admitted record publishes static data and schema resources; object storage is an optional mirror rather than a required runtime.
   blockers: []

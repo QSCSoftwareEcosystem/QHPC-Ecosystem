@@ -52,7 +52,7 @@ class DevStackConfig:
     start_workbench: bool = True
     start_chatqec: bool = True
     start_repository_updates: bool = True
-    start_databucket: bool = True
+    start_databucket: bool = False
     start_iqm_worker: bool = False
     start_iqm_simulation_worker: bool = False
     databucket_s3_endpoint: str = ""

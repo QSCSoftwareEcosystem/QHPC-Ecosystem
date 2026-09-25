@@ -1596,20 +1596,6 @@ h2, h3, p { letter-spacing: 0; }
   color: var(--muted);
   font: normal 11px/1.35 ui-monospace, "SFMono-Regular", monospace;
 }
-.data-sdl-slot {
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: rgba(22, 104, 179, .08);
-}
-.data-sdl-slot strong {
-  display: block;
-  margin-top: 5px;
-  color: var(--ink);
-  font-size: 14px;
-}
-.data-sdl-slot p,
 .data-empty p {
   margin: 6px 0 0;
   color: var(--muted);

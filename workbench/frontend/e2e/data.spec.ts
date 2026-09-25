@@ -6,19 +6,20 @@ test("presents the materials service in the Data workspace", async ({ page }) =>
 
   await expect(
     page.getByRole("heading", {
-      name: "Governed datasets and SDL-backed services",
+      name: "Governed datasets and schemas",
     }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "QSC Materials Repository" }),
   ).toBeVisible();
   await expect(
-    page.getByText("materials-schema-v0.1", { exact: true }),
+    page.getByText("kcuf3-hamiltonian-yaml", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Live Object Storage (databucket)" }),
+    page.getByRole("link", { name: "Open", exact: true }).first(),
   ).toBeVisible();
   await expect(
-    page.getByText("databucket/Garage is not configured for this Workbench"),
+    page.getByRole("link", { name: "Download", exact: true }).first(),
   ).toBeVisible();
+  await expect(page.getByText("Optional S3 mirror")).toHaveCount(0);
 });
