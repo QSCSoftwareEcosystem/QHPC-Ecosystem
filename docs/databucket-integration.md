@@ -2,7 +2,7 @@
 
 - Status: Optional development integration
 - Canonical data source: [DataSchema `tag-20260924`](https://github.com/QSCSoftwareEcosystem/DataSchema/tree/tag-20260924)
-- databucket source: [naughtont3/databucket](https://github.com/naughtont3/databucket)
+- databucket source: [QSCSoftwareEcosystem/databucket](https://github.com/QSCSoftwareEcosystem/databucket)
 - Garage lifecycle wrapper: [`databucket_stack.py`](../src/qhpc_ecosystem/databucket_stack.py)
 - DataSchema mirror publisher: [`dataschema_mirror.py`](../src/qhpc_ecosystem/dataschema_mirror.py)
 - Data capability: [`qhpc-capability.yaml`](../capabilities/qsc-materials-db/schema/qhpc-capability.yaml)
@@ -10,8 +10,10 @@
 ## Storage model
 
 The tagged public DataSchema release is the default and authoritative source.
-The Workbench Data panel can open and download every declared resource without
-databucket, Garage, or another local data checkout.
+Without databucket, Garage, or another local data checkout, the Workbench Data
+panel opens each declared resource on its canonical GitHub page. Download
+actions appear only for resources present in the configured object-storage
+mirror.
 
 databucket/Garage is an optional S3 transport for the same immutable resources.
 Each resource declares one `source_path`, one `storage_key`, and one SHA-256
@@ -21,14 +23,31 @@ The optional mirror does not introduce a second catalog or data model.
 
 ## Enable and seed the mirror
 
-First prepare a databucket checkout using its own setup instructions. Then
-start the development stack with both checkouts explicitly supplied:
+Clone both repositories once, then prepare the databucket checkout using its
+setup script:
+
+```bash
+cd /path/to/repos
+git clone git@github.com:QSCSoftwareEcosystem/databucket.git
+git clone git@github.com:QSCSoftwareEcosystem/DataSchema.git
+
+cd databucket
+./scripts/setup.sh
+```
+
+Start the development stack with both checkouts explicitly supplied:
 
 ```bash
 eqo dev up \
-  --databucket /path/to/databucket \
-  --databucket-seed-source /path/to/DataSchema
+  --stop-cluster-on-exit \
+  --stop-databucket-on-exit \
+  --databucket /path/to/repos/databucket \
+  --databucket-seed-source /path/to/repos/DataSchema
 ```
+
+With both stop flags, pressing Ctrl-C (or a failed startup) also stops the
+development cluster and databucket Compose services. Their named volumes are
+preserved.
 
 `--databucket` opts into Garage using the supplied checkout. The older
 `--databucket-checkout` spelling remains an alias. `--databucket-seed-source` is
@@ -45,6 +64,7 @@ Relevant `eqo dev up` flags:
 | `--databucket-seed-source PATH` | none | Verify and upload the declared DataSchema resources from this checkout. |
 | `--databucket-project NAME` | `materials-db` | Provision bucket `proj-<name>`. |
 | `--no-databucket-start` | off | Require the opted-in Garage stack to already be running. |
+| `--stop-cluster-on-exit` | off | Stop the development cluster when the supervisor exits. |
 | `--stop-databucket-on-exit` | off | Stop the opted-in Garage stack when the supervisor exits. |
 
 Without `--databucket`, no Garage process is started, no credentials
