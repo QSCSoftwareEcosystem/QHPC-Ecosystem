@@ -19,7 +19,7 @@ test("presents the materials service in the Data workspace", async ({ page }) =>
     page.getByRole("link", { name: "Open", exact: true }).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Download", exact: true }).first(),
-  ).toBeVisible();
+    page.getByRole("link", { name: "Download", exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByText("Optional S3 mirror")).toHaveCount(0);
 });

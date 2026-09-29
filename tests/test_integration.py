@@ -236,10 +236,7 @@ def test_qsc_materials_db_publishes_tagged_dataschema_resources() -> None:
     assert resources["spin-hamiltonian-schema"]["kind"] == "schema"
     assert resources["kcuf3-hamiltonian-yaml"]["kind"] == "dataset"
     assert all("/tag-20260924/" in resource["uri"] for resource in published.values())
-    assert all(
-        resource["download_uri"].startswith("https://raw.githubusercontent.com/")
-        for resource in published.values()
-    )
+    assert all("download_uri" not in resource for resource in published.values())
     assert all(resource["storage_key"] for resource in published.values())
 
 

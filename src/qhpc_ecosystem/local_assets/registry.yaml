@@ -1916,7 +1916,7 @@ spec:
         documentation:
           qappswiki: packages/qasmtrans.md
           url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md
-  - descriptor_digest: sha256:933aeb021c5c3252639774b726316a9b53933d8c07bcfaf4a3157edfe4189a4c
+  - descriptor_digest: sha256:109f7a0e1d81e2d05788fb4ff16581221bd03d32724404e2b1fa55c2f12ece3e
     catalog_repository: DataSchema
     validation:
       contract: valid
@@ -1942,7 +1942,7 @@ spec:
         - data-schema
         repository:
           url: https://github.com/QSCSoftwareEcosystem/DataSchema
-          revision: 704c1800614b37f0909cc8e5e15438b1be06b983
+          revision: 808e79f313376528aa40bf8f19279d0021360d0d
         integration:
           authority: ecosystem
           maintainers: *id029
@@ -1971,15 +1971,15 @@ spec:
         - id: hardware-survey
           kind: dataset
           version: 0.1.0
-          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/tree/808e79f313376528aa40bf8f19279d0021360d0d/data/hardware-information-survey
         - id: developer-attribution
           kind: documentation
           version: 1.0.0
           uri: docs/tool-attribution.md#qsc-hardware-survey
         documentation:
           qappswiki: integrations/qsc-hardware-data.md
-          url: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
-  - descriptor_digest: sha256:d291f543ef92a9c1dc435f31d54435269ac1c985c195817d0a70baab5f0c168a
+          url: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/808e79f313376528aa40bf8f19279d0021360d0d/README.md
+  - descriptor_digest: sha256:784dcc9444857d9dd0a29ec0eb5dcce3f75ddc1136a35f5b3ddb961280f496b5
     catalog_repository: DataSchema
     validation:
       contract: valid
@@ -2026,7 +2026,7 @@ spec:
           quick_start:
           - Open the release README and manifest to understand the immutable v0.1.0 snapshot.
           - Use the YAML record as the canonical representation and the JSON record as its derived representation.
-          - Download from the public tagged release or an optional configured object-storage mirror.
+          - Open the public tagged release; use Download when a configured object-storage mirror is available.
           example_workflows: []
           limitations:
           - Object storage is optional; the tagged public release remains usable without it.
@@ -2036,7 +2036,6 @@ spec:
           kind: dataset
           version: 0.1.0
           uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/KCuF3_Hamiltonian.json
-          download_uri: https://raw.githubusercontent.com/QSCSoftwareEcosystem/DataSchema/tag-20260924/data/materials-db/v0.1.0/KCuF3_Hamiltonian.json
           source_path: data/materials-db/v0.1.0/KCuF3_Hamiltonian.json
           storage_key: materials-db/v0.1.0/KCuF3_Hamiltonian.json
           digest: sha256:7e356e7996565a405cccefc3553195e52401f691710344dc8252fadb468271ca
@@ -2045,7 +2044,6 @@ spec:
           kind: dataset
           version: 0.1.0
           uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
-          download_uri: https://raw.githubusercontent.com/QSCSoftwareEcosystem/DataSchema/tag-20260924/data/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
           source_path: data/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
           storage_key: materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
           digest: sha256:f241bc4e8509f4323e77173b9e781b433ba61093aeafe25b46e5416ebccc2cff
@@ -2054,7 +2052,6 @@ spec:
           kind: dataset
           version: 0.1.0
           uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
-          download_uri: https://raw.githubusercontent.com/QSCSoftwareEcosystem/DataSchema/tag-20260924/data/materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
           source_path: data/materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
           storage_key: materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
           digest: sha256:4c9327b31d3cb963a246a0a35a2ff56c01a0473a22dab437412f09933229ce54
@@ -2063,7 +2060,6 @@ spec:
           kind: documentation
           version: 0.1.0
           uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/manifest.yaml
-          download_uri: https://raw.githubusercontent.com/QSCSoftwareEcosystem/DataSchema/tag-20260924/data/materials-db/v0.1.0/manifest.yaml
           source_path: data/materials-db/v0.1.0/manifest.yaml
           storage_key: materials-db/v0.1.0/manifest.yaml
           digest: sha256:673d8075aa26c32f6b914f07354100fc3b3dc3c03effd1e0a726230058f0c165
@@ -2072,7 +2068,6 @@ spec:
           kind: documentation
           version: 0.1.0
           uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/README.md
-          download_uri: https://raw.githubusercontent.com/QSCSoftwareEcosystem/DataSchema/tag-20260924/data/materials-db/v0.1.0/README.md
           source_path: data/materials-db/v0.1.0/README.md
           storage_key: materials-db/v0.1.0/README.md
           digest: sha256:1a7f011fd283bbf94beb59440532e69cc8cb7b1394d6cec887604f5ad250da14
@@ -2081,7 +2076,6 @@ spec:
           kind: schema
           version: 0.1.0
           uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/schema/spin_hamiltonian.yaml
-          download_uri: https://raw.githubusercontent.com/QSCSoftwareEcosystem/DataSchema/tag-20260924/schema/spin_hamiltonian.yaml
           source_path: schema/spin_hamiltonian.yaml
           storage_key: schema/spin_hamiltonian.yaml
           digest: sha256:e13c06ab14a2112bd7f2ec06f377290400dd653ec9d38f3a09aa3bed82f258ee
