@@ -205,7 +205,7 @@ def test_openqse_and_qappswiki_publish_only_pinned_resources() -> None:
     )
 
 
-def test_qsc_materials_db_publishes_static_data_service_resources() -> None:
+def test_qsc_materials_db_publishes_tagged_dataschema_resources() -> None:
     _, scaffolds = load_integration_scaffolds(PROFILE)
 
     scaffold = find_integration_scaffold(scaffolds, "qsc-materials-db").document
@@ -223,11 +223,21 @@ def test_qsc_materials_db_publishes_static_data_service_resources() -> None:
     assert scaffold["spec"]["production_runtime"]["status"] == "not-applicable"
     assert scaffold["spec"]["deliverables"]["adapter"] == "not-applicable"
     assert not capability["spec"].get("operations")
-    assert capability["metadata"]["visibility"] == "internal"
-    assert resources["materials-schema-v0.1"]["kind"] == "schema"
-    assert resources["materials-provenance-v0.1"]["kind"] == "provenance"
-    assert resources["qsc-materials-db-service"]["kind"] == "data-service"
-    assert resources["kcuf3-hamiltonian"]["kind"] == "dataset"
+    assert capability["metadata"]["visibility"] == "public"
+    published = {key: value for key, value in resources.items() if "digest" in value}
+    assert set(published) == {
+        "kcuf3-hamiltonian-json",
+        "kcuf3-hamiltonian-yaml",
+        "kcuf3-neutron-sqw",
+        "materials-release-manifest",
+        "materials-release-readme",
+        "spin-hamiltonian-schema",
+    }
+    assert resources["spin-hamiltonian-schema"]["kind"] == "schema"
+    assert resources["kcuf3-hamiltonian-yaml"]["kind"] == "dataset"
+    assert all("/tag-20260924/" in resource["uri"] for resource in published.values())
+    assert all("download_uri" not in resource for resource in published.values())
+    assert all(resource["storage_key"] for resource in published.values())
 
 
 def test_tn_sim_uses_public_upstream_and_pins_its_interface() -> None:

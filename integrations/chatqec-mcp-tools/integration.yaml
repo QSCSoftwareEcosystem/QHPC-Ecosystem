@@ -49,7 +49,6 @@ spec:
   evidence:
     - docs/evidence/chatqec-mcp-tools-inventory-2026-09-11.md
     - docs/evidence/chatqec-tool-operations-oci-smoke-2026-09-14.md
-    - .development/CHATQEC_PLAN.md
   production_runtime:
     status: deferred
     technology: oci

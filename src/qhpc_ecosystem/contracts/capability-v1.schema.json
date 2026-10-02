@@ -244,6 +244,15 @@
         },
         "version": {"$ref": "#/$defs/version"},
         "uri": {"type": "string", "format": "uri-reference"},
+        "download_uri": {"type": "string", "format": "uri"},
+        "source_path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "storage_key": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
         "digest": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"

@@ -107,6 +107,7 @@ spec:
     compose_file: docker-compose.yml
     overrides:
       - compose.qhpc.yaml
+      - compose.linux-amd64.yaml
     services:
       - mysql
       - slurmdbd

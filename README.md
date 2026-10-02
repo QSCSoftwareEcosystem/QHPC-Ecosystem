@@ -345,11 +345,18 @@ python -m pip install -e ".[dev,workbench]"
 eqo dev up
 ```
 
-The optional Data panel integration uses a prepared
-[`databucket`](https://github.com/naughtont3/databucket) checkout:
+The Data panel opens the tagged public DataSchema resources by default. To add
+Download actions backed by an optional S3 mirror, supply a prepared
+[`databucket`](https://github.com/QSCSoftwareEcosystem/databucket) checkout. Add
+a local DataSchema checkout when the mirror should be seeded with the verified
+files:
 
 ```bash
-eqo dev up --databucket-checkout /path/to/databucket
+eqo dev up \
+  --stop-cluster-on-exit \
+  --stop-databucket-on-exit \
+  --databucket /path/to/repos/databucket \
+  --databucket-seed-source /path/to/repos/DataSchema
 ```
 
 See [the databucket integration guide](docs/databucket-integration.md) for

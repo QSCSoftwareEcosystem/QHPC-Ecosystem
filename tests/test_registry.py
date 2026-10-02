@@ -202,7 +202,7 @@ def test_registry_requires_pinned_revision_and_qappswiki(tmp_path: Path) -> None
     [
         (
             "data-schema",
-            "https://github.com/QSCSoftwareThrust/DataSchema",
+            "https://github.com/QSCSoftwareEcosystem/DataSchema",
             "DataSchema",
         ),
         (
@@ -272,7 +272,7 @@ def test_registry_rejects_capability_ownership_change(tmp_path: Path) -> None:
         tmp_path / "data-schema",
         version="2.0.0",
         project="data-schema",
-        repository_url="https://github.com/QSCSoftwareThrust/DataSchema",
+        repository_url="https://github.com/QSCSoftwareEcosystem/DataSchema",
     )
 
     with pytest.raises(RegistryError, match="changes ownership"):

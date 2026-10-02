@@ -597,6 +597,7 @@ def build_parser() -> argparse.ArgumentParser:
     dev_up.add_argument("--artifact-root", default=".qhpc/live/artifacts")
     dev_up.add_argument("--runtime-root", default=".qhpc/runtimes")
     dev_up.add_argument("--update-state-root", default=".qhpc/live/updates")
+    dev_up.add_argument("--workspace-root", default=".")
     dev_up.add_argument(
         "--chatqec-service-interface",
         default="integrations/chatqec/service.yaml",
@@ -700,18 +701,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="stop the virtual Slurm fixture when the supervisor exits",
     )
     dev_up.add_argument(
+        "--databucket",
         "--databucket-checkout",
-        help="path to a databucket checkout (docker-compose.yml + .env already set up)",
+        dest="databucket_checkout",
+        metavar="PATH",
+        help="enable optional Garage storage using this prepared databucket checkout",
+    )
+    dev_up.add_argument(
+        "--databucket-seed-source",
+        help="optional DataSchema checkout whose verified release files are mirrored to Garage",
     )
     dev_up.add_argument(
         "--databucket-project",
         default="materials-db",
         help="databucket project name to provision (bucket 'proj-<name>')",
-    )
-    dev_up.add_argument(
-        "--no-databucket",
-        action="store_true",
-        help="do not start or connect to databucket/Garage object storage",
     )
     dev_up.add_argument(
         "--no-databucket-start",
@@ -2069,7 +2072,7 @@ def dispatch(args: argparse.Namespace) -> int:
         from .slurm_test_cluster import SlurmDockerCluster
         from .databucket_stack import GarageStack
         from .s3_client import S3Client
-        from . import materials_db_ingest
+        from . import dataschema_mirror
 
         if args.dev_command != "up":
             raise ContractError(f"unsupported dev command: {args.dev_command}")
@@ -2103,11 +2106,16 @@ def dispatch(args: argparse.Namespace) -> int:
 
         databucket_stack = None
         databucket_credentials = None
-        if not args.no_databucket:
-            if not args.databucket_checkout:
-                raise ContractError(
-                    "--databucket-checkout is required unless --no-databucket is set"
-                )
+        databucket_enabled = bool(args.databucket_checkout)
+        if args.databucket_seed_source and not databucket_enabled:
+            raise ContractError(
+                "--databucket-seed-source requires --databucket PATH"
+            )
+        if args.no_databucket_start and not databucket_enabled:
+            raise ContractError(
+                "--no-databucket-start requires --databucket PATH"
+            )
+        if databucket_enabled:
             databucket_stack = GarageStack(args.databucket_checkout)
             databucket_stack.prepare()
             if not databucket_stack.status():
@@ -2120,16 +2128,19 @@ def dispatch(args: argparse.Namespace) -> int:
             databucket_credentials = databucket_stack.ensure_project(
                 args.databucket_project
             )
-            materials_db_ingest.publish(
-                S3Client(
-                    endpoint=databucket_credentials.endpoint,
-                    region=databucket_credentials.region,
-                    bucket=databucket_credentials.bucket,
-                    access_key_id=databucket_credentials.access_key_id,
-                    secret_access_key=databucket_credentials.secret_access_key,
-                ),
-                Path.cwd(),
-            )
+            if args.databucket_seed_source:
+                dataschema_mirror.publish(
+                    S3Client(
+                        endpoint=databucket_credentials.endpoint,
+                        region=databucket_credentials.region,
+                        bucket=databucket_credentials.bucket,
+                        access_key_id=databucket_credentials.access_key_id,
+                        secret_access_key=databucket_credentials.secret_access_key,
+                    ),
+                    Path(args.workspace_root)
+                    / "capabilities/qsc-materials-db/schema/qhpc-capability.yaml",
+                    args.databucket_seed_source,
+                )
 
         api_port = (
             args.port
@@ -2186,7 +2197,7 @@ def dispatch(args: argparse.Namespace) -> int:
             artifact_root=args.artifact_root,
             runtime_root=args.runtime_root,
             update_state_root=args.update_state_root,
-            workspace_root=str(Path.cwd()),
+            workspace_root=str(Path(args.workspace_root).expanduser().resolve()),
             workflows=tuple(dict.fromkeys(args.workflow)),
             host=args.host,
             port=args.port,
@@ -2203,7 +2214,7 @@ def dispatch(args: argparse.Namespace) -> int:
             start_workbench=not args.no_django_workbench,
             start_chatqec=not args.no_chatqec,
             start_repository_updates=not args.no_repository_updates,
-            start_databucket=not args.no_databucket,
+            start_databucket=databucket_enabled,
             start_iqm_worker=args.start_iqm_worker,
             start_iqm_simulation_worker=args.start_iqm_simulation_worker,
             databucket_s3_endpoint=(

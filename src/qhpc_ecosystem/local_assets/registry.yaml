@@ -2,7 +2,7 @@ api_version: qhpc/v1
 kind: Registry
 metadata:
   entry_count: 22
-  catalog_digest: sha256:aa0ead04aa9834cdbee3f0c1ab45ae34b0e11fd2e25a1faf0e58d34fffe02bda
+  catalog_digest: sha256:25d43a6321a8178f6f8aa099cab3251f19b624b8f66e6cb91eb664187864b544
 spec:
   entries:
   - descriptor_digest: sha256:1ffb401a8a6827593cc0c1dfc6f91bc1f50276fefbe32372cff3368479488308
@@ -1916,7 +1916,7 @@ spec:
         documentation:
           qappswiki: packages/qasmtrans.md
           url: https://github.com/pnnl/qasmtrans/blob/1843c98fa4bac9cf6b88412145b69457e9176124/README.md
-  - descriptor_digest: sha256:f947f5d6a6cfaf5aede71c3df33362d6995d405d41670514f2de0b51ddbfe35c
+  - descriptor_digest: sha256:109f7a0e1d81e2d05788fb4ff16581221bd03d32724404e2b1fa55c2f12ece3e
     catalog_repository: DataSchema
     validation:
       contract: valid
@@ -1941,8 +1941,8 @@ spec:
         owners:
         - data-schema
         repository:
-          url: https://github.com/QSCSoftwareThrust/DataSchema
-          revision: 704c1800614b37f0909cc8e5e15438b1be06b983
+          url: https://github.com/QSCSoftwareEcosystem/DataSchema
+          revision: 808e79f313376528aa40bf8f19279d0021360d0d
         integration:
           authority: ecosystem
           maintainers: *id029
@@ -1971,16 +1971,16 @@ spec:
         - id: hardware-survey
           kind: dataset
           version: 0.1.0
-          uri: https://github.com/QSCSoftwareThrust/DataSchema/tree/704c1800614b37f0909cc8e5e15438b1be06b983/data/hardware-information-survey
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/tree/808e79f313376528aa40bf8f19279d0021360d0d/data/hardware-information-survey
         - id: developer-attribution
           kind: documentation
           version: 1.0.0
           uri: docs/tool-attribution.md#qsc-hardware-survey
         documentation:
           qappswiki: integrations/qsc-hardware-data.md
-          url: https://github.com/QSCSoftwareThrust/DataSchema/blob/704c1800614b37f0909cc8e5e15438b1be06b983/README.md
-  - descriptor_digest: sha256:78c6356bbc59779885cfd0cfb600ee12d54ec3f03e7b4c267ed34f9810a874d4
-    catalog_repository: qsc-materials-db
+          url: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/808e79f313376528aa40bf8f19279d0021360d0d/README.md
+  - descriptor_digest: sha256:784dcc9444857d9dd0a29ec0eb5dcce3f75ddc1136a35f5b3ddb961280f496b5
+    catalog_repository: DataSchema
     validation:
       contract: valid
       attribution: valid
@@ -1991,8 +1991,7 @@ spec:
       runtime: not-applicable
       documentation: linked
       status: contract-valid
-      evidence: &id032
-      - docs/evidence/sdl-qsc-materials-schema-admission-2026-08-28.md
+      evidence: &id032 []
     capability:
       api_version: qhpc/v1
       kind: Capability
@@ -2004,8 +2003,8 @@ spec:
         owners:
         - qsc-materials-db
         repository:
-          url: https://code.ornl.gov/intersect/data/deployments
-          revision: 51373be831a94cc06c669346ca5d1fccc3a6ed76
+          url: https://github.com/QSCSoftwareEcosystem/DataSchema
+          revision: 808e79f313376528aa40bf8f19279d0021360d0d
         integration:
           authority: ecosystem
           maintainers: *id031
@@ -2013,72 +2012,81 @@ spec:
           runtime_status: not-applicable
           validation_status: contract-valid
           evidence: *id032
-        visibility: internal
+        visibility: public
         maturity: prototype
       spec:
         component:
           name: QSC Materials Repository
-          description: Static SDL-backed materials-db schema and provenance record for QSC materials reference
-            artifacts.
+          description: Immutable DataSchema release of QSC materials reference data and its authoritative
+            schema.
         guidance:
           use_when:
-          - Inspect the initial materials-db entity, activity, result, storage, and provenance shape before
-            a live SDL data-service interface is admitted.
-          - Trace the KCuF3 Hamiltonian and neutron-scattering seed data back to the pinned SDL deployment
-            and schema sources.
+          - Inspect the released KCuF3 Hamiltonian records and neutron-scattering dataset.
+          - Validate the released records against the pinned spin-Hamiltonian schema and manifest.
           quick_start:
-          - Open the static materials schema and provenance resources from the Data workspace.
-          - Treat the KCuF3 payloads as seed reference data, not as generated QHPC workflow artifacts.
-          - Use the published SDL source revisions when discussing changes to the future live materials-db
-            service.
+          - Open the release README and manifest to understand the immutable v0.1.0 snapshot.
+          - Use the YAML record as the canonical representation and the JSON record as its derived representation.
+          - Open the public tagged release; use Download when a configured object-storage mirror is available.
           example_workflows: []
           limitations:
-          - This capability is a static admission record; it does not call MinIO, Fuseki, workspace-service,
-            or another SDL runtime.
-          - The current static schema mirrors the QSC data README phase-1 model and is not yet a generated
-            dedicated materials LinkML module.
+          - Object storage is optional; the tagged public release remains usable without it.
           - No executable operation is published for this component.
         resources:
-        - id: materials-schema-v0.1
-          kind: schema
-          version: 0.1.0
-          uri: data-services/qsc-materials-db/materials-schema-v0.1.yaml
-          description: Static QHPC view of the SDL/QSC phase-1 materials model.
-        - id: materials-provenance-v0.1
-          kind: provenance
-          version: 0.1.0
-          uri: data-services/qsc-materials-db/provenance-v0.1.yaml
-          description: Pinned source, schema, seed data, and storage-prefix provenance for the static
-            materials-db record.
-        - id: qsc-materials-db-service
-          kind: data-service
-          version: 0.1.0
-          uri: https://code.ornl.gov/intersect/data/deployments/-/blob/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/repositories.json
-          description: SDL QSC repository declaration for qsc-materials-db, including draft status and
-            qsc-data/materials-db storage mapping.
-        - id: kcuf3-hamiltonian
+        - id: kcuf3-hamiltonian-json
           kind: dataset
           version: 0.1.0
-          uri: https://code.ornl.gov/intersect/data/deployments/-/blob/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/materials-db/example-json/KCuF3_Hamiltonian.json
-          description: First structured KCuF3 spin-Hamiltonian JSON seed payload.
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/KCuF3_Hamiltonian.json
+          source_path: data/materials-db/v0.1.0/KCuF3_Hamiltonian.json
+          storage_key: materials-db/v0.1.0/KCuF3_Hamiltonian.json
+          digest: sha256:7e356e7996565a405cccefc3553195e52401f691710344dc8252fadb468271ca
+          description: Derived JSON representation of the schema-mapped KCuF3 spin-Hamiltonian record.
+        - id: kcuf3-hamiltonian-yaml
+          kind: dataset
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
+          source_path: data/materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
+          storage_key: materials-db/v0.1.0/KCuF3_Hamiltonian.yaml
+          digest: sha256:f241bc4e8509f4323e77173b9e781b433ba61093aeafe25b46e5416ebccc2cff
+          description: Canonical schema-mapped KCuF3 spin-Hamiltonian record.
         - id: kcuf3-neutron-sqw
           kind: dataset
           version: 0.1.0
-          uri: https://code.ornl.gov/intersect/data/deployments/-/tree/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/materials-db
-          description: KCuF3 neutron scattering SQW source bundle and associated provenance notes.
-        - id: sdl-linkml-root
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
+          source_path: data/materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
+          storage_key: materials-db/v0.1.0/KCuF3_MAPS-SEQ_sqw.zip
+          digest: sha256:4c9327b31d3cb963a246a0a35a2ff56c01a0473a22dab437412f09933229ce54
+          description: Related KCuF3 experimental neutron-scattering dataset.
+        - id: materials-release-manifest
+          kind: documentation
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/manifest.yaml
+          source_path: data/materials-db/v0.1.0/manifest.yaml
+          storage_key: materials-db/v0.1.0/manifest.yaml
+          digest: sha256:673d8075aa26c32f6b914f07354100fc3b3dc3c03effd1e0a726230058f0c165
+          description: Release manifest recording schema association, relationships, and checksums.
+        - id: materials-release-readme
+          kind: documentation
+          version: 0.1.0
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/README.md
+          source_path: data/materials-db/v0.1.0/README.md
+          storage_key: materials-db/v0.1.0/README.md
+          digest: sha256:1a7f011fd283bbf94beb59440532e69cc8cb7b1394d6cec887604f5ad250da14
+          description: Documentation for the immutable QSC materials-database v0.1.0 release.
+        - id: spin-hamiltonian-schema
           kind: schema
           version: 0.1.0
-          uri: https://code.ornl.gov/intersect/data/sdl-schema/-/blob/66399f74a2419dc650ad1d8ba1036ed5d05464c3/schemas/sdl.yaml
-          description: Root SDL LinkML schema used as the vocabulary foundation for future generated material-domain
-            models.
+          uri: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/schema/spin_hamiltonian.yaml
+          source_path: schema/spin_hamiltonian.yaml
+          storage_key: schema/spin_hamiltonian.yaml
+          digest: sha256:e13c06ab14a2112bd7f2ec06f377290400dd653ec9d38f3a09aa3bed82f258ee
+          description: Authoritative LinkML schema for the released spin-Hamiltonian records.
         - id: developer-attribution
           kind: documentation
           version: 1.0.0
           uri: docs/tool-attribution.md#qsc-materials-db
         documentation:
           qappswiki: docs/qsc-integration.md
-          url: https://code.ornl.gov/intersect/data/deployments/-/blob/51373be831a94cc06c669346ca5d1fccc3a6ed76/QSC/data/README.md
+          url: https://github.com/QSCSoftwareEcosystem/DataSchema/blob/tag-20260924/data/materials-db/v0.1.0/README.md
   - descriptor_digest: sha256:b558d82a462102b7feb34c2d25277aa70533a885ca121db358b1b585a47a78e1
     catalog_repository: spack-packages
     validation:

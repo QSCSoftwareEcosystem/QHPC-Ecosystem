@@ -31,6 +31,7 @@ class FakeRunner:
     def __init__(self) -> None:
         self.calls: list[list[str]] = []
         self.bucket_exists = False
+        self.key_exists = False
         self.status_output = "Healthy nodes:\n"
 
     def __call__(self, command: list[str]) -> CommandResult:
@@ -45,10 +46,13 @@ class FakeRunner:
                 self.bucket_exists = True
                 return CommandResult(0, "")
             if args[:2] == ["key", "create"]:
+                self.key_exists = True
                 return CommandResult(0, "")
             if args[:2] == ["bucket", "allow"]:
                 return CommandResult(0, "")
             if args[:2] == ["key", "info"]:
+                if not self.key_exists:
+                    return CommandResult(1, "")
                 return CommandResult(
                     0,
                     "Key ID: GKx-access-key\nSecret key: super-secret\n",
@@ -109,6 +113,7 @@ def test_ensure_project_is_idempotent_when_bucket_exists(tmp_path: Path) -> None
     checkout = _checkout(tmp_path)
     runner = FakeRunner()
     runner.bucket_exists = True
+    runner.key_exists = True
     stack = GarageStack(checkout, runner=runner)
 
     stack.ensure_project("materials-db")
@@ -117,6 +122,20 @@ def test_ensure_project_is_idempotent_when_bucket_exists(tmp_path: Path) -> None
         (_garage_args(call) or [None])[0] == "create"
         for call in runner.calls
         if _garage_args(call) and _garage_args(call)[:1] == ["bucket"]
+    )
+
+
+def test_ensure_project_repairs_missing_key_when_bucket_exists(tmp_path: Path) -> None:
+    checkout = _checkout(tmp_path)
+    runner = FakeRunner()
+    runner.bucket_exists = True
+    stack = GarageStack(checkout, runner=runner)
+
+    stack.ensure_project("materials-db")
+
+    assert any(
+        _garage_args(call) == ["key", "create", "proj-materials-db-key"]
+        for call in runner.calls
     )
 
 

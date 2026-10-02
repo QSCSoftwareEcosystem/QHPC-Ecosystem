@@ -120,6 +120,7 @@ def test_dev_stack_injects_databucket_credentials_into_api_only() -> None:
     databucket_config = DevStackConfig(
         **{
             **config().__dict__,
+            "start_databucket": True,
             "databucket_s3_endpoint": "http://127.0.0.1:3900",
             "databucket_bucket": "proj-materials-db",
             "databucket_access_key_id": "GKtest",

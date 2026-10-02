@@ -50,6 +50,27 @@ def test_iqm_base_url_defaults_to_the_isolated_worker_endpoint(monkeypatch) -> N
     assert supervised.iqm_endpoint == "https://qccsw.ccs.ornl.gov"
 
 
+def test_dev_up_does_not_enable_databucket_by_default() -> None:
+    parser = cli.build_parser()
+
+    default = parser.parse_args(["dev", "up"])
+    mirrored = parser.parse_args(
+        [
+            "dev",
+            "up",
+            "--databucket",
+            "/tmp/databucket",
+            "--databucket-seed-source",
+            "/tmp/DataSchema",
+        ]
+    )
+
+    assert default.databucket_checkout is None
+    assert default.databucket_seed_source is None
+    assert mirrored.databucket_checkout == "/tmp/databucket"
+    assert mirrored.databucket_seed_source == "/tmp/DataSchema"
+
+
 def test_iqm_token_prompt_is_no_echo_and_rejects_an_empty_value(monkeypatch) -> None:
     prompts: list[str] = []
     monkeypatch.setattr(
@@ -104,7 +125,7 @@ def test_list_and_info_do_not_require_apptainer(monkeypatch, capsys) -> None:
 
 def test_validate_checks_catalog_and_recipes(capsys) -> None:
     assert invoke("validate") == 0
-    assert "26 repositories, 5 environments" in capsys.readouterr().out
+    assert "25 repositories, 5 environments" in capsys.readouterr().out
 
 
 def test_engagement_resources_are_listed_without_runtime_or_network(capsys) -> None:
