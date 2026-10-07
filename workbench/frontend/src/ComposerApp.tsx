@@ -155,7 +155,7 @@ interface ScientificPathDefinition {
   workflowId: string;
   code: string;
   shortName: string;
-  section: "journey" | "tour" | "gated";
+  section: "start" | "journey" | "tour" | "gated";
   toolChain: string[];
   kind: "Cross-tool study" | "Flagship showcase" | "Focused example" | "Incubation blueprint";
   blueprint?: IncubationBlueprint;
@@ -565,9 +565,9 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
   },
   {
     workflowId: "openqevo-trotter-synthesis",
-    code: "06",
-    shortName: "Hamiltonian to evolution circuit",
-    section: "tour",
+    code: "GO",
+    shortName: "Turn a Hamiltonian into a Trotter circuit",
+    section: "start",
     kind: "Focused example",
     toolChain: ["OpenQEvo", "Qiskit"],
     inputLabel: "Pauli Hamiltonian",
@@ -639,6 +639,7 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
 ];
 
 const GUIDED_SECTIONS = [
+  { id: "start", title: "Start with a scientific goal", detail: "Runnable, scoped workflows with a clear result" },
   { id: "journey", title: "Scientific journeys", detail: "Multi-tool studies for program review" },
   { id: "tour", title: "Capability tours", detail: "Focused, bounded demonstrations" },
   { id: "gated", title: "Gated and blueprint paths", detail: "Evidence or readiness gates remain" },
@@ -997,6 +998,9 @@ function ComposerSurface(): React.JSX.Element {
           (item) => item.definition.workflowId === guidedWorkflowId,
         )
       : undefined) ??
+    guidedPaths.find(
+      (item) => item.definition.section === "start" && item.workflow,
+    ) ??
     guidedPaths.find((item) => item.workflow) ??
     guidedPaths[0];
   const selectedGuidedWorkflow = selectedGuidedPath?.workflow;
@@ -1799,12 +1803,12 @@ function ComposerSurface(): React.JSX.Element {
         <span className="composer-mode-context">
           <strong>
             {composerMode === "guided"
-              ? "Scientific showcases"
+              ? "Start with a goal"
               : "Workflow graph"}
           </strong>
           <small>
             {composerMode === "guided"
-              ? `${guidedPaths.filter((item) => item.workflow).length} runnable · ${blueprintCountLabel(guidedPaths.filter((item) => item.definition.blueprint).length)}`
+              ? `${guidedPaths.filter((item) => item.workflow).length} runnable workflows · ${blueprintCountLabel(guidedPaths.filter((item) => item.definition.blueprint).length)}`
               : `${nodes.filter((node) => node.type === "operation").length} operations`}
           </small>
         </span>
@@ -2545,20 +2549,13 @@ function GuidedComposer({
   const target = workflow
     ? workflowTarget(workflow.definition, capabilities)
     : "Unavailable";
-  const publishedJourneyCount = paths.filter(
-    (path) => path.definition.section === "journey" && path.workflow,
-  ).length;
-  const gatedCount = paths.filter(
-    (path) => path.definition.section === "gated",
-  ).length;
-
   return (
     <div className="composer-guided-workspace">
-      <aside className="composer-path-index" aria-label="Scientific showcases">
+      <aside className="composer-path-index" aria-label="Scientific goals">
         <div className="composer-path-index-header">
-          <span>GUIDED COMPOSER</span>
+          <span>GOAL-FIRST COMPOSER</span>
           <strong>
-            {publishedJourneyCount} published journeys · {gatedCount} gated paths
+            Choose a runnable workflow, then add only the scientific input it needs.
           </strong>
         </div>
         <div className="composer-path-list">
@@ -2617,6 +2614,20 @@ function GuidedComposer({
             </header>
 
             <div className="composer-guided-body">
+              {definition.workflowId === "openqevo-trotter-synthesis" && (
+                <section className="composer-guided-purpose" aria-labelledby="openqevo-path-title">
+                  <div>
+                    <span>YOUR PATH</span>
+                    <h3 id="openqevo-path-title">Hamiltonian to inspectable circuit</h3>
+                    <p>Start from a Pauli Hamiltonian. EQO creates a Trotter circuit and preserves the synthesis report with the run.</p>
+                  </div>
+                  <ol>
+                    <li><strong>1</strong><span><b>Add Hamiltonian</b><small>Paste, upload, or load the example.</small></span></li>
+                    <li><strong>2</strong><span><b>Create circuit</b><small>OpenQEvo and Qiskit apply the published Trotter settings.</small></span></li>
+                    <li><strong>3</strong><span><b>Inspect result</b><small>Open the run to view the circuit and synthesis report.</small></span></li>
+                  </ol>
+                </section>
+              )}
               <section className="composer-guided-section">
                 <h3>Connected pipeline</h3>
                 <ol className="composer-guided-pipeline">
@@ -2855,7 +2866,7 @@ function GuidedComposer({
                   onClick={onOpenAdvanced}
                 >
                   <GitFork size={14} aria-hidden="true" />
-                  Open in Advanced
+                  Customize in Advanced
                 </button>
                 <button
                   type="button"

@@ -61,7 +61,7 @@ spec:
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+        digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
       invocation:
         entrypoint: [openqevo:list_methods_detail]
       resources:
@@ -86,7 +86,7 @@ spec:
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+        digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
       invocation:
         entrypoint: [qhpc-openqevo-context]
       resources:
@@ -152,7 +152,7 @@ spec:
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+        digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
       invocation:
         entrypoint: [qhpc-openqevo-evaluate-reference]
       resources:
@@ -202,7 +202,7 @@ spec:
       runtime:
         type: python-wheel
         reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-        digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+        digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
       invocation:
         entrypoint: [qhpc-openqevo-synthesize]
       resources:

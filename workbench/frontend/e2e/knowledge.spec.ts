@@ -1,17 +1,23 @@
 import { expect, test } from "@playwright/test";
 
 
-test("explores QAppsWiki as a community-first knowledge graph", async ({
+test("explores QAppsWiki through a question-first knowledge workflow", async ({
   page,
 }) => {
   await page.goto("/?view=knowledge");
 
   await expect(
     page.getByRole("heading", {
-      name: "Navigate quantum computing as connected evidence",
+      name: "Start with a question. Follow the evidence.",
     }),
   ).toBeVisible();
   await expect(page.getByText("Authored pages")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Find a tool or topic/ }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("button", { name: /Review evidence/ }),
+  ).toBeVisible();
   await expect(
     page.getByRole("img", { name: /QAppsWiki atlas with/ }),
   ).toBeVisible();

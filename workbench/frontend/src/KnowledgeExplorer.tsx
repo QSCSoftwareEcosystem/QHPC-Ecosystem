@@ -56,6 +56,8 @@ interface KnowledgeExplorerProps {
   initialNodeId: string | null;
 }
 
+type KnowledgeIntent = "find" | "connect" | "evidence";
+
 interface GraphCanvasProps {
   summary: KnowledgeSummary;
   graph: KnowledgeGraphSlice | null;
@@ -388,10 +390,10 @@ function NodeRecord({
     return (
       <div className="knowledge-record-empty">
         <Crosshair aria-hidden="true" size={28} />
-        <strong>Select a knowledge node</strong>
+        <strong>Choose a result to inspect</strong>
         <p>
-          Its relationships, provenance, citations, and version context will
-          appear here.
+          Its relationships, evidence, citations, and version context will
+          appear here in plain view.
         </p>
       </div>
     );
@@ -539,6 +541,7 @@ export function KnowledgeExplorer({
   const [summary, setSummary] = useState<KnowledgeSummary | null>(null);
   const [graph, setGraph] = useState<KnowledgeGraphSlice | null>(null);
   const [graphTitle, setGraphTitle] = useState("Knowledge communities");
+  const [intent, setIntent] = useState<KnowledgeIntent>("find");
   const [query, setQuery] = useState("");
   const [nodeType, setNodeType] = useState("");
   const [domain, setDomain] = useState("");
@@ -549,6 +552,7 @@ export function KnowledgeExplorer({
   const [path, setPath] = useState<KnowledgePath | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   const selectNode = useCallback(async (nodeId: string) => {
     try {
@@ -672,6 +676,18 @@ export function KnowledgeExplorer({
     [summary],
   );
   const nodeTypes = Object.keys(summary?.stats?.by_type ?? {}).sort();
+  const intentCopy: Record<KnowledgeIntent, string> = {
+    find: "Search by software, concept, workflow, or question. Then inspect what it is and when to use it.",
+    connect: "Find the first item, set it as the path start, then choose a second item to trace the evidence-backed connection.",
+    evidence: "Browse source records, then inspect citations and provenance before relying on a claim.",
+  };
+  const chooseIntent = (next: KnowledgeIntent) => {
+    setIntent(next);
+    setQuery("");
+    setDomain("");
+    setNodeType(next === "evidence" && nodeTypes.includes("source") ? "source" : "");
+    window.requestAnimationFrame(() => searchRef.current?.focus());
+  };
 
   if (!summary && busy) {
     return (
@@ -704,10 +720,10 @@ export function KnowledgeExplorer({
       <header className="knowledge-command">
         <div>
           <span><Network aria-hidden="true" size={15} />QAppsWiki knowledge layer</span>
-          <h2>Navigate quantum computing as connected evidence</h2>
+          <h2>Start with a question. Follow the evidence.</h2>
           <p>
-            Search concepts, software, how-tos, and integrations; inspect their
-            provenance; then trace how they connect.
+            Find a tool, trace a relationship, or check the evidence behind a
+            result. The graph is there when it helps explain the answer.
           </p>
         </div>
         <dl>
@@ -740,15 +756,46 @@ export function KnowledgeExplorer({
           )
         : null}
 
+      <nav className="knowledge-intents" aria-label="Choose a knowledge task">
+        <button
+          type="button"
+          className={intent === "find" ? "is-active" : ""}
+          aria-pressed={intent === "find"}
+          onClick={() => chooseIntent("find")}
+        >
+          <Search aria-hidden="true" size={16} />
+          <span><strong>Find a tool or topic</strong><small>Search the QAppsWiki corpus</small></span>
+        </button>
+        <button
+          type="button"
+          className={intent === "connect" ? "is-active" : ""}
+          aria-pressed={intent === "connect"}
+          onClick={() => chooseIntent("connect")}
+        >
+          <Route aria-hidden="true" size={16} />
+          <span><strong>Trace a connection</strong><small>Compare two concepts or tools</small></span>
+        </button>
+        <button
+          type="button"
+          className={intent === "evidence" ? "is-active" : ""}
+          aria-pressed={intent === "evidence"}
+          onClick={() => chooseIntent("evidence")}
+        >
+          <ShieldCheck aria-hidden="true" size={16} />
+          <span><strong>Review evidence</strong><small>Check sources and provenance</small></span>
+        </button>
+      </nav>
+
       <div className="knowledge-layout">
         <aside className="knowledge-discovery" aria-label="Knowledge discovery">
           <div className="knowledge-search">
             <Search aria-hidden="true" size={17} />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search the corpus"
+              placeholder={intent === "connect" ? "Find the first thing to connect" : intent === "evidence" ? "Search source records" : "Find a tool, concept, or workflow"}
               aria-label="Search QAppsWiki"
             />
           </div>
@@ -779,8 +826,12 @@ export function KnowledgeExplorer({
             </label>
           </div>
 
+          <p className="knowledge-intent-hint" role="status">
+            {intentCopy[intent]}
+          </p>
+
           <div className="knowledge-results-heading">
-            <strong>{query || nodeType || domain ? "Search results" : "Connected pages"}</strong>
+            <strong>{query || nodeType || domain ? "Matching results" : intent === "evidence" ? "Source records" : "Suggested starting points"}</strong>
             <span>{results?.total ?? 0}</span>
           </div>
           <div className="knowledge-results">
@@ -836,7 +887,7 @@ export function KnowledgeExplorer({
                       All communities
                     </button>
                   )
-                : <span>Atlas overview</span>}
+                : <span>Relationship map</span>}
               <h3>{graphTitle}</h3>
             </div>
             <span>

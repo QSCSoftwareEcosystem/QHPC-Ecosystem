@@ -1354,7 +1354,7 @@ spec:
         documentation:
           qappswiki: packages/nwqsim-qflow.md
           url: https://github.com/pnnl/nwq-sim/blob/b35763d846e6512ed817d3f88ac8ce79a7e82a7e/README.md
-  - descriptor_digest: sha256:5dfda853047d57b6c01bf7a0cf875588a4ae500484cc25e1811e33578a8ba44f
+  - descriptor_digest: sha256:77269b7eb7edbc6ba5b80b75fcdf8923193951867a6d9552bd9f70f8b62c6e6f
     catalog_repository: OpenQEvo
     validation:
       contract: valid
@@ -1443,7 +1443,7 @@ spec:
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+            digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
           invocation:
             entrypoint:
             - openqevo:list_methods_detail
@@ -1479,7 +1479,7 @@ spec:
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+            digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
           invocation:
             entrypoint:
             - qhpc-openqevo-context
@@ -1561,7 +1561,7 @@ spec:
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+            digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
           invocation:
             entrypoint:
             - qhpc-openqevo-evaluate-reference
@@ -1619,7 +1619,7 @@ spec:
           runtime:
             type: python-wheel
             reference: qhpc-runtime://wheels/openqevo-0.1.0-py3-none-any.whl
-            digest: sha256:627fd9951c3c059bd7cb9b581be7d3b6c9afce9b68b1cdecae5806d99986eb36
+            digest: sha256:1fb93697bf9b278e1987102489d2f7980b453f310796175b31adc4849d9a90ec
           invocation:
             entrypoint:
             - qhpc-openqevo-synthesize

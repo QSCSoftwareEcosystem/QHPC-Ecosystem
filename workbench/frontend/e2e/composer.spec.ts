@@ -692,19 +692,20 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   ).toHaveAttribute("aria-selected", "true");
   await expect(
     page.getByRole("heading", {
-      name: "Prepare an evolution circuit for QHPC execution",
+      name: "Synthesize an OpenQEvo Trotter circuit",
     }),
   ).toBeVisible();
   await expect(
     page
-      .getByLabel("Scientific showcases")
-      .getByText("4 published journeys · 2 gated paths"),
+      .getByLabel("Scientific goals")
+      .getByText("Choose a runnable workflow, then add only the scientific input it needs."),
   ).toBeVisible();
   await expect(
-    page.getByText(
-      "Cross-tool study · OpenQEvo + QASMTrans + STABSim + NWQEC",
-    ),
+    page.getByText("Hamiltonian to inspectable circuit"),
   ).toBeVisible();
+  await expect(page.getByText("Inspect result")).toBeVisible();
+  await page.getByRole("button", { name: /Evolution to hardware readiness/ }).click();
+  await expect(page.getByRole("heading", { name: "Prepare an evolution circuit for QHPC execution" })).toBeVisible();
   const targetLabel = page.getByText("Mixed targets", { exact: true });
   if ((page.viewportSize()?.width ?? 1440) > 760) {
     await expect(targetLabel).toBeVisible();
@@ -747,7 +748,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
     page.getByRole("button", { name: "Run unavailable" }),
   ).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Open in Advanced", exact: true }),
+    page.getByRole("button", { name: "Customize in Advanced", exact: true }),
   ).toHaveCount(0);
 
   await page
@@ -790,7 +791,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   ).toBeEnabled();
 
   await page
-    .getByRole("button", { name: /Hamiltonian to evolution circuit/ })
+    .getByRole("button", { name: /Turn a Hamiltonian into a Trotter circuit/ })
     .click();
   await expect(
     page.getByRole("heading", {
@@ -891,7 +892,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   });
 
   await page
-    .getByRole("button", { name: "Open in Advanced", exact: true })
+    .getByRole("button", { name: "Customize in Advanced", exact: true })
     .click();
   await expect(
     page.getByRole("tab", { name: "Advanced", exact: true }),

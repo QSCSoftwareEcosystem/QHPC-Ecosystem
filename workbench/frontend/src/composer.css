@@ -316,6 +316,71 @@
   overflow: auto;
 }
 
+.composer-guided-purpose {
+  display: grid;
+  grid-template-columns: minmax(210px, .72fr) minmax(0, 1.28fr);
+  gap: 24px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--run-soft) 42%, var(--surface));
+}
+
+.composer-guided-purpose > div > span {
+  color: var(--qsc-red);
+  font: 700 10px/1.25 ui-monospace, "SFMono-Regular", monospace;
+  letter-spacing: .08em;
+}
+
+.composer-guided-purpose h3 {
+  margin: 6px 0 5px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.composer-guided-purpose p {
+  max-width: 43ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.composer-guided-purpose ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.composer-guided-purpose li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  padding: 4px 12px;
+  border-left: 1px solid var(--line);
+}
+
+.composer-guided-purpose li:first-child { border-left: 0; }
+
+.composer-guided-purpose li > strong {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--surface);
+  font: 700 10px/1 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-guided-purpose li > span { min-width: 0; display: grid; gap: 3px; }
+.composer-guided-purpose b { color: var(--ink); font-size: 12px; line-height: 1.25; }
+.composer-guided-purpose small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+
 .composer-guided-section {
   padding: 14px 16px;
   border-bottom: 1px solid var(--line);
@@ -2066,6 +2131,23 @@
 
   .composer-guided-section {
     padding: 12px 10px;
+  }
+
+  .composer-guided-purpose {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px 12px;
+  }
+
+  .composer-guided-purpose ol {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .composer-guided-purpose li,
+  .composer-guided-purpose li:first-child {
+    padding: 0;
+    border-left: 0;
   }
 
   .composer-blueprint-facts {

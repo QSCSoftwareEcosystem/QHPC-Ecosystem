@@ -17338,9 +17338,9 @@ var zp = "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n\nqreg q[2];\ncreg c[2];\n\nh 
 	},
 	{
 		workflowId: "openqevo-trotter-synthesis",
-		code: "06",
-		shortName: "Hamiltonian to evolution circuit",
-		section: "tour",
+		code: "GO",
+		shortName: "Turn a Hamiltonian into a Trotter circuit",
+		section: "start",
 		kind: "Focused example",
 		toolChain: ["OpenQEvo", "Qiskit"],
 		inputLabel: "Pauli Hamiltonian",
@@ -17414,6 +17414,11 @@ var zp = "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n\nqreg q[2];\ncreg c[2];\n\nh 
 		inputLabel: "Tsim circuit"
 	}
 ], Kp = [
+	{
+		id: "start",
+		title: "Start with a scientific goal",
+		detail: "Runnable, scoped workflows with a clear result"
+	},
 	{
 		id: "journey",
 		title: "Scientific journeys",
@@ -17596,7 +17601,7 @@ function dm() {
 	let Ee = (0, y.useMemo)(() => Gp.map((e) => ({
 		definition: e,
 		workflow: a.find((t) => t.id === e.workflowId)
-	})), [a]), De = (ie ? Ee.find((e) => e.definition.workflowId === ie) : void 0) ?? Ee.find((e) => e.workflow) ?? Ee[0], Oe = De?.workflow;
+	})), [a]), De = (ie ? Ee.find((e) => e.definition.workflowId === ie) : void 0) ?? Ee.find((e) => e.definition.section === "start" && e.workflow) ?? Ee.find((e) => e.workflow) ?? Ee[0], Oe = De?.workflow;
 	(0, y.useEffect)(() => {
 		if (!Oe) {
 			ye({
@@ -17999,7 +18004,7 @@ function dm() {
 				})]
 			}), /* @__PURE__ */ (0, x.jsxs)("span", {
 				className: "composer-mode-context",
-				children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: t === "guided" ? "Scientific showcases" : "Workflow graph" }), /* @__PURE__ */ (0, x.jsx)("small", { children: t === "guided" ? `${Ee.filter((e) => e.workflow).length} runnable · ${Jp(Ee.filter((e) => e.definition.blueprint).length)}` : `${l.filter((e) => e.type === "operation").length} operations` })]
+				children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: t === "guided" ? "Start with a goal" : "Workflow graph" }), /* @__PURE__ */ (0, x.jsx)("small", { children: t === "guided" ? `${Ee.filter((e) => e.workflow).length} runnable workflows · ${Jp(Ee.filter((e) => e.definition.blueprint).length)}` : `${l.filter((e) => e.type === "operation").length} operations` })]
 			})]
 		}), t === "guided" ? /* @__PURE__ */ (0, x.jsx)(pm, {
 			paths: Ee,
@@ -18582,20 +18587,15 @@ function pm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			label: t?.operation.parameters?.[n]?.title ?? Qp(n),
 			value: r
 		}));
-	}) : [], w = !!_ && S.every(([e, t]) => !(t.required ?? !0) || !!r[e]?.trim()), T = _ ? $p(_.definition, n) : "Unavailable", E = e.filter((e) => e.definition.section === "journey" && e.workflow).length, D = e.filter((e) => e.definition.section === "gated").length;
+	}) : [], w = !!_ && S.every(([e, t]) => !(t.required ?? !0) || !!r[e]?.trim()), T = _ ? $p(_.definition, n) : "Unavailable";
 	return /* @__PURE__ */ (0, x.jsxs)("div", {
 		className: "composer-guided-workspace",
 		children: [/* @__PURE__ */ (0, x.jsxs)("aside", {
 			className: "composer-path-index",
-			"aria-label": "Scientific showcases",
+			"aria-label": "Scientific goals",
 			children: [/* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "composer-path-index-header",
-				children: [/* @__PURE__ */ (0, x.jsx)("span", { children: "GUIDED COMPOSER" }), /* @__PURE__ */ (0, x.jsxs)("strong", { children: [
-					E,
-					" published journeys · ",
-					D,
-					" gated paths"
-				] })]
+				children: [/* @__PURE__ */ (0, x.jsx)("span", { children: "GOAL-FIRST COMPOSER" }), /* @__PURE__ */ (0, x.jsx)("strong", { children: "Choose a runnable workflow, then add only the scientific input it needs." })]
 			}), /* @__PURE__ */ (0, x.jsx)("div", {
 				className: "composer-path-list",
 				children: Kp.map((t) => {
@@ -18672,6 +18672,22 @@ function pm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				/* @__PURE__ */ (0, x.jsxs)("div", {
 					className: "composer-guided-body",
 					children: [
+						v.workflowId === "openqevo-trotter-synthesis" && /* @__PURE__ */ (0, x.jsxs)("section", {
+							className: "composer-guided-purpose",
+							"aria-labelledby": "openqevo-path-title",
+							children: [/* @__PURE__ */ (0, x.jsxs)("div", { children: [
+								/* @__PURE__ */ (0, x.jsx)("span", { children: "YOUR PATH" }),
+								/* @__PURE__ */ (0, x.jsx)("h3", {
+									id: "openqevo-path-title",
+									children: "Hamiltonian to inspectable circuit"
+								}),
+								/* @__PURE__ */ (0, x.jsx)("p", { children: "Start from a Pauli Hamiltonian. EQO creates a Trotter circuit and preserves the synthesis report with the run." })
+							] }), /* @__PURE__ */ (0, x.jsxs)("ol", { children: [
+								/* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "1" }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("b", { children: "Add Hamiltonian" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "Paste, upload, or load the example." })] })] }),
+								/* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "2" }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("b", { children: "Create circuit" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "OpenQEvo and Qiskit apply the published Trotter settings." })] })] }),
+								/* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "3" }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("b", { children: "Inspect result" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "Open the run to view the circuit and synthesis report." })] })] })
+							] })]
+						}),
 						/* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-guided-section",
 							children: [
@@ -18833,7 +18849,7 @@ function pm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							children: [/* @__PURE__ */ (0, x.jsx)(Af, {
 								size: 14,
 								"aria-hidden": "true"
-							}), "Open in Advanced"]
+							}), "Customize in Advanced"]
 						}),
 						/* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
@@ -37549,8 +37565,8 @@ function hj({ record: e, pathSource: t, onExplore: n, onSelectRelated: r, onSetP
 				"aria-hidden": "true",
 				size: 28
 			}),
-			/* @__PURE__ */ (0, x.jsx)("strong", { children: "Select a knowledge node" }),
-			/* @__PURE__ */ (0, x.jsx)("p", { children: "Its relationships, provenance, citations, and version context will appear here." })
+			/* @__PURE__ */ (0, x.jsx)("strong", { children: "Choose a result to inspect" }),
+			/* @__PURE__ */ (0, x.jsx)("p", { children: "Its relationships, evidence, citations, and version context will appear here in plain view." })
 		]
 	});
 	let s = [...e.outgoing, ...e.incoming].filter((e) => e.relation !== "cites").slice(0, 14);
@@ -37676,77 +37692,83 @@ function hj({ record: e, pathSource: t, onExplore: n, onSelectRelated: r, onSetP
 	});
 }
 function gj({ initialNodeId: e }) {
-	let [t, n] = (0, y.useState)(null), [r, i] = (0, y.useState)(null), [a, o] = (0, y.useState)("Knowledge communities"), [s, c] = (0, y.useState)(""), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(null), [h, g] = (0, y.useState)(null), [_, v] = (0, y.useState)(null), [b, S] = (0, y.useState)(null), [C, w] = (0, y.useState)(null), [T, E] = (0, y.useState)(!0), [D, O] = (0, y.useState)(null), k = (0, y.useCallback)(async (e) => {
+	let [t, n] = (0, y.useState)(null), [r, i] = (0, y.useState)(null), [a, o] = (0, y.useState)("Knowledge communities"), [s, c] = (0, y.useState)("find"), [l, u] = (0, y.useState)(""), [d, f] = (0, y.useState)(""), [p, m] = (0, y.useState)(""), [h, g] = (0, y.useState)(null), [_, v] = (0, y.useState)(null), [b, S] = (0, y.useState)(null), [C, w] = (0, y.useState)(null), [T, E] = (0, y.useState)(null), [D, O] = (0, y.useState)(!0), [k, A] = (0, y.useState)(null), j = (0, y.useRef)(null), M = (0, y.useCallback)(async (e) => {
 		try {
-			O(null), g(await Qf.node(e));
+			A(null), v(await Qf.node(e));
 		} catch (e) {
-			O(e.message);
+			A(e.message);
 		}
-	}, []), A = (0, y.useCallback)(async (e) => {
+	}, []), N = (0, y.useCallback)(async (e) => {
 		try {
-			E(!0), O(null);
+			O(!0), A(null);
 			let [t, n] = await Promise.all([Qf.neighborhood(e), Qf.node(e)]);
-			i(t), o(`Neighborhood · ${n.title}`), g(n);
+			i(t), o(`Neighborhood · ${n.title}`), v(n);
 		} catch (e) {
-			O(e.message);
+			A(e.message);
 		} finally {
-			E(!1);
+			O(!1);
 		}
-	}, []), j = (0, y.useCallback)(async (e) => {
+	}, []), P = (0, y.useCallback)(async (e) => {
 		try {
-			E(!0), O(null);
+			O(!0), A(null);
 			let t = await Qf.community(e);
-			i(t), o(`Community · ${uj(t.community?.label || String(e + 1))}`), g(null), w(null);
+			i(t), o(`Community · ${uj(t.community?.label || String(e + 1))}`), v(null), E(null);
 		} catch (e) {
-			O(e.message);
+			A(e.message);
 		} finally {
-			E(!1);
+			O(!1);
 		}
-	}, []), M = (0, y.useCallback)(() => {
-		i(null), o("Knowledge communities"), g(null), w(null);
+	}, []), F = (0, y.useCallback)(() => {
+		i(null), o("Knowledge communities"), v(null), E(null);
 	}, []);
 	(0, y.useEffect)(() => {
 		let t = !0;
 		return Qf.summary().then(async (r) => {
-			t && (n(r), r.available && (m(await Qf.search("")), e && await A(e)));
+			t && (n(r), r.available && (g(await Qf.search("")), e && await N(e)));
 		}).catch((e) => {
-			t && O(e.message);
+			t && A(e.message);
 		}).finally(() => {
-			t && E(!1);
+			t && O(!1);
 		}), () => {
 			t = !1;
 		};
-	}, [e, A]), (0, y.useEffect)(() => {
+	}, [e, N]), (0, y.useEffect)(() => {
 		if (!t?.available) return;
 		let e = window.setTimeout(() => {
-			Qf.search(s, {
-				type: l || void 0,
-				domain: d || void 0
-			}).then(m).catch((e) => O(e.message));
+			Qf.search(l, {
+				type: d || void 0,
+				domain: p || void 0
+			}).then(g).catch((e) => A(e.message));
 		}, 180);
 		return () => window.clearTimeout(e);
 	}, [
+		p,
 		d,
 		l,
-		s,
 		t?.available
 	]);
-	let N = (0, y.useCallback)(async (e) => {
-		if (!_) {
-			v(e);
+	let I = (0, y.useCallback)(async (e) => {
+		if (!b) {
+			S(e);
 			return;
 		}
 		try {
-			E(!0), O(null), S(e);
-			let t = await Qf.path(_.id, e.id);
-			w(t), t.found ? (i(t), o(`Connection · ${_.title} to ${e.title}`)) : O("No connection exists between the selected knowledge nodes.");
+			O(!0), A(null), w(e);
+			let t = await Qf.path(b.id, e.id);
+			E(t), t.found ? (i(t), o(`Connection · ${b.title} to ${e.title}`)) : A("No connection exists between the selected knowledge nodes.");
 		} catch (e) {
-			O(e.message);
+			A(e.message);
 		} finally {
-			E(!1);
+			O(!1);
 		}
-	}, [_]), P = (0, y.useMemo)(() => Array.from(new Set((t?.communities ?? []).flatMap((e) => e.domains))).sort(), [t]), F = Object.keys(t?.stats?.by_type ?? {}).sort();
-	return !t && T ? /* @__PURE__ */ (0, x.jsxs)("div", {
+	}, [b]), L = (0, y.useMemo)(() => Array.from(new Set((t?.communities ?? []).flatMap((e) => e.domains))).sort(), [t]), R = Object.keys(t?.stats?.by_type ?? {}).sort(), z = {
+		find: "Search by software, concept, workflow, or question. Then inspect what it is and when to use it.",
+		connect: "Find the first item, set it as the path start, then choose a second item to trace the evidence-backed connection.",
+		evidence: "Browse source records, then inspect citations and provenance before relying on a claim."
+	}, B = (e) => {
+		c(e), u(""), m(""), f(e === "evidence" && R.includes("source") ? "source" : ""), window.requestAnimationFrame(() => j.current?.focus());
+	};
+	return !t && D ? /* @__PURE__ */ (0, x.jsxs)("div", {
 		className: "knowledge-loading",
 		"aria-live": "polite",
 		children: [
@@ -37765,8 +37787,8 @@ function gj({ initialNodeId: e }) {
 						"aria-hidden": "true",
 						size: 15
 					}), "QAppsWiki knowledge layer"] }),
-					/* @__PURE__ */ (0, x.jsx)("h2", { children: "Navigate quantum computing as connected evidence" }),
-					/* @__PURE__ */ (0, x.jsx)("p", { children: "Search concepts, software, how-tos, and integrations; inspect their provenance; then trace how they connect." })
+					/* @__PURE__ */ (0, x.jsx)("h2", { children: "Start with a question. Follow the evidence." }),
+					/* @__PURE__ */ (0, x.jsx)("p", { children: "Find a tool, trace a relationship, or check the evidence behind a result. The graph is there when it helps explain the answer." })
 				] }), /* @__PURE__ */ (0, x.jsxs)("dl", { children: [
 					/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "Authored pages" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: t.stats?.content_nodes ?? 0 })] }),
 					/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "Relations" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: t.stats?.edges ?? 0 })] }),
@@ -37774,7 +37796,7 @@ function gj({ initialNodeId: e }) {
 					/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "Corpus revision" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: t.source_revision?.slice(0, 8) || "unversioned" })] })
 				] })]
 			}),
-			D ? /* @__PURE__ */ (0, x.jsxs)("div", {
+			k ? /* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "knowledge-error",
 				role: "alert",
 				children: [
@@ -37782,14 +37804,50 @@ function gj({ initialNodeId: e }) {
 						"aria-hidden": "true",
 						size: 17
 					}),
-					/* @__PURE__ */ (0, x.jsx)("span", { children: D }),
+					/* @__PURE__ */ (0, x.jsx)("span", { children: k }),
 					/* @__PURE__ */ (0, x.jsx)("button", {
 						type: "button",
-						onClick: () => O(null),
+						onClick: () => A(null),
 						children: "Dismiss"
 					})
 				]
 			}) : null,
+			/* @__PURE__ */ (0, x.jsxs)("nav", {
+				className: "knowledge-intents",
+				"aria-label": "Choose a knowledge task",
+				children: [
+					/* @__PURE__ */ (0, x.jsxs)("button", {
+						type: "button",
+						className: s === "find" ? "is-active" : "",
+						"aria-pressed": s === "find",
+						onClick: () => B("find"),
+						children: [/* @__PURE__ */ (0, x.jsx)(Hf, {
+							"aria-hidden": "true",
+							size: 16
+						}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Find a tool or topic" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "Search the QAppsWiki corpus" })] })]
+					}),
+					/* @__PURE__ */ (0, x.jsxs)("button", {
+						type: "button",
+						className: s === "connect" ? "is-active" : "",
+						"aria-pressed": s === "connect",
+						onClick: () => B("connect"),
+						children: [/* @__PURE__ */ (0, x.jsx)(Bf, {
+							"aria-hidden": "true",
+							size: 16
+						}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Trace a connection" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "Compare two concepts or tools" })] })]
+					}),
+					/* @__PURE__ */ (0, x.jsxs)("button", {
+						type: "button",
+						className: s === "evidence" ? "is-active" : "",
+						"aria-pressed": s === "evidence",
+						onClick: () => B("evidence"),
+						children: [/* @__PURE__ */ (0, x.jsx)(Uf, {
+							"aria-hidden": "true",
+							size: 16
+						}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Review evidence" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "Check sources and provenance" })] })]
+					})
+				]
+			}),
 			/* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "knowledge-layout",
 				children: [
@@ -37803,47 +37861,53 @@ function gj({ initialNodeId: e }) {
 									"aria-hidden": "true",
 									size: 17
 								}), /* @__PURE__ */ (0, x.jsx)("input", {
+									ref: j,
 									type: "search",
-									value: s,
-									onChange: (e) => c(e.target.value),
-									placeholder: "Search the corpus",
+									value: l,
+									onChange: (e) => u(e.target.value),
+									placeholder: s === "connect" ? "Find the first thing to connect" : s === "evidence" ? "Search source records" : "Find a tool, concept, or workflow",
 									"aria-label": "Search QAppsWiki"
 								})]
 							}),
 							/* @__PURE__ */ (0, x.jsxs)("div", {
 								className: "knowledge-filters",
 								children: [/* @__PURE__ */ (0, x.jsxs)("label", { children: [/* @__PURE__ */ (0, x.jsx)("span", { children: "Type" }), /* @__PURE__ */ (0, x.jsxs)("select", {
-									value: l,
-									onChange: (e) => u(e.target.value),
-									children: [/* @__PURE__ */ (0, x.jsx)("option", {
-										value: "",
-										children: "All types"
-									}), F.map((e) => /* @__PURE__ */ (0, x.jsx)("option", {
-										value: e,
-										children: uj(e)
-									}, e))]
-								})] }), /* @__PURE__ */ (0, x.jsxs)("label", { children: [/* @__PURE__ */ (0, x.jsx)("span", { children: "Domain" }), /* @__PURE__ */ (0, x.jsxs)("select", {
 									value: d,
 									onChange: (e) => f(e.target.value),
 									children: [/* @__PURE__ */ (0, x.jsx)("option", {
 										value: "",
+										children: "All types"
+									}), R.map((e) => /* @__PURE__ */ (0, x.jsx)("option", {
+										value: e,
+										children: uj(e)
+									}, e))]
+								})] }), /* @__PURE__ */ (0, x.jsxs)("label", { children: [/* @__PURE__ */ (0, x.jsx)("span", { children: "Domain" }), /* @__PURE__ */ (0, x.jsxs)("select", {
+									value: p,
+									onChange: (e) => m(e.target.value),
+									children: [/* @__PURE__ */ (0, x.jsx)("option", {
+										value: "",
 										children: "All domains"
-									}), P.map((e) => /* @__PURE__ */ (0, x.jsx)("option", {
+									}), L.map((e) => /* @__PURE__ */ (0, x.jsx)("option", {
 										value: e,
 										children: uj(e)
 									}, e))]
 								})] })]
 							}),
+							/* @__PURE__ */ (0, x.jsx)("p", {
+								className: "knowledge-intent-hint",
+								role: "status",
+								children: z[s]
+							}),
 							/* @__PURE__ */ (0, x.jsxs)("div", {
 								className: "knowledge-results-heading",
-								children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: s || l || d ? "Search results" : "Connected pages" }), /* @__PURE__ */ (0, x.jsx)("span", { children: p?.total ?? 0 })]
+								children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: l || d || p ? "Matching results" : s === "evidence" ? "Source records" : "Suggested starting points" }), /* @__PURE__ */ (0, x.jsx)("span", { children: h?.total ?? 0 })]
 							}),
 							/* @__PURE__ */ (0, x.jsx)("div", {
 								className: "knowledge-results",
-								children: (p?.items ?? []).map((e) => /* @__PURE__ */ (0, x.jsxs)("button", {
-									className: h?.id === e.id ? "is-selected" : "",
+								children: (h?.items ?? []).map((e) => /* @__PURE__ */ (0, x.jsxs)("button", {
+									className: _?.id === e.id ? "is-selected" : "",
 									type: "button",
-									onClick: () => k(e.id),
+									onClick: () => M(e.id),
 									children: [
 										/* @__PURE__ */ (0, x.jsx)("i", { style: { background: lj[e.type] ?? lj.untyped } }),
 										/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsxs)("small", { children: [
@@ -37866,7 +37930,7 @@ function gj({ initialNodeId: e }) {
 									children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Communities" }), /* @__PURE__ */ (0, x.jsx)("span", { children: t.communities?.length ?? 0 })]
 								}), (t.communities ?? []).map((e) => /* @__PURE__ */ (0, x.jsxs)("button", {
 									type: "button",
-									onClick: () => j(e.index),
+									onClick: () => P(e.index),
 									children: [/* @__PURE__ */ (0, x.jsx)("i", { style: { background: cj[e.index % cj.length] } }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: uj(e.label) }), /* @__PURE__ */ (0, x.jsxs)("small", { children: [
 										e.size,
 										" pages · hub ",
@@ -37881,20 +37945,20 @@ function gj({ initialNodeId: e }) {
 						children: [
 							/* @__PURE__ */ (0, x.jsxs)("header", { children: [/* @__PURE__ */ (0, x.jsxs)("div", { children: [r ? /* @__PURE__ */ (0, x.jsxs)("button", {
 								type: "button",
-								onClick: M,
+								onClick: F,
 								children: [/* @__PURE__ */ (0, x.jsx)(pf, {
 									"aria-hidden": "true",
 									size: 15
 								}), "All communities"]
-							}) : /* @__PURE__ */ (0, x.jsx)("span", { children: "Atlas overview" }), /* @__PURE__ */ (0, x.jsx)("h3", { children: a })] }), /* @__PURE__ */ (0, x.jsx)("span", { children: r ? `${r.nodes.length} nodes · ${r.edges.length} relations` : `${t.communities?.length ?? 0} thematic communities` })] }),
+							}) : /* @__PURE__ */ (0, x.jsx)("span", { children: "Relationship map" }), /* @__PURE__ */ (0, x.jsx)("h3", { children: a })] }), /* @__PURE__ */ (0, x.jsx)("span", { children: r ? `${r.nodes.length} nodes · ${r.edges.length} relations` : `${t.communities?.length ?? 0} thematic communities` })] }),
 							/* @__PURE__ */ (0, x.jsx)(pj, {
 								summary: t,
 								graph: r,
-								selectedNodeId: h?.id ?? null,
-								onSelectNode: k,
-								onSelectCommunity: j
+								selectedNodeId: _?.id ?? null,
+								onSelectNode: M,
+								onSelectCommunity: P
 							}),
-							T ? /* @__PURE__ */ (0, x.jsx)("div", {
+							D ? /* @__PURE__ */ (0, x.jsx)("div", {
 								className: "knowledge-map-busy",
 								role: "status",
 								children: "Updating graph view"
@@ -37903,35 +37967,35 @@ function gj({ initialNodeId: e }) {
 								className: "knowledge-truncation",
 								children: "Showing the most connected nodes in this graph slice."
 							}) : null,
-							C ? /* @__PURE__ */ (0, x.jsxs)("div", {
+							T ? /* @__PURE__ */ (0, x.jsxs)("div", {
 								className: "knowledge-path-strip",
 								children: [
 									/* @__PURE__ */ (0, x.jsx)(Bf, {
 										"aria-hidden": "true",
 										size: 16
 									}),
-									/* @__PURE__ */ (0, x.jsxs)("strong", { children: [C.length, " hops"] }),
-									/* @__PURE__ */ (0, x.jsx)("span", { children: C.path.map((e) => dj(e, 22)).join(" → ") }),
+									/* @__PURE__ */ (0, x.jsxs)("strong", { children: [T.length, " hops"] }),
+									/* @__PURE__ */ (0, x.jsx)("span", { children: T.path.map((e) => dj(e, 22)).join(" → ") }),
 									/* @__PURE__ */ (0, x.jsx)("button", {
 										type: "button",
 										onClick: () => {
-											w(null), v(null), S(null), M();
+											E(null), S(null), w(null), F();
 										},
 										children: "Clear"
 									})
 								]
-							}) : _ ? /* @__PURE__ */ (0, x.jsxs)("div", {
+							}) : b ? /* @__PURE__ */ (0, x.jsxs)("div", {
 								className: "knowledge-path-strip",
 								children: [
 									/* @__PURE__ */ (0, x.jsx)(kf, {
 										"aria-hidden": "true",
 										size: 16
 									}),
-									/* @__PURE__ */ (0, x.jsxs)("strong", { children: ["Path starts at ", _.title] }),
+									/* @__PURE__ */ (0, x.jsxs)("strong", { children: ["Path starts at ", b.title] }),
 									/* @__PURE__ */ (0, x.jsx)("span", { children: "Select another node, then choose “Connect from…”" }),
 									/* @__PURE__ */ (0, x.jsx)("button", {
 										type: "button",
-										onClick: () => v(null),
+										onClick: () => S(null),
 										children: "Clear"
 									})
 								]
@@ -37942,15 +38006,15 @@ function gj({ initialNodeId: e }) {
 						className: "knowledge-details",
 						"aria-label": "Knowledge record",
 						children: /* @__PURE__ */ (0, x.jsx)(hj, {
-							record: h,
-							pathSource: _,
-							onExplore: A,
-							onSelectRelated: k,
+							record: _,
+							pathSource: b,
+							onExplore: N,
+							onSelectRelated: M,
 							onSetPathSource: (e) => {
-								v(e), S(null), w(null);
+								S(e), w(null), E(null);
 							},
-							onSetPathTarget: N,
-							onClear: () => g(null)
+							onSetPathTarget: I,
+							onClear: () => v(null)
 						})
 					})
 				]
@@ -37965,7 +38029,7 @@ function gj({ initialNodeId: e }) {
 				size: 34
 			}),
 			/* @__PURE__ */ (0, x.jsx)("h2", { children: "Knowledge graph unavailable" }),
-			/* @__PURE__ */ (0, x.jsx)("p", { children: t?.reason || D || "This deployment has no compiled QAppsWiki graph." }),
+			/* @__PURE__ */ (0, x.jsx)("p", { children: t?.reason || k || "This deployment has no compiled QAppsWiki graph." }),
 			/* @__PURE__ */ (0, x.jsx)("code", { children: "qappswiki build --out wiki-out" }),
 			/* @__PURE__ */ (0, x.jsx)("span", { children: "Build the pinned corpus artifact, then restart the EQO-QSC API." })
 		]
