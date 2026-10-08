@@ -162,3 +162,41 @@ test("opens ChatQEC contextually and can continue into the full workspace", asyn
   await expect(page.locator("#view-title")).toHaveText("ChatQEC");
   await expect(toggle).toBeHidden();
 });
+
+
+test("presents the local direct-circuit capability without promising model-backed QEC answers", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/assistant/chatqec/status", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "ok",
+        available: true,
+        service: "chatqec",
+        mode: "mcp-direct-tools",
+        source_revision: "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977",
+        corpus_revision: `sha256:${"a".repeat(64)}`,
+        pages: 60,
+        tool_execution: true,
+      }),
+    });
+  });
+
+  await page.goto("/?view=assistant");
+
+  await expect(
+    page.getByRole("heading", { name: "QEC circuit assistant" }),
+  ).toBeVisible();
+  await expect(page.getByText("This local profile runs explicit Stim or Tsim circuit instructions.")).toBeVisible();
+  await expect(page.getByText("model-backed research assistant is not configured", { exact: false })).toBeVisible();
+  await expect(page.getByLabel("Circuit request for ChatQEC")).toHaveAttribute(
+    "placeholder",
+    /Paste Stim\/Tsim instructions/,
+  );
+
+  await page.getByRole("button", { name: /Simulate this Stim circuit/ }).click();
+  await expect(page.getByLabel("Circuit request for ChatQEC")).toHaveValue(
+    "Simulate this Stim circuit for 10 shots:\n\nR 0\nH 0\nM 0",
+  );
+});

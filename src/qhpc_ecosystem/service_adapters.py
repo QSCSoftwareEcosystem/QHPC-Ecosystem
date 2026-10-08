@@ -22,6 +22,7 @@ _POLICY_CLASS = re.compile(r"^[a-z][a-z0-9._-]{0,63}$")
 _CORPUS_REVISION = re.compile(r"^sha256:[0-9a-f]{64}$")
 _MAX_RESPONSE_BYTES = 2_000_000
 _MAX_SSE_EVENTS = 10_000
+_MAX_ERROR_MESSAGE_CHARACTERS = 600
 _REQUEST_FIELDS = {
     "request_id",
     "correlation_id",
@@ -380,6 +381,41 @@ def _chatqec_endpoint(base_url: str, path: str) -> str:
     return f"https://{parsed.netloc}/v1{path}"
 
 
+def _chatqec_failure_message(
+    status: int,
+    response_headers: Mapping[str, str],
+    response_body: object,
+) -> str:
+    """Return a bounded, contract-shaped failure message from ChatQEC.
+
+    The browser needs the service's recovery guidance (for example, that the
+    local profile accepts an explicit circuit), but this gateway must not echo
+    arbitrary response bodies from an upstream service.
+    """
+    content_type = next(
+        (
+            value
+            for name, value in response_headers.items()
+            if name.lower() == "content-type"
+        ),
+        "",
+    )
+    if (
+        isinstance(response_body, bytes)
+        and len(response_body) <= _MAX_RESPONSE_BYTES
+        and content_type.split(";", 1)[0].strip().lower() == "application/json"
+    ):
+        try:
+            payload = json.loads(response_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            payload = None
+        if isinstance(payload, Mapping):
+            error = payload.get("error")
+            if isinstance(error, str) and error.strip():
+                return "ChatQEC: " + error.strip()[:_MAX_ERROR_MESSAGE_CHARACTERS]
+    return f"ChatQEC returned HTTP status {status}"
+
+
 def ask_chatqec(
     base_url: str,
     request: Mapping[str, Any],
@@ -417,7 +453,9 @@ def ask_chatqec(
     except (OSError, TimeoutError) as error:
         raise ServiceAdapterError(f"ChatQEC transport failed: {error}") from error
     if status != 200:
-        raise ServiceAdapterError(f"ChatQEC returned HTTP status {status}")
+        raise ServiceAdapterError(
+            _chatqec_failure_message(status, response_headers, response_body)
+        )
     content_type = next(
         (
             value
@@ -481,7 +519,9 @@ def stream_chatqec(
     except (OSError, TimeoutError) as error:
         raise ServiceAdapterError(f"ChatQEC transport failed: {error}") from error
     if status != 200:
-        raise ServiceAdapterError(f"ChatQEC returned HTTP status {status}")
+        raise ServiceAdapterError(
+            _chatqec_failure_message(status, response_headers, response_body)
+        )
     content_type = next(
         (
             value

@@ -13,6 +13,7 @@ from qhpc_ecosystem.service_adapters import (
     ask_chatqec,
     build_chatqec_request,
     parse_chatqec_sse,
+    stream_chatqec,
     validate_chatqec_response,
 )
 
@@ -75,6 +76,29 @@ def test_chatqec_adapter_uses_the_fixed_endpoint_without_credentials() -> None:
     assert call["headers"]["X-QHPC-Request-ID"] == request["request_id"]
     assert json.loads(call["body"]) == request
     assert result == response
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_chatqec_adapter_preserves_bounded_json_failure_guidance(stream: bool) -> None:
+    request = _fixture("ask-request.json")
+
+    def transport(**_arguments):
+        return (
+            503,
+            {"Content-Type": "application/json; charset=utf-8"},
+            json.dumps({"error": "Supply a concrete Stim/Tsim circuit."}).encode(),
+        )
+
+    operation = stream_chatqec if stream else ask_chatqec
+    with pytest.raises(
+        ServiceAdapterError,
+        match="ChatQEC: Supply a concrete Stim/Tsim circuit.",
+    ):
+        operation(
+            "https://chatqec.internal.example",
+            request,
+            transport=transport,
+        )
 
 
 def test_chatqec_request_builder_enforces_bounded_isolated_context() -> None:

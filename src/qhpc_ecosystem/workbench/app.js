@@ -1466,24 +1466,27 @@ function assistantServiceView() {
 function renderAssistant() {
   const assistant = state.assistant;
   const { service, available, checking, state: serviceState, label: serviceLabel, detail: serviceDetail } = assistantServiceView();
+  const directTools = available && service?.mode === "mcp-direct-tools";
+  const circuitPrompt = "Simulate this Stim circuit for 10 shots:\n\nR 0\nH 0\nM 0";
   const citations = assistantCitations();
   const transcript = assistant.messages.length
     ? assistant.messages.map(assistantMessageHtml).join("")
     : `<div class="assistant-start">
         <span class="empty-code" aria-hidden="true">QEC</span>
-        <h2>Ask a QEC question</h2>
+        <h2>${directTools ? "Run a QEC circuit" : "Ask a QEC question"}</h2>
+        ${directTools ? "<p>This local profile runs explicit Stim or Tsim circuit instructions. A model-backed research assistant is not configured.</p>" : ""}
         <div class="assistant-prompts">
-          ${[
+          ${(directTools ? [circuitPrompt] : [
             "How is the surface code decoded?",
             "Compare minimum-weight perfect matching and union-find decoders.",
             "What is required for a fault-tolerant logical gate?",
-          ].map(prompt => `<button type="button" class="assistant-prompt" data-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
+          ]).map(prompt => `<button type="button" class="assistant-prompt" data-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
         </div>
       </div>`;
   const pending = assistant.submitting && !assistant.messages.some(message => message.streaming)
     ? `<article class="assistant-message assistant assistant-pending" aria-live="polite">
         <span class="assistant-role">CHATQEC</span>
-        <div><p>Searching the governed ChatQEC sources...</p></div>
+        <div><p>${directTools ? "Running the circuit in the local ChatQEC tools..." : "Searching the governed ChatQEC sources..."}</p></div>
       </article>`
     : "";
   const citationList = citations.length
@@ -1499,8 +1502,10 @@ function renderAssistant() {
     : "";
 
   workspace.innerHTML = sectionHeader(
-    "QEC research assistant",
-    available && service?.mode === "canonical-corpus-extractive-fallback"
+    directTools ? "QEC circuit assistant" : "QEC research assistant",
+    directTools
+      ? "Run explicit Stim or Tsim circuits through the local ChatQEC tool boundary"
+      : available && service?.mode === "canonical-corpus-extractive-fallback"
       ? "Offline deterministic answers from the ChatQEC canonical-corpus extractive fallback"
       : "Cited answers through the governed ChatQEC service boundary",
     `<div class="assistant-service-state">${badge(serviceState, serviceLabel)}<span>${escapeHtml(serviceDetail)}</span></div>`,
@@ -1508,10 +1513,10 @@ function renderAssistant() {
     <section class="assistant-dialog" aria-label="ChatQEC conversation">
       <div class="assistant-transcript" id="assistant-transcript">${transcript}${pending}</div>
       <form class="assistant-composer" id="assistant-form">
-        <label for="assistant-question">QUESTION</label>
+        <label for="assistant-question">${directTools ? "CIRCUIT REQUEST" : "QUESTION"}</label>
         ${contextNotice}
         <div>
-          <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="Question for ChatQEC" placeholder="Ask about codes, decoders, noise, or fault tolerance" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
+          <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="${directTools ? "Circuit request for ChatQEC" : "Question for ChatQEC"}" placeholder="${directTools ? "Paste Stim/Tsim instructions, e.g. H 0 then M 0" : "Ask about codes, decoders, noise, or fault tolerance"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
           ${assistant.submitting
             ? '<button class="button secondary" id="assistant-cancel" type="button">Cancel</button>'
             : `<button class="button" type="submit" ${available ? "" : "disabled"}>Send</button>`}
@@ -1569,18 +1574,20 @@ function renderAssistantDock() {
   const body = document.querySelector("#chatqec-dock-body");
   if (!body) return;
   const assistant = state.assistant;
-  const { available, checking, state: serviceState, label: serviceLabel, detail: serviceDetail } = assistantServiceView();
+  const { service, available, checking, state: serviceState, label: serviceLabel, detail: serviceDetail } = assistantServiceView();
+  const directTools = available && service?.mode === "mcp-direct-tools";
+  const circuitPrompt = "Simulate this Stim circuit for 10 shots:\n\nR 0\nH 0\nM 0";
   const transcript = assistant.messages.length
     ? assistant.messages.map(assistantMessageHtml).join("")
     : `<div class="dock-assistant-start">
         <span class="empty-code hex" aria-hidden="true">QEC</span>
-        <h2>Keep the workflow in view.</h2>
-        <p>Ask ChatQEC about codes, decoders, noise, or fault tolerance without leaving this workspace.</p>
+        <h2>${directTools ? "Run a circuit without leaving the workflow." : "Keep the workflow in view."}</h2>
+        <p>${directTools ? "Paste explicit Stim or Tsim instructions for the local tools. Model-backed QEC questions are not configured here." : "Ask ChatQEC about codes, decoders, noise, or fault tolerance without leaving this workspace."}</p>
         <div class="dock-prompts">
-          ${[
+          ${(directTools ? [circuitPrompt] : [
             "How is the surface code decoded?",
             "What is required for a fault-tolerant logical gate?",
-          ].map(prompt => `<button type="button" data-dock-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
+          ]).map(prompt => `<button type="button" data-dock-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
         </div>
       </div>`;
   const pending = assistant.submitting && !assistant.messages.some(message => message.streaming)
@@ -1596,9 +1603,9 @@ function renderAssistantDock() {
     </div>
     <div class="dock-transcript" id="dock-assistant-transcript">${transcript}${pending}</div>
     <form class="dock-composer" id="dock-assistant-form">
-      <label for="dock-assistant-question">ASK CHATQEC</label>
+      <label for="dock-assistant-question">${directTools ? "CIRCUIT REQUEST" : "ASK CHATQEC"}</label>
       ${assistant.contextNotice ? `<p class="assistant-context-notice" role="status">${escapeHtml(assistant.contextNotice)}</p>` : ""}
-      <textarea id="dock-assistant-question" maxlength="8000" rows="3" aria-label="Question for contextual ChatQEC" placeholder="Ask a QEC question" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
+      <textarea id="dock-assistant-question" maxlength="8000" rows="3" aria-label="${directTools ? "Circuit request for contextual ChatQEC" : "Question for contextual ChatQEC"}" placeholder="${directTools ? "Paste Stim/Tsim instructions" : "Ask a QEC question"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
       <div>
         <button class="dock-clear" type="button" id="dock-assistant-clear">Clear</button>
         ${assistant.submitting
