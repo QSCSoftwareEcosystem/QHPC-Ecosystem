@@ -268,6 +268,86 @@ def test_deployment_profile_rejects_auto_provider_and_disabled_features(
         ChatQECQueryDeployment.from_path(path)
 
 
+def test_deployment_profile_accepts_text_only_openai_provider(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "corpus-manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "snapshot_digest": corpus().snapshot_digest,
+                "source_revision": PINNED_CHATQEC_REVISION,
+                "source_registry_digest": corpus().source_registry_digest,
+                "qdrant_snapshot_digest": corpus().qdrant_snapshot_digest,
+                "collection": corpus().collection,
+                "pages": corpus().pages,
+                "embedding": {"model": corpus().embedding_model, "dimensions": 768},
+                "reranker": {"model": corpus().reranker_model},
+                "sources": [
+                    {
+                        "source_id": "canonical:surface-code",
+                        "title": "Surface Code",
+                        "source_uri": "https://example.test/surface-code",
+                        "source_revision": "source-revision-1",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    config_directory = tmp_path / "upstream-config"
+    config_directory.mkdir()
+    config_directory.joinpath("config.yaml").write_text(
+        """\
+models:
+  provider: openai
+  openai:
+    synthesizer: demo-openai-model
+store:
+  qdrant_url: http://qdrant:6333
+  collection: chatqec_chunks
+mcp:
+  enabled: false
+wiki:
+  enabled: false
+""",
+        encoding="utf-8",
+    )
+    profile_path = tmp_path / "profile.json"
+    profile_path.write_text(
+        json.dumps(
+            {
+                "api_version": "qhpc/v1",
+                "kind": "ChatQECQueryDeployment",
+                "metadata": {"source_revision": PINNED_CHATQEC_REVISION},
+                "spec": {
+                    "provider": {
+                        "name": "openai",
+                        "model": "demo-openai-model",
+                        "credential_environment": "OPENAI_API_KEY",
+                    },
+                    "qdrant_url": "http://qdrant:6333",
+                    "upstream_config_directory": str(config_directory),
+                    "corpus_manifest": str(manifest_path),
+                    "features": {
+                        "mcp": False,
+                        "qappswiki": False,
+                        "web_fallback": False,
+                        "images": False,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    value = ChatQECQueryDeployment.from_path(profile_path)
+
+    assert value.provider == "openai"
+    assert value.model == "demo-openai-model"
+    assert value.credential_environment == "OPENAI_API_KEY"
+    assert value.readiness(environment={"OPENAI_API_KEY": "local-secret"})["model"] == "ready"
+
+
 def test_query_context_is_pinned_and_offline(tmp_path: Path) -> None:
     source = Path(__file__).resolve().parents[2] / "ChatQEC"
     if not source.is_dir():

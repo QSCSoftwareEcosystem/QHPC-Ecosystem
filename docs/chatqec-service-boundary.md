@@ -1,7 +1,7 @@
 # ChatQEC Service Boundary
 
 - Status: Accepted design baseline
-- Local implementation: Functional bundled canonical-corpus extractive fallback
+- Local implementation: Contained Stim/Tsim tools with a pinned source ledger and opt-in OpenAI explainer
 - Upstream query implementation: Container-only scaffold; deployment inputs pending
 - Accepted: 2026-07-24
 - Working source: [QSCSoftwareEcosystem/ChatQEC](https://github.com/QSCSoftwareEcosystem/ChatQEC)
@@ -9,7 +9,7 @@
 - Formal decision: [ADR 0008](adr/0008-chatqec-internal-service-boundary.md)
 - Service contract: [`integrations/chatqec/service.yaml`](../integrations/chatqec/service.yaml)
 - Client adapter: [`service_adapters.py`](../src/qhpc_ecosystem/service_adapters.py)
-- Development service: [`chatqec_service.py`](../src/qhpc_ecosystem/chatqec_service.py)
+- Local agent service: [`chatqec_agent_service.py`](../src/qhpc_ecosystem/chatqec_agent_service.py)
 - Upstream query adapter: [`chatqec_query_service.py`](../src/qhpc_ecosystem/chatqec_query_service.py)
 - Container recipe: [`containers/services/chatqec-query`](../containers/services/chatqec-query/)
 - QHPC gateway: [`assistant.py`](../src/qhpc_ecosystem/assistant.py)
@@ -39,20 +39,25 @@ implemented in QHPC. The adapter requires a deployment-supplied transport that
 applies the approved workload identity; it does not select or carry a provider
 credential.
 
-QHPC also implements a conforming loopback-only development server over the
-exact-revision canonical Markdown corpus owned by ChatQEC. It returns
-deterministic extractive answers or an explicit refusal, validates the same
-request and response contracts, attaches immutable source citations, accepts
-only a server-supplied bearer workload identity, disables tool execution, and
-retains no conversation state. `eqo local up` verifies and serves the licensed,
-checksum-pinned corpus bundled in the installed EQO wheel, so its first start
-requires no network access or source checkout. `eqo dev up` may still prepare a
-Git checkout for integration development. Both supervise the Assistant process
-independently from the QHPC API. This makes the local Workbench assistant
-functional without claiming that a generative model, Qdrant deployment, or
-production identity service has been approved. Its explicit mode is
-`canonical-corpus-extractive-fallback`; it is an offline degraded operation,
-not feature-equivalent ChatQEC.
+For `eqo local up`, QHPC implements a loopback-only contained ChatQEC agent.
+It accepts an explicitly supplied Stim/Tsim circuit, invokes the pinned tool in
+the unprivileged container, and returns the actual raw measurement output. It
+also performs deterministic lexical retrieval over the immutable canonical
+bundle and returns digest-pinned, page-and-line source-ledger citations. The
+agent validates the same request and response contracts, accepts only a
+server-supplied bearer workload identity, and retains no conversation state.
+Its explicit mode is `mcp-direct-tools`; it is not feature-equivalent to the
+upstream Qdrant/vector corpus-RAG application.
+
+The local agent may be started with an explicit OpenAI Responses model and a
+scoped API key. In that opt-in prototype, the model can answer a general QEC
+question or explain a local tool result using the same bounded source-ledger
+excerpts presented to the user. It has no Qdrant retrieval, embeddings,
+reranker, tool proposals, or authority to create simulation evidence. The API
+key is injected only into the agent container and is not stored in EQO state or
+passed to the API, Workbench, or workers. Without this opt-in model, a
+source-supported natural-language question receives a deterministic extractive
+answer; a question without sufficient local evidence is declined.
 
 The separate container-only query candidate uses the exact upstream ChatQEC
 Python pipeline, but only behind the project-owned HTTP/SSE adapter. Its
@@ -90,11 +95,12 @@ read-only Qdrant corpus   one approved model endpoint
 The browser does not call ChatQEC, Qdrant, or a model provider directly.
 Provider credentials never enter the browser or workflow definition.
 
-For local development, the lower two dependencies in this topology are
-replaced by a read-only lexical/extractive pass over ChatQEC's pinned canonical
-pages. Plain HTTP is allowed only on the loopback hop between the local QHPC
-API and local development service. A non-loopback service origin still
-requires HTTPS.
+For the default local direct-tool mode, the model and Qdrant dependencies are
+absent, while the immutable bundled source ledger remains available. With the
+opt-in OpenAI prototype, only the model dependency is added; retrieval remains
+the local deterministic ledger rather than Qdrant RAG. Plain HTTP is allowed
+only on the loopback hop between the local QHPC API and local development
+service. A non-loopback service origin still requires HTTPS.
 
 ## Initial Allowed Scope
 

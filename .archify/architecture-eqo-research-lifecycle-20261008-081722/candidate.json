@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EQO research lifecycle | Discover to reusable evidence",
+    "subtitle": "The abilities around a workflow—not only its execution path",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "output": ".archify/architecture-eqo-research-lifecycle-20261008-081722/eqo-research-lifecycle.html",
+    "repository": {
+      "url": "https://github.com/QSCSoftwareEcosystem/QHPC-Ecosystem",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "e4a1a1dc34c351c691d2e798a9eac01fa701e714"
+    }
+  },
+  "components": [
+    {
+      "id": "workbench",
+      "type": "frontend",
+      "label": "EQO Workbench",
+      "sublabel": "one browser workspace",
+      "tag": "primary user surface",
+      "pos": [30, 270],
+      "size": [148, 70],
+      "sources": [{ "path": "README.md", "line": 112, "end_line": 123, "label": "Workbench areas" }]
+    },
+    {
+      "id": "discovery",
+      "type": "frontend",
+      "label": "Discover",
+      "sublabel": "Tools + QAppsWiki knowledge",
+      "tag": "capabilities and context",
+      "pos": [230, 270],
+      "size": [165, 70],
+      "sources": [{ "path": "README.md", "line": 114, "end_line": 118, "label": "tools and knowledge" }]
+    },
+    {
+      "id": "composer",
+      "type": "frontend",
+      "label": "Compose",
+      "sublabel": "guided goal or typed graph",
+      "tag": "guided + advanced",
+      "pos": [465, 270],
+      "size": [165, 70],
+      "sources": [{ "path": "README.md", "line": 119, "end_line": 121, "label": "Compose modes" }]
+    },
+    {
+      "id": "contracts",
+      "type": "security",
+      "label": "Contracts + registry",
+      "sublabel": "types · targets · runtime identity",
+      "tag": "declared requirements",
+      "pos": [690, 100],
+      "size": [180, 70],
+      "sources": [{ "path": "README.md", "line": 95, "end_line": 108, "label": "admitted runtime policy" }]
+    },
+    {
+      "id": "workflow",
+      "type": "messagebus",
+      "label": "Published workflow",
+      "sublabel": "versioned plan + typed handoffs",
+      "tag": "validate before submit",
+      "pos": [700, 270],
+      "size": [175, 70],
+      "sources": [{ "path": "src/qhpc_ecosystem/api.py", "line": 787, "end_line": 804, "label": "workflow registration" }]
+    },
+    {
+      "id": "control_api",
+      "type": "backend",
+      "label": "EQO control API",
+      "sublabel": "submit · track · inspect",
+      "tag": "shared control plane",
+      "pos": [940, 270],
+      "size": [165, 70],
+      "sources": [{ "path": "src/qhpc_ecosystem/api.py", "line": 805, "end_line": 843, "label": "readiness and runs" }]
+    },
+    {
+      "id": "worker",
+      "type": "cloud",
+      "label": "Admitted worker",
+      "sublabel": "local or virtual-Slurm execution",
+      "tag": "target + runtime match",
+      "pos": [1175, 270],
+      "size": [180, 70],
+      "sources": [{ "path": "src/qhpc_ecosystem/engine.py", "line": 1748, "end_line": 1803, "label": "worker readiness" }]
+    },
+    {
+      "id": "artifacts",
+      "type": "database",
+      "label": "Artifacts + provenance",
+      "sublabel": "outputs, reports, checksums, lineage",
+      "tag": "inspect · download · render",
+      "pos": [1430, 270],
+      "size": [188, 70],
+      "sources": [{ "path": "src/qhpc_ecosystem/engine.py", "line": 1028, "end_line": 1069, "label": "artifact records" }]
+    },
+    {
+      "id": "automation",
+      "type": "backend",
+      "label": "CLI + Python",
+      "sublabel": "operate and automate",
+      "tag": "same API, explicit submission",
+      "pos": [935, 460],
+      "size": [175, 70],
+      "sources": [{ "path": "README.md", "line": 171, "end_line": 212, "label": "Python client" }]
+    },
+    {
+      "id": "assistant",
+      "type": "external",
+      "label": "ChatQEC assistant",
+      "sublabel": "optional QEC guidance",
+      "tag": "not required for a run",
+      "pos": [230, 460],
+      "size": [165, 70],
+      "sources": [{ "path": "README.md", "line": 118, "end_line": 120, "label": "assistant workspace" }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "EQO Local | shared research workspace",
+      "wraps": ["workbench", "discovery", "composer", "contracts", "workflow", "control_api", "worker", "artifacts", "automation", "assistant"],
+      "pad": 28
+    }
+  ],
+  "connections": [
+    { "id": "workbench-discovery", "from": "workbench", "to": "discovery", "label": "explore", "variant": "emphasis" },
+    { "id": "discovery-composer", "from": "discovery", "to": "composer", "label": "select", "variant": "emphasis" },
+    { "id": "composer-workflow", "from": "composer", "to": "workflow", "label": "compose", "variant": "emphasis" },
+    { "id": "contracts-workflow", "from": "contracts", "to": "workflow", "label": "validate contract", "variant": "security" },
+    { "id": "workflow-api", "from": "workflow", "to": "control_api", "label": "submit", "variant": "emphasis" },
+    { "id": "api-worker", "from": "control_api", "to": "worker", "label": "admit", "variant": "emphasis" },
+    { "id": "worker-artifacts", "from": "worker", "to": "artifacts", "label": "publish", "variant": "emphasis" },
+    { "id": "automation-api", "from": "automation", "to": "control_api", "label": "operate / automate", "variant": "dashed" },
+    { "id": "assistant-discovery", "from": "assistant", "to": "discovery", "label": "optional guidance", "variant": "dashed" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "EQO / QSC visual identity",
+      "items": [
+        "Quark Red #AA1E2E · Force Blue #131E29 · Wave Gray #CFD2D3",
+        "The Workbench reserves red for identity and genuine attention"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "What this adds to the execution diagram",
+      "items": [
+        "Discovery, Composer modes, contract validation, optional assistance, and automation",
+        "The workflow is one stage in a larger, evidence-preserving research lifecycle"
+      ]
+    }
+  ]
+}

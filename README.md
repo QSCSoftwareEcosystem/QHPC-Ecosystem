@@ -321,9 +321,12 @@ onboarding state, and production gates are in
 - **OpenQSE** is a pinned glossary and architecture resource, not a tool or
   service. The separately cataloged QFw–SLURM Cluster remains a planned,
   non-executable development-cluster reference.
-- **ChatQEC** is currently a supervised, citation-backed canonical-corpus
-  extractive fallback. It is not the upstream model-backed research assistant.
-  See [the service boundary](docs/chatqec-service-boundary.md).
+- **ChatQEC** runs explicit Stim/Tsim circuits in a contained local service.
+  It returns citations from a pinned local canonical corpus and can optionally
+  use a user-provided OpenAI Responses model with those same source excerpts to
+  explain a verified local result or answer general QEC questions. This local
+  source ledger is not the upstream Qdrant corpus-RAG research assistant. See
+  [the service boundary](docs/chatqec-service-boundary.md).
 - **FTQC–IQM** has typed preparation and simulated acceptance paths. Real QPU
   submission remains a separately credentialed, site-admitted stage.
 - **QFlow/QIRIS** records are visible for discovery and knowledge, but publish

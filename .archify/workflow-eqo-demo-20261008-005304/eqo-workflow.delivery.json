@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6d82aead-b9e6-47c4-8253-92c1292bdede",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/home/vlk/Documents/QSCSoftwareThrust/QHPC-Ecosystem/.archify/workflow-eqo-demo-20261008-005304/candidate.json",
+  "output": "/home/vlk/Documents/QSCSoftwareThrust/QHPC-Ecosystem/.archify/workflow-eqo-demo-20261008-005304/eqo-workflow.html",
+  "specification": {
+    "sha256": "c635990f491f7678b34f042ef46daf2914ed70c99a5f222e2259dd1dbbab96e9",
+    "bytes": 5564
+  },
+  "artifact": {
+    "sha256": "de069efc39c30f6fc5b797359e44b08511c5c59ec84ca9652d8ae112a48040e5",
+    "bytes": 761636
+  }
+}

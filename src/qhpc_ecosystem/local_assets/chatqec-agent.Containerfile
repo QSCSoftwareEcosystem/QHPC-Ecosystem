@@ -1,5 +1,7 @@
 # The ChatQEC agent is a service container, never a host subprocess. It
-# combines the admitted Tsim tools runtime with the EQO service adapter.
+# combines the admitted Tsim tools runtime with the EQO service adapter, a
+# pinned canonical source ledger, and an optional OpenAI explainer configured
+# only at runtime.
 ARG CHATQEC_TSIM_IMAGE=qhpc/chatqec-tsim:dd19a85-linux-amd64
 
 FROM ${CHATQEC_TSIM_IMAGE}
@@ -21,7 +23,7 @@ USER 65532:65532
 EXPOSE 8096
 
 LABEL org.opencontainers.image.title="EQO ChatQEC contained circuit tools" \
-      org.opencontainers.image.description="Pinned ChatQEC Stim and Tsim circuit-tool runtime behind the EQO service contract" \
+      org.opencontainers.image.description="Pinned ChatQEC Stim and Tsim tools with a canonical source ledger and optional OpenAI explainer" \
       org.opencontainers.image.source="https://github.com/QSCSoftwareEcosystem/ChatQEC" \
       org.opencontainers.image.revision="a1ddc2e4916b1f4152fba4c94c9c7512eea0d977" \
       org.opencontainers.image.licenses="MIT AND Apache-2.0" \

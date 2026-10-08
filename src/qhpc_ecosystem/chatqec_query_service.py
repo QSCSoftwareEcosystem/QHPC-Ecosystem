@@ -227,7 +227,7 @@ class ChatQECQueryDeployment:
         }:
             raise ChatQECQueryServiceError("ChatQEC provider selection is invalid")
         provider_name = provider["name"]
-        if provider_name not in {"unconfigured", "anthropic", "gemini", "huggingface"}:
+        if provider_name not in {"unconfigured", "anthropic", "gemini", "huggingface", "openai"}:
             raise ChatQECQueryServiceError("ChatQEC provider must select one supported provider")
         model = provider["model"]
         credential_environment = provider["credential_environment"]
@@ -235,6 +235,7 @@ class ChatQECQueryDeployment:
             "anthropic": "ANTHROPIC_API_KEY",
             "gemini": "GEMINI_API_KEY",
             "huggingface": "HF_TOKEN",
+            "openai": "OPENAI_API_KEY",
         }
         if provider_name == "unconfigured":
             if model is not None or credential_environment is not None:
@@ -325,7 +326,12 @@ class ChatQECQueryDeployment:
         if self.provider == "anthropic":
             selected_synthesizer = models.get("synthesizer")
         else:
-            provider_models = models.get("gemini" if self.provider == "gemini" else "hf")
+            provider_key = {
+                "gemini": "gemini",
+                "huggingface": "hf",
+                "openai": "openai",
+            }[self.provider]
+            provider_models = models.get(provider_key)
             selected_synthesizer = (
                 provider_models.get("synthesizer")
                 if isinstance(provider_models, Mapping)

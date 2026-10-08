@@ -356,14 +356,44 @@ approved storage and audit design.
 
 ## Current boundary
 
-The default Assistant is the **ChatQEC canonical-corpus extractive fallback**.
-It uses the Apache-2.0 canonical corpus bundled in the installed wheel; it is
-not the upstream model-backed RAG application. EQO verifies its source
-revision, license checksum, page count, and corpus digest before starting the
-loopback service, so first start and later restarts require no network access
-or source checkout. Developers may still pass `--assistant-source-checkout` to
-test an exact-revision Git checkout. Use `--no-assistant` when validating only
-the control plane.
+The default Assistant is the contained **ChatQEC direct-circuit service**. It
+runs an explicitly supplied Stim or Tsim circuit in the unprivileged local
+container and returns the actual raw measurement sample. It also searches the
+immutable bundled canonical corpus, returns pinned page-and-line citations, and
+can give a deterministic extractive answer when the local evidence is
+sufficient. It is not the upstream vector-backed corpus-RAG application.
+
+### Optional OpenAI ChatQEC prototype
+
+For a local demo or prototype, ChatQEC can use an OpenAI Responses model for
+general QEC explanations and to explain a result from a bounded local circuit
+tool. The circuit tool still runs locally first; the model is told the result
+and receives the same bounded local source-ledger excerpts returned to the
+user. The model does not create simulation evidence. This mode has no Qdrant
+retrieval, embeddings, reranker, tool proposals, or background model access.
+
+The Workbench calls the response percentage **evidence coverage**. It measures
+how much retrieved pinned source material supports the response (and, for a
+circuit request, whether an admitted local tool executed); it is not a
+statistical confidence claim about a model answer.
+
+Start it from the same terminal that launches EQO Local:
+
+```bash
+eqo local up \
+  --chatqec-openai-model gpt-5.6-terra \
+  --prompt-for-openai-api-key
+```
+
+The key prompt does not echo input. The key is not placed in command-line
+arguments, saved in EQO configuration/state, or passed to the API, Workbench,
+or workers; it is scoped to the ChatQEC container. The container needs outbound
+HTTPS access to the OpenAI Responses API while answers are being generated.
+`eqo local down` stops the service and removes that in-memory configuration.
+
+Developers may still pass `--assistant-source-checkout` to test an
+exact-revision Git checkout. Use `--no-assistant` when validating only the
+control plane.
 
 Publication still requires project approval of the software inventory and
 successful clean-host CI. Scientific runtimes remain separate, optional

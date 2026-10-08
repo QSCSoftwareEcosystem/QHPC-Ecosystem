@@ -91,6 +91,26 @@ def test_iqm_token_prompt_is_no_echo_and_rejects_an_empty_value(monkeypatch) -> 
         raise AssertionError("the token prompt accepted an empty value")
 
 
+def test_openai_key_prompt_is_no_echo_and_rejects_an_empty_value(monkeypatch) -> None:
+    prompts: list[str] = []
+    monkeypatch.setattr(
+        cli.getpass,
+        "getpass",
+        lambda prompt: prompts.append(prompt) or "chatqec-only-key",
+    )
+
+    assert cli._prompt_openai_api_key() == "chatqec-only-key"
+    assert prompts == ["Enter OPENAI_API_KEY for the local ChatQEC service: "]
+
+    monkeypatch.setattr(cli.getpass, "getpass", lambda _prompt: "")
+    try:
+        cli._prompt_openai_api_key()
+    except cli.ContractError as error:
+        assert "required" in str(error)
+    else:  # pragma: no cover - protects the security boundary assertion above
+        raise AssertionError("the OpenAI key prompt accepted an empty value")
+
+
 def test_iqm_simulation_worker_is_credential_free(tmp_path: Path, capsys) -> None:
     assert invoke(
         "iqm-simulation-worker",

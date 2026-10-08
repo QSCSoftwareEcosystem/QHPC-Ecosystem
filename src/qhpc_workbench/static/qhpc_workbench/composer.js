@@ -17307,6 +17307,30 @@ var zp = "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n\nqreg q[2];\ncreg c[2];\n\nh 
 		}]
 	},
 	{
+		workflowId: "ftqc-iqm-bell-execution",
+		code: "F4",
+		shortName: "Route and execute a two-qubit Bell circuit",
+		section: "gated",
+		kind: "Hardware execution",
+		toolChain: [
+			"FTQC",
+			"IQM route",
+			"secured worker"
+		],
+		inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
+		inputFileLabel: "Choose .qasm",
+		inputPlaceholder: "OPENQASM 3.0;",
+		examples: [{
+			name: "ftqc-bell.qasm",
+			label: "Load Bell input",
+			content: Hp
+		}],
+		hardwareNotice: {
+			title: "Hardware execution",
+			detail: "This published workflow sends the loaded Bell circuit to the configured IQM device for 512 shots. Select Run workflow only when you intend to submit a QPU job."
+		}
+	},
+	{
 		workflowId: "ct-hw-qasm-analysis",
 		code: "03",
 		shortName: "Circuit transformation and metrics",
@@ -18687,6 +18711,14 @@ function pm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 								/* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "2" }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("b", { children: "Create circuit" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "OpenQEvo and Qiskit apply the published Trotter settings." })] })] }),
 								/* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "3" }), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("b", { children: "Inspect result" }), /* @__PURE__ */ (0, x.jsx)("small", { children: "Open the run to view the circuit and synthesis report." })] })] })
 							] })]
+						}),
+						v.hardwareNotice && /* @__PURE__ */ (0, x.jsxs)("aside", {
+							className: "composer-guided-hardware-notice",
+							role: "note",
+							children: [/* @__PURE__ */ (0, x.jsx)(bf, {
+								size: 16,
+								"aria-hidden": "true"
+							}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: v.hardwareNotice.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: v.hardwareNotice.detail })] })]
 						}),
 						/* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-guided-section",

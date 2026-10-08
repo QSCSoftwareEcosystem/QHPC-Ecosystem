@@ -45,6 +45,8 @@ class DevStackConfig:
     qappswiki_graph: str = ""
     cluster_checkout: str = ""
     chatqec_container_image: str = ""
+    chatqec_openai_model: str = ""
+    chatqec_openai_api_key: str = ""
     update_state_root: str = ".qhpc/live/updates"
     workspace_root: str = "."
     start_local_worker: bool = True
@@ -82,6 +84,12 @@ def build_service_specs(
     *,
     python_executable: str = sys.executable,
 ) -> tuple[ServiceSpec, ...]:
+    if bool(config.chatqec_openai_model) != bool(config.chatqec_openai_api_key):
+        raise RuntimeError(
+            "the local OpenAI ChatQEC mode requires both a model and an API key"
+        )
+    if config.chatqec_openai_model and apptainer_requested():
+        raise RuntimeError("the local OpenAI ChatQEC mode requires Docker or Podman")
     base = (
         python_executable,
         "-m",
@@ -156,41 +164,55 @@ def build_service_specs(
                 raise RuntimeError(
                     "EQO Local ChatQEC agent requires Docker or Podman"
                 ) from error
+            chatqec_command = [
+                container_engine,
+                "run",
+                "--rm",
+                "--name",
+                f"eqo-chatqec-{config.chatqec_port}",
+                "--platform",
+                "linux/amd64",
+                "--read-only",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges",
+                "--tmpfs",
+                "/tmp:rw,noexec,nosuid,size=128m",
+                "--publish",
+                f"127.0.0.1:{config.chatqec_port}:8096",
+                "--env",
+                "QHPC_CHATQEC_IDENTITY_TOKEN",
+                "--env",
+                "QHPC_CHATQEC_LISTEN_HOST=0.0.0.0",
+                "--env",
+                "QHPC_CHATQEC_LISTEN_PORT=8096",
+            ]
+            chatqec_environment: tuple[tuple[str, str], ...] = (
+                ("QHPC_CHATQEC_IDENTITY_TOKEN", config.chatqec_identity_token),
+            )
+            chatqec_secrets: tuple[str, ...] = ("QHPC_CHATQEC_IDENTITY_TOKEN",)
+            if config.chatqec_openai_model:
+                chatqec_command.extend(
+                    (
+                        "--env",
+                        "QHPC_CHATQEC_OPENAI_MODEL",
+                        "--env",
+                        "OPENAI_API_KEY",
+                    )
+                )
+                chatqec_environment += (
+                    ("QHPC_CHATQEC_OPENAI_MODEL", config.chatqec_openai_model),
+                    ("OPENAI_API_KEY", config.chatqec_openai_api_key),
+                )
+                chatqec_secrets += ("OPENAI_API_KEY",)
+            chatqec_command.append(config.chatqec_container_image)
             services.append(
                 ServiceSpec(
                     "chatqec",
-                    (
-                        container_engine,
-                        "run",
-                        "--rm",
-                        "--name",
-                        f"eqo-chatqec-{config.chatqec_port}",
-                        "--platform",
-                        "linux/amd64",
-                        "--read-only",
-                        "--cap-drop",
-                        "ALL",
-                        "--security-opt",
-                        "no-new-privileges",
-                        "--tmpfs",
-                        "/tmp:rw,noexec,nosuid,size=128m",
-                        "--publish",
-                        f"127.0.0.1:{config.chatqec_port}:8096",
-                        "--env",
-                        "QHPC_CHATQEC_IDENTITY_TOKEN",
-                        "--env",
-                        "QHPC_CHATQEC_LISTEN_HOST=0.0.0.0",
-                        "--env",
-                        "QHPC_CHATQEC_LISTEN_PORT=8096",
-                        config.chatqec_container_image,
-                    ),
-                    (
-                        (
-                            "QHPC_CHATQEC_IDENTITY_TOKEN",
-                            config.chatqec_identity_token,
-                        ),
-                    ),
-                    ("QHPC_CHATQEC_IDENTITY_TOKEN",),
+                    tuple(chatqec_command),
+                    chatqec_environment,
+                    chatqec_secrets,
                     (
                         container_engine,
                         "rm",
@@ -391,6 +413,9 @@ class DevStackSupervisor:
         self._cleanup(service)
         environment = os.environ.copy()
         environment.pop("QHPC_CHATQEC_IDENTITY_TOKEN", None)
+        environment.pop("QHPC_CHATQEC_OPENAI_MODEL", None)
+        environment.pop("OPENAI_API_KEY", None)
+        environment.pop("EQO_LOCAL_OPENAI_API_KEY", None)
         environment.pop("QHPC_DATABUCKET_ACCESS_KEY_ID", None)
         environment.pop("QHPC_DATABUCKET_SECRET_ACCESS_KEY", None)
         environment.pop("IQM_BASE_URL", None)

@@ -1,0 +1,23 @@
+{
+  "api_version": "qhpc/v1",
+  "kind": "ChatQECQueryDeployment",
+  "metadata": {
+    "source_revision": "REPLACE_WITH_NEXT_PINNED_CHATQEC_REVISION"
+  },
+  "spec": {
+    "provider": {
+      "name": "openai",
+      "model": "YOUR_OPENAI_MODEL_ID",
+      "credential_environment": "OPENAI_API_KEY"
+    },
+    "qdrant_url": "http://qdrant:6333",
+    "upstream_config_directory": "/absolute/path/to/chatqec-openai-config",
+    "corpus_manifest": "/absolute/path/to/chatqec-corpus-manifest.json",
+    "features": {
+      "mcp": false,
+      "qappswiki": false,
+      "web_fallback": false,
+      "images": false
+    }
+  }
+}

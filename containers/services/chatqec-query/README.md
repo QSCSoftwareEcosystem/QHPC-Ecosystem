@@ -59,10 +59,47 @@ the deployment-selected model endpoint.
 
 The profile example is deliberately degraded: no provider, corpus, Qdrant, or
 credentials are selected. A ready profile must select exactly one of
-`anthropic`, `gemini`, or `huggingface`; name its standard credential
+`anthropic`, `gemini`, `huggingface`, or `openai`; name its standard credential
 environment; point at the immutable corpus manifest; and agree with the
 mounted upstream `config.yaml`. The profile and manifest contain no secrets.
 
+### OpenAI prototype configuration
+
+The OpenAI-backed path uses the Responses API for text-only RAG answers. Start
+from a copy of ChatQEC's full upstream configuration, never from a sparse
+fragment, and set the provider-specific values below using the exact model ID
+available to your account:
+
+```yaml
+models:
+  provider: openai
+  openai:
+    classifier: YOUR_OPENAI_MODEL_ID
+    rewriter: YOUR_OPENAI_MODEL_ID
+    synthesizer: YOUR_OPENAI_MODEL_ID
+mcp:
+  enabled: false
+wiki:
+  enabled: false
+```
+
+The matching EQO deployment profile selects `"name": "openai"`, names the
+same synthesizer model, and uses `"credential_environment": "OPENAI_API_KEY"`.
+Keep that key only in the local runtime environment; do not place it in the
+profile, configuration, notebook, shell history, or Git repository.
+
+Copy [`deployment.openai.template.json`](deployment.openai.template.json) to a
+private, untracked location and replace every all-caps placeholder. The Qdrant
+URL, config directory, corpus manifest, source revision, and model must agree
+with one another before the service will become ready.
+
+The checked-in query image is pinned to an immutable ChatQEC revision. A source
+commit that adds the OpenAI adapter must be committed and then deliberately
+selected as the next pinned revision before an EQO query image can be built
+from it. A deployment profile must not point at a dirty or mismatched checkout.
+
 Until those project/institutional inputs are accepted, keep using the clearly
-labeled **ChatQEC canonical-corpus extractive fallback** for offline EQO Local
-verification. Do not replace it with an ungoverned native ChatQEC process.
+labeled **contained ChatQEC direct-circuit service** for EQO Local
+verification. Its optional OpenAI explainer is non-RAG and does not replace the
+governed query deployment. Do not replace it with an ungoverned native ChatQEC
+process.

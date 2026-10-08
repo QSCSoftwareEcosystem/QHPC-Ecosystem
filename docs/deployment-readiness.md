@@ -132,10 +132,10 @@ than an operation image.
 - Separately deployable Django Workbench with CSRF-protected fixed-origin API
   proxy, revisioned workflow drafts, typed React Flow composition, immutable
   publication, run submission, and checksum-verified artifact retrieval.
-- A separately supervised, workload-authenticated **ChatQEC canonical-corpus
-  extractive fallback** over the pinned canonical corpus, with a server-side
-  QHPC gateway, strict browser request allowlist, cited answers or explicit
-  refusal, and no tool execution or retained conversation state. It is not a
+- A separately supervised, workload-authenticated **ChatQEC direct-circuit
+  service** with pinned contained Stim/Tsim tools, a server-side QHPC gateway,
+  strict browser request allowlist, and no retained conversation state. An
+  optional local OpenAI explainer is non-RAG and does not replace the governed
   model-backed ChatQEC deployment.
 - Verified local OpenQEvo and QASMTrans-to-STABSim vertical slices.
 

@@ -1386,14 +1386,14 @@ function assistantMessageHtml(message) {
       ? `${escapeHtml(message.provider)} / ${escapeHtml(message.model)}`
       : "",
     Number.isFinite(confidence)
-      ? `${Math.round(confidence * 100)}% confidence`
+      ? `${Math.round(confidence * 100)}% evidence coverage`
       : "",
     Number.isFinite(totalLatency)
       ? `${totalLatency.toFixed(totalLatency < 10 ? 1 : 0)} ms`
       : "",
     message.citations?.length
-      ? `${message.citations.length} cited source${message.citations.length === 1 ? "" : "s"}`
-      : "No cited source",
+      ? `${message.citations.length} source-ledger entr${message.citations.length === 1 ? "y" : "ies"}`
+      : "No source evidence retrieved",
     message.tool_calls?.length
       ? `Executed: ${message.tool_calls.map(call => call.name).join(", ")}`
       : "",
@@ -1438,6 +1438,8 @@ function assistantServiceView() {
   const fallback = service?.mode === "canonical-corpus-extractive-fallback"
     || service?.mode === "canonical-extractive-development";
   const directTools = service?.mode === "mcp-direct-tools";
+  const sourceLedger = service?.capabilities?.source_ledger === true;
+  const modelRag = sourceLedger && service?.capabilities?.model_rag === true;
   const missing = Object.entries(service?.readiness || {})
     .filter(([, value]) => !["ready", "disabled"].includes(value))
     .map(([name]) => name);
@@ -1453,8 +1455,10 @@ function assistantServiceView() {
         ? fallback
           ? `${service.pages} canonical pages · deterministic extractive fallback`
           : directTools
-            ? "MCP circuit tools are ready in the ChatQEC container · model-backed RAG needs provider and corpus configuration"
-          : `${service.pages} governed corpus pages · source ${String(service.source_revision).slice(0, 12)}`
+            ? sourceLedger
+              ? `${service.pages} pinned sources · ${modelRag ? "model + tools ready" : "sources + tools ready"}`
+              : "MCP circuit tools are ready in the ChatQEC container · source retrieval is not configured"
+            : `${service.pages} governed corpus pages · source ${String(service.source_revision).slice(0, 12)}`
         : missing.length
           ? `Full upstream RAG is awaiting: ${missing.join(", ")}`
         : service?.error || (service?.status === "unconfigured"
@@ -1467,20 +1471,34 @@ function renderAssistant() {
   const assistant = state.assistant;
   const { service, available, checking, state: serviceState, label: serviceLabel, detail: serviceDetail } = assistantServiceView();
   const directTools = available && service?.mode === "mcp-direct-tools";
+  const sourceLedger = available && service?.capabilities?.source_ledger === true;
+  const modelRag = sourceLedger && service?.capabilities?.model_rag === true;
   const circuitPrompt = "Simulate this Stim circuit for 10 shots:\n\nR 0\nH 0\nM 0";
+  const questionPrompts = [
+    "How is the surface code decoded?",
+    "Compare minimum-weight perfect matching and union-find decoders.",
+    "What is required for a fault-tolerant logical gate?",
+  ];
+  const suggestedPrompts = directTools
+    ? [...questionPrompts, circuitPrompt]
+    : questionPrompts;
+  const assistantTitle = directTools && sourceLedger
+    ? "QEC research and circuit assistant"
+    : directTools ? "QEC circuit assistant" : "QEC research assistant";
+  const assistantDescription = directTools && sourceLedger
+    ? `Cited answers from ${service.pages} pinned QEC pages; explicit Stim and Tsim circuits execute in the contained boundary.`
+    : directTools
+      ? "Run explicit Stim or Tsim circuits through the local ChatQEC tool boundary"
+      : "Cited answers through the governed ChatQEC service boundary";
   const citations = assistantCitations();
   const transcript = assistant.messages.length
     ? assistant.messages.map(assistantMessageHtml).join("")
     : `<div class="assistant-start">
         <span class="empty-code" aria-hidden="true">QEC</span>
-        <h2>${directTools ? "Run a QEC circuit" : "Ask a QEC question"}</h2>
-        ${directTools ? "<p>This local profile runs explicit Stim or Tsim circuit instructions. A model-backed research assistant is not configured.</p>" : ""}
+        <h2>${directTools && sourceLedger ? "Ask a QEC question or run a circuit" : directTools ? "Run a QEC circuit" : "Ask a QEC question"}</h2>
+        ${sourceLedger ? `<p>Answers are supported by the ${service.pages} pinned canonical QEC pages. Circuit execution is separately marked when it occurred.</p>` : ""}
         <div class="assistant-prompts">
-          ${(directTools ? [circuitPrompt] : [
-            "How is the surface code decoded?",
-            "Compare minimum-weight perfect matching and union-find decoders.",
-            "What is required for a fault-tolerant logical gate?",
-          ]).map(prompt => `<button type="button" class="assistant-prompt" data-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
+          ${suggestedPrompts.map(prompt => `<button type="button" class="assistant-prompt" data-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
         </div>
       </div>`;
   const pending = assistant.submitting && !assistant.messages.some(message => message.streaming)
@@ -1491,7 +1509,7 @@ function renderAssistant() {
     : "";
   const citationList = citations.length
     ? `<ol>${citations.map(assistantCitationHtml).join("")}</ol>`
-    : `<p class="assistant-ledger-empty">Cited sources will appear with each answer.</p>`;
+    : `<p class="assistant-ledger-empty">Source evidence will appear here when the pinned corpus supports an answer.</p>`;
   const mode = available ? service.mode : "unavailable";
   const toolExecution = available
     ? service.tool_execution === false ? "disabled" : "not reported"
@@ -1502,21 +1520,19 @@ function renderAssistant() {
     : "";
 
   workspace.innerHTML = sectionHeader(
-    directTools ? "QEC circuit assistant" : "QEC research assistant",
-    directTools
-      ? "Run explicit Stim or Tsim circuits through the local ChatQEC tool boundary"
-      : available && service?.mode === "canonical-corpus-extractive-fallback"
+    assistantTitle,
+    available && service?.mode === "canonical-corpus-extractive-fallback"
       ? "Offline deterministic answers from the ChatQEC canonical-corpus extractive fallback"
-      : "Cited answers through the governed ChatQEC service boundary",
+      : assistantDescription,
     `<div class="assistant-service-state">${badge(serviceState, serviceLabel)}<span>${escapeHtml(serviceDetail)}</span></div>`,
   ) + `<div class="assistant-layout">
     <section class="assistant-dialog" aria-label="ChatQEC conversation">
       <div class="assistant-transcript" id="assistant-transcript">${transcript}${pending}</div>
       <form class="assistant-composer" id="assistant-form">
-        <label for="assistant-question">${directTools ? "CIRCUIT REQUEST" : "QUESTION"}</label>
+        <label for="assistant-question">${directTools && sourceLedger ? "QUESTION OR CIRCUIT REQUEST" : directTools ? "CIRCUIT REQUEST" : "QUESTION"}</label>
         ${contextNotice}
         <div>
-          <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="${directTools ? "Circuit request for ChatQEC" : "Question for ChatQEC"}" placeholder="${directTools ? "Paste Stim/Tsim instructions, e.g. H 0 then M 0" : "Ask about codes, decoders, noise, or fault tolerance"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
+          <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="${directTools && sourceLedger ? "Question or circuit request for ChatQEC" : directTools ? "Circuit request for ChatQEC" : "Question for ChatQEC"}" placeholder="${directTools && sourceLedger ? "Ask about QEC, or paste explicit Stim/Tsim instructions" : directTools ? "Paste Stim/Tsim instructions, e.g. H 0 then M 0" : "Ask about codes, decoders, noise, or fault tolerance"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
           ${assistant.submitting
             ? '<button class="button secondary" id="assistant-cancel" type="button">Cancel</button>'
             : `<button class="button" type="submit" ${available ? "" : "disabled"}>Send</button>`}
@@ -1525,13 +1541,15 @@ function renderAssistant() {
     </section>
     <aside class="assistant-ledger" aria-label="ChatQEC sources and service details">
       <header>
-        <div><p class="panel-label">SOURCE LEDGER</p><strong>${citations.length} cited source${citations.length === 1 ? "" : "s"}</strong></div>
+        <div><p class="panel-label">PINNED SOURCE LEDGER</p><strong>${citations.length} source${citations.length === 1 ? "" : "s"} retrieved</strong></div>
         <button class="button secondary" type="button" id="assistant-clear" ${assistant.submitting ? "disabled" : ""}>Clear</button>
       </header>
       ${citationList}
+      <p class="assistant-ledger-note">Citations point to the pinned ChatQEC corpus. Evidence coverage measures retrieved support; it is not a model-correctness probability.</p>
       <dl>
         <dt>Mode</dt><dd>${escapeHtml(mode)}</dd>
         <dt>Tools</dt><dd>${escapeHtml(toolExecution)}</dd>
+        <dt>Source ledger</dt><dd>${sourceLedger ? "ready" : "not configured"}</dd>
         <dt>Corpus</dt><dd>${escapeHtml(corpus)}</dd>
       </dl>
     </aside>
@@ -1576,18 +1594,22 @@ function renderAssistantDock() {
   const assistant = state.assistant;
   const { service, available, checking, state: serviceState, label: serviceLabel, detail: serviceDetail } = assistantServiceView();
   const directTools = available && service?.mode === "mcp-direct-tools";
+  const sourceLedger = available && service?.capabilities?.source_ledger === true;
   const circuitPrompt = "Simulate this Stim circuit for 10 shots:\n\nR 0\nH 0\nM 0";
+  const dockPrompts = directTools && sourceLedger
+    ? ["How is the surface code decoded?", "What is required for a fault-tolerant logical gate?", circuitPrompt]
+    : directTools ? [circuitPrompt] : [
+      "How is the surface code decoded?",
+      "What is required for a fault-tolerant logical gate?",
+    ];
   const transcript = assistant.messages.length
     ? assistant.messages.map(assistantMessageHtml).join("")
     : `<div class="dock-assistant-start">
         <span class="empty-code hex" aria-hidden="true">QEC</span>
-        <h2>${directTools ? "Run a circuit without leaving the workflow." : "Keep the workflow in view."}</h2>
-        <p>${directTools ? "Paste explicit Stim or Tsim instructions for the local tools. Model-backed QEC questions are not configured here." : "Ask ChatQEC about codes, decoders, noise, or fault tolerance without leaving this workspace."}</p>
+        <h2>${directTools && sourceLedger ? "Research QEC or run a circuit without leaving the workflow." : directTools ? "Run a circuit without leaving the workflow." : "Keep the workflow in view."}</h2>
+        <p>${directTools && sourceLedger ? "Search the pinned canonical source ledger, or paste explicit Stim/Tsim instructions for contained execution." : directTools ? "Paste explicit Stim or Tsim instructions for the local tools." : "Ask ChatQEC about codes, decoders, noise, or fault tolerance without leaving this workspace."}</p>
         <div class="dock-prompts">
-          ${(directTools ? [circuitPrompt] : [
-            "How is the surface code decoded?",
-            "What is required for a fault-tolerant logical gate?",
-          ]).map(prompt => `<button type="button" data-dock-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
+          ${dockPrompts.map(prompt => `<button type="button" data-dock-assistant-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
         </div>
       </div>`;
   const pending = assistant.submitting && !assistant.messages.some(message => message.streaming)
@@ -1603,9 +1625,9 @@ function renderAssistantDock() {
     </div>
     <div class="dock-transcript" id="dock-assistant-transcript">${transcript}${pending}</div>
     <form class="dock-composer" id="dock-assistant-form">
-      <label for="dock-assistant-question">${directTools ? "CIRCUIT REQUEST" : "ASK CHATQEC"}</label>
+      <label for="dock-assistant-question">${directTools && sourceLedger ? "ASK OR RUN" : directTools ? "CIRCUIT REQUEST" : "ASK CHATQEC"}</label>
       ${assistant.contextNotice ? `<p class="assistant-context-notice" role="status">${escapeHtml(assistant.contextNotice)}</p>` : ""}
-      <textarea id="dock-assistant-question" maxlength="8000" rows="3" aria-label="${directTools ? "Circuit request for contextual ChatQEC" : "Question for contextual ChatQEC"}" placeholder="${directTools ? "Paste Stim/Tsim instructions" : "Ask a QEC question"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
+      <textarea id="dock-assistant-question" maxlength="8000" rows="3" aria-label="${directTools && sourceLedger ? "Question or circuit request for contextual ChatQEC" : directTools ? "Circuit request for contextual ChatQEC" : "Question for contextual ChatQEC"}" placeholder="${directTools && sourceLedger ? "Ask about QEC or paste Stim/Tsim instructions" : directTools ? "Paste Stim/Tsim instructions" : "Ask a QEC question"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
       <div>
         <button class="dock-clear" type="button" id="dock-assistant-clear">Clear</button>
         ${assistant.submitting

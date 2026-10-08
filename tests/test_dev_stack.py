@@ -252,6 +252,53 @@ def test_containerized_chatqec_has_a_narrow_named_container_cleanup(monkeypatch)
     )
 
 
+def test_containerized_chatqec_scopes_openai_configuration_to_the_agent(monkeypatch) -> None:
+    monkeypatch.setattr("qhpc_ecosystem.dev_stack.find_oci_builder", lambda: "docker")
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "chatqec_container_image": "qhpc/chatqec-agent:test",
+            "chatqec_openai_model": "gpt-5.6-terra",
+            "chatqec_openai_api_key": "chatqec-only-key",
+        }
+    )
+    services = build_service_specs(value)
+    chatqec = next(service for service in services if service.name == "chatqec")
+
+    assert "QHPC_CHATQEC_OPENAI_MODEL" in chatqec.command
+    assert "OPENAI_API_KEY" in chatqec.command
+    assert ("QHPC_CHATQEC_OPENAI_MODEL", "gpt-5.6-terra") in chatqec.environment
+    assert ("OPENAI_API_KEY", "chatqec-only-key") in chatqec.environment
+    assert "OPENAI_API_KEY" in chatqec.secret_environment_names
+    assert all(
+        ("OPENAI_API_KEY", "chatqec-only-key") not in service.environment
+        for service in services
+        if service is not chatqec
+    )
+
+    created: list[FakeProcess] = []
+
+    def factory(command, **kwargs):
+        process = FakeProcess(command, **kwargs)
+        created.append(process)
+        return process
+
+    monkeypatch.setenv("OPENAI_API_KEY", "parent-key-must-not-leak")
+    supervisor = DevStackSupervisor(services, process_factory=factory)
+    supervisor.start_api()
+    supervisor.start_workers()
+    chatqec_process = next(
+        process for process in created if process.command == chatqec.command
+    )
+    assert chatqec_process.environment["OPENAI_API_KEY"] == "chatqec-only-key"
+    assert all(
+        "OPENAI_API_KEY" not in process.environment
+        for process in created
+        if process is not chatqec_process
+    )
+    supervisor.stop()
+
+
 class FakeProcess:
     next_pid = 1000
 

@@ -250,6 +250,8 @@ class LocalStackConfig:
     iqm_endpoint: str | None = None
     iqm_device_alias: str | None = None
     iqm_token: str = ""
+    chatqec_openai_model: str | None = None
+    chatqec_openai_api_key: str = ""
     ftqc_source_checkout: str | None = None
     ftqc_runtime_manifest: str | None = None
     ftqc_dependency_cache: str | None = None
@@ -302,6 +304,21 @@ class LocalStackConfig:
             raise LocalReleaseError("worker stale threshold must be greater than zero")
         if self.restart_delay_seconds <= 0:
             raise LocalReleaseError("service restart delay must be greater than zero")
+        if bool(self.chatqec_openai_model) != bool(self.chatqec_openai_api_key):
+            raise LocalReleaseError(
+                "the local OpenAI ChatQEC mode requires both a model and an API key"
+            )
+        if self.chatqec_openai_model:
+            if not self.assistant_enabled:
+                raise LocalReleaseError(
+                    "the local OpenAI ChatQEC mode requires the Assistant service"
+                )
+            if len(self.chatqec_openai_model.strip()) > 128:
+                raise LocalReleaseError("the OpenAI ChatQEC model identifier is too long")
+            if apptainer_requested():
+                raise LocalReleaseError(
+                    "the local OpenAI ChatQEC mode requires Docker or Podman"
+                )
         if self.iqm_simulation_enabled and self.iqm_worker_enabled:
             raise LocalReleaseError(
                 "select either the safe IQM simulation worker or the IQM worker"
@@ -357,6 +374,7 @@ class LocalStackConfig:
             "iqm_worker_enabled": self.iqm_worker_enabled,
             "iqm_endpoint": self.iqm_endpoint,
             "iqm_device_alias": self.iqm_device_alias,
+            "chatqec_openai_model": self.chatqec_openai_model,
             "ftqc_source_checkout": self.ftqc_source_checkout,
             "ftqc_runtime_manifest": self.ftqc_runtime_manifest,
             "ftqc_dependency_cache": self.ftqc_dependency_cache,
@@ -944,25 +962,25 @@ def diagnostic_report(paths: LocalPaths, *, release_version: str) -> dict[str, A
 
     assistant: dict[str, Any]
     try:
-        from .chatqec_service import CanonicalChatQEC, ChatQECSource
+        from .chatqec_agent_service import (
+            PINNED_CHATQEC_REVISION,
+            _canonical_corpus_revision,
+        )
+        from .chatqec_service import ChatQECSource
 
         source = ChatQECSource.from_contract(
             asset_path("assistant-interface"),
             assistant_source_path(),
         )
         source.verify()
-        responder = CanonicalChatQEC(
-            source.checkout,
-            source_url=source.repository,
-            source_revision=source.revision,
-        )
+        corpus_revision, pages = _canonical_corpus_revision(source.checkout)
         assistant = {
             "available": True,
-            "mode": "canonical-corpus-extractive-fallback",
-            "source_revision": source.revision,
-            "corpus_revision": responder.corpus_revision,
-            "canonical_pages": len(responder.pages),
-            "tool_execution": False,
+            "mode": "mcp-direct-tools",
+            "source_revision": PINNED_CHATQEC_REVISION,
+            "corpus_revision": corpus_revision,
+            "canonical_pages": pages,
+            "tool_execution": True,
         }
     except Exception as error:
         assistant = {
@@ -1343,6 +1361,8 @@ def supervisor_command(
                 config.iqm_device_alias or "",
             )
         )
+    if config.chatqec_openai_model:
+        command.extend(("--chatqec-openai-model", config.chatqec_openai_model))
     if config.ftqc_source_checkout:
         command.extend(("--ftqc-source-checkout", config.ftqc_source_checkout))
     if config.ftqc_runtime_manifest:
@@ -1396,8 +1416,12 @@ def launch_local(
     child_environment = {**os.environ, "PYTHONUNBUFFERED": "1"}
     child_environment.pop("IQM_TOKEN", None)
     child_environment.pop("EQO_LOCAL_IQM_TOKEN", None)
+    child_environment.pop("OPENAI_API_KEY", None)
+    child_environment.pop("EQO_LOCAL_OPENAI_API_KEY", None)
     if config.iqm_token:
         child_environment["EQO_LOCAL_IQM_TOKEN"] = config.iqm_token
+    if config.chatqec_openai_api_key:
+        child_environment["EQO_LOCAL_OPENAI_API_KEY"] = config.chatqec_openai_api_key
     with paths.log_file.open("ab") as log_stream:
         try:
             process = subprocess.Popen(
@@ -1592,6 +1616,8 @@ def supervise_local(
             if config.assistant_enabled and not apptainer_requested()
             else ""
         ),
+        chatqec_openai_model=config.chatqec_openai_model or "",
+        chatqec_openai_api_key=config.chatqec_openai_api_key,
         poll_interval_seconds=config.poll_interval_seconds,
         lease_seconds=config.lease_seconds,
         worker_stale_after_seconds=config.worker_stale_after_seconds,

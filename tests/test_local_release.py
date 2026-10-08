@@ -472,6 +472,35 @@ def test_supervisor_command_passes_nonsecret_iqm_configuration_only(
     assert "do-not-place-in-arguments" not in command
 
 
+def test_openai_chatqec_configuration_scopes_the_key_and_persists_only_model(
+    tmp_path: Path,
+) -> None:
+    value = config(
+        chatqec_openai_model="gpt-5.6-terra",
+        chatqec_openai_api_key="do-not-persist-this-key",
+    )
+    value.validate()
+    paths = LocalPaths.discover(tmp_path)
+    command = supervisor_command(value, paths)
+
+    assert command[command.index("--chatqec-openai-model") + 1] == "gpt-5.6-terra"
+    assert "do-not-persist-this-key" not in command
+    assert value.as_dict()["chatqec_openai_model"] == "gpt-5.6-terra"
+    assert "chatqec_openai_api_key" not in value.as_dict()
+
+    write_local_config(paths, value)
+    persisted = paths.config_file.read_text(encoding="utf-8")
+    assert "gpt-5.6-terra" in persisted
+    assert "do-not-persist-this-key" not in persisted
+
+
+def test_openai_chatqec_requires_a_complete_local_configuration() -> None:
+    with pytest.raises(LocalReleaseError, match="requires both"):
+        config(chatqec_openai_model="gpt-5.6-terra").validate()
+    with pytest.raises(LocalReleaseError, match="requires both"):
+        config(chatqec_openai_api_key="test-key").validate()
+
+
 def test_supervisor_launches_services_before_waiting_for_api(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -601,6 +630,34 @@ def test_cli_local_iqm_configuration_scopes_terminal_credential(
 
     assert captured[0].iqm_token == "terminal-secret"
     assert "terminal-secret" not in capsys.readouterr().out
+
+
+def test_cli_local_openai_configuration_scopes_terminal_credential(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    captured: list[LocalStackConfig] = []
+    monkeypatch.setenv("OPENAI_API_KEY", "terminal-openai-secret")
+    monkeypatch.setattr(
+        local_release,
+        "launch_local",
+        lambda value, *_args, **_kwargs: captured.append(value)
+        or {"status": "ready"},
+    )
+
+    assert cli.main(
+        [
+            "local",
+            "up",
+            "--home",
+            str(tmp_path),
+            "--chatqec-openai-model",
+            "gpt-5.6-terra",
+        ]
+    ) == 0
+
+    assert captured[0].chatqec_openai_model == "gpt-5.6-terra"
+    assert captured[0].chatqec_openai_api_key == "terminal-openai-secret"
+    assert "terminal-openai-secret" not in capsys.readouterr().out
 
 
 def test_diagnostic_report_is_portable_and_secret_free(tmp_path: Path) -> None:

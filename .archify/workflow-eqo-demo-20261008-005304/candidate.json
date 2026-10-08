@@ -1,0 +1,142 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "EQO | One control plane, three interfaces",
+    "subtitle": "Operate from the CLI · compose in the Workbench · automate with Python",
+    "visual_preset": "blueprint",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "viewBox": [1100, 682],
+    "output": ".archify/workflow-eqo-demo-20261008-005304/eqo-workflow.html",
+    "repository": {
+      "url": "https://github.com/QSCSoftwareEcosystem/QHPC-Ecosystem",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "e4a1a1dc34c351c691d2e798a9eac01fa701e714"
+    }
+  },
+  "lanes": [
+    { "id": "interfaces", "label": "Research interfaces" },
+    { "id": "control", "label": "EQO control plane" },
+    { "id": "execution", "label": "Admitted execution" },
+    { "id": "evidence", "label": "Typed evidence" }
+  ],
+  "phases": [
+    { "id": "operate", "label": "Operate", "fromCol": 0, "toCol": 0 },
+    { "id": "choose", "label": "Compose or automate", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "govern", "label": "Resolve + admit", "fromCol": 3, "toCol": 3, "variant": "dashed" },
+    { "id": "execute", "label": "Execute", "fromCol": 4, "toCol": 4, "variant": "emphasis" },
+    { "id": "inspect", "label": "Inspect + reuse", "fromCol": 5, "toCol": 5 }
+  ],
+  "groups": [
+    { "id": "control_path", "label": "Shared, explicit control", "lane": "control", "fromCol": 3, "toCol": 4, "variant": "emphasis" },
+    { "id": "execution_path", "label": "Compatibility before work", "lane": "execution", "fromCol": 4, "toCol": 5, "variant": "security" },
+    { "id": "evidence_path", "label": "Outputs are reusable artifacts", "lane": "evidence", "fromCol": 5, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["api", "workflow", "worker", "artifacts"],
+  "nodes": [
+    {
+      "id": "cli",
+      "lane": "interfaces",
+      "col": 0,
+      "type": "frontend",
+      "label": "EQO CLI",
+      "sublabel": "start · validate · inspect",
+      "tag": "operator surface",
+      "width": 154,
+      "sources": [{ "path": "src/qhpc_ecosystem/cli.py", "line": 359, "end_line": 405, "label": "local commands" }]
+    },
+    {
+      "id": "workbench",
+      "lane": "interfaces",
+      "col": 1,
+      "type": "frontend",
+      "label": "EQO Workbench",
+      "sublabel": "Compose · Runs · Artifacts",
+      "tag": "visual surface",
+      "width": 154,
+      "sources": [{ "path": "src/qhpc_workbench/templates/qhpc_workbench/index.html", "line": 37, "end_line": 48, "label": "primary views" }]
+    },
+    {
+      "id": "python",
+      "lane": "interfaces",
+      "col": 3,
+      "type": "backend",
+      "label": "EQO Python client",
+      "sublabel": "typed, explicit automation",
+      "tag": "notebook surface",
+      "width": 154,
+      "sources": [{ "path": "src/eqo/client.py", "line": 398, "end_line": 440, "label": "side-effect-free client" }]
+    },
+    {
+      "id": "api",
+      "lane": "control",
+      "col": 2,
+      "type": "backend",
+      "label": "Control API",
+      "sublabel": "one shared control plane",
+      "tag": "request + provenance",
+      "width": 160,
+      "sources": [{ "path": "src/qhpc_ecosystem/api.py", "line": 795, "end_line": 843, "label": "run creation" }]
+    },
+    {
+      "id": "workflow",
+      "lane": "control",
+      "col": 4,
+      "type": "messagebus",
+      "label": "Published workflow",
+      "sublabel": "reviewed version + contract",
+      "tag": "resolve exactly",
+      "width": 160,
+      "sources": [{ "path": "examples/registry.yaml", "line": 1574, "end_line": 1631, "label": "Trotter workflow" }]
+    },
+    {
+      "id": "worker",
+      "lane": "execution",
+      "col": 5,
+      "type": "cloud",
+      "label": "Compatible worker",
+      "sublabel": "target + runtime digest match",
+      "tag": "admitted execution",
+      "width": 166,
+      "sources": [{ "path": "src/qhpc_ecosystem/engine.py", "line": 1748, "end_line": 1803, "label": "readiness matching" }]
+    },
+    {
+      "id": "artifacts",
+      "lane": "evidence",
+      "col": 5,
+      "type": "database",
+      "label": "Reusable artifacts",
+      "sublabel": "circuit + synthesis report",
+      "tag": "inspect or render",
+      "width": 166,
+      "sources": [{ "path": "examples/registry.yaml", "line": 1596, "end_line": 1618, "label": "output contract" }]
+    }
+  ],
+  "edges": [
+    { "id": "workbench-api", "from": "workbench", "to": "api", "label": "select + submit", "variant": "emphasis", "role": "branch" },
+    { "id": "python-api", "from": "python", "to": "api", "label": "automate", "variant": "emphasis", "role": "branch" },
+    { "id": "api-workflow", "from": "api", "to": "workflow", "label": "resolve published version", "variant": "emphasis", "role": "main" },
+    { "id": "workflow-worker", "from": "workflow", "to": "worker", "label": "check target + runtime", "variant": "emphasis", "role": "main" },
+    { "id": "worker-artifacts", "from": "worker", "to": "artifacts", "label": "publish", "variant": "emphasis", "role": "main" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "EQO identity",
+      "items": [
+        "Quark Red #AA1E2E · Force Blue #131E29 · Wave Gray #CFD2D3",
+        "One reproducible path from input to inspectable result"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "What the demo proves",
+      "items": [
+        "The same published workflow is reachable from web, CLI, and Python",
+        "Execution begins only after target and runtime compatibility are checked"
+      ]
+    }
+  ]
+}

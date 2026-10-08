@@ -73,6 +73,19 @@ def _prompt_iqm_token(environment_variable: str) -> str:
     return token
 
 
+def _prompt_openai_api_key() -> str:
+    """Read the local ChatQEC API key only from the invoking terminal."""
+    try:
+        token = getpass.getpass("Enter OPENAI_API_KEY for the local ChatQEC service: ")
+    except (EOFError, OSError) as error:
+        raise ContractError("unable to read the OpenAI API key securely from this terminal") from error
+    if not token:
+        raise ContractError(
+            "an OpenAI API key is required when --prompt-for-openai-api-key is selected"
+        )
+    return token
+
+
 def _print_table(catalog: Catalog) -> None:
     columns = ("SLUG", "ENVIRONMENT", "STATUS", "ACCESS")
     rows = [
@@ -447,6 +460,13 @@ def build_parser() -> argparse.ArgumentParser:
         )
         command.add_argument("--assistant-source-checkout")
         command.add_argument(
+            "--chatqec-openai-model",
+            help=(
+                "optional OpenAI Responses model for local ChatQEC explanations; "
+                "requires a scoped API key"
+            ),
+        )
+        command.add_argument(
             "--ftqc-source-checkout",
             help="pinned FTQC Git checkout used only to build the admitted OCI image when absent",
         )
@@ -528,6 +548,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--prompt-for-iqm-token",
         action="store_true",
         help="read IQM_TOKEN without echoing it and pass it only to the IQM worker",
+    )
+    local_up.add_argument(
+        "--prompt-for-openai-api-key",
+        action="store_true",
+        help="read OPENAI_API_KEY without echoing it and pass it only to local ChatQEC",
     )
     for name in ("config", "data", "cache", "state", "log"):
         local_supervise.add_argument(
@@ -1702,6 +1727,13 @@ def dispatch(args: argparse.Namespace) -> int:
             raise LocalReleaseError(
                 "--prompt-for-iqm-token requires --start-iqm-worker"
             )
+        if (
+            getattr(args, "prompt_for_openai_api_key", False)
+            and not args.chatqec_openai_model
+        ):
+            raise LocalReleaseError(
+                "--prompt-for-openai-api-key requires --chatqec-openai-model"
+            )
         iqm_token = ""
         if args.start_iqm_worker:
             if args.local_command == "up" and args.prompt_for_iqm_token:
@@ -1710,6 +1742,14 @@ def dispatch(args: argparse.Namespace) -> int:
                 iqm_token = os.environ.get("EQO_LOCAL_IQM_TOKEN", "")
             else:
                 iqm_token = os.environ.get("IQM_TOKEN", "")
+        openai_api_key = ""
+        if args.chatqec_openai_model:
+            if args.local_command == "up" and args.prompt_for_openai_api_key:
+                openai_api_key = _prompt_openai_api_key()
+            elif args.local_command == "_supervise":
+                openai_api_key = os.environ.get("EQO_LOCAL_OPENAI_API_KEY", "")
+            else:
+                openai_api_key = os.environ.get("OPENAI_API_KEY", "")
         config = LocalStackConfig(
             catalog=str(Path(args.catalog).expanduser().resolve()),
             registry=str(Path(args.registry).expanduser().resolve()),
@@ -1733,6 +1773,8 @@ def dispatch(args: argparse.Namespace) -> int:
             iqm_endpoint=args.iqm_endpoint,
             iqm_device_alias=args.iqm_device_alias,
             iqm_token=iqm_token,
+            chatqec_openai_model=args.chatqec_openai_model,
+            chatqec_openai_api_key=openai_api_key,
             ftqc_source_checkout=ftqc_source_checkout,
             ftqc_runtime_manifest=ftqc_runtime_manifest,
             ftqc_dependency_cache=ftqc_dependency_cache,

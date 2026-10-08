@@ -1,0 +1,32 @@
+/* EQO / QSC presentation theme: Force Blue, white, Wave Gray, Quark Red. */
+html[data-theme="dark"] {
+  --bg: #131E29; --grid: #2A3846; --canvas-dot: rgba(207, 210, 211, .16);
+  --panel: rgba(19, 30, 41, .94); --panel-border: #53636F;
+  --lane-fill: rgba(207, 210, 211, .07); --lane-stroke: #65737D;
+  --text: #FFFFFF; --text-muted: #CFD2D3; --text-dim: #92A2AF; --text-faint: #92A2AF; --mask: #131E29;
+  --frontend-fill: rgba(255, 255, 255, .07); --frontend-stroke: #FFFFFF;
+  --backend-fill: rgba(170, 30, 46, .16); --backend-stroke: #D75A68;
+  --database-fill: rgba(207, 210, 211, .12); --database-stroke: #CFD2D3;
+  --cloud-fill: rgba(255, 255, 255, .07); --cloud-stroke: #CFD2D3;
+  --security-fill: rgba(170, 30, 46, .20); --security-stroke: #AA1E2E;
+  --messagebus-fill: rgba(170, 30, 46, .16); --messagebus-stroke: #AA1E2E;
+  --external-fill: rgba(207, 210, 211, .08); --external-stroke: #CFD2D3;
+  --arrow: #92A2AF; --arrow-emphasis: #AA1E2E;
+  --toolbar-bg: rgba(19, 30, 41, .97); --toolbar-border: #53636F; --toolbar-text: #FFFFFF;
+  --toolbar-hover: rgba(207, 210, 211, .11); --toolbar-menu-bg: #131E29;
+}
+html[data-theme="light"] {
+  --bg: #F4F7F8; --grid: #CFD2D3; --canvas-dot: #CFD2D3;
+  --panel: #FFFFFF; --panel-border: #B8C3CA; --lane-fill: rgba(207, 210, 211, .30); --lane-stroke: #92A2AF;
+  --text: #131E29; --text-muted: #61707D; --text-dim: #61707D; --text-faint: #61707D; --mask: #FFFFFF;
+  --frontend-fill: rgba(19, 30, 41, .06); --frontend-stroke: #131E29;
+  --backend-fill: rgba(170, 30, 46, .08); --backend-stroke: #AA1E2E;
+  --database-fill: rgba(207, 210, 211, .45); --database-stroke: #61707D;
+  --cloud-fill: rgba(19, 30, 41, .06); --cloud-stroke: #131E29;
+  --security-fill: rgba(170, 30, 46, .10); --security-stroke: #AA1E2E;
+  --messagebus-fill: rgba(170, 30, 46, .08); --messagebus-stroke: #AA1E2E;
+  --external-fill: rgba(207, 210, 211, .36); --external-stroke: #61707D;
+  --arrow: #61707D; --arrow-emphasis: #AA1E2E;
+  --toolbar-bg: rgba(255, 255, 255, .97); --toolbar-border: #B8C3CA; --toolbar-text: #131E29;
+  --toolbar-hover: #ECF1F3; --toolbar-menu-bg: #FFFFFF;
+}

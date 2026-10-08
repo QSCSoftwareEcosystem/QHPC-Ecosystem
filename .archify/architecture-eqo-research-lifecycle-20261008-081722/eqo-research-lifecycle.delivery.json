@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "321e3b36-3771-4080-8ca9-9dbed76dbb80",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/vlk/Documents/QSCSoftwareThrust/QHPC-Ecosystem/.archify/architecture-eqo-research-lifecycle-20261008-081722/candidate.json",
+  "output": "/home/vlk/Documents/QSCSoftwareThrust/QHPC-Ecosystem/.archify/architecture-eqo-research-lifecycle-20261008-081722/eqo-research-lifecycle.html",
+  "specification": {
+    "sha256": "6585ef6f6e5265e1389108f966d09eb892f0963b367b983c889e25831effad89",
+    "bytes": 6043
+  },
+  "artifact": {
+    "sha256": "323e5cb0fea9d2d26f6616ec6096146e35e8cac676d4a7f6dbc32516c4df2161",
+    "bytes": 770281
+  }
+}

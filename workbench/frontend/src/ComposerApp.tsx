@@ -157,7 +157,12 @@ interface ScientificPathDefinition {
   shortName: string;
   section: "start" | "journey" | "tour" | "gated";
   toolChain: string[];
-  kind: "Cross-tool study" | "Flagship showcase" | "Focused example" | "Incubation blueprint";
+  kind:
+    | "Cross-tool study"
+    | "Flagship showcase"
+    | "Focused example"
+    | "Hardware execution"
+    | "Incubation blueprint";
   blueprint?: IncubationBlueprint;
   inputLabel?: string;
   inputFileLabel?: string;
@@ -171,6 +176,10 @@ interface ScientificPathDefinition {
     label: string;
     content: string;
   }>;
+  hardwareNotice?: {
+    title: string;
+    detail: string;
+  };
 }
 
 interface ScientificPath {
@@ -316,7 +325,7 @@ h q[0];
 result[0] = measure q[0];
 `;
 
-const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
+export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
   {
     workflowId: "showcase-evolution-readiness",
     code: "01",
@@ -532,6 +541,29 @@ const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
         content: FTQC_LOGICAL_H_EXAMPLE,
       },
     ],
+  },
+  {
+    workflowId: "ftqc-iqm-bell-execution",
+    code: "F4",
+    shortName: "Route and execute a two-qubit Bell circuit",
+    section: "gated",
+    kind: "Hardware execution",
+    toolChain: ["FTQC", "IQM route", "secured worker"],
+    inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
+    inputFileLabel: "Choose .qasm",
+    inputPlaceholder: "OPENQASM 3.0;",
+    examples: [
+      {
+        name: "ftqc-bell.qasm",
+        label: "Load Bell input",
+        content: FTQC_BELL_EXAMPLE,
+      },
+    ],
+    hardwareNotice: {
+      title: "Hardware execution",
+      detail:
+        "This published workflow sends the loaded Bell circuit to the configured IQM device for 512 shots. Select Run workflow only when you intend to submit a QPU job.",
+    },
   },
   {
     workflowId: "ct-hw-qasm-analysis",
@@ -2627,6 +2659,15 @@ function GuidedComposer({
                     <li><strong>3</strong><span><b>Inspect result</b><small>Open the run to view the circuit and synthesis report.</small></span></li>
                   </ol>
                 </section>
+              )}
+              {definition.hardwareNotice && (
+                <aside className="composer-guided-hardware-notice" role="note">
+                  <CircleAlert size={16} aria-hidden="true" />
+                  <span>
+                    <strong>{definition.hardwareNotice.title}</strong>
+                    <small>{definition.hardwareNotice.detail}</small>
+                  </span>
+                </aside>
               )}
               <section className="composer-guided-section">
                 <h3>Connected pipeline</h3>
