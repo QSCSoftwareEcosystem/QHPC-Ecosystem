@@ -32,16 +32,15 @@ def test_sync_preserves_curated_fields_and_adds_new_rows(tmp_path: Path) -> None
     assert "HeteQSys" in repositories
 
 
-def test_sync_is_idempotent_for_current_manifest(tmp_path: Path) -> None:
+def test_sync_is_idempotent_for_current_manifest(
+    tmp_path: Path, mirror_manifest: Path
+) -> None:
     catalog_path = tmp_path / "ecosystem.yaml"
     catalog_path.write_text(
         (ROOT / "ecosystem.yaml").read_text(encoding="utf-8"), encoding="utf-8"
     )
 
-    assert not synchronize(
-        catalog_path,
-        ROOT.parent / "ProjectManagement" / "gitlab-mirror" / "repositories.tsv",
-    )
+    assert not synchronize(catalog_path, mirror_manifest)
 
 
 def test_check_mode_reports_drift_without_writing(tmp_path: Path) -> None:

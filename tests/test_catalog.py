@@ -13,9 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "ecosystem.yaml"
 
 
-def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
+def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories(
+    mirror_manifest: Path,
+) -> None:
     catalog = load_catalog(CATALOG)
-    with catalog.source_manifest.open(encoding="utf-8", newline="") as stream:
+    with mirror_manifest.open(encoding="utf-8", newline="") as stream:
         manifest_slugs = {row["slug"] for row in csv.DictReader(stream, delimiter="\t")}
     catalog_slugs = {repository.slug for repository in catalog.repositories}
 
@@ -28,6 +30,11 @@ def test_catalog_covers_mirror_manifest_and_non_mirrored_repositories() -> None:
         "NWQSim-QFlow",
         "openqse-spec",
     }
+
+
+def test_catalog_records_curated_sources() -> None:
+    catalog = load_catalog(CATALOG)
+
     assert catalog.repository("HeteQSys").container_status == "blocked"
     assert catalog.repository("NWQ-Sim").source_url == (
         "https://github.com/pnnl/NWQ-Sim/tree/tn_sim"

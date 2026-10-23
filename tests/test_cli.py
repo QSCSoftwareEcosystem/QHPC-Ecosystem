@@ -33,7 +33,7 @@ def test_list_and_info_do_not_require_apptainer(monkeypatch, capsys) -> None:
     assert "Source:            https://github.com/QSCSoftwareThrust/FTQC" in output
 
 
-def test_validate_checks_catalog_and_recipes(capsys) -> None:
+def test_validate_checks_catalog_and_recipes(mirror_manifest: Path, capsys) -> None:
     assert invoke("validate") == 0
     assert "23 repositories, 5 environments" in capsys.readouterr().out
 
