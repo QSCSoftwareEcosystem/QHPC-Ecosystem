@@ -236,6 +236,19 @@ test("builds a Basic Composer path one compatible intent at a time", async ({ pa
 });
 
 
+test("shows the pinned compiler route before a Basic transformation run", async ({ page }) => {
+  await page.goto("/?view=compose");
+  await page.getByRole("button", { name: /Transform a circuit/ }).click();
+
+  const route = page.getByRole("region", { name: "Transformation route" });
+  await expect(route).toBeVisible();
+  await expect(route.getByText("Transpile OpenQASM circuit", { exact: true })).toBeVisible();
+  await expect(route.getByText("development-slurm-docker", { exact: true })).toBeVisible();
+  await expect(route.getByText("Generated artifacts", { exact: true })).toBeVisible();
+  await expect(route.getByText("Current limits", { exact: true })).toBeVisible();
+});
+
+
 test("explains what a tool does and how to use it", async ({ page }) => {
   await page.goto("/?view=tools");
 

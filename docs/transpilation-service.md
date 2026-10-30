@@ -41,9 +41,12 @@ The artifact records:
 
 The service persists the source circuit reference, normalized
 `CircuitExchange`, transformed circuit, qubit mapping, and warning/loss report
-as checksum-verified immutable EQO artifacts. This keeps a conversion chain
-inspectable now; attaching a selected conversion chain to Composer and run
-receipt views remains a separate integration step.
+as checksum-verified immutable EQO artifacts. The published QASMTrans path in
+**Basic Composer** and its run receipt expose the selected implementation,
+target constraint, generated circuit artifact, and published limitations before
+and after submission. A direct conversion through the API remains separately
+inspectable from its immutable artifacts; it is not silently folded into a
+workflow or a hardware-admission claim.
 
 ## Conversion API
 

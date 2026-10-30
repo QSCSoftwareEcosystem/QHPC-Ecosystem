@@ -3196,6 +3196,55 @@ function openCapability(id) {
   });
 }
 
+function transpilationReceiptEvidence(run) {
+  const workflow = state.workflows.find(item =>
+    item.id === run.workflow_id && item.version === run.workflow_version,
+  );
+  const transpilationNodes = (workflow?.definition?.spec?.nodes || []).filter(node =>
+    node.operation?.capability === "qasmtrans-transpiler"
+      && node.operation?.operation === "transpile",
+  );
+  if (!transpilationNodes.length) return "";
+
+  const evidence = transpilationNodes.map(node => {
+    const capability = state.capabilities.find(item =>
+      item.id === node.operation.capability && item.version === node.operation.version,
+    );
+    const operation = capability?.operations?.find(item => item.id === node.operation.operation);
+    const target = node.execution_target || operation?.execution_targets?.join(", ") || run.execution_target;
+    const constraints = Object.entries(node.parameters || {}).map(([name, value]) =>
+      `${name.replaceAll("_", " ")}: ${String(value)}`,
+    );
+    const outputs = Object.entries(workflow.definition.spec.outputs || {})
+      .filter(([, output]) => output.from?.node === node.id)
+      .map(([name, output]) => {
+        const artifactId = run.outputs?.[name];
+        const artifact = artifactId
+          ? state.artifacts.find(item => item.id === artifactId)
+          : null;
+        const contentPath = artifact
+          ? `api/v1/artifacts/${encodeURIComponent(artifactId)}/content`
+          : null;
+        return `<li><span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(output.artifact_type)}${artifact ? ` · ${escapeHtml(artifact.checksum.slice(0, 18))}…` : " · pending"}</small></span>${contentPath ? `<a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a>` : ""}</li>`;
+      }).join("");
+    const limitations = capability?.guidance?.limitations || [];
+    return `<div class="run-transpilation-route">
+      <dl>
+        <div><dt>IMPLEMENTATION</dt><dd>${escapeHtml(operation?.title || node.operation.operation)}</dd><small>${escapeHtml(`${node.operation.capability}@${node.operation.version}`)}</small></div>
+        <div><dt>TARGET CONSTRAINT</dt><dd>${escapeHtml(target)}</dd><small>${escapeHtml(constraints.join(" · ") || "Published defaults")}</small></div>
+      </dl>
+      ${outputs ? `<div class="run-transpilation-artifacts"><strong>Generated evidence</strong><ul>${outputs}</ul></div>` : ""}
+      ${limitations.length ? `<div class="run-transpilation-limitations"><strong>Current limits</strong><ul>${limitations.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}
+    </div>`;
+  }).join("");
+
+  return `<section class="run-receipt-section run-transpilation-evidence">
+    <div class="run-receipt-section-header"><h3>Transpilation evidence</h3><span>PINNED PATH</span></div>
+    <p>The receipt preserves the selected compiler path, target constraint, generated artifacts, and its published limits.</p>
+    ${evidence}
+  </section>`;
+}
+
 function openRun(id) {
   const run = state.runs.find(item => item.id === id);
   const workflowDigest = run.workflow_digest || "not recorded";
@@ -3237,6 +3286,7 @@ function openRun(id) {
 
   const retry = run.tasks.find(task => task.state === "failed");
   const lifecycle = iqmExecutionLifecycle(run);
+  const transpilationEvidence = transpilationReceiptEvidence(run);
   const lifecyclePanel = lifecycle.present && run.tasks.some(isIqmExecutionTask)
     ? `<section class="run-execution-status"><span class="panel-label">IQM EXECUTION LIFECYCLE</span><strong>${escapeHtml(lifecycle.status)}</strong><p>${escapeHtml(lifecycle.detail)}</p></section>`
     : "";
@@ -3268,6 +3318,7 @@ function openRun(id) {
     </div>
     ${summary}
     ${lifecyclePanel}
+    ${transpilationEvidence}
     <section class="run-receipt-section">
       <div class="run-receipt-section-header"><h3>Execution timeline</h3><span>${run.tasks.length} task${run.tasks.length === 1 ? "" : "s"}</span></div>
       <div class="timeline">${timeline}</div>

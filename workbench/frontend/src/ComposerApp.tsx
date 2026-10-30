@@ -3116,6 +3116,32 @@ function BasicComposer({
       value,
     })),
   );
+  const transformationEvidence = planPath?.id === "transform" && workflow
+    ? workflow.definition.spec.nodes.flatMap((node) => {
+      const capability = capabilities.find(
+        (item) =>
+          item.id === node.operation.capability &&
+          item.version === node.operation.version,
+      );
+      const operation = capability?.operations.find(
+        (item) => item.id === node.operation.operation,
+      );
+      if (node.operation.capability !== "qasmtrans-transpiler" || !operation) {
+        return [];
+      }
+      const outputs = Object.entries(workflow.definition.spec.outputs).filter(
+        ([, output]) => output.from.node === node.id,
+      );
+      return [{
+        node,
+        capability,
+        operation,
+        target: node.execution_target ?? operation.execution_targets.join(", "),
+        outputs,
+        limitations: capability?.guidance?.limitations ?? [],
+      }];
+    })
+    : [];
 
   useEffect(() => {
     setSelectedBlockIndex((index) => Math.min(index, Math.max(0, activeBlocks.length - 1)));
@@ -3469,6 +3495,63 @@ function BasicComposer({
                   </p>
                 </section>
               )}
+
+              {transformationEvidence.map((evidence) => (
+                <section
+                  className="composer-basic-transformation-evidence"
+                  aria-labelledby={`transformation-evidence-${evidence.node.id}`}
+                  key={evidence.node.id}
+                >
+                  <div className="composer-basic-section-heading">
+                    <h3 id={`transformation-evidence-${evidence.node.id}`}>
+                      Transformation route
+                    </h3>
+                    <p>
+                      EQO will run this pinned compiler implementation and preserve
+                      its generated circuit evidence with the run.
+                    </p>
+                  </div>
+                  <dl className="composer-basic-transformation-facts">
+                    <div>
+                      <dt>IMPLEMENTATION</dt>
+                      <dd>{evidence.operation.title}</dd>
+                      <small>
+                        {evidence.capability?.id}@{evidence.capability?.version} / {evidence.operation.id}
+                      </small>
+                    </div>
+                    <div>
+                      <dt>TARGET CONSTRAINT</dt>
+                      <dd>{evidence.target}</dd>
+                      <small>
+                        {Object.entries(evidence.node.parameters)
+                          .map(([name, value]) => `${parameterLabel(name)}: ${displayPublishedParameter(name, value)}`)
+                          .join(" · ") || "Published defaults"}
+                      </small>
+                    </div>
+                  </dl>
+                  <div className="composer-basic-transformation-outputs">
+                    <strong>Generated artifacts</strong>
+                    <ul>
+                      {evidence.outputs.map(([name, output]) => (
+                        <li key={name}>
+                          <span>{artifactLabel(output.artifact_type)}</span>
+                          <small>{name} · {output.artifact_type}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {!!evidence.limitations.length && (
+                    <div className="composer-basic-transformation-limitations">
+                      <strong>Current limits</strong>
+                      <ul>
+                        {evidence.limitations.map((limitation) => (
+                          <li key={limitation}>{limitation}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </section>
+              ))}
 
               {inputName && inputDefinition && (
                 <section className="composer-basic-input" aria-labelledby="basic-input-title">

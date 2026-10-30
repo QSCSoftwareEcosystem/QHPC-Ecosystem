@@ -18905,29 +18905,41 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 		nodeId: e.id,
 		name: t,
 		value: n
-	})));
+	}))), q = M?.id === "transform" && N ? N.definition.spec.nodes.flatMap((e) => {
+		let t = n.find((t) => t.id === e.operation.capability && t.version === e.operation.version), r = t?.operations.find((t) => t.id === e.operation.operation);
+		if (e.operation.capability !== "qasmtrans-transpiler" || !r) return [];
+		let i = Object.entries(N.definition.spec.outputs).filter(([, t]) => t.from.node === e.id);
+		return [{
+			node: e,
+			capability: t,
+			operation: r,
+			target: e.execution_target ?? r.execution_targets.join(", "),
+			outputs: i,
+			limitations: t?.guidance?.limitations ?? []
+		}];
+	}) : [];
 	(0, y.useEffect)(() => {
 		S((e) => Math.min(e, Math.max(0, I.length - 1)));
 	}, [I.length]);
-	let q = (t) => {
+	let J = (t) => {
 		g(null);
 		let n = e.find((e) => e.id === t);
 		n && E(n.blocks.map((e) => e.id)), u(t);
-	}, J = (t) => {
+	}, te = (t) => {
 		if (!F.has(t)) return;
 		let n = [...T, t], r = e.filter((e) => n.every((t, n) => e.blocks[n]?.id === t)), i = r.find((e) => e.blocks.length === n.length) ?? (r.length === 1 ? r[0] : void 0);
 		g(null), E(n), i && u(i.id);
-	}, te = () => {
+	}, ne = () => {
 		g(null), S(0), E([]);
-	}, ne = (e) => e.includes("application/x-eqo-basic-path") || e.includes("application/x-eqo-basic-intent"), re = /* @__PURE__ */ (0, x.jsxs)("section", {
+	}, re = (e) => e.includes("application/x-eqo-basic-path") || e.includes("application/x-eqo-basic-intent"), ie = /* @__PURE__ */ (0, x.jsxs)("section", {
 		className: `composer-basic-flow-section${C ? " is-drop-target" : ""}`,
 		"aria-labelledby": "basic-canvas-title",
 		"aria-describedby": "basic-canvas-hint",
 		onDragEnter: (e) => {
-			ne(e.dataTransfer.types) && (e.preventDefault(), w(!0));
+			re(e.dataTransfer.types) && (e.preventDefault(), w(!0));
 		},
 		onDragOver: (e) => {
-			ne(e.dataTransfer.types) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy");
+			re(e.dataTransfer.types) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy");
 		},
 		onDragLeave: (e) => {
 			e.currentTarget === e.target && w(!1);
@@ -18936,11 +18948,11 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			t.preventDefault(), w(!1);
 			let n = t.dataTransfer.getData("application/x-eqo-basic-path");
 			if (e.some((e) => e.id === n)) {
-				q(n);
+				J(n);
 				return;
 			}
 			let r = t.dataTransfer.getData("application/x-eqo-basic-intent");
-			qp.has(r) && J(r);
+			qp.has(r) && te(r);
 		},
 		children: [
 			/* @__PURE__ */ (0, x.jsxs)("div", {
@@ -19025,7 +19037,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							},
 							onDragEnd: () => w(!1),
 							onClick: () => {
-								q(e.id);
+								J(e.id);
 							},
 							children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] }), /* @__PURE__ */ (0, x.jsx)(yf, {
 								size: 16,
@@ -19048,7 +19060,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 					children: [
 						/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Build a path" }), /* @__PURE__ */ (0, x.jsx)("button", {
 							type: "button",
-							onClick: te,
+							onClick: ne,
 							children: "Start new"
 						})] }),
 						/* @__PURE__ */ (0, x.jsx)("p", { children: "Drop the next compatible intent onto the canvas. EQO adds the typed connection." }),
@@ -19063,7 +19075,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 									t.dataTransfer.effectAllowed = "copy", t.dataTransfer.setData("application/x-eqo-basic-intent", e.id), t.dataTransfer.setData("text/plain", e.title);
 								},
 								onDragEnd: () => w(!1),
-								onClick: () => J(e.id),
+								onClick: () => te(e.id),
 								title: t ? `Add ${e.title} to the compatible workflow path` : "Complete or restart the current path before this block can connect",
 								children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] }), /* @__PURE__ */ (0, x.jsx)(yf, {
 									size: 15,
@@ -19097,7 +19109,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				/* @__PURE__ */ (0, x.jsxs)("div", {
 					className: "composer-basic-body",
 					children: [
-						re,
+						ie,
 						V && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-block-inspector",
 							"aria-labelledby": "basic-block-inspector-title",
@@ -19185,6 +19197,49 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 								})
 							]
 						}),
+						q.map((e) => /* @__PURE__ */ (0, x.jsxs)("section", {
+							className: "composer-basic-transformation-evidence",
+							"aria-labelledby": `transformation-evidence-${e.node.id}`,
+							children: [
+								/* @__PURE__ */ (0, x.jsxs)("div", {
+									className: "composer-basic-section-heading",
+									children: [/* @__PURE__ */ (0, x.jsx)("h3", {
+										id: `transformation-evidence-${e.node.id}`,
+										children: "Transformation route"
+									}), /* @__PURE__ */ (0, x.jsx)("p", { children: "EQO will run this pinned compiler implementation and preserve its generated circuit evidence with the run." })]
+								}),
+								/* @__PURE__ */ (0, x.jsxs)("dl", {
+									className: "composer-basic-transformation-facts",
+									children: [/* @__PURE__ */ (0, x.jsxs)("div", { children: [
+										/* @__PURE__ */ (0, x.jsx)("dt", { children: "IMPLEMENTATION" }),
+										/* @__PURE__ */ (0, x.jsx)("dd", { children: e.operation.title }),
+										/* @__PURE__ */ (0, x.jsxs)("small", { children: [
+											e.capability?.id,
+											"@",
+											e.capability?.version,
+											" / ",
+											e.operation.id
+										] })
+									] }), /* @__PURE__ */ (0, x.jsxs)("div", { children: [
+										/* @__PURE__ */ (0, x.jsx)("dt", { children: "TARGET CONSTRAINT" }),
+										/* @__PURE__ */ (0, x.jsx)("dd", { children: e.target }),
+										/* @__PURE__ */ (0, x.jsx)("small", { children: Object.entries(e.node.parameters).map(([e, t]) => `${am(e)}: ${om(e, t)}`).join(" · ") || "Published defaults" })
+									] })]
+								}),
+								/* @__PURE__ */ (0, x.jsxs)("div", {
+									className: "composer-basic-transformation-outputs",
+									children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Generated artifacts" }), /* @__PURE__ */ (0, x.jsx)("ul", { children: e.outputs.map(([e, t]) => /* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)("span", { children: rm(t.artifact_type) }), /* @__PURE__ */ (0, x.jsxs)("small", { children: [
+										e,
+										" · ",
+										t.artifact_type
+									] })] }, e)) })]
+								}),
+								!!e.limitations.length && /* @__PURE__ */ (0, x.jsxs)("div", {
+									className: "composer-basic-transformation-limitations",
+									children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Current limits" }), /* @__PURE__ */ (0, x.jsx)("ul", { children: e.limitations.map((e) => /* @__PURE__ */ (0, x.jsx)("li", { children: e }, e)) })]
+								})
+							]
+						}, e.node.id)),
 						R && z && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-input",
 							"aria-labelledby": "basic-input-title",
@@ -19333,7 +19388,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				})
 			] }) : /* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "composer-basic-body",
-				children: [re, /* @__PURE__ */ (0, x.jsxs)("section", {
+				children: [ie, /* @__PURE__ */ (0, x.jsxs)("section", {
 					className: "composer-basic-plan-boundary",
 					"aria-label": "Basic plan validation",
 					children: [/* @__PURE__ */ (0, x.jsx)(bf, {

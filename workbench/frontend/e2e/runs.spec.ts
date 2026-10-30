@@ -62,3 +62,41 @@ test("presents a run as an inspectable, exportable receipt", async ({ page }) =>
     inspector.getByRole("button", { name: "Export receipt" }),
   ).toBeVisible();
 });
+
+
+test("preserves a QASMTrans path and its limits in the run receipt", async ({ page }) => {
+  await page.route("**/api/v1/runs", async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify([{
+        id: "run-transpilation-browser-test",
+        workflow_id: "ct-hw-qasm-analysis",
+        workflow_version: "0.1.0",
+        execution_target: "development-slurm-docker",
+        state: "succeeded",
+        created_at: "2026-10-30T12:00:00Z",
+        created_by: "browser-test",
+        inputs: { circuit: "artifact-source-circuit" },
+        outputs: {
+          transpiled_circuit: "artifact-transpiled-circuit",
+          metrics: "artifact-transpiled-metrics",
+        },
+        tasks: [],
+      }]),
+    });
+  });
+
+  await page.goto("/?view=runs");
+  await page.getByText("ct-hw-qasm-analysis", { exact: true }).click();
+
+  const inspector = page.locator("#inspector");
+  await expect(inspector.getByRole("heading", { name: "Transpilation evidence" })).toBeVisible();
+  await expect(inspector).toContainText("qasmtrans-transpiler");
+  await expect(inspector).toContainText("development-slurm-docker");
+  await expect(inspector).toContainText("transpiled_circuit");
+  await expect(inspector).toContainText("Current limits");
+});
