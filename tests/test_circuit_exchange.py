@@ -296,3 +296,43 @@ def test_transpilation_service_requires_a_preexisting_circuit_artifact(tmp_path)
             target_format="openqasm-3",
             created_by="test",
         )
+
+
+def test_transpilation_service_persists_static_pytket_mapping_evidence(tmp_path) -> None:
+    pytket = pytest.importorskip("pytket")
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    source = engine.register_input_artifact(
+        artifact_type="qhpc.quantum-circuit@1",
+        content=b'''OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+creg c[2];
+h q[0];
+cx q[0],q[1];
+measure q[0] -> c[0];
+measure q[1] -> c[1];
+''',
+        name="bell.qasm",
+        created_by="test",
+    )
+
+    result = TranspilationService(engine).convert(
+        source["id"],
+        source_format="openqasm-2",
+        target_format="pytket-json",
+        created_by="test",
+    )
+
+    _, pytket_bytes, _ = engine.read_artifact_content(result["transformed_artifact"]["id"])
+    restored = pytket.Circuit.from_dict(json.loads(pytket_bytes))
+    assert [command.op.type.name for command in restored.get_commands()] == [
+        "H",
+        "CX",
+        "Measure",
+        "Measure",
+    ]
+    assert result["report"]["classification"] == "exact"
+    assert result["report"]["qubit_mapping"] == [
+        {"source": "q[0]", "target": "q[0]"},
+        {"source": "q[1]", "target": "q[1]"},
+    ]

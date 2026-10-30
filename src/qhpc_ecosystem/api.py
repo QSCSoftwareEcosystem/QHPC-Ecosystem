@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import mimetypes
@@ -576,8 +577,12 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 raise ValueError("invalid Content-Length") from error
             if length <= 0:
                 return {}
-            if length > 2_000_000:
-                raise ValueError("request body exceeds 2 MB")
+            path = urlparse(self.path).path
+            maximum = 14_000_000 if path == "/api/v1/artifacts" else 2_000_000
+            if length > maximum:
+                raise ValueError(
+                    f"request body exceeds {maximum // 1_000_000} MB"
+                )
             value = json.loads(self.rfile.read(length))
             if not isinstance(value, dict):
                 raise ValueError("JSON body must be an object")
@@ -1454,14 +1459,28 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     self._json_response(HTTPStatus.ACCEPTED, result)
                     return
                 if path == "/api/v1/artifacts":
-                    if "content" not in body:
-                        raise ValueError("artifact content is required")
-                    content = body["content"]
-                    if not isinstance(content, str):
-                        raise ValueError("artifact content must be text")
+                    has_text_content = "content" in body
+                    has_binary_content = "content_base64" in body
+                    if has_text_content == has_binary_content:
+                        raise ValueError(
+                            "supply exactly one of artifact content or content_base64"
+                        )
+                    if has_text_content:
+                        content = body["content"]
+                        if not isinstance(content, str):
+                            raise ValueError("artifact content must be text")
+                        artifact_content = content.encode("utf-8")
+                    else:
+                        encoded = body["content_base64"]
+                        if not isinstance(encoded, str):
+                            raise ValueError("artifact content_base64 must be text")
+                        try:
+                            artifact_content = base64.b64decode(encoded, validate=True)
+                        except ValueError as error:
+                            raise ValueError("artifact content_base64 is invalid") from error
                     result = context.engine.register_input_artifact(
                         artifact_type=body["artifact_type"],
-                        content=content.encode("utf-8"),
+                        content=artifact_content,
                         name=body.get("name", "input.txt"),
                         created_by=body.get("created_by", "workbench-user"),
                         labels=body.get("labels", {}),

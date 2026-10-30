@@ -15,7 +15,9 @@ from .circuit_exchange import (
     CircuitExchangeError,
     exchange_to_qasm2,
     exchange_to_qasm3,
+    exchange_to_pytket,
     exchange_to_qpy,
+    pytket_conversion_report,
     qasm2_to_exchange,
     qasm3_to_exchange,
     qpy_to_exchange,
@@ -25,7 +27,9 @@ from .engine import WorkflowEngine
 
 
 SOURCE_FORMATS = frozenset({"openqasm-2", "openqasm-3", "qiskit-qpy", "circuit-exchange"})
-TARGET_FORMATS = frozenset({"openqasm-2", "openqasm-3", "qiskit-qpy"})
+TARGET_FORMATS = frozenset(
+    {"openqasm-2", "openqasm-3", "qiskit-qpy", "pytket-json"}
+)
 SOURCE_ARTIFACT_TYPES = frozenset(
     {
         "qhpc.quantum-circuit@1",
@@ -83,14 +87,40 @@ class TranspilationService:
         raise TranspilationServiceError(f"unsupported source format: {source_format}")
 
     @staticmethod
-    def _target_from_exchange(target_format: str, document: dict[str, Any]) -> tuple[bytes, str, str]:
+    def _target_from_exchange(
+        target_format: str,
+        document: dict[str, Any],
+    ) -> tuple[bytes, str, str, dict[str, Any] | None]:
         try:
             if target_format == "openqasm-2":
-                return exchange_to_qasm2(document).encode("utf-8"), "qasm", "circuit-exchange-to-openqasm-2"
+                return (
+                    exchange_to_qasm2(document).encode("utf-8"),
+                    "qasm",
+                    "circuit-exchange-to-openqasm-2",
+                    None,
+                )
             if target_format == "openqasm-3":
-                return exchange_to_qasm3(document).encode("utf-8"), "qasm", "circuit-exchange-to-openqasm-3"
+                return (
+                    exchange_to_qasm3(document).encode("utf-8"),
+                    "qasm",
+                    "circuit-exchange-to-openqasm-3",
+                    None,
+                )
             if target_format == "qiskit-qpy":
-                return exchange_to_qpy(document), "qpy", "circuit-exchange-to-qiskit-qpy"
+                return (
+                    exchange_to_qpy(document),
+                    "qpy",
+                    "circuit-exchange-to-qiskit-qpy",
+                    None,
+                )
+            if target_format == "pytket-json":
+                circuit = exchange_to_pytket(document)
+                return (
+                    _canonical_json(circuit.to_dict()),
+                    "pytket.json",
+                    "circuit-exchange-to-pytket",
+                    pytket_conversion_report(document),
+                )
         except CircuitExchangeError as error:
             raise TranspilationServiceError(str(error)) from error
         raise TranspilationServiceError(f"unsupported target format: {target_format}")
@@ -128,7 +158,7 @@ class TranspilationService:
                 "source artifact must be a declared EQO circuit artifact type"
             )
         exchange = self._exchange_from_payload(source_format, payload)
-        transformed, extension, target_adapter = self._target_from_exchange(
+        transformed, extension, target_adapter, target_evidence = self._target_from_exchange(
             target_format,
             exchange,
         )
@@ -193,6 +223,17 @@ class TranspilationService:
             "target_profile": None,
             "warnings": limitations,
         }
+        if target_evidence is not None:
+            report = {
+                **report,
+                "classification": target_evidence["classification"],
+                "qubit_mapping": target_evidence["qubit_mapping"],
+                "implicit_swaps": target_evidence["implicit_swaps"],
+                "gate_decompositions": target_evidence["gate_decompositions"],
+                "compiler_options": target_evidence["compiler_options"],
+                "target_profile": target_evidence["target_profile"],
+                "warnings": [*limitations, *target_evidence["warnings"]],
+            }
         report_artifact = self.engine.register_input_artifact(
             artifact_type=REPORT_ARTIFACT_TYPE,
             content=_canonical_json(report),

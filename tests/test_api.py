@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import threading
 from http.server import ThreadingHTTPServer
@@ -903,6 +904,19 @@ measure q[1] -> c[1];
             },
         )
         assert status == 201
+
+        status, binary = request_json(
+            base,
+            "/api/v1/artifacts",
+            {
+                "artifact_type": "qhpc.quantum-circuit@1",
+                "name": "binary.qpy",
+                "content_base64": base64.b64encode(b"\x00qpy\xff").decode("ascii"),
+            },
+        )
+        assert status == 201
+        with urlopen(base + f"/api/v1/artifacts/{binary['id']}/content", timeout=3) as response:
+            assert response.read() == b"\x00qpy\xff"
 
         status, conversion = request_json(
             base,

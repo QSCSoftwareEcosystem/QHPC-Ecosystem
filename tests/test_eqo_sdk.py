@@ -108,6 +108,13 @@ def test_sdk_uses_the_same_api_for_artifacts_runs_and_assistant(tmp_path: Path) 
         )
         assert conversion["report"]["source"]["artifact_id"] == input_artifact.id
         assert conversion["transformed_artifact"]["artifact_type"] == "qhpc.transpiled-circuit@1"
+        binary_artifact = client.artifacts.create_input_bytes(
+            "qhpc.quantum-circuit@1",
+            b"\x00qpy\xff",
+            name="input.qpy",
+            created_by="sdk-test",
+        )
+        assert binary_artifact.read_bytes() == b"\x00qpy\xff"
 
         run = client.workflows.submit(
             registered["id"],

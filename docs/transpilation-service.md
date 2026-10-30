@@ -51,7 +51,16 @@ receipt views remains a separate integration step.
 a declared source format, and a declared target format. It never accepts or
 executes Python source. The initial source formats are `openqasm-2`,
 `openqasm-3`, `qiskit-qpy`, and `circuit-exchange`; the initial target formats
-are `openqasm-2`, `openqasm-3`, and `qiskit-qpy`.
+are `openqasm-2`, `openqasm-3`, `qiskit-qpy`, and `pytket-json`. The
+`pytket-json` target is the declared static `q`/`c` bridge subset; its report
+records the exact identity mapping and does not claim device routing or a
+Quantinuum compilation pass.
+
+The standard artifact endpoint accepts UTF-8 `content` or bounded binary
+`content_base64` (exactly one), so a QPY source can enter through the same
+checksum-verified artifact boundary. The Python client exposes the two forms
+as `client.artifacts.create_input(...)` and
+`client.artifacts.create_input_bytes(...)`.
 
 The source must have a declared EQO circuit artifact type. A successful
 conversion returns and persists:

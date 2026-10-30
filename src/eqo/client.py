@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import time
@@ -334,6 +335,30 @@ class _Artifacts:
         if created_by is not None:
             payload["created_by"] = created_by
         return Artifact(self._client, self._client._request_object("POST", "/api/v1/artifacts", payload))
+
+    def create_input_bytes(
+        self,
+        artifact_type: str,
+        content: bytes,
+        *,
+        name: str = "input.bin",
+        created_by: str | None = None,
+        labels: Mapping[str, str] | None = None,
+    ) -> Artifact:
+        if not isinstance(content, bytes):
+            raise TypeError("binary artifact content must be bytes")
+        payload: dict[str, Any] = {
+            "artifact_type": artifact_type,
+            "content_base64": base64.b64encode(content).decode("ascii"),
+            "name": name,
+            "labels": dict(labels or {}),
+        }
+        if created_by is not None:
+            payload["created_by"] = created_by
+        return Artifact(
+            self._client,
+            self._client._request_object("POST", "/api/v1/artifacts", payload),
+        )
 
 
 class _Transpilation:
