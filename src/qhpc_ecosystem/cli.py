@@ -333,6 +333,10 @@ def build_parser() -> argparse.ArgumentParser:
         "stage",
         help="prepare one exact detached candidate checkout",
     )
+    updates_build = updates_commands.add_parser(
+        "build",
+        help="isolated build and smoke test of one prepared deployment candidate",
+    )
     updates_discard = updates_commands.add_parser(
         "discard",
         help="release one prepared candidate selection",
@@ -341,6 +345,7 @@ def build_parser() -> argparse.ArgumentParser:
         updates_list,
         updates_check,
         updates_stage,
+        updates_build,
         updates_discard,
     ):
         command.add_argument("--registry", default="examples/registry.yaml")
@@ -358,6 +363,7 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--json", action="store_true")
     updates_check.add_argument("component", nargs="*")
     updates_stage.add_argument("component")
+    updates_build.add_argument("component")
     updates_stage.add_argument(
         "--revision",
         help="expected latest full commit hash; defaults to a fresh remote check",
@@ -2136,6 +2142,18 @@ def dispatch(args: argparse.Namespace) -> int:
             result = {
                 "enabled": True,
                 "generated_at": item.get("checked_at"),
+                "items": [item],
+            }
+        elif args.updates_command == "build":
+            if is_onboarding_component(args.component):
+                raise RepositoryUpdateError(
+                    "locally admitted components use `eqo component-onboarding build`; "
+                    "repository update builds apply to reviewed deployment runtimes"
+                )
+            item = manager.build(args.component)
+            result = {
+                "enabled": True,
+                "generated_at": item.get("candidate_build", {}).get("built_at"),
                 "items": [item],
             }
         else:

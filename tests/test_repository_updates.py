@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import threading
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import yaml
 
+from qhpc_ecosystem import repository_updates
+from qhpc_ecosystem.operation_runtime import file_digest, source_archive_digest
 from qhpc_ecosystem.repository_updates import (
     RepositoryUpdateError,
     RepositoryUpdateDetector,
@@ -77,6 +82,120 @@ def documents(
     return registry, profile
 
 
+def candidate_rebuild_documents(
+    workspace: Path,
+    repository: Path,
+    revision: str,
+) -> tuple[dict, dict]:
+    """Create one reviewed, local-only candidate-rebuild runtime contract."""
+    repository_url = repository.as_uri()
+    runtime_directory = workspace / "runtime-contracts"
+    integration_directory = workspace / "integrations" / "example"
+    runtime_directory.mkdir(parents=True)
+    integration_directory.mkdir(parents=True)
+    recipe = workspace / "Containerfile"
+    entrypoint = workspace / "entrypoint.sh"
+    fixture = workspace / "fixture.txt"
+    builder_digest = "sha256:" + "a" * 64
+    runtime_digest = "sha256:" + "b" * 64
+    builder = f"docker.io/library/gcc:test@{builder_digest}"
+    runtime = f"docker.io/library/debian:test@{runtime_digest}"
+    recipe.write_text(
+        f"FROM {builder} AS build\nFROM {runtime}\nARG SOURCE_REVISION\n",
+        encoding="ascii",
+    )
+    entrypoint.write_text("#!/bin/sh\nexit 0\n", encoding="ascii")
+    fixture.write_text("fixture\n", encoding="ascii")
+    timestamp = int(git("show", "-s", "--format=%ct", revision, cwd=repository))
+    runtime_document = {
+        "api_version": "qhpc/v1",
+        "kind": "OperationRuntime",
+        "metadata": {
+            "id": "example-runtime-linux-amd64",
+            "name": "Example runtime",
+            "version": "0.1.0",
+            "component": "example",
+            "capability": "example-capability",
+            "operation": "run",
+            "project": "software-engineering",
+            "owners": ["qhpc-ecosystem"],
+            "source": {"url": repository_url, "revision": revision},
+            "status": "build-ready",
+            "evidence": [],
+        },
+        "spec": {
+            "packaging": "oci-to-apptainer",
+            "platform": {"os": "linux", "architecture": "amd64"},
+            "build": {
+                "recipe": {"path": "Containerfile", "digest": file_digest(recipe)},
+                "source_archive": {
+                    "filename": "source.tar",
+                    "format": "git-archive-tar",
+                    "digest": source_archive_digest(repository, revision),
+                    "source_date_epoch": timestamp,
+                },
+                "context_files": [{
+                    "source": "entrypoint.sh",
+                    "destination": "entrypoint.sh",
+                    "digest": file_digest(entrypoint),
+                    "mode": "0755",
+                }],
+                "candidate_rebuild": {"source_revision_build_arg": "SOURCE_REVISION"},
+                "builder": {"reference": builder, "digest": builder_digest},
+                "runtime_base": {"reference": runtime, "digest": runtime_digest},
+                "network": "disabled",
+            },
+            "execution": {
+                "entrypoint": ["/opt/test"],
+                "working_directory": "/work",
+                "network": "disabled",
+                "read_only_root": True,
+                "mounts": [
+                    {"name": "input", "kind": "input", "path": "/inputs", "mode": "ro"},
+                    {"name": "output", "kind": "output", "path": "/outputs", "mode": "rw"},
+                ],
+                "ports": {"inputs": {"input": "/inputs/fixture.txt"}, "outputs": {"result": "/outputs/result.txt"}},
+                "parameters": {},
+            },
+            "verification": {
+                "fixture": {"path": "fixture.txt", "digest": file_digest(fixture), "mount_path": "/inputs/fixture.txt"},
+                "arguments": [],
+                "expected_outputs": [{"path": "/outputs/result.txt", "nonempty": True}],
+                "timeout_seconds": 10,
+            },
+            "release": {"status": "unpublished"},
+        },
+    }
+    (runtime_directory / "example.yaml").write_text(
+        yaml.safe_dump(runtime_document, sort_keys=False), encoding="utf-8"
+    )
+    integration = {
+        "api_version": "qhpc/v1",
+        "kind": "IntegrationScaffold",
+        "metadata": {"id": "example", "name": "Example", "version": "0.1.0", "project": "software-engineering", "role": "operation-provider", "owners": ["qhpc-ecosystem"], "visibility": "internal", "integration_status": "published"},
+        "spec": {
+            "source": {"kind": "repository", "url": repository_url, "catalog_repository": "example-tool"},
+            "mirror": {"status": "not-applicable"},
+            "development_environment": {"status": "assigned", "class": "hpc-build"},
+            "interfaces": ["cli"],
+            "scope": {"status": "defined", "summary": "Test candidate build."},
+            "deliverables": {"source_audit": "complete", "interface_contract": "complete", "adapter": "complete", "fixtures": "complete", "integration_tests": "complete", "registry_publication": "complete"},
+            "contract_refs": ["runtime-contracts/example.yaml"],
+            "evidence": ["docs/evidence/test.md"],
+            "production_runtime": {"status": "deferred", "technology": "oci", "reason": "Test fixture."},
+            "blockers": [],
+        },
+    }
+    (integration_directory / "integration.yaml").write_text(
+        yaml.safe_dump(integration, sort_keys=False), encoding="utf-8"
+    )
+    registry, profile = documents(repository, revision)
+    registry["spec"]["entries"][0]["capability"]["metadata"]["repository"]["url"] = repository_url
+    profile["spec"]["components"][0]["source"]["url"] = repository_url
+    profile["spec"]["components"][0]["integration_scaffold"] = "integrations/example/integration.yaml"
+    return registry, profile
+
+
 def test_repository_updates_check_and_stage_exact_revision(tmp_path: Path) -> None:
     source = tmp_path / "source"
     git("init", "--initial-branch=main", str(source))
@@ -128,6 +247,83 @@ def test_repository_updates_check_and_stage_exact_revision(tmp_path: Path) -> No
     assert released["status"] == "update-available"
     assert released["staged_revision"] is None
     assert released["history"][0]["action"] == "discarded"
+
+
+def test_repository_update_candidate_build_records_isolated_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "source"
+    git("init", "--initial-branch=main", str(source))
+    git("config", "user.name", "QHPC Test", cwd=source)
+    git("config", "user.email", "qhpc@example.invalid", cwd=source)
+    current = commit(source, "current")
+    registry, profile = candidate_rebuild_documents(tmp_path, source, current)
+    candidate = commit(source, "candidate")
+    manager = RepositoryUpdateManager(
+        registry,
+        profile,
+        workspace_root=tmp_path,
+        state_root=".qhpc/updates",
+    )
+    assert manager.stage("example", candidate)["status"] == "prepared"
+
+    def fake_prepare(manifest, checkout, destination, *, workspace_root):
+        document = json.loads(Path(manifest).read_text(encoding="utf-8"))
+        assert document["metadata"]["source"]["revision"] == candidate
+        assert Path(checkout).name == candidate
+        path = Path(destination)
+        path.mkdir()
+        return SimpleNamespace(
+            path=path,
+            source_archive_digest=document["spec"]["build"]["source_archive"]["digest"],
+            source_date_epoch=document["spec"]["build"]["source_archive"]["source_date_epoch"],
+        )
+
+    monkeypatch.setattr(repository_updates, "prepare_build_context", fake_prepare)
+    monkeypatch.setattr(
+        repository_updates,
+        "build_oci_image",
+        lambda _document, _context, tag: SimpleNamespace(
+            reference=tag,
+            local_id="sha256:" + "c" * 64,
+        ),
+    )
+    monkeypatch.setattr(
+        repository_updates,
+        "smoke_oci_image",
+        lambda _manifest, _image, *, workspace_root: SimpleNamespace(
+            duration_ms=17,
+            outputs=(
+                SimpleNamespace(
+                    container_path="/outputs/result.txt",
+                    digest="sha256:" + "d" * 64,
+                    size=7,
+                ),
+            ),
+        ),
+    )
+
+    built = manager.build("example")
+
+    assert built["status"] == "built"
+    assert built["candidate_build"]["state"] == "succeeded"
+    assert built["candidate_build"]["activation"] == "not-activated"
+    assert built["candidate_build"]["image"]["local_id"] == "sha256:" + "c" * 64
+    assert built["candidate_build"]["smoke"]["outputs"] == [{
+        "path": "/outputs/result.txt",
+        "digest": "sha256:" + "d" * 64,
+        "size": 7,
+    }]
+    assert built["history"][0]["action"] == "build-succeeded"
+    candidate_contract = tmp_path / built["candidate_build"]["candidate_contract"]["path"]
+    assert candidate_contract.is_file()
+    candidate_document = json.loads(candidate_contract.read_text(encoding="utf-8"))
+    assert candidate_document["metadata"]["source"]["revision"] == candidate
+    active_document = yaml.safe_load(
+        (tmp_path / "runtime-contracts" / "example.yaml").read_text(encoding="utf-8")
+    )
+    assert active_document["metadata"]["source"]["revision"] == current
 
 
 def test_repository_updates_report_active_runtime_identity(tmp_path: Path) -> None:

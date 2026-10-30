@@ -1,6 +1,6 @@
 # Repository Updates
 
-- Status: Implemented for controlled discovery, source staging, and revision evidence
+- Status: Implemented for controlled discovery, staging, and opt-in candidate build evidence
 - Last updated: 2026-10-30
 - Decision: [ADR 0011](adr/0011-controlled-repository-updates.md)
 
@@ -19,6 +19,7 @@ eqo updates list
 eqo updates check
 eqo updates check stabsim chatqec
 eqo updates stage stabsim
+eqo updates build qasmtrans
 eqo updates discard stabsim
 ```
 
@@ -42,6 +43,15 @@ adds an optimistic check: staging fails if that commit is no longer the
 configured remote ref. Git authentication must already be available through a
 credential helper or SSH configuration; commands disable terminal prompts.
 
+`eqo updates build COMPONENT` only works after **stage**, and only when the
+component's reviewed operation-runtime contract explicitly declares a
+`candidate_rebuild` policy. EQO writes a separate build-ready candidate
+contract from the staged commit, builds with `--network none`, and smoke-tests
+the resulting local image with no network, read-only root filesystem, dropped
+capabilities, and no-new-privileges. It records only bounded digest and output
+evidence. It never replaces the active contract, registry entry, image digest,
+or worker runtime.
+
 ## Workbench
 
 The **Updates** view calls the same controller through:
@@ -50,12 +60,14 @@ The **Updates** view calls the same controller through:
 GET  /api/v1/repository-updates
 POST /api/v1/repository-updates/check
 POST /api/v1/repository-updates/stage
+POST /api/v1/repository-updates/build
 POST /api/v1/repository-updates/discard
 ```
 
 The Django fixed-origin proxy supplies the Workbench CSRF boundary. Check
 requests accept only an optional component-ID list. Stage requests accept only
-`component_id` and `candidate_revision`; discard accepts only `component_id`.
+`component_id` and `candidate_revision`; build and discard accept only
+`component_id`.
 Repository locations and tracked refs come from server-side admitted records.
 When a capability release predates a repository move, the response reports the
 canonical update repository separately from `current_repository_url`, which
@@ -64,7 +76,10 @@ preserves the source of the active release.
 Each listed component also reports the immutable runtime identities used by its
 published operations. Once a candidate is prepared, EQO reads its commit date
 and subject from the verified detached checkout and records bounded lifecycle
-evidence (`checked`, `prepared`, and `discarded`). This makes source revision,
+evidence (`checked`, `prepared`, `build-succeeded`, `build-failed`, and
+`discarded`). A successful deployment candidate build records the isolated
+local image ID, candidate-contract digest, source-archive digest, smoke-test
+duration, and checksums of declared smoke outputs. This makes source revision,
 active runtime digest, and the preparation decision visible together without
 claiming that a source commit has been activated.
 
@@ -127,6 +142,7 @@ The controller stores:
 .qhpc/updates/
   state.json
   checkouts/<component>/<full-commit>/
+  runtime-contracts/<component>/<full-commit>/runtime.json
 ```
 
 State writes are process-locked and atomic. A prepared checkout must have the
@@ -134,8 +150,11 @@ expected origin, exact detached `HEAD`, and no tracked or untracked changes.
 Existing mismatched or dirty candidate directories fail closed.
 
 Lifecycle evidence is intentionally bounded to the 50 most recent events per
-component and contains no credentials, build logs, or provider tokens. Older
-state files are migrated in place when the controller next writes them.
+component and contains no credentials, build logs, or provider tokens. A
+candidate runtime contract is a local, build-ready artifact: it contains the
+staged source archive digest and timestamp while preserving the reviewed
+recipe, fixture, static context, and base-image pins. Older state files are
+migrated in place when the controller next writes them.
 
 The TN-Sim deployment source explicitly tracks `refs/heads/tn_sim`; ordinary
 repository URLs track the remote `HEAD`. A remote branch move between check and
@@ -152,14 +171,17 @@ requalification rather than a metadata-only source substitution.
 Preparing an update answers: "Which exact source revision should we evaluate?"
 It does not answer: "Which runtime may execute production workflows?"
 
-For an operation provider, activation still requires:
+For an operation provider with an explicit candidate-rebuild policy, the
+controlled local build covers steps 1–3 only for its declared OCI smoke check.
+Activation still requires:
 
-1. build a deterministic source archive from the prepared commit;
-2. rebuild the component OCI image and record its immutable digest;
-3. run adapter, fixture, local-container, and virtual-Slurm checks;
-4. produce required license and supply-chain evidence;
-5. repin the capability, runtime manifest, and registry together; and
-6. restart or roll workers only after the new digest is admitted.
+1. review the candidate OCI build and its bounded smoke evidence;
+2. run any adapter, integration, and virtual-Slurm checks not represented by
+   the runtime's smoke fixture;
+3. produce required license and supply-chain evidence;
+4. publish and repin the capability, runtime manifest, and registry together;
+   and
+5. restart or roll workers only after the new digest is admitted.
 
 Service and knowledge-resource candidates require their corresponding review,
 registry republication, and controlled restart. The active deployment remains

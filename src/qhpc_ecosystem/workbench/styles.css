@@ -1822,6 +1822,7 @@ h2, h3, p { letter-spacing: 0; }
 .update-history-empty { color: var(--muted); font-size: 11px; }
 .update-action { width: 108px; text-align: right; }
 .update-action .button { min-width: 84px; }
+.update-action-stack { display: grid; justify-items: end; gap: 7px; }
 .update-action-state {
   color: var(--muted); font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
 }
@@ -2904,7 +2905,7 @@ h2, h3, p { letter-spacing: 0; }
     column-gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line);
   }
   .update-table td {
-    min-width: 0; display: grid; align-content: start; gap: 6px;
+    min-width: 0; height: auto; display: grid; align-content: start; gap: 6px;
     padding: 8px 0; border: 0;
   }
   .update-table td::before {
@@ -2914,6 +2915,13 @@ h2, h3, p { letter-spacing: 0; }
   .update-table td:first-child, .update-table td:nth-child(4), .update-table td:nth-child(5), .update-table td:last-child {
     grid-column: 1 / -1;
   }
+  .update-table td:nth-child(4) { padding-bottom: 14px; }
+  .update-table td:nth-child(5) {
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .update-status { max-width: none; }
+  .update-status small { max-width: 34ch; }
   .update-history { max-width: none; }
   .update-action { width: auto; text-align: left; }
   .assistant-service-state { align-items: flex-end; flex-direction: column; }

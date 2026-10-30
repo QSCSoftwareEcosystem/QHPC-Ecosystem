@@ -307,6 +307,7 @@ const state = {
     loading: false,
     checking: false,
     staging: null,
+    building: null,
     error: null,
   },
   componentOnboarding: {
@@ -2429,6 +2430,8 @@ function updateStatusLabel(status) {
     "up-to-date": "current",
     "update-available": "available",
     prepared: "prepared",
+    built: "smoke passed",
+    "build-failed": "build failed",
     error: "check failed",
   }[status] || status;
 }
@@ -2454,6 +2457,19 @@ function updateRuntimeDetail(runtimes) {
 
 function updateCandidateDetail(item) {
   const candidate = item.candidate_commit;
+  const commitDetail = candidate?.committed_at && candidate?.subject
+    ? ` · ${formatClock(candidate.committed_at)} · ${candidate.subject}`
+    : "";
+  const build = item.candidate_build;
+  if (build?.state === "succeeded") {
+    const image = String(build.image?.local_id || "");
+    const outputs = Array.isArray(build.smoke?.outputs) ? build.smoke.outputs.length : 0;
+    const duration = Number.isFinite(build.smoke?.duration_ms)
+      ? ` · smoke ${formatDuration(build.smoke.duration_ms)}`
+      : "";
+    return `${image ? `local image ${image.slice(0, 12)}…` : "isolated image built"}${duration} · ${outputs} verified output${outputs === 1 ? "" : "s"}${commitDetail}`;
+  }
+  if (build?.state === "failed") return "Isolated build or smoke test did not pass";
   if (candidate?.committed_at && candidate?.subject) {
     return `${formatClock(candidate.committed_at)} · ${candidate.subject}`;
   }
@@ -2497,24 +2513,35 @@ function renderRepositoryUpdates() {
   const items = updates.data.items || [];
   const available = items.filter(item => item.status === "update-available").length;
   const prepared = items.filter(item => item.status === "prepared").length;
+  const built = items.filter(item => item.status === "built").length;
   const controls = `<div class="update-header-actions">
-    <span class="update-counts">${available} available · ${prepared} prepared</span>
-    <button class="button" id="check-repository-updates" ${updates.checking || updates.staging ? "disabled" : ""}>${updates.checking ? "Checking" : "Check updates"}</button>
+    <span class="update-counts">${available} available · ${prepared} prepared · ${built} smoke-tested</span>
+    <button class="button" id="check-repository-updates" ${updates.checking || updates.staging || updates.building ? "disabled" : ""}>${updates.checking ? "Checking" : "Check updates"}</button>
   </div>`;
   const rows = items.map(item => {
-    const checkingThis = updates.staging === item.component_id;
+    const stagingThis = updates.staging === item.component_id;
+    const buildingThis = updates.building === item.component_id;
+    const busy = updates.checking || updates.staging || updates.building;
     const canStage = item.status === "update-available"
       && item.latest_revision
-      && !updates.checking
-      && !updates.staging;
+      && !busy;
+    const canBuild = item.status === "prepared"
+      && !String(item.component_id || "").startsWith("onboarding:")
+      && !busy;
     const action = canStage
       ? `<button class="button secondary" data-stage-update="${escapeHtml(item.component_id)}" data-candidate-revision="${escapeHtml(item.latest_revision)}">Prepare</button>`
-      : checkingThis
+      : stagingThis
         ? `<button class="button secondary" disabled>Preparing</button>`
-        : item.status === "prepared" && !updates.checking && !updates.staging
+        : buildingThis
+          ? `<button class="button secondary" disabled>Building safely</button>`
+        : canBuild
+          ? `<span class="update-action-stack"><button class="button" data-build-update="${escapeHtml(item.component_id)}">Build &amp; smoke</button><button class="button secondary" data-discard-update="${escapeHtml(item.component_id)}">Discard</button></span>`
+        : item.status === "prepared" && !busy
           ? `<button class="button secondary" data-discard-update="${escapeHtml(item.component_id)}">Discard</button>`
+        : item.status === "built" || item.status === "build-failed"
+          ? `<button class="button secondary" data-discard-update="${escapeHtml(item.component_id)}" ${busy ? "disabled" : ""}>Discard</button>`
           : `<span class="update-action-state">—</span>`;
-    const statusDetail = item.error || item.next_action;
+    const statusDetail = item.error || item.candidate_build?.error || item.next_action;
     const repository = safeHttpUrl(item.repository_url);
     const name = repository
       ? `<a href="${escapeHtml(repository)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.name)}</a>`
@@ -2548,6 +2575,11 @@ function renderRepositoryUpdates() {
   workspace.querySelectorAll("[data-discard-update]").forEach(button => {
     button.addEventListener("click", () => discardRepositoryUpdate(
       button.dataset.discardUpdate,
+    ));
+  });
+  workspace.querySelectorAll("[data-build-update]").forEach(button => {
+    button.addEventListener("click", () => buildRepositoryUpdate(
+      button.dataset.buildUpdate,
     ));
   });
 }
@@ -2974,6 +3006,28 @@ async function discardRepositoryUpdate(componentId) {
     showToast(error.message);
   } finally {
     state.repositoryUpdates.staging = null;
+    if (state.view === "updates") renderRepositoryUpdates();
+  }
+}
+
+async function buildRepositoryUpdate(componentId) {
+  state.repositoryUpdates.building = componentId;
+  renderRepositoryUpdates();
+  try {
+    const result = await api("/repository-updates/build", {
+      method: "POST",
+      body: JSON.stringify({ component_id: componentId }),
+    });
+    state.repositoryUpdates.data = await api("/repository-updates");
+    state.repositoryUpdates.error = null;
+    showToast(result.status === "built"
+      ? `${componentId} build and smoke test passed`
+      : `${componentId} build evidence recorded; review the update gate`);
+  } catch (error) {
+    state.repositoryUpdates.error = error.message;
+    showToast(error.message);
+  } finally {
+    state.repositoryUpdates.building = null;
     if (state.view === "updates") renderRepositoryUpdates();
   }
 }

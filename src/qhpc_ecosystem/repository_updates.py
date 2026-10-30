@@ -18,6 +18,15 @@ from pathlib import Path
 from typing import Any, Callable, Iterator, Sequence
 from urllib.parse import unquote, urlparse
 
+from .contract import document_digest, load_document, validate_contract_data
+from .operation_runtime import (
+    OperationRuntimeError,
+    build_oci_image,
+    derive_candidate_runtime,
+    prepare_build_context,
+    smoke_oci_image,
+)
+
 REVISION = re.compile(r"^[0-9a-fA-F]{40,64}$")
 COMPONENT_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 STATE_VERSION = 2
@@ -38,6 +47,7 @@ class RepositoryTarget:
     current_repository_url: str
     tracked_ref: str
     current_revision: str
+    integration_scaffold: str | None
     runtime_identities: tuple[dict[str, str], ...]
     capability_ids: tuple[str, ...]
     activation: str
@@ -225,6 +235,7 @@ class RepositoryUpdateManager:
                     current_repository_url=next(iter(release_sources)),
                     tracked_ref=tracked_ref,
                     current_revision=next(iter(revisions)),
+                    integration_scaffold=component.get("integration_scaffold"),
                     runtime_identities=tuple(
                         {
                             "digest": digest,
@@ -439,7 +450,12 @@ class RepositoryUpdateManager:
 
         latest = check.get("latest_revision") if check else None
         error = check.get("error") if check else None
-        if staged:
+        candidate_build = staged.get("build") if isinstance(staged, dict) else None
+        if staged and isinstance(candidate_build, dict) and candidate_build.get("state") == "succeeded":
+            status = "built"
+        elif staged and isinstance(candidate_build, dict) and candidate_build.get("state") == "failed":
+            status = "build-failed"
+        elif staged:
             status = "prepared"
         elif error:
             status = "error"
@@ -449,6 +465,18 @@ class RepositoryUpdateManager:
             status = "update-available"
         else:
             status = "not-checked"
+
+        next_action = target.next_action
+        if status == "built":
+            next_action = (
+                "Review candidate build and smoke evidence, then publish a new "
+                "immutable runtime contract and registry revision"
+            )
+        elif status == "build-failed":
+            next_action = (
+                "Inspect the bounded candidate build evidence, fix the source or "
+                "reviewed recipe, then prepare a new candidate"
+            )
 
         return {
             "component_id": target.component_id,
@@ -466,13 +494,14 @@ class RepositoryUpdateManager:
             "error": error,
             "capability_ids": list(target.capability_ids),
             "activation": target.activation,
-            "next_action": target.next_action,
+            "next_action": next_action,
             "staged_revision": staged.get("candidate_revision") if staged else None,
             "staged_at": staged.get("staged_at") if staged else None,
             "candidate_commit": staged.get("candidate_commit") if staged else None,
             "checkout": self._relative_checkout(
                 staged.get("checkout") if staged else None
             ),
+            "candidate_build": candidate_build,
             "history": list(reversed(state["history"].get(target.component_id, []))),
         }
 
@@ -690,6 +719,215 @@ class RepositoryUpdateManager:
                 runtime_digests=[
                     runtime["digest"] for runtime in target.runtime_identities
                 ],
+            )
+            self._write_state(state)
+            return self._item(target, state)
+
+    def _workspace_path(self, value: str, label: str) -> Path:
+        candidate = (self.workspace_root / value).resolve()
+        if candidate != self.workspace_root and self.workspace_root not in candidate.parents:
+            raise RepositoryUpdateError(f"{label} escapes workspace root: {value}")
+        if not candidate.is_file():
+            raise RepositoryUpdateError(f"{label} not found: {value}")
+        return candidate
+
+    def _candidate_runtime_manifest(self, target: RepositoryTarget) -> Path:
+        """Resolve the single reviewed runtime contract that opted into rebasing."""
+        if not target.integration_scaffold:
+            raise RepositoryUpdateError(
+                f"component {target.component_id} has no integration scaffold"
+            )
+        scaffold_path = self._workspace_path(
+            target.integration_scaffold, "integration scaffold"
+        )
+        try:
+            scaffold = load_document(scaffold_path)
+            validate_contract_data("integration-scaffold", scaffold)
+        except Exception as error:
+            raise RepositoryUpdateError(
+                f"component {target.component_id} integration scaffold is invalid"
+            ) from error
+
+        candidates: list[Path] = []
+        for reference in scaffold["spec"].get("contract_refs", []):
+            if not isinstance(reference, str):
+                continue
+            try:
+                contract_path = self._workspace_path(reference, "runtime contract")
+                document = load_document(contract_path)
+                validate_contract_data("operation-runtime", document)
+            except Exception:
+                continue
+            source = document["metadata"]["source"]
+            if (
+                document["metadata"]["component"] == target.component_id
+                and _repository_identity(source["url"])
+                == _repository_identity(target.repository_url)
+                and source["revision"].lower() == target.current_revision.lower()
+                and isinstance(document["spec"]["build"].get("candidate_rebuild"), dict)
+            ):
+                candidates.append(contract_path)
+        if len(candidates) != 1:
+            raise RepositoryUpdateError(
+                f"component {target.component_id} requires exactly one reviewed "
+                "candidate-rebuild runtime contract"
+            )
+        return candidates[0]
+
+    def _candidate_contract_path(
+        self,
+        target: RepositoryTarget,
+        candidate_revision: str,
+    ) -> Path:
+        return (
+            self.state_root
+            / "runtime-contracts"
+            / target.component_id
+            / candidate_revision
+            / "runtime.json"
+        )
+
+    def _write_candidate_contract(self, path: Path, document: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as stream:
+            stream.write(json.dumps(document, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+            temporary = Path(stream.name)
+        try:
+            os.replace(temporary, path)
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
+
+    def _build_evidence(
+        self,
+        target: RepositoryTarget,
+        staged: dict[str, Any],
+    ) -> dict[str, Any]:
+        candidate_revision = staged.get("candidate_revision")
+        checkout_value = staged.get("checkout")
+        if not isinstance(candidate_revision, str) or REVISION.fullmatch(candidate_revision) is None:
+            raise RepositoryUpdateError("prepared candidate has an invalid revision")
+        if not isinstance(checkout_value, str):
+            raise RepositoryUpdateError("prepared candidate has no checkout")
+        checkout = Path(checkout_value).resolve()
+        self._verify_checkout(target, checkout, candidate_revision)
+        active_manifest = self._candidate_runtime_manifest(target)
+        try:
+            candidate_runtime = derive_candidate_runtime(
+                active_manifest,
+                checkout,
+                candidate_revision.lower(),
+                workspace_root=self.workspace_root,
+            )
+        except OperationRuntimeError as error:
+            raise RepositoryUpdateError(str(error)) from error
+        candidate_contract = self._candidate_contract_path(
+            target, candidate_revision.lower()
+        )
+        self._write_candidate_contract(candidate_contract, candidate_runtime)
+        context_parent = self.state_root / "build-contexts" / target.component_id
+        context_parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(
+            prefix=f".{candidate_revision[:12]}-", dir=context_parent
+        ) as temporary:
+            context = Path(temporary) / "context"
+            try:
+                prepared = prepare_build_context(
+                    candidate_contract,
+                    checkout,
+                    context,
+                    workspace_root=self.workspace_root,
+                )
+                image = build_oci_image(
+                    candidate_runtime,
+                    prepared.path,
+                    f"eqo-update-{target.component_id}:{candidate_revision[:12]}",
+                )
+                smoke = smoke_oci_image(
+                    candidate_contract,
+                    image.reference,
+                    workspace_root=self.workspace_root,
+                )
+            except OperationRuntimeError as error:
+                raise RepositoryUpdateError("isolated candidate build or smoke test failed") from error
+        try:
+            relative_contract = str(candidate_contract.relative_to(self.workspace_root))
+        except ValueError:
+            relative_contract = str(candidate_contract)
+        return {
+            "state": "succeeded",
+            "built_at": _timestamp(),
+            "source_revision": candidate_revision.lower(),
+            "candidate_contract": {
+                "path": relative_contract,
+                "digest": document_digest(candidate_runtime),
+                "source_archive_digest": prepared.source_archive_digest,
+                "source_date_epoch": prepared.source_date_epoch,
+            },
+            "image": {"reference": image.reference, "local_id": image.local_id},
+            "smoke": {
+                "duration_ms": smoke.duration_ms,
+                "outputs": [
+                    {
+                        "path": output.container_path,
+                        "digest": output.digest,
+                        "size": output.size,
+                    }
+                    for output in smoke.outputs
+                ],
+            },
+            "activation": "not-activated",
+        }
+
+    def build(self, component_id: str) -> dict[str, Any]:
+        """Build and smoke-test a prepared candidate without changing the active runtime."""
+        target = self._target(component_id)
+        with self._thread_lock, self._state_lock():
+            state = self._load_state()
+            staged = state["staged"].get(component_id)
+            if not isinstance(staged, dict):
+                raise RepositoryUpdateError(
+                    "prepare an exact candidate revision before building it"
+                )
+            candidate_revision = staged.get("candidate_revision")
+            if not isinstance(candidate_revision, str):
+                raise RepositoryUpdateError("prepared candidate has an invalid revision")
+            try:
+                evidence = self._build_evidence(target, staged)
+            except RepositoryUpdateError as error:
+                evidence = {
+                    "state": "failed",
+                    "built_at": _timestamp(),
+                    "source_revision": candidate_revision.lower(),
+                    "error": str(error)[:500],
+                    "activation": "not-activated",
+                }
+                staged["build"] = evidence
+                self._record_event(
+                    state,
+                    component_id,
+                    "build-failed",
+                    candidate_revision=candidate_revision.lower(),
+                )
+                self._write_state(state)
+                return self._item(target, state)
+            staged["build"] = evidence
+            self._record_event(
+                state,
+                component_id,
+                "build-succeeded",
+                candidate_revision=candidate_revision.lower(),
+                image_digest=evidence["image"]["local_id"],
+                smoke_duration_ms=evidence["smoke"]["duration_ms"],
             )
             self._write_state(state)
             return self._item(target, state)

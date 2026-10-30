@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import re
@@ -96,6 +97,52 @@ def source_archive_digest(source: str | Path, revision: str) -> str:
     archive = _run_git(source_path, "archive", "--format=tar", revision, text=False)
     assert isinstance(archive, bytes)
     return _digest_bytes(archive)
+
+
+def derive_candidate_runtime(
+    manifest: str | Path,
+    source: str | Path,
+    candidate_revision: str,
+    *,
+    workspace_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Rebase an explicitly opted-in runtime contract on one verified commit.
+
+    This deliberately preserves the reviewed recipe, static context, base-image
+    pins, fixture, and execution policy.  It only replaces the source revision
+    and the two Git-derived values that prove the generated archive.  The
+    resulting document is build-ready and unpublished; it is not a replacement
+    for the active, immutable runtime contract.
+    """
+    if not re.fullmatch(r"[0-9a-f]{40}", candidate_revision):
+        raise OperationRuntimeError("candidate revision must be a lowercase full Git SHA")
+    manifest_path = Path(manifest).expanduser().resolve()
+    active = verify_runtime_definition(manifest_path, workspace_root)
+    policy = active["spec"]["build"].get("candidate_rebuild")
+    if not isinstance(policy, dict):
+        raise OperationRuntimeError(
+            "runtime contract does not explicitly allow candidate rebuilds"
+        )
+    source_path = Path(source).expanduser().resolve()
+    if not source_path.is_dir():
+        raise OperationRuntimeError(f"runtime source not found: {source_path}")
+    resolved = _run_git(
+        source_path, "rev-parse", "--verify", candidate_revision + "^{commit}"
+    ).lower()
+    if resolved != candidate_revision:
+        raise OperationRuntimeError(
+            "candidate revision did not resolve to the requested Git commit"
+        )
+    archive, timestamp = _source_archive(source_path, candidate_revision)
+    candidate = copy.deepcopy(active)
+    candidate["metadata"]["source"]["revision"] = candidate_revision
+    candidate["metadata"]["status"] = "build-ready"
+    candidate["metadata"]["evidence"] = []
+    candidate["spec"]["build"]["source_archive"]["digest"] = _digest_bytes(archive)
+    candidate["spec"]["build"]["source_archive"]["source_date_epoch"] = timestamp
+    candidate["spec"]["release"] = {"status": "unpublished"}
+    validate_contract_data("operation-runtime", candidate)
+    return candidate
 
 
 def _workspace_root(manifest_path: Path, explicit: str | Path | None) -> Path:
@@ -463,6 +510,19 @@ def oci_build_command(
         [
             "--build-arg",
             f"SOURCE_DATE_EPOCH={context_metadata['source_date_epoch']}",
+        ]
+    )
+    candidate_policy = manifest["spec"]["build"].get("candidate_rebuild")
+    if candidate_policy is not None:
+        build_argument = candidate_policy["source_revision_build_arg"]
+        command.extend(
+            [
+                "--build-arg",
+                f"{build_argument}={context_metadata['source']['revision']}",
+            ]
+        )
+    command.extend(
+        [
             "--file",
             str(context_path / "Containerfile"),
             "--tag",

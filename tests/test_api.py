@@ -104,6 +104,7 @@ class FakeRepositoryUpdates:
         self.checked: list[list[str] | None] = []
         self.staged: list[tuple[str, str | None]] = []
         self.discarded: list[str] = []
+        self.built: list[str] = []
 
     def list(self) -> dict:
         return {
@@ -142,6 +143,14 @@ class FakeRepositoryUpdates:
         return {
             "component_id": component_id,
             "status": "update-available",
+        }
+
+    def build(self, component_id) -> dict:
+        self.built.append(component_id)
+        return {
+            "component_id": component_id,
+            "status": "built",
+            "candidate_build": {"state": "succeeded"},
         }
 
 
@@ -807,6 +816,15 @@ def test_api_repository_updates_use_allowlisted_fields(tmp_path: Path) -> None:
         assert status == 201
         assert staged["status"] == "prepared"
         assert updates.staged == [("stabsim", candidate)]
+
+        status, built = request_json(
+            base,
+            "/api/v1/repository-updates/build",
+            {"component_id": "stabsim"},
+        )
+        assert status == 200
+        assert built["status"] == "built"
+        assert updates.built == ["stabsim"]
 
         status, discarded = request_json(
             base,

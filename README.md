@@ -481,6 +481,8 @@ eqo validate
 eqo sync-manifest --check
 eqo updates list
 eqo updates check
+# After preparing a reviewed deployment candidate, run its isolated build gate.
+eqo updates build qasmtrans
 ```
 
 Use the contract and integration commands to inspect pre-runtime admission:

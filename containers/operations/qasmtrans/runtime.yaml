@@ -22,7 +22,7 @@ spec:
   build:
     recipe:
       path: containers/operations/qasmtrans/Containerfile
-      digest: sha256:ae6b180750248afb7e224393880b9ff52a72f8e12d6622d7c206837e670dbd3c
+      digest: sha256:1282f43f4c0952310e8f1be23d65f51f68740fb03975a640c1bf0b56ad624afe
     source_archive:
       filename: source.tar
       format: git-archive-tar
@@ -33,6 +33,8 @@ spec:
         destination: entrypoint.sh
         digest: sha256:2f8f5ed8800901e15e2e2f2531f473ba351d8c98034b86a08c82f5b321b9356c
         mode: "0755"
+    candidate_rebuild:
+      source_revision_build_arg: SOURCE_REVISION
     builder:
       reference: docker.io/library/gcc:13.4.0-bookworm@sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867
       digest: sha256:69004890c1c5fa2deb855aecc4033afa507c5d187b89e2bce4eb1d907101e867

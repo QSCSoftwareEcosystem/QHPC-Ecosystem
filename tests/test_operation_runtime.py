@@ -18,6 +18,7 @@ from qhpc_ecosystem.contract import (
 from qhpc_ecosystem.operation_runtime import (
     OperationRuntimeError,
     apptainer_build_command,
+    derive_candidate_runtime,
     file_digest,
     oci_build_command,
     prepare_build_context,
@@ -293,6 +294,81 @@ def test_prepare_build_context_is_pinned_and_deterministic(tmp_path: Path) -> No
             first.path,
             "qhpc/test-operation:fixture",
             builder="/usr/bin/docker",
+        )
+
+
+def test_candidate_runtime_only_rebases_an_explicitly_opted_in_recipe(
+    tmp_path: Path,
+) -> None:
+    manifest, source = _runtime_fixture(tmp_path)
+    document = load_document(manifest)
+    recipe = manifest.parent / "Containerfile"
+    recipe.write_text(
+        recipe.read_text(encoding="ascii") + "ARG SOURCE_REVISION\n",
+        encoding="ascii",
+    )
+    document["spec"]["build"]["recipe"]["digest"] = file_digest(recipe)
+    document["spec"]["build"]["candidate_rebuild"] = {
+        "source_revision_build_arg": "SOURCE_REVISION"
+    }
+    manifest.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+
+    (source / "source.cpp").write_text("int main() { return 1; }\n", encoding="ascii")
+    subprocess.run(["git", "-C", str(source), "add", "source.cpp"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source),
+            "-c",
+            "user.name=QHPC Test",
+            "-c",
+            "user.email=qhpc@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "candidate source",
+        ],
+        check=True,
+    )
+    candidate_revision = subprocess.run(
+        ["git", "-C", str(source), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    candidate = derive_candidate_runtime(
+        manifest, source, candidate_revision, workspace_root=manifest.parent
+    )
+
+    assert load_document(manifest)["metadata"]["source"]["revision"] != candidate_revision
+    assert candidate["metadata"]["source"]["revision"] == candidate_revision
+    assert candidate["metadata"]["status"] == "build-ready"
+    assert candidate["metadata"]["evidence"] == []
+    assert candidate["spec"]["release"] == {"status": "unpublished"}
+    context_manifest = tmp_path / "candidate-runtime.json"
+    context_manifest.write_text(json.dumps(candidate), encoding="utf-8")
+    prepared = prepare_build_context(
+        context_manifest,
+        source,
+        tmp_path / "candidate-context",
+        workspace_root=manifest.parent,
+    )
+    command = oci_build_command(
+        candidate,
+        prepared.path,
+        "qhpc/test-operation:candidate",
+        builder="/usr/bin/docker",
+    )
+    assert f"SOURCE_REVISION={candidate_revision}" in command
+
+    document = load_document(manifest)
+    document["spec"]["build"].pop("candidate_rebuild")
+    manifest.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+    with pytest.raises(OperationRuntimeError, match="does not explicitly allow"):
+        derive_candidate_runtime(
+            manifest, source, candidate_revision, workspace_root=manifest.parent
         )
 
 

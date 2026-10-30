@@ -4,9 +4,10 @@ import { expect, test } from "@playwright/test";
 test("checks and prepares an allowlisted repository update", async ({ page }) => {
   const currentRevision = "a".repeat(40);
   const candidateRevision = "b".repeat(40);
-  let status: "not-checked" | "update-available" | "prepared" = "not-checked";
+  let status: "not-checked" | "update-available" | "prepared" | "built" = "not-checked";
   let checkBody: Record<string, unknown> | undefined;
   let stageBody: Record<string, unknown> | undefined;
+  let buildBody: Record<string, unknown> | undefined;
 
   const response = () => ({
     enabled: true,
@@ -36,22 +37,27 @@ test("checks and prepares an allowlisted repository update", async ({ page }) =>
         capability_ids: ["stabsim-simulator"],
         activation: "rebuild-required",
         next_action: "Rebuild and validate runtime before activation",
-        staged_revision: status === "prepared" ? candidateRevision : null,
+        staged_revision: status === "prepared" || status === "built" ? candidateRevision : null,
         staged_at:
-          status === "prepared" ? "2026-07-29T12:01:00Z" : null,
+          status === "prepared" || status === "built" ? "2026-07-29T12:01:00Z" : null,
         checkout:
-          status === "prepared"
+          status === "prepared" || status === "built"
             ? `.qhpc/updates/checkouts/stabsim/${candidateRevision}`
             : null,
         candidate_commit:
-          status === "prepared"
+          status === "prepared" || status === "built"
             ? {
                 revision: candidateRevision,
                 committed_at: "2026-07-29T11:56:00Z",
                 subject: "Improve stabilizer decoding",
               }
             : null,
-        history: status === "prepared"
+        candidate_build: status === "built" ? {
+          state: "succeeded",
+          image: { local_id: `sha256:${"e".repeat(64)}` },
+          smoke: { duration_ms: 17, outputs: [{ path: "/outputs/result.txt" }] },
+        } : null,
+        history: status === "prepared" || status === "built"
           ? [{ at: "2026-07-29T12:01:00Z", action: "prepared", candidate_revision: candidateRevision }]
           : [],
       },
@@ -81,6 +87,14 @@ test("checks and prepares an allowlisted repository update", async ({ page }) =>
       body: JSON.stringify(response().items[0]),
     });
   });
+  await page.route("**/api/v1/repository-updates/build", async (route) => {
+    buildBody = route.request().postDataJSON() as Record<string, unknown>;
+    status = "built";
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(response().items[0]),
+    });
+  });
 
   await page.goto("/?view=updates");
 
@@ -100,8 +114,12 @@ test("checks and prepares an allowlisted repository update", async ({ page }) =>
   await page.getByRole("button", { name: "Prepare", exact: true }).click();
   await expect(page.locator(".update-status").getByText("prepared", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Discard", exact: true }),
+    page.getByRole("button", { name: "Build & smoke", exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Build & smoke", exact: true }).click();
+  await expect(page.getByText("smoke passed", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-label="Latest"]')).toContainText("local image");
+  expect(buildBody).toEqual({ component_id: "stabsim" });
   await expect(page.locator('[data-label="Latest"]')).toContainText(
     "Improve stabilizer decoding",
   );

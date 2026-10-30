@@ -1256,6 +1256,29 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         result = context.repository_updates.discard(component_id)
                     self._json_response(HTTPStatus.OK, result)
                     return
+                if path == "/api/v1/repository-updates/build":
+                    if context.repository_updates is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "deployment repository updates are not enabled",
+                        )
+                        return
+                    unexpected = sorted(set(body) - {"component_id"})
+                    if unexpected:
+                        raise ValueError(
+                            "unsupported repository update build fields: "
+                            + ", ".join(unexpected)
+                        )
+                    component_id = body.get("component_id")
+                    if not isinstance(component_id, str) or not component_id:
+                        raise ValueError("component_id must be a string")
+                    if component_id.startswith("onboarding:"):
+                        raise ValueError(
+                            "locally admitted components use the component onboarding build route"
+                        )
+                    result = context.repository_updates.build(component_id)
+                    self._json_response(HTTPStatus.OK, result)
+                    return
                 if path == "/api/v1/component-onboarding/inspect":
                     if context.component_onboarding is None:
                         self._error(

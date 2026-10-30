@@ -164,6 +164,18 @@
           "type": "array",
           "items": {"$ref": "#/$defs/dependencyArchive"}
         },
+        "candidate_rebuild": {
+          "type": "object",
+          "description": "An explicit opt-in to rebase this exact, pinned recipe on a staged source commit. The recipe must consume the declared revision build argument only for provenance.",
+          "additionalProperties": false,
+          "required": ["source_revision_build_arg"],
+          "properties": {
+            "source_revision_build_arg": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          }
+        },
         "builder": {"$ref": "#/$defs/pinnedImage"},
         "runtime_base": {"$ref": "#/$defs/pinnedImage"},
         "network": {"const": "disabled"}

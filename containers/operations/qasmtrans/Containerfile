@@ -28,10 +28,11 @@ RUN tar -xf /tmp/source.tar -C /src \
     && find /runtime-root -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +
 
 FROM docker.io/library/debian:bookworm-slim@sha256:63a496b5d3b99214b39f5ed70eb71a61e590a77979c79cbee4faf991f8c0783e
+ARG SOURCE_REVISION
 LABEL org.opencontainers.image.title="QHPC QASMTrans operation runtime" \
       org.opencontainers.image.description="Controlled QASMTrans IBM Toronto transpilation operation" \
       org.opencontainers.image.source="https://github.com/pnnl/qasmtrans" \
-      org.opencontainers.image.revision="1843c98fa4bac9cf6b88412145b69457e9176124" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
       org.opencontainers.image.licenses="BSD-2-Clause" \
       org.qscsoftware.capability="qasmtrans-transpiler" \
       org.qscsoftware.operation="transpile"
