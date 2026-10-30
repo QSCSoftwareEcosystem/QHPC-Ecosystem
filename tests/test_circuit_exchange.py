@@ -9,8 +9,15 @@ from qhpc_ecosystem.circuit_exchange import (
     MAX_QASM_BYTES,
     MAX_QPY_BYTES,
     exchange_to_qasm2,
+    exchange_to_qasm3,
+    exchange_to_pytket,
     exchange_to_qpy,
+    exchange_to_cirq,
+    cirq_to_exchange,
     qasm2_to_exchange,
+    qasm3_to_exchange,
+    pytket_conversion_report,
+    pytket_to_exchange,
     qpy_to_exchange,
 )
 from qhpc_ecosystem.contract import validate_contract_data
@@ -18,6 +25,8 @@ from qhpc_ecosystem.contract import validate_contract_data
 
 qiskit = pytest.importorskip("qiskit")
 from qiskit import QuantumCircuit, qpy  # noqa: E402
+
+cirq = pytest.importorskip("cirq")
 
 
 def qpy_payload(circuit: QuantumCircuit) -> bytes:
@@ -97,3 +106,127 @@ def test_openqasm_2_exchange_rejects_invalid_or_oversized_input() -> None:
         qasm2_to_exchange("OPENQASM 2.0; this is not valid;")
     with pytest.raises(CircuitExchangeError, match="exceeds"):
         qasm2_to_exchange("0" * (MAX_QASM_BYTES + 1))
+
+
+def test_openqasm_3_exchange_round_trip_preserves_static_bell_measurements() -> None:
+    pytest.importorskip("qiskit_qasm3_import")
+    source = """OPENQASM 3.0;
+include \"stdgates.inc\";
+qubit[2] q;
+bit[2] c;
+h q[0];
+cx q[0], q[1];
+c[0] = measure q[0];
+c[1] = measure q[1];
+"""
+
+    exchange = qasm3_to_exchange(source)
+
+    assert exchange["metadata"]["source"] == {"name": "openqasm", "version": "3.0"}
+    assert exchange["metadata"]["transformation"]["adapter"] == (
+        "openqasm-3-to-circuit-exchange"
+    )
+    rendered = exchange_to_qasm3(exchange)
+    assert rendered.startswith("OPENQASM 3.0;")
+    restored = qasm3_to_exchange(rendered)
+    assert [item["gate"] for item in restored["spec"]["operations"]] == [
+        "h",
+        "cx",
+        "measure",
+        "measure",
+    ]
+
+
+def test_openqasm_3_exchange_rejects_other_versions_and_dynamic_control() -> None:
+    with pytest.raises(CircuitExchangeError, match="OPENQASM 3 header"):
+        qasm3_to_exchange("OPENQASM 2.0; include \"qelib1.inc\";")
+    with pytest.raises(
+        CircuitExchangeError,
+        match="could not be decoded|Unsupported Qiskit instruction",
+    ):
+        qasm3_to_exchange("""OPENQASM 3.0;
+include \"stdgates.inc\";
+qubit q;
+bit c;
+c = measure q;
+if (c == 1) { x q; }
+""")
+
+
+def test_cirq_exchange_round_trip_preserves_static_bell_operations() -> None:
+    source = QuantumCircuit(2, 2)
+    source.h(0)
+    source.cx(0, 1)
+    source.measure(0, 0)
+    source.measure(1, 1)
+    exchange = qpy_to_exchange(qpy_payload(source))
+
+    cirq_circuit = exchange_to_cirq(exchange)
+    restored = cirq_to_exchange(cirq_circuit)
+
+    assert [item["gate"] for item in restored["spec"]["operations"]] == [
+        "h",
+        "cx",
+        "measure",
+        "measure",
+    ]
+    assert restored["spec"]["classical_bit_order"] == ["c[0]", "c[1]"]
+
+
+def test_cirq_exchange_rejects_unmapped_qubits_and_measurement_keys() -> None:
+    named = cirq.Circuit(cirq.H(cirq.NamedQubit("source")))
+    with pytest.raises(CircuitExchangeError, match="LineQubit"):
+        cirq_to_exchange(named)
+
+    invalid_measurement = cirq.Circuit(
+        cirq.measure(cirq.LineQubit(0), key="result")
+    )
+    with pytest.raises(CircuitExchangeError, match="c<number>"):
+        cirq_to_exchange(invalid_measurement)
+
+
+def test_pytket_bridge_preserves_a_static_bell_circuit_and_identity_mapping() -> None:
+    pytest.importorskip("pytket")
+    source = QuantumCircuit(2, 2)
+    source.h(0)
+    source.cx(0, 1)
+    source.rz(0.25, 1)
+    source.measure(0, 0)
+    source.measure(1, 1)
+    exchange = qpy_to_exchange(qpy_payload(source))
+
+    pytket_circuit = exchange_to_pytket(exchange)
+    restored = pytket_to_exchange(pytket_circuit)
+    report = pytket_conversion_report(exchange)
+
+    assert sorted(item["gate"] for item in restored["spec"]["operations"]) == [
+        "cx",
+        "h",
+        "measure",
+        "measure",
+        "rz",
+    ]
+    rz = next(item for item in restored["spec"]["operations"] if item["gate"] == "rz")
+    assert float(rz["parameters"][0]) == pytest.approx(0.25)
+    assert report == {
+        "adapter": "circuit-exchange-to-pytket",
+        "classification": "exact",
+        "qubit_mapping": [
+            {"source": "q[0]", "target": "q[0]"},
+            {"source": "q[1]", "target": "q[1]"},
+        ],
+        "implicit_swaps": [],
+        "gate_decompositions": [],
+        "compiler_options": {},
+        "target_profile": None,
+        "warnings": [],
+    }
+
+
+def test_pytket_bridge_rejects_symbolic_and_barrier_exchange_semantics() -> None:
+    pytest.importorskip("pytket")
+    source = QuantumCircuit(1)
+    source.barrier(0)
+    exchange = qpy_to_exchange(qpy_payload(source))
+    with pytest.raises(CircuitExchangeError, match="barrier"):
+        exchange_to_pytket(exchange)

@@ -472,6 +472,13 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
   },
 ];
 
+function requestedBasicPathId(): BasicPathId {
+  const requested = new URLSearchParams(window.location.search).get("basic");
+  return BASIC_PATHS.some((path) => path.id === requested)
+    ? requested as BasicPathId
+    : "simulate";
+}
+
 export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
   {
     workflowId: "showcase-evolution-readiness",
@@ -1330,7 +1337,7 @@ function ComposerSurface(): React.JSX.Element {
   );
   const [guidedError, setGuidedError] = useState(false);
   const [guidedRunId, setGuidedRunId] = useState<string | null>(null);
-  const [basicPathId, setBasicPathId] = useState<BasicPathId>("simulate");
+  const [basicPathId, setBasicPathId] = useState<BasicPathId>(requestedBasicPathId);
   const [basicQueueing, setBasicQueueing] = useState(false);
   const [basicMessage, setBasicMessage] = useState(
     "Choose a circuit, then run the local simulation",
@@ -2981,6 +2988,7 @@ function BasicComposer({
   const [fileError, setFileError] = useState<string | null>(null);
   const [blockQuery, setBlockQuery] = useState("");
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
+  const [canvasDropActive, setCanvasDropActive] = useState(false);
   const workflow = selectedPath?.workflow;
   const normalizedBlockQuery = blockQuery.trim().toLocaleLowerCase();
   const visiblePaths = paths.filter((path) => {
@@ -3051,6 +3059,11 @@ function BasicComposer({
     setSelectedBlockIndex(0);
   }, [selectedPath?.id]);
 
+  const choosePath = (pathId: BasicPathId) => {
+    setFileError(null);
+    onSelect(pathId);
+  };
+
   return (
     <div className="composer-basic-workspace">
       <aside className="composer-basic-library" aria-label="Basic building blocks">
@@ -3080,9 +3093,15 @@ function BasicComposer({
                 aria-pressed={selected}
                 className={`composer-basic-path${selected ? " is-selected" : ""}`}
                 key={path.id}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "copy";
+                  event.dataTransfer.setData("application/x-eqo-basic-path", path.id);
+                  event.dataTransfer.setData("text/plain", path.title);
+                }}
+                onDragEnd={() => setCanvasDropActive(false)}
                 onClick={() => {
-                  setFileError(null);
-                  onSelect(path.id);
+                  choosePath(path.id);
                 }}
               >
                 <span>
@@ -3126,11 +3145,39 @@ function BasicComposer({
             </header>
 
             <div className="composer-basic-body">
-              <section className="composer-basic-flow-section" aria-labelledby="basic-canvas-title">
+              <section
+                className={`composer-basic-flow-section${canvasDropActive ? " is-drop-target" : ""}`}
+                aria-labelledby="basic-canvas-title"
+                aria-describedby="basic-canvas-hint"
+                onDragEnter={(event) => {
+                  if (event.dataTransfer.types.includes("application/x-eqo-basic-path")) {
+                    event.preventDefault();
+                    setCanvasDropActive(true);
+                  }
+                }}
+                onDragOver={(event) => {
+                  if (event.dataTransfer.types.includes("application/x-eqo-basic-path")) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "copy";
+                  }
+                }}
+                onDragLeave={(event) => {
+                  if (event.currentTarget === event.target) setCanvasDropActive(false);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setCanvasDropActive(false);
+                  const pathId = event.dataTransfer.getData("application/x-eqo-basic-path");
+                  if (paths.some((path) => path.id === pathId)) choosePath(pathId as BasicPathId);
+                }}
+              >
                 <div className="composer-basic-section-heading">
                   <h3 id="basic-canvas-title">Your workflow</h3>
                   <p>Follow the blocks left to right. Each connection is an inspectable EQO artifact handoff.</p>
                 </div>
+                <p id="basic-canvas-hint" className="composer-basic-canvas-hint" role="status">
+                  Drag a starter path here to switch the canvas, or choose it from the picker. EQO only reveals compatible published blocks.
+                </p>
                 <ol className="composer-basic-flow" aria-label={`${selectedPath.title} workflow blocks`}>
                   {selectedPath.blocks.map((block, index) => (
                     <Fragment key={block.title}>

@@ -144,6 +144,7 @@ class FakeComponentOnboarding:
     def __init__(self) -> None:
         self.inspections: list[dict] = []
         self.built: list[str] = []
+        self.activated: list[str] = []
 
     def list(self) -> dict:
         return {"enabled": True, "items": self.inspections}
@@ -170,6 +171,17 @@ class FakeComponentOnboarding:
         assert draft_id == "onboarding-example"
         self.built.append(draft_id)
         self.inspections[0]["status"] = "built"
+        return self.inspections[0]
+
+    def refresh(self, draft_id) -> dict:
+        assert draft_id == "onboarding-example"
+        self.inspections[0]["refresh"] = {"state": "up-to-date"}
+        return self.inspections[0]
+
+    def activate(self, draft_id) -> dict:
+        assert draft_id == "onboarding-example"
+        self.activated.append(draft_id)
+        self.inspections[0]["status"] = "active"
         return self.inspections[0]
 
 
@@ -831,6 +843,23 @@ def test_api_component_onboarding_accepts_only_reviewable_source_fields(
         assert status == 201
         assert built["status"] == "built"
         assert onboarding.built == ["onboarding-example"]
+
+        status, refreshed = request_json(
+            base,
+            "/api/v1/component-onboarding/drafts/onboarding-example/refresh",
+            {},
+        )
+        assert status == 201
+        assert refreshed["refresh"] == {"state": "up-to-date"}
+
+        status, activated = request_json(
+            base,
+            "/api/v1/component-onboarding/drafts/onboarding-example/activate",
+            {},
+        )
+        assert status == 201
+        assert activated["status"] == "active"
+        assert onboarding.activated == ["onboarding-example"]
 
         with pytest.raises(HTTPError) as unsupported:
             request_json(

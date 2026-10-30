@@ -309,6 +309,8 @@ const state = {
     inspecting: false,
     savingId: null,
     buildingId: null,
+    refreshingId: null,
+    activatingId: null,
     error: null,
   },
   dataObjectsByPrefix: {},
@@ -1413,6 +1415,14 @@ function openTrainingInBasicComposer() {
   switchView("compose");
 }
 
+function openTrainingHardwareReadiness() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "compose");
+  url.searchParams.set("basic", "hardware");
+  window.history.replaceState({}, "", url);
+  switchView("compose");
+}
+
 function askTrainingChatQEC(prompt) {
   state.assistant.draftQuestion = prompt;
   switchView("assistant");
@@ -1477,6 +1487,18 @@ function renderTraining() {
             : `<p>Choose a shot count, then sample the ideal measurement outcomes.</p>`}
         </div>
       </section>
+      <section class="training-hardware-boundary" aria-labelledby="training-hardware-title">
+        <div>
+          <h3 id="training-hardware-title">Hardware is a separate, opt-in step</h3>
+          <p>Lessons never submit a circuit. EQO cannot quote a hardware cost until an admitted target and provider terms are available, so the cost is intentionally shown as <strong>not estimated</strong> here.</p>
+        </div>
+        <dl>
+          <div><dt>LESSON TARGET</dt><dd>Local ideal model only</dd></div>
+          <div><dt>HARDWARE READINESS</dt><dd>Review target, worker, and credential gates</dd></div>
+          <div><dt>SUBMISSION</dt><dd>Not available from training</dd></div>
+        </dl>
+        <button class="button secondary" type="button" id="training-hardware">Review hardware readiness</button>
+      </section>
       <footer class="training-actions">
         <button class="button secondary" type="button" id="training-basic">Try it in Basic Composer</button>
         <button class="button secondary" type="button" id="training-chatqec">Ask ChatQEC</button>
@@ -1512,6 +1534,7 @@ function renderTraining() {
     renderTraining();
   });
   document.querySelector("#training-basic").addEventListener("click", openTrainingInBasicComposer);
+  document.querySelector("#training-hardware").addEventListener("click", openTrainingHardwareReadiness);
   document.querySelector("#training-chatqec").addEventListener("click", () => {
     askTrainingChatQEC(lesson.prompt);
   });
@@ -2560,8 +2583,14 @@ function renderComponentOnboarding() {
     const interfaceDefinition = definition.capability_interface || {};
     const saving = onboarding.savingId === item.id;
     const building = onboarding.buildingId === item.id;
+    const refreshing = onboarding.refreshingId === item.id;
+    const activating = onboarding.activatingId === item.id;
     const build = item.build || {};
+    const refresh = item.refresh || {};
     const buildSucceeded = build.state === "succeeded";
+    const activation = item.activation || {};
+    const active = activation.state === "active-local";
+    const lifecycle = Array.isArray(item.lifecycle) ? item.lifecycle : [];
     const buildArtifacts = Array.isArray(build.produced_artifacts) ? build.produced_artifacts : [];
     const files = inspection.recognized_files || [];
     const displayedFiles = files.slice(0, 8).map(name => `<li>${escapeHtml(name)}</li>`).join("");
@@ -2583,12 +2612,25 @@ function renderComponentOnboarding() {
       </dl>
       <p class="component-draft-source">${sourceLink}</p>
       <details><summary>Recognized files · ${inspection.recognized_file_count || 0}</summary><ul>${displayedFiles || "<li>No recognized source files</li>"}${omitted ? `<li>… and ${omitted} more</li>` : ""}</ul></details>
+      <div class="component-draft-build component-draft-refresh">
+        <div><strong>Source revision</strong><small>${escapeHtml(refresh.state === "update-available" ? `New pinned candidate ${String(refresh.candidate_revision || "").slice(0, 12)}… is ready for review` : refresh.state === "up-to-date" ? "Tracked ref resolves to this pinned commit" : "Check the tracked ref explicitly; it cannot replace this revision automatically")}</small></div>
+        <button class="button secondary" type="button" data-component-refresh="${escapeHtml(item.id)}" ${refreshing ? "disabled" : ""}>${refreshing ? "Checking source" : "Check source update"}</button>
+      </div>
       <div class="component-draft-build">
         <div><strong>Isolated build</strong><small>${escapeHtml(build.state || definition.build_recipe?.state || "not-run")} · network disabled · no host credentials</small></div>
         <button class="button secondary" type="button" data-component-build="${escapeHtml(item.id)}" ${building ? "disabled" : ""}>${building ? "Building in isolation" : buildSucceeded ? "Rebuild in isolation" : "Build in isolation"}</button>
       </div>
+      <div class="component-draft-build">
+        <div><strong>Local admission</strong><small>${escapeHtml(active ? "Pinned revision is active locally" : buildSucceeded ? "Ready for explicit local admission" : "Build and smoke test are required")}</small></div>
+        ${active
+          ? `<span class="update-action-state">Active locally</span>`
+          : `<button class="button secondary" type="button" data-component-activate="${escapeHtml(item.id)}" ${buildSucceeded && !activating ? "" : "disabled"} title="${escapeHtml(buildSucceeded ? "Admit this pinned source and immutable image for local use" : "A successful isolated build and smoke test are required before admission")}">${activating ? "Activating locally" : "Activate locally"}</button>`}
+      </div>
       ${build.state ? `<details class="component-draft-build-evidence"><summary>Build evidence</summary><dl><div><dt>SMOKE TEST</dt><dd>${escapeHtml(build.smoke_test?.state || "not-run")}</dd></div><div><dt>IMAGE ID</dt><dd title="${escapeHtml(build.image_digest || "")}">${escapeHtml((build.image_digest || "not recorded").slice(0, 20))}</dd></div><div><dt>ENTRYPOINTS</dt><dd>${escapeHtml((build.detected_entrypoints || []).join(", ") || "not detected")}</dd></div></dl>${buildArtifacts.length ? `<ul>${buildArtifacts.map(artifact => `<li>${escapeHtml(artifact.kind || "artifact")} · ${escapeHtml((artifact.digest || artifact.reference || "").slice(0, 30))}</li>`).join("")}</ul>` : ""}<pre>${escapeHtml(build.logs || "No build log recorded.")}</pre></details>` : ""}
-      <details class="component-draft-editor"><summary>Edit integration draft</summary>
+      ${lifecycle.length ? `<details class="component-draft-build-evidence"><summary>Revision lifecycle · ${lifecycle.length}</summary><ul>${lifecycle.slice().reverse().map(event => `<li>${escapeHtml(event.action || "recorded")} · ${escapeHtml(event.source_revision ? String(event.source_revision).slice(0, 12) : event.image_digest ? String(event.image_digest).slice(0, 20) : event.at || "")}</li>`).join("")}</ul></details>` : ""}
+      ${active
+        ? `<p class="component-draft-gate">This active revision is immutable. Refresh or inspect a new pinned candidate before changing its integration contract.</p>`
+        : `<details class="component-draft-editor"><summary>Edit integration draft</summary>
         <form data-component-draft="${escapeHtml(item.id)}">
           <label>Template<select name="template"><option value="python-operation" ${definition.template === "python-operation" ? "selected" : ""}>Python operation</option><option value="container-cli" ${definition.template === "container-cli" ? "selected" : ""}>Containerized CLI</option><option value="compiler-transpiler" ${definition.template === "compiler-transpiler" ? "selected" : ""}>Compiler or transpiler</option><option value="simulator" ${definition.template === "simulator" ? "selected" : ""}>Simulator</option><option value="http-service" ${definition.template === "http-service" ? "selected" : ""}>HTTP service</option></select></label>
           <label>Capability ID<input name="capability_id" required value="${escapeHtml(interfaceDefinition.id || "")}"></label>
@@ -2597,8 +2639,8 @@ function renderComponentOnboarding() {
           <label>Output artifact<input name="output_artifact" required value="${escapeHtml(interfaceDefinition.output_artifact || "")}"></label>
           <button class="button secondary" type="submit" ${saving ? "disabled" : ""}>${saving ? "Saving draft" : "Save draft"}</button>
         </form>
-      </details>
-      <p class="component-draft-gate">${escapeHtml(item.activation?.reason || "A reviewed admission process is required before activation.")}</p>
+      </details>`}
+      <p class="component-draft-gate">${escapeHtml(activation.reason || "A reviewed admission process is required before activation.")}</p>
     </article>`;
   }).join("");
 
@@ -2629,6 +2671,12 @@ function renderComponentOnboarding() {
   });
   workspace.querySelectorAll("[data-component-build]").forEach(button => {
     button.addEventListener("click", () => buildComponentDraft(button.dataset.componentBuild));
+  });
+  workspace.querySelectorAll("[data-component-refresh]").forEach(button => {
+    button.addEventListener("click", () => refreshComponentDraft(button.dataset.componentRefresh));
+  });
+  workspace.querySelectorAll("[data-component-activate]").forEach(button => {
+    button.addEventListener("click", () => activateComponentDraft(button.dataset.componentActivate));
   });
 }
 
@@ -2739,6 +2787,50 @@ async function buildComponentDraft(draftId) {
     showToast(error.message);
   } finally {
     state.componentOnboarding.buildingId = null;
+    if (state.view === "components") renderComponentOnboarding();
+  }
+}
+
+async function refreshComponentDraft(draftId) {
+  if (!draftId) return;
+  state.componentOnboarding.refreshingId = draftId;
+  state.componentOnboarding.error = null;
+  renderComponentOnboarding();
+  try {
+    const draft = await api(`/component-onboarding/drafts/${encodeURIComponent(draftId)}/refresh`, {
+      method: "POST",
+      body: "{}",
+    });
+    state.componentOnboarding.data = await api("/component-onboarding");
+    state.componentOnboarding.error = null;
+    showToast(draft.supersedes ? "New pinned source candidate ready for review" : "Tracked source is current");
+  } catch (error) {
+    state.componentOnboarding.error = error.message;
+    showToast(error.message);
+  } finally {
+    state.componentOnboarding.refreshingId = null;
+    if (state.view === "components") renderComponentOnboarding();
+  }
+}
+
+async function activateComponentDraft(draftId) {
+  if (!draftId) return;
+  state.componentOnboarding.activatingId = draftId;
+  state.componentOnboarding.error = null;
+  renderComponentOnboarding();
+  try {
+    await api(`/component-onboarding/drafts/${encodeURIComponent(draftId)}/activate`, {
+      method: "POST",
+      body: "{}",
+    });
+    state.componentOnboarding.data = await api("/component-onboarding");
+    state.componentOnboarding.error = null;
+    showToast("Pinned component revision admitted locally");
+  } catch (error) {
+    state.componentOnboarding.error = error.message;
+    showToast(error.message);
+  } finally {
+    state.componentOnboarding.activatingId = null;
     if (state.view === "components") renderComponentOnboarding();
   }
 }

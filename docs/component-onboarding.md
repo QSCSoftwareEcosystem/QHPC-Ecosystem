@@ -63,19 +63,35 @@ The Workbench calls:
 GET  /api/v1/component-onboarding
 POST /api/v1/component-onboarding/inspect
 POST /api/v1/component-onboarding/drafts/{id}/build
+POST /api/v1/component-onboarding/drafts/{id}/refresh
+POST /api/v1/component-onboarding/drafts/{id}/activate
 ```
 
 The inspect request is limited to `repository_url`, `ref`, `subdirectory`, and
-`template`. The build request accepts no user fields. Credentials, build
-commands, paths outside the selected repository, runtime flags, and activation
-choices are not accepted.
+`template`. The build and refresh requests accept no user fields. A refresh
+resolves the stored tracked ref again; if it moved, EQO creates a separate,
+unbuilt successor draft pinned to the new commit and links it to the prior
+draft. Credentials, build commands, paths outside the selected repository,
+runtime flags, and activation choices are not accepted.
+
+`activate` has no caller-provided fields. It is an explicit local admission of
+the already recorded source commit and image identity, and is accepted only
+when the isolated build succeeded, its constrained smoke test passed, and the
+image digest is immutable. Activating a different built revision for the same
+component retains the prior revision; activating that retained, proven revision
+again is an explicit rollback. The bounded per-draft lifecycle records
+inspection, builds, source checks, activation, retention, and rollback without
+recording credentials.
 
 ## Admission remains separate
 
 A draft moves to `built` only after its isolated build and constrained smoke
-test pass. It is then **ready for admission**, not active. Before a source can
-become an EQO component, a reviewer must still publish a versioned capability
-contract, repin the deployment and registry to the resulting immutable image,
-and admit the runtime through the worker lifecycle. Repository updates then use
-the separate controlled revision lifecycle documented in
+test pass. It is then **ready for admission**, not active. Local activation
+records one exact proven image as an admitted local component revision; it does
+not pull source, start a container, publish a capability, or replace an active
+registry/worker runtime. Before that source can become a generally selectable
+EQO component, a reviewer must still publish a versioned capability contract,
+repin the deployment and registry to the resulting immutable image, and admit
+the runtime through the worker lifecycle. Repository updates then use the
+separate controlled revision lifecycle documented in
 [Repository Updates](repository-updates.md).

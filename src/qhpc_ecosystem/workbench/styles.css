@@ -2555,6 +2555,13 @@ h2, h3, p { letter-spacing: 0; }
 .training-results th, .training-results td { padding: 9px; border-top: 1px solid var(--line); text-align: left; }
 .training-results thead th { color: var(--muted); font: 700 10px/1.25 ui-monospace, "SFMono-Regular", monospace; }
 .training-results tbody th, .training-results td { color: var(--ink); font: 650 12px/1.35 ui-monospace, "SFMono-Regular", monospace; }
+.training-hardware-boundary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 22px; align-items: end; margin-top: 23px; padding-top: 16px; border-top: 1px solid var(--line); }
+.training-hardware-boundary h3 { margin: 0; color: var(--ink); font-size: 14px; font-weight: 700; }
+.training-hardware-boundary p { max-width: 62ch; margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.training-hardware-boundary p strong { color: var(--ink); }
+.training-hardware-boundary dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.training-hardware-boundary dt { color: var(--muted); font: 700 9px/1.3 ui-monospace, "SFMono-Regular", monospace; }
+.training-hardware-boundary dd { margin: 3px 0 0; color: var(--ink); font-size: 12px; line-height: 1.4; }
 .training-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 23px; padding-top: 16px; border-top: 1px solid var(--line); }
 .training-glossary { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--line); }
 .training-glossary summary { cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 700; }
@@ -2595,6 +2602,7 @@ h2, h3, p { letter-spacing: 0; }
 .component-draft-build > div { display: grid; gap: 3px; min-width: 0; }
 .component-draft-build strong { color: var(--ink); font-size: 12px; }
 .component-draft-build small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.component-draft-refresh { margin-top: 11px; }
 .component-draft-build-evidence { margin-top: 9px; }
 .component-draft-build-evidence dl { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 8px 0 0; }
 .component-draft-build-evidence pre { max-height: 185px; margin: 9px 0 0; padding: 10px; overflow: auto; background: var(--surface-sunken); color: var(--ink); font: 11px/1.45 ui-monospace, "SFMono-Regular", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -2718,6 +2726,9 @@ h2, h3, p { letter-spacing: 0; }
   .training-lesson > header > span { display: block; max-width: none; margin-top: 10px; text-align: left; }
   .training-experiment { grid-template-columns: 1fr; gap: 18px; }
   .training-results { border-top: 1px solid var(--line); border-left: 0; padding-top: 16px; padding-left: 0; }
+  .training-hardware-boundary { grid-template-columns: 1fr; align-items: start; }
+  .training-hardware-boundary dl { grid-template-columns: 1fr; gap: 9px; }
+  .training-hardware-boundary .button { justify-self: start; }
   .training-glossary dl { grid-template-columns: 1fr; gap: 10px; }
   .component-onboarding-layout { grid-template-columns: 1fr; }
   .component-onboarding-form { border-right: 0; border-bottom: 1px solid var(--line); }

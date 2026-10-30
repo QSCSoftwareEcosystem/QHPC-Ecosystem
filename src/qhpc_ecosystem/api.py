@@ -51,6 +51,12 @@ COMPONENT_ONBOARDING_DRAFT_ROUTE = re.compile(
 COMPONENT_ONBOARDING_BUILD_ROUTE = re.compile(
     r"^/api/v1/component-onboarding/drafts/(onboarding-[a-z0-9]+)/build$"
 )
+COMPONENT_ONBOARDING_REFRESH_ROUTE = re.compile(
+    r"^/api/v1/component-onboarding/drafts/(onboarding-[a-z0-9]+)/refresh$"
+)
+COMPONENT_ONBOARDING_ACTIVATE_ROUTE = re.compile(
+    r"^/api/v1/component-onboarding/drafts/(onboarding-[a-z0-9]+)/activate$"
+)
 
 
 @dataclass(frozen=True)
@@ -1107,6 +1113,40 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         HTTPStatus.CREATED,
                         context.component_onboarding.build(
                             onboarding_build_match.group(1)
+                        ),
+                    )
+                    return
+                onboarding_refresh_match = COMPONENT_ONBOARDING_REFRESH_ROUTE.fullmatch(path)
+                if onboarding_refresh_match:
+                    if context.component_onboarding is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "component onboarding is not enabled",
+                        )
+                        return
+                    if body:
+                        raise ValueError("component refresh does not accept request fields")
+                    self._json_response(
+                        HTTPStatus.CREATED,
+                        context.component_onboarding.refresh(
+                            onboarding_refresh_match.group(1)
+                        ),
+                    )
+                    return
+                onboarding_activate_match = COMPONENT_ONBOARDING_ACTIVATE_ROUTE.fullmatch(path)
+                if onboarding_activate_match:
+                    if context.component_onboarding is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "component onboarding is not enabled",
+                        )
+                        return
+                    if body:
+                        raise ValueError("component activation does not accept request fields")
+                    self._json_response(
+                        HTTPStatus.CREATED,
+                        context.component_onboarding.activate(
+                            onboarding_activate_match.group(1)
                         ),
                     )
                     return

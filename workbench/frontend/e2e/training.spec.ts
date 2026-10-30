@@ -22,12 +22,18 @@ test("teaches bounded ideal circuit samples before the Basic Composer handoff", 
     page.locator(".training-results tbody th").filter({ hasText: /^1$/ }),
   ).toHaveCount(1);
   await expect(page.getByText("Lesson glossary")).toBeVisible();
+  await expect(page.getByText("not estimated", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Try it in Basic Composer" }).click();
   await expect(page.getByRole("tab", { name: "Basic", exact: true })).toHaveAttribute(
     "aria-selected",
     "true",
   );
+
+  await page.goto("/?view=training");
+  await page.getByRole("button", { name: "Review hardware readiness" }).click();
+  await expect(page.getByRole("heading", { name: "Run on quantum hardware" })).toBeVisible();
+  await expect(page.getByText("Submitting this path creates a QPU job.", { exact: false })).toBeVisible();
 });
 
 

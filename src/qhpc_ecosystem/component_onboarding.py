@@ -37,6 +37,7 @@ DEFAULT_PUBLIC_GIT_HOSTS = frozenset({"github.com", "gitlab.com"})
 MAX_DISCOVERED_FILES = 240
 MAX_BUILD_LOG_BYTES = 64 * 1024
 BUILD_TIMEOUT_SECONDS = 12 * 60
+MAX_LIFECYCLE_EVENTS = 50
 
 
 class ComponentOnboardingError(Exception):
@@ -200,19 +201,22 @@ class ComponentOnboardingManager:
     def _load_state(self) -> dict[str, Any]:
         path = self._state_path()
         if not path.is_file():
-            return {"version": 2, "drafts": {}}
+            return {"version": 3, "drafts": {}, "active_components": {}}
         try:
             state = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise ComponentOnboardingError("component onboarding state is invalid") from error
         if (
             not isinstance(state, dict)
-            or state.get("version") not in {1, 2}
+            or state.get("version") not in {1, 2, 3}
             or not isinstance(state.get("drafts"), dict)
         ):
             raise ComponentOnboardingError("component onboarding state has an unsupported format")
-        if state["version"] == 1:
-            state["version"] = 2
+        if state["version"] in {1, 2}:
+            state["version"] = 3
+            state.setdefault("active_components", {})
+        if not isinstance(state.get("active_components"), dict):
+            raise ComponentOnboardingError("component onboarding state has an invalid activation record")
         return state
 
     def _write_state(self, state: dict[str, Any]) -> None:
@@ -239,6 +243,19 @@ class ComponentOnboardingManager:
     @staticmethod
     def _source_key(repository_url: str) -> str:
         return hashlib.sha256(repository_url.encode("utf-8")).hexdigest()[:24]
+
+    @staticmethod
+    def _record_lifecycle(
+        draft: dict[str, Any],
+        action: str,
+        **details: Any,
+    ) -> None:
+        """Append bounded, non-secret evidence to a draft's revision ledger."""
+        events = draft.setdefault("lifecycle", [])
+        if not isinstance(events, list):
+            raise ComponentOnboardingError("component draft lifecycle is invalid")
+        events.append({"at": _timestamp(), "action": action, **details})
+        del events[:-MAX_LIFECYCLE_EVENTS]
 
     def _resolve_revision(self, repository_url: str, requested_ref: str) -> str:
         lines = self._git(["ls-remote", "--refs", repository_url]).splitlines()
@@ -445,6 +462,12 @@ class ComponentOnboardingManager:
                     "reason": "Isolated build, smoke test, immutable image digest, and admission are required before activation.",
                 },
             }
+            self._record_lifecycle(
+                draft,
+                "inspected",
+                source_revision=revision,
+                source_ref=selected_ref,
+            )
             state = self._load_state()
             state["drafts"][draft["id"]] = draft
             self._write_state(state)
@@ -458,7 +481,11 @@ class ComponentOnboardingManager:
                 key=lambda item: item.get("created_at", ""),
                 reverse=True,
             )
-            return {"enabled": True, "items": drafts}
+            return {
+                "enabled": True,
+                "items": drafts,
+                "active_components": state["active_components"],
+            }
 
     def update_draft(self, draft_id: str, changes: dict[str, str]) -> dict[str, Any]:
         """Edit only the non-executable interface portion of an inspected draft."""
@@ -475,6 +502,10 @@ class ComponentOnboardingManager:
             draft = state["drafts"].get(draft_id)
             if not isinstance(draft, dict):
                 raise ComponentOnboardingError("component draft was not found")
+            if draft.get("status") == "active":
+                raise ComponentOnboardingError(
+                    "an active component revision is immutable; inspect or refresh a separate candidate before editing"
+                )
             definition = draft.get("draft")
             if not isinstance(definition, dict):
                 raise ComponentOnboardingError("component draft has no editable interface")
@@ -516,9 +547,105 @@ class ComponentOnboardingManager:
                     "state": "blocked",
                     "reason": "Rebuild and review the edited integration draft before local admission.",
                 }
+                self._record_lifecycle(draft, "build-invalidated")
+            else:
+                self._record_lifecycle(draft, "draft-edited")
             state["drafts"][draft_id] = draft
             self._write_state(state)
             return draft
+
+    def refresh(self, draft_id: str) -> dict[str, Any]:
+        """Resolve a draft's tracked ref again without replacing its pin.
+
+        A changed remote ref creates a separate, unbuilt successor draft.  The
+        original source pin, image evidence, and activation boundary remain
+        intact until a later explicit admission decision.
+        """
+        if not isinstance(draft_id, str) or not draft_id.startswith("onboarding-"):
+            raise ComponentOnboardingError("component draft identifier is invalid")
+        with self._lock:
+            state = self._load_state()
+            current = state["drafts"].get(draft_id)
+            if not isinstance(current, dict):
+                raise ComponentOnboardingError("component draft was not found")
+            source = current.get("source")
+            definition = current.get("draft")
+            if not isinstance(source, dict) or not isinstance(definition, dict):
+                raise ComponentOnboardingError("component draft has an invalid source pin")
+            repository_url = source.get("repository_url")
+            requested_ref = source.get("requested_ref")
+            subdirectory = source.get("subdirectory") or ""
+            template = definition.get("template")
+            if (
+                not isinstance(repository_url, str)
+                or not isinstance(requested_ref, str)
+                or not isinstance(template, str)
+            ):
+                raise ComponentOnboardingError("component draft has an invalid source pin")
+            normalised_source = normalise_public_repository_url(
+                repository_url,
+                allowed_hosts=self.allowed_hosts,
+                allow_local_sources=self.allow_local_sources,
+            )
+            selected_ref = _normalise_ref(requested_ref)
+            selected_subdirectory = _safe_subdirectory(str(subdirectory))
+            latest = self._resolve_revision(normalised_source, selected_ref)
+            checked_at = _timestamp()
+            if latest.lower() == str(source.get("resolved_revision", "")).lower():
+                current["refresh"] = {
+                    "checked_at": checked_at,
+                    "state": "up-to-date",
+                    "candidate_revision": latest,
+                }
+                self._record_lifecycle(
+                    current,
+                    "source-checked",
+                    state="up-to-date",
+                    candidate_revision=latest,
+                )
+                state["drafts"][draft_id] = current
+                self._write_state(state)
+                return current
+
+            # `inspect` performs the exact bare-repository fetch and metadata
+            # scan. Its deterministic key includes the new commit, so it
+            # creates a distinct candidate rather than mutating this draft.
+            candidate = self.inspect(
+                normalised_source,
+                ref=selected_ref,
+                subdirectory=selected_subdirectory,
+                template=template,
+            )
+            state = self._load_state()
+            current = state["drafts"][draft_id]
+            refreshed_candidate = state["drafts"][candidate["id"]]
+            current["refresh"] = {
+                "checked_at": checked_at,
+                "state": "update-available",
+                "candidate_revision": latest,
+                "candidate_draft_id": candidate["id"],
+            }
+            current["superseded_by"] = candidate["id"]
+            refreshed_candidate["supersedes"] = {
+                "draft_id": draft_id,
+                "resolved_revision": source.get("resolved_revision"),
+            }
+            self._record_lifecycle(
+                current,
+                "source-checked",
+                state="update-available",
+                candidate_revision=latest,
+                candidate_draft_id=candidate["id"],
+            )
+            self._record_lifecycle(
+                refreshed_candidate,
+                "successor-created",
+                supersedes=draft_id,
+            )
+            state["drafts"][draft_id] = current
+            state["drafts"][candidate["id"]] = refreshed_candidate
+            self._write_state(state)
+            return refreshed_candidate
 
     def _worktree_for_draft(self, draft: dict[str, Any]) -> tuple[Path, Path]:
         source = draft.get("source")
@@ -750,13 +877,122 @@ class ComponentOnboardingManager:
                     "state": "ready-for-admission",
                     "reason": "Build and constrained smoke test passed. Review the pinned source and immutable image before a separate local admission.",
                 }
+                self._record_lifecycle(
+                    draft,
+                    "build-succeeded",
+                    source_revision=draft["source"]["resolved_revision"],
+                    image_digest=result.get("image_digest"),
+                    smoke_test=result.get("smoke_test", {}).get("state"),
+                )
             else:
                 draft["status"] = "build-failed"
                 draft["activation"] = {
                     "state": "blocked",
                     "reason": "The isolated build or smoke test did not pass; no component runtime was activated.",
                 }
+                self._record_lifecycle(
+                    draft,
+                    "build-failed",
+                    source_revision=draft["source"]["resolved_revision"],
+                    smoke_test=result.get("smoke_test", {}).get("state"),
+                )
             draft["updated_at"] = _timestamp()
+            state["drafts"][draft_id] = draft
+            self._write_state(state)
+            return draft
+
+    def activate(self, draft_id: str) -> dict[str, Any]:
+        """Explicitly admit one proven image for local component use.
+
+        Activation changes only this local onboarding ledger.  It never pulls a
+        moving source ref, starts a container, exposes a credential, or
+        rewrites an already-published registry.  A separate capability
+        publication remains necessary before the component can be selected by
+        arbitrary workflows.
+        """
+        if not isinstance(draft_id, str) or not draft_id.startswith("onboarding-"):
+            raise ComponentOnboardingError("component draft identifier is invalid")
+        with self._lock:
+            state = self._load_state()
+            draft = state["drafts"].get(draft_id)
+            if not isinstance(draft, dict):
+                raise ComponentOnboardingError("component draft was not found")
+            source = draft.get("source")
+            definition = draft.get("draft")
+            build = draft.get("build")
+            if not isinstance(source, dict) or not isinstance(definition, dict) or not isinstance(build, dict):
+                raise ComponentOnboardingError("component draft lacks build admission evidence")
+            interface = definition.get("capability_interface")
+            image_digest = build.get("image_digest")
+            smoke = build.get("smoke_test")
+            if (
+                draft.get("status") not in {"built", "retained"}
+                or build.get("state") != "succeeded"
+                or not isinstance(smoke, dict)
+                or smoke.get("state") != "passed"
+                or not isinstance(image_digest, str)
+                or re.fullmatch(r"sha256:[0-9a-f]{64}", image_digest) is None
+                or not isinstance(interface, dict)
+                or not isinstance(interface.get("id"), str)
+                or IDENTIFIER.fullmatch(interface["id"]) is None
+                or not isinstance(source.get("resolved_revision"), str)
+                or REVISION.fullmatch(source["resolved_revision"]) is None
+            ):
+                raise ComponentOnboardingError(
+                    "local activation requires a successful isolated build, passed smoke test, pinned source commit, and immutable image digest"
+                )
+
+            component_id = interface["id"]
+            active_components = state["active_components"]
+            prior = active_components.get(component_id)
+            if prior is not None and not isinstance(prior, dict):
+                raise ComponentOnboardingError("component onboarding active record is invalid")
+
+            activation_action = "activated"
+            if prior and prior.get("draft_id") != draft_id:
+                prior_draft_id = prior.get("draft_id")
+                prior_draft = state["drafts"].get(prior_draft_id)
+                if isinstance(prior_draft, dict):
+                    prior_draft["status"] = "retained"
+                    prior_draft["activation"] = {
+                        "state": "retained",
+                        "reason": "A different locally admitted revision is active. This immutable revision remains available for explicit rollback.",
+                    }
+                    self._record_lifecycle(
+                        prior_draft,
+                        "retained",
+                        replaced_by=draft_id,
+                    )
+                    state["drafts"][prior_draft_id] = prior_draft
+                activation_action = "rolled-back" if any(
+                    event.get("action") == "activated"
+                    for event in draft.get("lifecycle", [])
+                    if isinstance(event, dict)
+                ) else "activated"
+
+            activated_at = _timestamp()
+            active_record = {
+                "draft_id": draft_id,
+                "component_id": component_id,
+                "source_revision": source["resolved_revision"].lower(),
+                "image_digest": image_digest,
+                "activated_at": activated_at,
+            }
+            active_components[component_id] = active_record
+            draft["status"] = "active"
+            draft["activation"] = {
+                "state": "active-local",
+                "activated_at": activated_at,
+                "reason": "Pinned source and immutable image were explicitly admitted for local component use. Runtime publication and workflow registration remain separate.",
+            }
+            self._record_lifecycle(
+                draft,
+                activation_action,
+                source_revision=active_record["source_revision"],
+                image_digest=image_digest,
+                replaces=prior.get("draft_id") if prior else None,
+            )
+            draft["updated_at"] = activated_at
             state["drafts"][draft_id] = draft
             self._write_state(state)
             return draft

@@ -194,6 +194,14 @@
   border-color: var(--line-strong);
 }
 
+.composer-basic-path[draggable="true"] {
+  cursor: grab;
+}
+
+.composer-basic-path[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 .composer-basic-path.is-selected {
   border-color: var(--ink);
   background: color-mix(in srgb, var(--surface) 88%, var(--run-soft));
@@ -290,6 +298,15 @@
   border-bottom: 1px solid var(--line);
 }
 
+.composer-basic-flow-section {
+  transition: background-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.composer-basic-flow-section.is-drop-target {
+  background: color-mix(in srgb, var(--run-soft) 28%, var(--surface));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--qsc-red) 62%, transparent);
+}
+
 .composer-basic-section-heading {
   display: grid;
   gap: 4px;
@@ -299,6 +316,13 @@
 .composer-basic-section-heading h3 {
   font-size: 13px;
   line-height: 1.35;
+}
+
+.composer-basic-canvas-hint {
+  margin: -2px 0 11px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .composer-basic-flow {

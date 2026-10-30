@@ -173,6 +173,29 @@ test("presents the EQO-QSC product instead of internal project governance", asyn
 });
 
 
+test("lets a newcomer drag a compatible basic path onto the canvas", async ({ page }) => {
+  await page.goto("/?view=compose");
+
+  const hardwarePath = page.getByRole("button", {
+    name: /Run on quantum hardware Prepare a Bell circuit/,
+  });
+  const canvas = page.locator(".composer-basic-flow-section");
+  await expect(page.getByText("Drag a starter path here to switch the canvas", { exact: false })).toBeVisible();
+
+  if ((page.viewportSize()?.width ?? 1440) > 760) {
+    await hardwarePath.dragTo(canvas);
+  } else {
+    await hardwarePath.click();
+  }
+
+  await expect(page.getByRole("heading", { name: "Run on quantum hardware" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hardware target" })).toBeVisible();
+  await expect(
+    page.getByText("Submitting this path creates a QPU job.", { exact: false }),
+  ).toBeVisible();
+});
+
+
 test("explains what a tool does and how to use it", async ({ page }) => {
   await page.goto("/?view=tools");
 

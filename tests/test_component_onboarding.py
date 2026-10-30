@@ -151,3 +151,61 @@ def test_component_onboarding_records_isolated_build_and_smoke_evidence(
     assert built["draft"]["build_recipe"]["image_digest"] == "sha256:" + "a" * 64
     assert built["activation"]["state"] == "ready-for-admission"
     assert not list((tmp_path / ".qhpc" / "component-onboarding" / "builds").glob("**/qasm_transpiler.py"))
+
+    activated = manager.activate(draft["id"])
+
+    assert activated["status"] == "active"
+    assert activated["activation"]["state"] == "active-local"
+    event = activated["lifecycle"][-1]
+    assert event["at"].endswith("Z")
+    assert {key: value for key, value in event.items() if key != "at"} == {
+        "action": "activated",
+        "source_revision": revision,
+        "image_digest": "sha256:" + "a" * 64,
+        "replaces": None,
+    }
+    listing = manager.list()
+    assert listing["active_components"]["source"]["draft_id"] == draft["id"]
+    assert listing["active_components"]["source"]["source_revision"] == revision
+    with pytest.raises(ComponentOnboardingError, match="active component revision is immutable"):
+        manager.update_draft(draft["id"], {"operation_id": "different"})
+
+    git("commit", "--allow-empty", "-m", "new candidate", cwd=source)
+    successor = manager.inspect(str(source), template="container-cli")
+    manager.build(successor["id"])
+    manager.activate(successor["id"])
+    assert next(
+        item for item in manager.list()["items"] if item["id"] == draft["id"]
+    )["activation"]["state"] == "retained"
+
+    rolled_back = manager.activate(draft["id"])
+    assert rolled_back["status"] == "active"
+    assert rolled_back["lifecycle"][-1]["action"] == "rolled-back"
+    assert manager.list()["active_components"]["source"]["draft_id"] == draft["id"]
+
+
+def test_component_onboarding_refreshes_to_a_separate_immutable_candidate(
+    tmp_path: Path,
+) -> None:
+    source, current_revision = source_repository(tmp_path)
+    manager = ComponentOnboardingManager(
+        workspace_root=tmp_path,
+        allow_local_sources=True,
+        allowed_hosts=frozenset(),
+    )
+    draft = manager.inspect(str(source), ref="main", template="compiler-transpiler")
+
+    assert manager.refresh(draft["id"])["refresh"]["state"] == "up-to-date"
+    git("commit", "--allow-empty", "-m", "next candidate", cwd=source)
+    next_revision = git("rev-parse", "HEAD", cwd=source)
+    candidate = manager.refresh(draft["id"])
+
+    assert candidate["id"] != draft["id"]
+    assert candidate["source"]["resolved_revision"] == next_revision
+    assert candidate["supersedes"] == {
+        "draft_id": draft["id"],
+        "resolved_revision": current_revision,
+    }
+    original = next(item for item in manager.list()["items"] if item["id"] == draft["id"])
+    assert original["refresh"]["state"] == "update-available"
+    assert original["superseded_by"] == candidate["id"]
