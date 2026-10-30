@@ -99,3 +99,55 @@ def test_component_onboarding_rejects_credentialed_and_unadmitted_urls() -> None
         normalise_public_repository_url("https://example.invalid/org/repo")
     with pytest.raises(ComponentOnboardingError, match="exactly one owner"):
         normalise_public_repository_url("https://github.com/org/repo/tree/main")
+
+
+def test_component_onboarding_records_isolated_build_and_smoke_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source, revision = source_repository(tmp_path)
+    manager = ComponentOnboardingManager(
+        workspace_root=tmp_path,
+        allow_local_sources=True,
+        allowed_hosts=frozenset(),
+    )
+    draft = manager.inspect(str(source), template="container-cli")
+    observed: dict[str, object] = {}
+
+    def fake_isolated_build(
+        received_draft: dict,
+        checkout: Path,
+    ) -> dict:
+        observed["draft_id"] = received_draft["id"]
+        observed["checkout_revision"] = git("rev-parse", "HEAD", cwd=checkout)
+        observed["repository_code"] = (checkout / "src" / "qasm_transpiler.py").read_text(
+            encoding="utf-8"
+        )
+        return {
+            "state": "succeeded",
+            "finished_at": "2026-10-30T12:00:00Z",
+            "isolation": "network-disabled container build; no host credentials",
+            "logs": "isolated build completed",
+            "detected_entrypoints": ["Dockerfile"],
+            "image_digest": "sha256:" + "a" * 64,
+            "produced_artifacts": [
+                {
+                    "kind": "oci-image",
+                    "reference": "eqo-onboarding/example:abcdef123456",
+                    "digest": "sha256:" + "a" * 64,
+                }
+            ],
+            "smoke_test": {"state": "passed", "command": ["--help"], "exit_code": 0},
+        }
+
+    monkeypatch.setattr(manager, "_run_isolated_build", fake_isolated_build)
+    built = manager.build(draft["id"])
+
+    assert observed["draft_id"] == draft["id"]
+    assert observed["checkout_revision"] == revision
+    assert "repository code must not run" in str(observed["repository_code"])
+    assert built["status"] == "built"
+    assert built["build"]["smoke_test"]["state"] == "passed"
+    assert built["draft"]["build_recipe"]["image_digest"] == "sha256:" + "a" * 64
+    assert built["activation"]["state"] == "ready-for-admission"
+    assert not list((tmp_path / ".qhpc" / "component-onboarding" / "builds").glob("**/qasm_transpiler.py"))

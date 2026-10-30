@@ -1,8 +1,8 @@
 # Component Onboarding
 
-EQO can inspect an admitted public GitHub or GitLab repository and create a
-reviewable integration draft. This is a source-discovery step, not a build or
-deployment mechanism.
+EQO can inspect an admitted public GitHub or GitLab repository, create a
+reviewable integration draft, and explicitly build that already-pinned draft
+for evidence. Neither action deploys or activates a component.
 
 ## Safety boundary
 
@@ -15,15 +15,35 @@ Inspection uses Git remote metadata and tracked file names. It does **not**:
 
 - run repository code, hooks, installers, tests, or build recipes;
 - accept, persist, or expose host credentials;
-- create a runnable capability, OCI image, worker registration, or active
-  runtime; or
+- create a runnable capability, worker registration, or active runtime; or
 - change the deployment profile, capability registry, or any existing
   revision.
 
 The draft records the selected source URL, requested ref, resolved commit,
-optional monorepo subdirectory, recognized project files, selected template,
-and a proposed capability/runtime contract. Drafts are stored under the
-configured component-onboarding state root.
+optional monorepo subdirectory, recognized project files, likely entrypoint
+file names, selected template, and a proposed capability/runtime contract.
+Drafts are stored under the configured component-onboarding state root.
+
+## Explicit isolated build
+
+For a draft whose selected context contains `Dockerfile` or `Containerfile`,
+the **Build in isolation** action creates a temporary detached worktree at the
+resolved commit and invokes Docker with an empty client configuration. The
+build has no network, does not receive credentials or an SSH agent, and does
+not receive a host bind mount beyond the temporary build context. EQO retains
+only bounded build output, detected entrypoint file names, the local immutable
+image identity, produced-image reference, and constrained smoke-test result.
+
+The smoke test runs the built image with no network, read-only root filesystem,
+all Linux capabilities dropped, no-new-privileges, a non-root user, and bounded
+CPU, memory, process count, and wall time. A failed build or smoke test remains
+blocked and never changes an active runtime. The image is deliberately not
+published, added to the registry, or assigned to any worker by this action.
+
+Because a Docker daemon is part of the local trusted computing base, this is a
+developer-local admission gate rather than a substitute for a separately
+hardened remote build service. Builds require already available base images:
+the network-disabled build does not fetch them.
 
 ## Workbench and server enablement
 
@@ -42,18 +62,20 @@ The Workbench calls:
 ```text
 GET  /api/v1/component-onboarding
 POST /api/v1/component-onboarding/inspect
+POST /api/v1/component-onboarding/drafts/{id}/build
 ```
 
 The inspect request is limited to `repository_url`, `ref`, `subdirectory`, and
-`template`. Credentials, build commands, paths outside the selected
-repository, runtime flags, and activation choices are not accepted.
+`template`. The build request accepts no user fields. Credentials, build
+commands, paths outside the selected repository, runtime flags, and activation
+choices are not accepted.
 
 ## Admission remains separate
 
-A draft remains `inspected` and its build state is `not-run`. Before a source
-can become an EQO component, a future reviewed pipeline must build it in an
-isolated environment without host credentials, run a relevant smoke test,
-record an immutable image digest, publish a versioned capability contract, and
-admit the resulting runtime. Repository updates then use the separate
-controlled revision lifecycle documented in
+A draft moves to `built` only after its isolated build and constrained smoke
+test pass. It is then **ready for admission**, not active. Before a source can
+become an EQO component, a reviewer must still publish a versioned capability
+contract, repin the deployment and registry to the resulting immutable image,
+and admit the runtime through the worker lifecycle. Repository updates then use
+the separate controlled revision lifecycle documented in
 [Repository Updates](repository-updates.md).

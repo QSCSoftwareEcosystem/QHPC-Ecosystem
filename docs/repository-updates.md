@@ -1,7 +1,7 @@
 # Repository Updates
 
-- Status: Implemented for controlled discovery and source staging
-- Last updated: 2026-07-29
+- Status: Implemented for controlled discovery, source staging, and revision evidence
+- Last updated: 2026-10-30
 - Decision: [ADR 0011](adr/0011-controlled-repository-updates.md)
 
 The update controller tracks only components admitted by the selected
@@ -44,6 +44,13 @@ When a capability release predates a repository move, the response reports the
 canonical update repository separately from `current_repository_url`, which
 preserves the source of the active release.
 
+Each listed component also reports the immutable runtime identities used by its
+published operations. Once a candidate is prepared, EQO reads its commit date
+and subject from the verified detached checkout and records bounded lifecycle
+evidence (`checked`, `prepared`, and `discarded`). This makes source revision,
+active runtime digest, and the preparation decision visible together without
+claiming that a source commit has been activated.
+
 Standalone `serve` processes expose these operations only with
 `--enable-repository-updates`. `eqo dev up` enables them using
 `.qhpc/live/updates` unless `--no-repository-updates` is supplied.
@@ -61,6 +68,10 @@ The controller stores:
 State writes are process-locked and atomic. A prepared checkout must have the
 expected origin, exact detached `HEAD`, and no tracked or untracked changes.
 Existing mismatched or dirty candidate directories fail closed.
+
+Lifecycle evidence is intentionally bounded to the 50 most recent events per
+component and contains no credentials, build logs, or provider tokens. Older
+state files are migrated in place when the controller next writes them.
 
 The TN-Sim deployment source explicitly tracks `refs/heads/tn_sim`; ordinary
 repository URLs track the remote `HEAD`. A remote branch move between check and

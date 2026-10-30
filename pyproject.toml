@@ -18,6 +18,7 @@ dev = ["pytest>=7", "setuptools>=68", "wheel>=0.41", "Django>=5.2.15,<5.3"]
 local = ["Django>=5.2.15,<5.3"]
 workbench = ["Django>=5.2.15,<5.3"]
 iqm = ["iqm-client[qiskit]>=33.0.3,<34"]
+transpilation = ["qiskit>=2,<3"]
 jupyter = ["ipython>=8"]
 
 [project.scripts]

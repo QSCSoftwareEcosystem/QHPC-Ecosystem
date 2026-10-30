@@ -14,6 +14,14 @@ Python in order to discover a circuit. A future Qiskit importer must accept a
 bounded serialised circuit form or execute in a deliberately isolated
 importer.
 
+The initial bounded adapters are implemented in
+`qhpc_ecosystem.circuit_exchange`. They convert one Qiskit QPY binary artifact
+or OpenQASM 2 text artifact to or from `CircuitExchange`; they do not evaluate
+a Python program. The implemented subset is `id`, Pauli gates, H/S/T and
+inverses, RX/RY/RZ/P, CX/CZ, SWAP, barrier, and measurement. Control flow,
+classically conditioned instructions, custom definitions, and provider
+metadata fail closed.
+
 ## Circuit exchange contract
 
 `CircuitExchange` is a versioned EQO contract, validated as
@@ -43,9 +51,9 @@ its own contract and tests; it is never inferred from a forward converter.
 
 | Direction | Initial gate-model scope | Classification | Status |
 | --- | --- | --- | --- |
-| OpenQASM 2 → CircuitExchange | named qubits/bits, H/X/Y/Z/S/T, RX/RY/RZ, CX/CZ, measurement | exact for represented statements | contract defined |
-| CircuitExchange → Qiskit | same gate subset and symbolic parameters | equivalent after lowering | planned |
-| Qiskit serialised circuit → CircuitExchange | bounded, serialised circuit artifact only | depends on gate coverage | planned |
+| OpenQASM 2 ↔ CircuitExchange | named qubits/bits, declared supported gate subset, measurement | exact within the implemented subset | implemented |
+| CircuitExchange → Qiskit QPY | same gate subset and symbolic parameters | exact within the implemented subset | implemented |
+| Qiskit QPY ↔ CircuitExchange | bounded QPY artifact and declared gate subset | exact within the implemented subset | implemented |
 | CircuitExchange → pytket / Quantinuum target | declared native gate subset, explicit routing profile | equivalent after lowering | planned |
 | pytket / Quantinuum target → CircuitExchange | bounded circuit artifact with mappings | depends on target metadata | planned |
 | OpenQASM 3 → CircuitExchange | static gate-model subset; no timing or pulse semantics | lossy unless limitations are empty | planned |

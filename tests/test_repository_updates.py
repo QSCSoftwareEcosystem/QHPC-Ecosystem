@@ -92,6 +92,7 @@ def test_repository_updates_check_and_stage_exact_revision(tmp_path: Path) -> No
     initial = manager.list()["items"][0]
     assert initial["status"] == "not-checked"
     assert initial["activation"] == "rebuild-required"
+    assert initial["current_runtimes"] == []
 
     candidate = commit(source, "candidate")
     checked = manager.check()["items"][0]
@@ -101,6 +102,15 @@ def test_repository_updates_check_and_stage_exact_revision(tmp_path: Path) -> No
     staged = manager.stage("example", candidate)
     assert staged["status"] == "prepared"
     assert staged["staged_revision"] == candidate
+    assert staged["candidate_commit"] == {
+        "revision": candidate,
+        "committed_at": staged["candidate_commit"]["committed_at"],
+        "subject": "candidate",
+    }
+    assert [event["action"] for event in staged["history"][:2]] == [
+        "prepared",
+        "checked",
+    ]
     checkout = tmp_path / staged["checkout"]
     assert git("rev-parse", "HEAD", cwd=checkout) == candidate
     assert git("status", "--porcelain", cwd=checkout) == ""
@@ -115,6 +125,40 @@ def test_repository_updates_check_and_stage_exact_revision(tmp_path: Path) -> No
     released = reloaded.discard("example")
     assert released["status"] == "update-available"
     assert released["staged_revision"] is None
+    assert released["history"][0]["action"] == "discarded"
+
+
+def test_repository_updates_report_active_runtime_identity(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    git("init", "--initial-branch=main", str(source))
+    git("config", "user.name", "QHPC Test", cwd=source)
+    git("config", "user.email", "qhpc@example.invalid", cwd=source)
+    current = commit(source, "current")
+    registry, profile = documents(source, current)
+    registry["spec"]["entries"][0]["capability"]["spec"]["operations"] = [
+        {
+            "id": "run",
+            "runtime": {
+                "type": "oci",
+                "reference": "docker://example/tool@sha256:" + "d" * 64,
+                "digest": "sha256:" + "d" * 64,
+            },
+        }
+    ]
+
+    item = RepositoryUpdateManager(
+        registry,
+        profile,
+        workspace_root=tmp_path,
+    ).list()["items"][0]
+
+    assert item["current_runtimes"] == [
+        {
+            "type": "oci",
+            "reference": "docker://example/tool@sha256:" + "d" * 64,
+            "digest": "sha256:" + "d" * 64,
+        }
+    ]
 
 
 def test_repository_updates_reject_stale_candidate(tmp_path: Path) -> None:

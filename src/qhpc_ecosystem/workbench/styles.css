@@ -1812,6 +1812,14 @@ h2, h3, p { letter-spacing: 0; }
   color: var(--muted); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere;
 }
 .update-status .update-error { color: var(--bad); }
+.update-history { max-width: 230px; }
+.update-history summary {
+  color: var(--ink); cursor: pointer; font: 600 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+.update-history ul { display: grid; gap: 7px; margin: 8px 0 0; padding: 0; list-style: none; }
+.update-history li { display: grid; gap: 2px; color: var(--muted); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+.update-history li strong { color: var(--ink); font-weight: 650; }
+.update-history-empty { color: var(--muted); font-size: 11px; }
 .update-action { width: 108px; text-align: right; }
 .update-action .button { min-width: 84px; }
 .update-action-state {
@@ -2583,6 +2591,13 @@ h2, h3, p { letter-spacing: 0; }
 .component-draft-source a { color: var(--run); text-underline-offset: 2px; }
 .component-draft summary { cursor: pointer; color: var(--ink); font-weight: 700; }
 .component-draft details ul { display: grid; gap: 2px; margin: 7px 0 0; padding-left: 18px; font: 11px/1.45 ui-monospace, "SFMono-Regular", monospace; }
+.component-draft-build { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); }
+.component-draft-build > div { display: grid; gap: 3px; min-width: 0; }
+.component-draft-build strong { color: var(--ink); font-size: 12px; }
+.component-draft-build small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.component-draft-build-evidence { margin-top: 9px; }
+.component-draft-build-evidence dl { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 8px 0 0; }
+.component-draft-build-evidence pre { max-height: 185px; margin: 9px 0 0; padding: 10px; overflow: auto; background: var(--surface-sunken); color: var(--ink); font: 11px/1.45 ui-monospace, "SFMono-Regular", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .component-draft-editor { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .component-draft-editor form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
 .component-draft-editor label { display: grid; gap: 4px; color: var(--ink); font-size: 11px; font-weight: 700; }
@@ -2707,6 +2722,8 @@ h2, h3, p { letter-spacing: 0; }
   .component-onboarding-layout { grid-template-columns: 1fr; }
   .component-onboarding-form { border-right: 0; border-bottom: 1px solid var(--line); }
   .component-draft dl { grid-template-columns: 1fr 1fr; }
+  .component-draft-build { align-items: flex-start; flex-direction: column; }
+  .component-draft-build-evidence dl { grid-template-columns: 1fr 1fr; }
   .component-draft-editor form { grid-template-columns: 1fr; }
   .topbar { align-items: flex-start; padding: 16px; }
   .topbar-actions { align-items: stretch; gap: 7px; }
@@ -2854,9 +2871,10 @@ h2, h3, p { letter-spacing: 0; }
     content: attr(data-label); color: var(--muted);
     font: 700 10px/1.25 ui-monospace, "SFMono-Regular", monospace;
   }
-  .update-table td:first-child, .update-table td:nth-child(4), .update-table td:last-child {
+  .update-table td:first-child, .update-table td:nth-child(4), .update-table td:nth-child(5), .update-table td:last-child {
     grid-column: 1 / -1;
   }
+  .update-history { max-width: none; }
   .update-action { width: auto; text-align: left; }
   .assistant-service-state { align-items: flex-end; flex-direction: column; }
   .assistant-service-state > span:last-child { max-width: 240px; }

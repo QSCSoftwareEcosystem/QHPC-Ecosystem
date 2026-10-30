@@ -143,6 +143,7 @@ class FakeRepositoryUpdates:
 class FakeComponentOnboarding:
     def __init__(self) -> None:
         self.inspections: list[dict] = []
+        self.built: list[str] = []
 
     def list(self) -> dict:
         return {"enabled": True, "items": self.inspections}
@@ -163,6 +164,12 @@ class FakeComponentOnboarding:
     def update_draft(self, draft_id, changes) -> dict:
         assert draft_id == "onboarding-example"
         self.inspections[0]["draft"]["template"] = changes["template"]
+        return self.inspections[0]
+
+    def build(self, draft_id) -> dict:
+        assert draft_id == "onboarding-example"
+        self.built.append(draft_id)
+        self.inspections[0]["status"] = "built"
         return self.inspections[0]
 
 
@@ -815,6 +822,15 @@ def test_api_component_onboarding_accepts_only_reviewable_source_fields(
         )
         assert status == 200
         assert edited["draft"]["template"] == "simulator"
+
+        status, built = request_json(
+            base,
+            "/api/v1/component-onboarding/drafts/onboarding-example/build",
+            {},
+        )
+        assert status == 201
+        assert built["status"] == "built"
+        assert onboarding.built == ["onboarding-example"]
 
         with pytest.raises(HTTPError) as unsupported:
             request_json(

@@ -21,6 +21,13 @@ test("checks and prepares an allowlisted repository update", async ({ page }) =>
         current_repository_url: "https://github.com/QSCSoftwareThrust/STABSim",
         tracked_ref: "HEAD",
         current_revision: currentRevision,
+        current_runtimes: [
+          {
+            type: "oci",
+            reference: `docker://qhpc/stabsim@sha256:${"d".repeat(64)}`,
+            digest: `sha256:${"d".repeat(64)}`,
+          },
+        ],
         latest_revision: status === "not-checked" ? null : candidateRevision,
         checked_at:
           status === "not-checked" ? null : "2026-07-29T12:00:00Z",
@@ -36,6 +43,17 @@ test("checks and prepares an allowlisted repository update", async ({ page }) =>
           status === "prepared"
             ? `.qhpc/updates/checkouts/stabsim/${candidateRevision}`
             : null,
+        candidate_commit:
+          status === "prepared"
+            ? {
+                revision: candidateRevision,
+                committed_at: "2026-07-29T11:56:00Z",
+                subject: "Improve stabilizer decoding",
+              }
+            : null,
+        history: status === "prepared"
+          ? [{ at: "2026-07-29T12:01:00Z", action: "prepared", candidate_revision: candidateRevision }]
+          : [],
       },
     ],
   });
@@ -80,10 +98,17 @@ test("checks and prepares an allowlisted repository update", async ({ page }) =>
   expect(checkBody).toEqual({});
 
   await page.getByRole("button", { name: "Prepare", exact: true }).click();
-  await expect(page.getByText("prepared", { exact: true })).toBeVisible();
+  await expect(page.locator(".update-status").getByText("prepared", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Discard", exact: true }),
   ).toBeVisible();
+  await expect(page.locator('[data-label="Latest"]')).toContainText(
+    "Improve stabilizer decoding",
+  );
+  await expect(page.locator('[data-label="Current"]')).toContainText(
+    "oci sha256:ddddd…",
+  );
+  await expect(page.getByText("1 lifecycle event", { exact: true })).toBeVisible();
   expect(stageBody).toEqual({
     component_id: "stabsim",
     candidate_revision: candidateRevision,

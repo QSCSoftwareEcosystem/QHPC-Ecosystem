@@ -308,6 +308,7 @@ const state = {
     loading: false,
     inspecting: false,
     savingId: null,
+    buildingId: null,
     error: null,
   },
   dataObjectsByPrefix: {},
@@ -2410,6 +2411,41 @@ function updateRevisionCell(revision, detail) {
   return `<span class="cell-title update-revision">${value}<small>${escapeHtml(detail || "not resolved")}</small></span>`;
 }
 
+function updateRuntimeDetail(runtimes) {
+  if (!Array.isArray(runtimes) || !runtimes.length) {
+    return "No operation runtime is pinned";
+  }
+  const identities = runtimes.map(runtime => {
+    const digest = String(runtime?.digest || "");
+    const type = String(runtime?.type || "runtime");
+    return digest ? `${type} ${digest.slice(0, 12)}…` : type;
+  });
+  return identities.join(" · ");
+}
+
+function updateCandidateDetail(item) {
+  const candidate = item.candidate_commit;
+  if (candidate?.committed_at && candidate?.subject) {
+    return `${formatClock(candidate.committed_at)} · ${candidate.subject}`;
+  }
+  return item.checked_at
+    ? `checked ${formatClock(item.checked_at)} · prepare to record commit details`
+    : "remote not checked";
+}
+
+function updateHistory(item) {
+  const history = Array.isArray(item.history) ? item.history : [];
+  if (!history.length) return `<span class="update-history-empty">No lifecycle events yet</span>`;
+  const rows = history.slice(0, 5).map(event => {
+    const action = String(event?.action || "recorded");
+    const candidate = event?.candidate_revision
+      ? ` · ${String(event.candidate_revision).slice(0, 12)}…`
+      : "";
+    return `<li><strong>${escapeHtml(action)}</strong><span>${escapeHtml(formatClock(event?.at))}${escapeHtml(candidate)}</span></li>`;
+  }).join("");
+  return `<details class="update-history"><summary>${history.length} lifecycle event${history.length === 1 ? "" : "s"}</summary><ul>${rows}</ul></details>`;
+}
+
 function renderRepositoryUpdates() {
   const updates = state.repositoryUpdates;
   if (!updates.data && !updates.loading) {
@@ -2454,14 +2490,14 @@ function renderRepositoryUpdates() {
     const name = repository
       ? `<a href="${escapeHtml(repository)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.name)}</a>`
       : escapeHtml(item.name);
-    const latestDetail = item.checked_at
-      ? `checked ${formatClock(item.checked_at)}`
-      : "remote not checked";
+    const currentDetail = `${item.tracked_ref} · ${updateRuntimeDetail(item.current_runtimes)}`;
+    const latestDetail = updateCandidateDetail(item);
     return `<tr>
       <td data-label="Component"><span class="cell-title update-component"><strong>${name}</strong><small>${escapeHtml(item.component_id)} · ${escapeHtml(item.role)}</small></span></td>
-      <td data-label="Current">${updateRevisionCell(item.current_revision, item.tracked_ref)}</td>
+      <td data-label="Current">${updateRevisionCell(item.current_revision, currentDetail)}</td>
       <td data-label="Latest">${updateRevisionCell(item.latest_revision, latestDetail)}</td>
       <td data-label="State"><span class="update-status">${badge(item.status, updateStatusLabel(item.status))}<small class="${item.error ? "update-error" : ""}">${escapeHtml(statusDetail)}</small></span></td>
+      <td data-label="Evidence">${updateHistory(item)}</td>
       <td class="update-action" data-label="Action">${action}</td>
     </tr>`;
   }).join("");
@@ -2470,8 +2506,8 @@ function renderRepositoryUpdates() {
     "Exact source candidates; runtime activation remains gated by rebuild and validation",
     controls,
   ) + `<table class="data-table update-table">
-    <thead><tr><th>COMPONENT</th><th>CURRENT / REF</th><th>LATEST / CHECKED</th><th>STATE / NEXT GATE</th><th>ACTION</th></tr></thead>
-    <tbody>${rows || `<tr><td colspan="5">No admitted repository targets.</td></tr>`}</tbody>
+    <thead><tr><th>COMPONENT</th><th>CURRENT / RUNTIME</th><th>CANDIDATE / COMMIT</th><th>STATE / NEXT GATE</th><th>REVISION EVIDENCE</th><th>ACTION</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="6">No admitted repository targets.</td></tr>`}</tbody>
   </table>`;
   document.querySelector("#check-repository-updates").addEventListener("click", checkRepositoryUpdates);
   workspace.querySelectorAll("[data-stage-update]").forEach(button => {
@@ -2523,6 +2559,10 @@ function renderComponentOnboarding() {
     const definition = item.draft || {};
     const interfaceDefinition = definition.capability_interface || {};
     const saving = onboarding.savingId === item.id;
+    const building = onboarding.buildingId === item.id;
+    const build = item.build || {};
+    const buildSucceeded = build.state === "succeeded";
+    const buildArtifacts = Array.isArray(build.produced_artifacts) ? build.produced_artifacts : [];
     const files = inspection.recognized_files || [];
     const displayedFiles = files.slice(0, 8).map(name => `<li>${escapeHtml(name)}</li>`).join("");
     const omitted = Math.max(0, (inspection.recognized_file_count || files.length) - files.slice(0, 8).length);
@@ -2532,7 +2572,7 @@ function renderComponentOnboarding() {
       : escapeHtml(source.repository_url || "");
     return `<article class="component-draft">
       <header>
-        <div><h3>${escapeHtml(definition.capability_interface?.id || item.id)}</h3><p>${escapeHtml(componentTemplateLabel(definition.template || "python-operation"))} · inspected, not built</p></div>
+        <div><h3>${escapeHtml(definition.capability_interface?.id || item.id)}</h3><p>${escapeHtml(componentTemplateLabel(definition.template || "python-operation"))} · ${buildSucceeded ? "isolated build passed" : "inspected, not built"}</p></div>
         ${badge(item.status || "inspected", item.status || "inspected")}
       </header>
       <dl>
@@ -2543,6 +2583,11 @@ function renderComponentOnboarding() {
       </dl>
       <p class="component-draft-source">${sourceLink}</p>
       <details><summary>Recognized files · ${inspection.recognized_file_count || 0}</summary><ul>${displayedFiles || "<li>No recognized source files</li>"}${omitted ? `<li>… and ${omitted} more</li>` : ""}</ul></details>
+      <div class="component-draft-build">
+        <div><strong>Isolated build</strong><small>${escapeHtml(build.state || definition.build_recipe?.state || "not-run")} · network disabled · no host credentials</small></div>
+        <button class="button secondary" type="button" data-component-build="${escapeHtml(item.id)}" ${building ? "disabled" : ""}>${building ? "Building in isolation" : buildSucceeded ? "Rebuild in isolation" : "Build in isolation"}</button>
+      </div>
+      ${build.state ? `<details class="component-draft-build-evidence"><summary>Build evidence</summary><dl><div><dt>SMOKE TEST</dt><dd>${escapeHtml(build.smoke_test?.state || "not-run")}</dd></div><div><dt>IMAGE ID</dt><dd title="${escapeHtml(build.image_digest || "")}">${escapeHtml((build.image_digest || "not recorded").slice(0, 20))}</dd></div><div><dt>ENTRYPOINTS</dt><dd>${escapeHtml((build.detected_entrypoints || []).join(", ") || "not detected")}</dd></div></dl>${buildArtifacts.length ? `<ul>${buildArtifacts.map(artifact => `<li>${escapeHtml(artifact.kind || "artifact")} · ${escapeHtml((artifact.digest || artifact.reference || "").slice(0, 30))}</li>`).join("")}</ul>` : ""}<pre>${escapeHtml(build.logs || "No build log recorded.")}</pre></details>` : ""}
       <details class="component-draft-editor"><summary>Edit integration draft</summary>
         <form data-component-draft="${escapeHtml(item.id)}">
           <label>Template<select name="template"><option value="python-operation" ${definition.template === "python-operation" ? "selected" : ""}>Python operation</option><option value="container-cli" ${definition.template === "container-cli" ? "selected" : ""}>Containerized CLI</option><option value="compiler-transpiler" ${definition.template === "compiler-transpiler" ? "selected" : ""}>Compiler or transpiler</option><option value="simulator" ${definition.template === "simulator" ? "selected" : ""}>Simulator</option><option value="http-service" ${definition.template === "http-service" ? "selected" : ""}>HTTP service</option></select></label>
@@ -2581,6 +2626,9 @@ function renderComponentOnboarding() {
   document.querySelector("#component-onboarding-form").addEventListener("submit", inspectComponentRepository);
   workspace.querySelectorAll("[data-component-draft]").forEach(form => {
     form.addEventListener("submit", updateComponentDraft);
+  });
+  workspace.querySelectorAll("[data-component-build]").forEach(button => {
+    button.addEventListener("click", () => buildComponentDraft(button.dataset.componentBuild));
   });
 }
 
@@ -2664,6 +2712,33 @@ async function updateComponentDraft(event) {
     showToast(error.message);
   } finally {
     state.componentOnboarding.savingId = null;
+    if (state.view === "components") renderComponentOnboarding();
+  }
+}
+
+async function buildComponentDraft(draftId) {
+  if (!draftId) return;
+  state.componentOnboarding.buildingId = draftId;
+  state.componentOnboarding.error = null;
+  renderComponentOnboarding();
+  try {
+    const draft = await api(`/component-onboarding/drafts/${encodeURIComponent(draftId)}/build`, {
+      method: "POST",
+      body: "{}",
+    });
+    state.componentOnboarding.data = {
+      ...state.componentOnboarding.data,
+      enabled: true,
+      items: (state.componentOnboarding.data?.items || []).map(item =>
+        item.id === draft.id ? draft : item,
+      ),
+    };
+    showToast(draft.build?.state === "succeeded" ? "Isolated build and smoke test passed" : "Isolated build did not pass");
+  } catch (error) {
+    state.componentOnboarding.error = error.message;
+    showToast(error.message);
+  } finally {
+    state.componentOnboarding.buildingId = null;
     if (state.view === "components") renderComponentOnboarding();
   }
 }

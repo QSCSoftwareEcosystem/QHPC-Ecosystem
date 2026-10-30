@@ -1,10 +1,9 @@
-"""Safe repository inspection and draft scaffolding for EQO components.
+"""Safe repository onboarding with isolated, non-activating build evidence.
 
-This module deliberately stops before any repository code is built, imported,
-or executed.  It resolves a public Git source to an immutable commit, inspects
-only its tree metadata, and writes a reviewable integration draft.  A separate
-isolated build-and-admission pipeline is required before a draft can publish a
-capability or influence an active runtime.
+Inspection never runs repository code.  An explicitly requested build runs the
+already-pinned source only in a constrained, network-disabled container build
+and records evidence for later human admission; it cannot replace an active
+EQO runtime or publish a capability.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -35,6 +35,8 @@ TEMPLATES = {
 }
 DEFAULT_PUBLIC_GIT_HOSTS = frozenset({"github.com", "gitlab.com"})
 MAX_DISCOVERED_FILES = 240
+MAX_BUILD_LOG_BYTES = 64 * 1024
+BUILD_TIMEOUT_SECONDS = 12 * 60
 
 
 class ComponentOnboardingError(Exception):
@@ -119,7 +121,7 @@ def normalise_public_repository_url(
 
 
 class ComponentOnboardingManager:
-    """Inspect public repositories and create immutable, non-executable drafts."""
+    """Inspect public repositories and produce non-activating build evidence."""
 
     def __init__(
         self,
@@ -151,8 +153,19 @@ class ComponentOnboardingManager:
         cwd: Path | None = None,
     ) -> str:
         environment = dict(os.environ)
-        # Inspection must neither prompt for nor inherit credentials.  The
+        # Git operations must neither prompt for nor inherit credentials. The
         # accepted URL policy restricts the remote to public HTTPS hosts.
+        for name in (
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_INDEX_FILE",
+            "GIT_SSH",
+            "GIT_SSH_COMMAND",
+            "SSH_ASKPASS",
+            "SSH_AUTH_SOCK",
+            "SSH_AGENT_PID",
+        ):
+            environment.pop(name, None)
         environment.update(
             {
                 "GIT_TERMINAL_PROMPT": "0",
@@ -187,17 +200,19 @@ class ComponentOnboardingManager:
     def _load_state(self) -> dict[str, Any]:
         path = self._state_path()
         if not path.is_file():
-            return {"version": 1, "drafts": {}}
+            return {"version": 2, "drafts": {}}
         try:
             state = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise ComponentOnboardingError("component onboarding state is invalid") from error
         if (
             not isinstance(state, dict)
-            or state.get("version") != 1
+            or state.get("version") not in {1, 2}
             or not isinstance(state.get("drafts"), dict)
         ):
             raise ComponentOnboardingError("component onboarding state has an unsupported format")
+        if state["version"] == 1:
+            state["version"] = 2
         return state
 
     def _write_state(self, state: dict[str, Any]) -> None:
@@ -331,6 +346,22 @@ class ComponentOnboardingManager:
         return detected or ["python-operation"]
 
     @staticmethod
+    def _detected_entrypoints(files: Sequence[str]) -> list[str]:
+        """Identify likely entrypoint files without parsing or importing code."""
+        candidates = {
+            "app.py",
+            "main.py",
+            "__main__.py",
+            "dockerfile",
+            "containerfile",
+        }
+        return [
+            filename
+            for filename in files
+            if Path(filename).name.lower() in candidates
+        ][:12]
+
+    @staticmethod
     def _draft_template(template: str, component_id: str) -> dict[str, Any]:
         return {
             "template": template,
@@ -348,9 +379,10 @@ class ComponentOnboardingManager:
             },
             "build_recipe": {
                 "state": "not-run",
-                "isolation": "required before any build",
+                "isolation": "network-disabled container build",
                 "host_credentials": "never exposed",
                 "smoke_test": "required before local activation",
+                "smoke_command": ["--help"],
             },
         }
 
@@ -405,6 +437,7 @@ class ComponentOnboardingManager:
                     "detected_templates": detected_templates,
                     "recognized_files": files,
                     "recognized_file_count": len(files),
+                    "candidate_entrypoints": self._detected_entrypoints(files),
                 },
                 "draft": self._draft_template(selected_template, component_id),
                 "activation": {
@@ -469,6 +502,260 @@ class ComponentOnboardingManager:
                             f"{field} must be a versioned artifact type"
                         )
                     interface[key] = value
+            draft["updated_at"] = _timestamp()
+            # An edited interface must be rebuilt/reviewed before it can be
+            # considered for admission, even though no active runtime changes.
+            if draft.get("status") == "built":
+                draft["status"] = "inspected"
+                definition["build_recipe"] = {
+                    **definition.get("build_recipe", {}),
+                    "state": "invalidated",
+                    "reason": "Draft interface changed after the recorded build.",
+                }
+                draft["activation"] = {
+                    "state": "blocked",
+                    "reason": "Rebuild and review the edited integration draft before local admission.",
+                }
+            state["drafts"][draft_id] = draft
+            self._write_state(state)
+            return draft
+
+    def _worktree_for_draft(self, draft: dict[str, Any]) -> tuple[Path, Path]:
+        source = draft.get("source")
+        if not isinstance(source, dict):
+            raise ComponentOnboardingError("component draft has an invalid source pin")
+        repository_url = source.get("repository_url")
+        revision = source.get("resolved_revision")
+        subdirectory = source.get("subdirectory") or ""
+        if not isinstance(repository_url, str) or not isinstance(revision, str):
+            raise ComponentOnboardingError("component draft has an invalid source pin")
+        if REVISION.fullmatch(revision) is None:
+            raise ComponentOnboardingError("component draft has an invalid source revision")
+        selected_subdirectory = _safe_subdirectory(str(subdirectory))
+        repository = self.state_root / "objects" / self._source_key(repository_url) / "repository.git"
+        if not repository.is_dir():
+            raise ComponentOnboardingError("pinned repository object cache is unavailable; inspect again")
+        origin = self._git(["--git-dir", str(repository), "remote", "get-url", "origin"]).strip()
+        if origin != repository_url:
+            raise ComponentOnboardingError("pinned repository object cache identity mismatch")
+        if self._git(["--git-dir", str(repository), "rev-parse", "--verify", revision]).strip().lower() != revision.lower():
+            raise ComponentOnboardingError("pinned repository commit is unavailable; inspect again")
+
+        build_root = self.state_root / "builds"
+        build_root.mkdir(parents=True, exist_ok=True)
+        temporary = Path(tempfile.mkdtemp(prefix=".build-", dir=build_root))
+        checkout = temporary / "source"
+        try:
+            self._git(
+                [
+                    "--git-dir",
+                    str(repository),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(checkout),
+                    revision,
+                ]
+            )
+        except Exception:
+            shutil.rmtree(temporary, ignore_errors=True)
+            raise
+        context = checkout / selected_subdirectory
+        if not context.is_dir():
+            self._remove_worktree(repository, checkout, temporary)
+            raise ComponentOnboardingError("selected subdirectory is unavailable in the pinned commit")
+        return repository, checkout
+
+    def _remove_worktree(self, repository: Path, checkout: Path, temporary: Path) -> None:
+        try:
+            self._git(
+                ["--git-dir", str(repository), "worktree", "remove", "--force", str(checkout)]
+            )
+        except ComponentOnboardingError:
+            pass
+        shutil.rmtree(temporary, ignore_errors=True)
+
+    @staticmethod
+    def _trim_log(output: str) -> str:
+        encoded = output.encode("utf-8", errors="replace")
+        if len(encoded) <= MAX_BUILD_LOG_BYTES:
+            return encoded.decode("utf-8", errors="replace")
+        clipped = encoded[-MAX_BUILD_LOG_BYTES:]
+        return "[earlier output truncated]\n" + clipped.decode("utf-8", errors="replace")
+
+    def _container_command(
+        self,
+        arguments: Sequence[str],
+        *,
+        timeout_seconds: float = BUILD_TIMEOUT_SECONDS,
+    ) -> tuple[int, str]:
+        """Run Docker without client credentials or inherited secret variables."""
+        with tempfile.TemporaryDirectory(prefix="eqo-container-client-") as client_home:
+            environment = {
+                "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
+                "HOME": client_home,
+                "DOCKER_CONFIG": str(Path(client_home) / "docker-config"),
+                "LANG": "C.UTF-8",
+            }
+            try:
+                result = subprocess.run(
+                    ["docker", *arguments],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    check=False,
+                    timeout=timeout_seconds,
+                    env=environment,
+                )
+            except FileNotFoundError as error:
+                raise ComponentOnboardingError(
+                    "Docker is required for isolated component builds"
+                ) from error
+            except subprocess.TimeoutExpired as error:
+                output = error.stdout or ""
+                if isinstance(output, bytes):
+                    output = output.decode("utf-8", errors="replace")
+                return 124, self._trim_log(str(output) + "\nBuild timed out.")
+        return result.returncode, self._trim_log(result.stdout or "")
+
+    def _run_isolated_build(self, draft: dict[str, Any], checkout: Path) -> dict[str, Any]:
+        source = draft["source"]
+        definition = draft["draft"]
+        revision = source["resolved_revision"].lower()
+        subdirectory = source.get("subdirectory") or ""
+        context = checkout / subdirectory
+        dockerfile = next(
+            (context / name for name in ("Dockerfile", "Containerfile") if (context / name).is_file()),
+            None,
+        )
+        if dockerfile is None:
+            return {
+                "state": "failed",
+                "finished_at": _timestamp(),
+                "isolation": "network-disabled container build; no host credentials",
+                "logs": "No Dockerfile or Containerfile exists in the selected build context.",
+                "detected_entrypoints": draft["inspection"].get("candidate_entrypoints", []),
+                "produced_artifacts": [],
+                "smoke_test": {"state": "not-run", "reason": "no build image was produced"},
+            }
+        tag = f"eqo-onboarding/{draft['id'].removeprefix('onboarding-')}:{revision[:12]}"
+        build_arguments = [
+            "build",
+            "--network=none",
+            "--pull=false",
+            "--no-cache",
+            "--progress=plain",
+            "--label",
+            f"org.eqo.onboarding.draft={draft['id']}",
+            "--label",
+            f"org.eqo.source.revision={revision}",
+            "--file",
+            str(dockerfile),
+            "--tag",
+            tag,
+            str(context),
+        ]
+        returncode, build_log = self._container_command(build_arguments)
+        common = {
+            "finished_at": _timestamp(),
+            "isolation": "network-disabled container build; no host credentials",
+            "logs": build_log,
+            "detected_entrypoints": draft["inspection"].get("candidate_entrypoints", []),
+            "build_context": source.get("subdirectory") or "repository root",
+        }
+        if returncode != 0:
+            return {
+                "state": "failed",
+                **common,
+                "produced_artifacts": [],
+                "smoke_test": {"state": "not-run", "reason": "container build failed"},
+            }
+        inspect_code, inspect_output = self._container_command(
+            ["image", "inspect", "--format", "{{.Id}}", tag], timeout_seconds=60
+        )
+        image_digest = inspect_output.strip()
+        if inspect_code != 0 or not image_digest.startswith("sha256:"):
+            return {
+                "state": "failed",
+                **common,
+                "logs": self._trim_log(build_log + "\n" + inspect_output),
+                "produced_artifacts": [],
+                "smoke_test": {"state": "not-run", "reason": "image identity could not be recorded"},
+            }
+        smoke_command = definition.get("build_recipe", {}).get("smoke_command", ["--help"])
+        if not isinstance(smoke_command, list) or not smoke_command or any(
+            not isinstance(argument, str) or len(argument) > 256 for argument in smoke_command
+        ):
+            return {
+                "state": "failed",
+                **common,
+                "produced_artifacts": [{"kind": "oci-image", "reference": tag, "digest": image_digest}],
+                "smoke_test": {"state": "not-run", "reason": "draft smoke command is invalid"},
+            }
+        smoke_code, smoke_log = self._container_command(
+            [
+                "run",
+                "--rm",
+                "--network=none",
+                "--read-only",
+                "--cap-drop=ALL",
+                "--security-opt=no-new-privileges=true",
+                "--pids-limit=64",
+                "--memory=512m",
+                "--cpus=1",
+                "--user=65532:65532",
+                tag,
+                *smoke_command,
+            ],
+            timeout_seconds=60,
+        )
+        return {
+            "state": "succeeded" if smoke_code == 0 else "failed",
+            **common,
+            "image_digest": image_digest,
+            "produced_artifacts": [{"kind": "oci-image", "reference": tag, "digest": image_digest}],
+            "smoke_test": {
+                "state": "passed" if smoke_code == 0 else "failed",
+                "command": smoke_command,
+                "exit_code": smoke_code,
+                "logs": smoke_log,
+            },
+        }
+
+    def build(self, draft_id: str) -> dict[str, Any]:
+        """Build one inspected draft in a constrained environment without activation."""
+        if not isinstance(draft_id, str) or not draft_id.startswith("onboarding-"):
+            raise ComponentOnboardingError("component draft identifier is invalid")
+        with self._lock:
+            state = self._load_state()
+            draft = state["drafts"].get(draft_id)
+            if not isinstance(draft, dict):
+                raise ComponentOnboardingError("component draft was not found")
+            repository, checkout = self._worktree_for_draft(draft)
+            temporary = checkout.parent
+            try:
+                result = self._run_isolated_build(draft, checkout)
+            finally:
+                self._remove_worktree(repository, checkout, temporary)
+            draft["build"] = result
+            definition = draft["draft"]
+            definition["build_recipe"] = {
+                **definition.get("build_recipe", {}),
+                "state": result["state"],
+                "image_digest": result.get("image_digest"),
+            }
+            if result["state"] == "succeeded":
+                draft["status"] = "built"
+                draft["activation"] = {
+                    "state": "ready-for-admission",
+                    "reason": "Build and constrained smoke test passed. Review the pinned source and immutable image before a separate local admission.",
+                }
+            else:
+                draft["status"] = "build-failed"
+                draft["activation"] = {
+                    "state": "blocked",
+                    "reason": "The isolated build or smoke test did not pass; no component runtime was activated.",
+                }
             draft["updated_at"] = _timestamp()
             state["drafts"][draft_id] = draft
             self._write_state(state)

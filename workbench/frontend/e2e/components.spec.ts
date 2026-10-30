@@ -5,6 +5,7 @@ test("inspects a public repository into a pinned, non-executable component draft
   const revision = "a".repeat(40);
   let requestBody: Record<string, unknown> | undefined;
   let editBody: Record<string, unknown> | undefined;
+  let buildBody: Record<string, unknown> | undefined;
   const response = () => ({
     enabled: true,
     items: [],
@@ -52,6 +53,24 @@ test("inspects a public repository into a pinned, non-executable component draft
     });
   });
   await page.route("**/api/v1/component-onboarding/drafts/**", async (route) => {
+    if (route.request().url().endsWith("/build")) {
+      buildBody = route.request().postDataJSON() as Record<string, unknown>;
+      draft.status = "built";
+      (draft as Record<string, unknown>).build = {
+        state: "succeeded",
+        image_digest: `sha256:${"b".repeat(64)}`,
+        logs: "isolated build completed",
+        detected_entrypoints: ["Dockerfile"],
+        produced_artifacts: [{ kind: "oci-image", digest: `sha256:${"b".repeat(64)}` }],
+        smoke_test: { state: "passed" },
+      };
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(draft),
+      });
+      return;
+    }
     editBody = route.request().postDataJSON() as Record<string, unknown>;
     draft.draft.template = String(editBody.template);
     draft.draft.capability_interface.id = String(editBody.capability_id);
@@ -89,6 +108,11 @@ test("inspects a public repository into a pinned, non-executable component draft
   await expect(page.getByRole("heading", { name: "qasm-transpiler" })).toBeVisible();
   await expect(page.getByText(revision.slice(0, 16), { exact: true })).toBeVisible();
   await expect(page.getByText("not-run", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Build in isolation" }).click();
+  expect(buildBody).toEqual({});
+  await expect(page.getByText("isolated build passed", { exact: false })).toBeVisible();
+  await page.getByText("Build evidence").click();
+  await expect(page.getByText("isolated build completed", { exact: true })).toBeVisible();
   await page.getByText("Recognized files · 3").click();
   await expect(page.getByText("adapter/transpiler.py", { exact: true })).toBeVisible();
   await page.getByText("Edit integration draft").click();
@@ -104,5 +128,5 @@ test("inspects a public repository into a pinned, non-executable component draft
     input_artifact: "qhpc.quantum-circuit@1",
     output_artifact: "qhpc.measurement-counts@1",
   });
-  await expect(page.getByText("Simulator · inspected, not built")).toBeVisible();
+  await expect(page.getByText("Simulator · isolated build passed")).toBeVisible();
 });

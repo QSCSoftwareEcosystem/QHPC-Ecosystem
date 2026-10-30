@@ -48,6 +48,9 @@ ASSISTANT_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$")
 COMPONENT_ONBOARDING_DRAFT_ROUTE = re.compile(
     r"^/api/v1/component-onboarding/drafts/(onboarding-[a-z0-9]+)$"
 )
+COMPONENT_ONBOARDING_BUILD_ROUTE = re.compile(
+    r"^/api/v1/component-onboarding/drafts/(onboarding-[a-z0-9]+)/build$"
+)
 
 
 @dataclass(frozen=True)
@@ -1087,6 +1090,23 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                             ref=ref,
                             subdirectory=subdirectory,
                             template=template,
+                        ),
+                    )
+                    return
+                onboarding_build_match = COMPONENT_ONBOARDING_BUILD_ROUTE.fullmatch(path)
+                if onboarding_build_match:
+                    if context.component_onboarding is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "component onboarding is not enabled",
+                        )
+                        return
+                    if body:
+                        raise ValueError("component build does not accept request fields")
+                    self._json_response(
+                        HTTPStatus.CREATED,
+                        context.component_onboarding.build(
+                            onboarding_build_match.group(1)
                         ),
                     )
                     return

@@ -20,7 +20,8 @@ from urllib.parse import unquote, urlparse
 
 REVISION = re.compile(r"^[0-9a-fA-F]{40,64}$")
 COMPONENT_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
-STATE_VERSION = 1
+STATE_VERSION = 2
+MAX_HISTORY_EVENTS = 50
 
 
 class RepositoryUpdateError(Exception):
@@ -37,6 +38,7 @@ class RepositoryTarget:
     current_repository_url: str
     tracked_ref: str
     current_revision: str
+    runtime_identities: tuple[dict[str, str], ...]
     capability_ids: tuple[str, ...]
     activation: str
     next_action: str
@@ -184,6 +186,22 @@ class RepositoryUpdateManager:
                 profile_ref if profile_ref != "HEAD" else registry_ref
             )
             role = component["role"]
+            runtime_identities = {
+                (
+                    str(operation["runtime"]["digest"]),
+                    str(operation["runtime"]["reference"]),
+                    str(operation["runtime"]["type"]),
+                )
+                for entry in entries
+                for operation in entry["capability"]["spec"].get("operations", [])
+                if isinstance(operation, dict)
+                and isinstance(operation.get("runtime"), dict)
+                and all(
+                    isinstance(operation["runtime"].get(field), str)
+                    and operation["runtime"][field]
+                    for field in ("digest", "reference", "type")
+                )
+            }
             if role == "operation-provider":
                 activation = "rebuild-required"
                 next_action = "Rebuild and validate runtime before activation"
@@ -207,6 +225,14 @@ class RepositoryUpdateManager:
                     current_repository_url=next(iter(release_sources)),
                     tracked_ref=tracked_ref,
                     current_revision=next(iter(revisions)),
+                    runtime_identities=tuple(
+                        {
+                            "digest": digest,
+                            "reference": reference,
+                            "type": runtime_type,
+                        }
+                        for digest, reference, runtime_type in sorted(runtime_identities)
+                    ),
                     capability_ids=tuple(
                         sorted(
                             entry["capability"]["metadata"]["id"]
@@ -237,6 +263,7 @@ class RepositoryUpdateManager:
                 "version": STATE_VERSION,
                 "checks": {},
                 "staged": {},
+                "history": {},
             }
         try:
             state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -244,16 +271,39 @@ class RepositoryUpdateManager:
             raise RepositoryUpdateError(
                 f"repository update state is invalid: {state_path}"
             ) from error
-        if (
-            not isinstance(state, dict)
-            or state.get("version") != STATE_VERSION
-            or not isinstance(state.get("checks"), dict)
-            or not isinstance(state.get("staged"), dict)
+        if not isinstance(state, dict) or state.get("version") not in {1, STATE_VERSION}:
+            raise RepositoryUpdateError(
+                f"repository update state has an unsupported format: {state_path}"
+            )
+        if not isinstance(state.get("checks"), dict) or not isinstance(
+            state.get("staged"), dict
         ):
             raise RepositoryUpdateError(
                 f"repository update state has an unsupported format: {state_path}"
             )
+        if state.get("version") == 1:
+            state["version"] = STATE_VERSION
+            state["history"] = {}
+        if not isinstance(state.get("history"), dict):
+            raise RepositoryUpdateError(
+                f"repository update state has an unsupported format: {state_path}"
+            )
         return state
+
+    @staticmethod
+    def _record_event(
+        state: dict[str, Any],
+        component_id: str,
+        action: str,
+        **details: Any,
+    ) -> None:
+        """Append bounded, non-secret lifecycle evidence for one component."""
+        event = {"at": _timestamp(), "action": action, **details}
+        history = state["history"].setdefault(component_id, [])
+        if not isinstance(history, list):
+            raise RepositoryUpdateError("repository update history has an invalid format")
+        history.append(event)
+        del history[:-MAX_HISTORY_EVENTS]
 
     def _write_state(self, state: dict[str, Any]) -> None:
         self.state_root.mkdir(parents=True, exist_ok=True)
@@ -409,6 +459,7 @@ class RepositoryUpdateManager:
             "current_repository_url": target.current_repository_url,
             "tracked_ref": target.tracked_ref,
             "current_revision": target.current_revision,
+            "current_runtimes": list(target.runtime_identities),
             "latest_revision": latest,
             "checked_at": check.get("checked_at") if check else None,
             "status": status,
@@ -418,9 +469,11 @@ class RepositoryUpdateManager:
             "next_action": target.next_action,
             "staged_revision": staged.get("candidate_revision") if staged else None,
             "staged_at": staged.get("staged_at") if staged else None,
+            "candidate_commit": staged.get("candidate_commit") if staged else None,
             "checkout": self._relative_checkout(
                 staged.get("checkout") if staged else None
             ),
+            "history": list(reversed(state["history"].get(target.component_id, []))),
         }
 
     def list(self) -> dict[str, Any]:
@@ -444,6 +497,14 @@ class RepositoryUpdateManager:
             state = self._load_state()
             for target, result in zip(selected, checks):
                 state["checks"][target.component_id] = result
+                self._record_event(
+                    state,
+                    target.component_id,
+                    "checked",
+                    base_revision=target.current_revision,
+                    candidate_revision=result["latest_revision"],
+                    outcome="error" if result["error"] else "resolved",
+                )
             self._write_state(state)
             return {
                 "enabled": True,
@@ -553,6 +614,31 @@ class RepositoryUpdateManager:
             raise
         return destination
 
+    def _candidate_commit(self, checkout: Path, candidate_revision: str) -> dict[str, str]:
+        """Read minimal display metadata from the already-verified checkout."""
+        output = self._git(
+            [
+                "-C",
+                str(checkout),
+                "show",
+                "-s",
+                "--format=%H%x00%cI%x00%s",
+                candidate_revision,
+            ]
+        )
+        fields = output.split("\x00", maxsplit=2)
+        if len(fields) != 3 or REVISION.fullmatch(fields[0]) is None:
+            raise RepositoryUpdateError("prepared candidate has invalid Git commit metadata")
+        committed_at = fields[1].strip()
+        subject = fields[2].replace("\r", " ").replace("\n", " ").strip()
+        if not committed_at or not subject:
+            raise RepositoryUpdateError("prepared candidate has incomplete Git commit metadata")
+        return {
+            "revision": fields[0].lower(),
+            "committed_at": committed_at,
+            "subject": subject[:500],
+        }
+
     def stage(
         self,
         component_id: str,
@@ -580,6 +666,7 @@ class RepositoryUpdateManager:
             )
 
         checkout = self._prepare_checkout(target, candidate)
+        candidate_commit = self._candidate_commit(checkout, candidate)
         staged = {
             "base_revision": target.current_revision,
             "base_repository_url": target.current_repository_url,
@@ -588,11 +675,22 @@ class RepositoryUpdateManager:
             "candidate_revision": candidate,
             "checkout": str(checkout),
             "staged_at": _timestamp(),
+            "candidate_commit": candidate_commit,
         }
         with self._thread_lock, self._state_lock():
             state = self._load_state()
             state["checks"][target.component_id] = check
             state["staged"][target.component_id] = staged
+            self._record_event(
+                state,
+                target.component_id,
+                "prepared",
+                base_revision=target.current_revision,
+                candidate_revision=candidate,
+                runtime_digests=[
+                    runtime["digest"] for runtime in target.runtime_identities
+                ],
+            )
             self._write_state(state)
             return self._item(target, state)
 
@@ -601,6 +699,14 @@ class RepositoryUpdateManager:
         target = self._target(component_id)
         with self._thread_lock, self._state_lock():
             state = self._load_state()
-            state["staged"].pop(target.component_id, None)
+            staged = state["staged"].pop(target.component_id, None)
+            self._record_event(
+                state,
+                target.component_id,
+                "discarded",
+                candidate_revision=(
+                    staged.get("candidate_revision") if isinstance(staged, dict) else None
+                ),
+            )
             self._write_state(state)
             return self._item(target, state)
