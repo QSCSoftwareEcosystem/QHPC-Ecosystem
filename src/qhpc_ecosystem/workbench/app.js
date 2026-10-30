@@ -177,11 +177,13 @@ const VIEW_META = {
   knowledge: ["KNOWLEDGE / QAPPSWIKI", "Knowledge Explorer"],
   openqse: ["COMMUNITY / OPENQSE", "OpenQSE resources"],
   engagement: ["COMMUNITY / ENGAGEMENT", "Learning and events"],
+  training: ["LEARN / QUANTUM BASICS", "Quantum computing training"],
   assistant: ["ASSISTANCE / CHATQEC", "ChatQEC"],
   compose: ["WORKFLOWS / COMPOSE", "Workflow composer"],
   runs: ["EXECUTION / RUNS", "Run operations"],
   artifacts: ["PROVENANCE / ARTIFACTS", "Produced artifacts"],
   environments: ["RUNTIMES / ENVIRONMENTS", "Execution environments"],
+  components: ["SYSTEM / COMPONENTS", "Add a component"],
   updates: ["SOURCES / UPDATES", "Repository updates"],
 };
 
@@ -192,6 +194,72 @@ const requestedView = VIEW_ALIASES[rawRequestedView] || rawRequestedView;
 const initialView = Object.hasOwn(VIEW_META, requestedView) ? requestedView : "overview";
 const ASSISTANT_HISTORY_MESSAGE_LIMIT = 20;
 const ASSISTANT_HISTORY_CHARACTER_BUDGET = 24_000;
+const TRAINING_LESSONS = [
+  {
+    id: "states",
+    title: "States and measurement",
+    summary: "A qubit has a state; a measurement returns one classical bit.",
+    circuit: "q[0]: |0⟩ ───────── M",
+    model: "Ideal single-qubit measurement",
+    distribution: [["0", 1]],
+    prompt: "Why does measuring a qubit in the |0⟩ state always return 0?",
+  },
+  {
+    id: "gates",
+    title: "Single-qubit gates",
+    summary: "Gates change a qubit before it is measured. The X gate flips |0⟩ to |1⟩.",
+    circuit: "q[0]: |0⟩ ── X ── M",
+    model: "Ideal X-gate measurement",
+    distribution: [["1", 1]],
+    prompt: "How does the X gate change the |0⟩ state?",
+  },
+  {
+    id: "superposition",
+    title: "Superposition and interference",
+    summary: "A Hadamard gate prepares an equal superposition; repeated ideal measurements split between 0 and 1.",
+    circuit: "q[0]: |0⟩ ── H ── M",
+    model: "Ideal Hadamard measurement",
+    distribution: [["0", 0.5], ["1", 0.5]],
+    prompt: "Why do repeated measurements after a Hadamard gate vary between 0 and 1?",
+  },
+  {
+    id: "entanglement",
+    title: "Entanglement",
+    summary: "A Bell pair has correlated two-qubit outcomes even though either individual result can vary.",
+    circuit: "q[0]: |0⟩ ── H ── ● ── M\nq[1]: |0⟩ ─────── X ── M",
+    model: "Ideal Bell-pair measurement",
+    distribution: [["00", 0.5], ["11", 0.5]],
+    prompt: "Why are ideal Bell-pair outcomes correlated as 00 or 11?",
+  },
+  {
+    id: "teleportation",
+    title: "Multi-qubit circuits",
+    summary: "Teleportation-style circuits transfer a prepared state using entanglement and classical corrections.",
+    circuit: "source: |1⟩ ──●── H ── M\nbell:   |0⟩ ─H─X───── M\noutput: |0⟩ ────── X/Z ── M",
+    model: "Ideal teleportation-style output for |1⟩",
+    distribution: [["1", 1]],
+    prompt: "What classical information is needed to complete quantum teleportation?",
+  },
+  {
+    id: "grover",
+    title: "Introductory algorithms",
+    summary: "Grover-style amplitude amplification can make a marked state more likely than the alternatives.",
+    circuit: "q[0], q[1]: |00⟩ ── H⊗H ── oracle(11) ── diffuse ── M",
+    model: "Ideal two-qubit Grover-style search after one iteration",
+    distribution: [["11", 1]],
+    prompt: "How does amplitude amplification make Grover search favor the marked state?",
+  },
+  {
+    id: "qec",
+    title: "Quantum error correction",
+    summary: "Parity checks reveal consistency information without directly measuring the protected logical state.",
+    circuit: "data:      ────────\ncheck A:  ── parity(data) ── M\ncheck B:  ── parity(data) ── M",
+    model: "Ideal two-check stabilizer sample with no injected error",
+    distribution: [["00", 1]],
+    prompt: "What does a parity-check detector measure in a stabilizer circuit?",
+  },
+];
+
 const state = {
   capabilities: [],
   workflows: [],
@@ -217,16 +285,29 @@ const state = {
     requestSerial: 0,
     streamAbortController: null,
     contextNotice: "",
+    draftQuestion: "",
   },
   assistantDockOpen: false,
   engagement: {
     resources: [],
+  },
+  training: {
+    lessonId: "states",
+    shots: 100,
+    counts: null,
   },
   repositoryUpdates: {
     data: null,
     loading: false,
     checking: false,
     staging: null,
+    error: null,
+  },
+  componentOnboarding: {
+    data: null,
+    loading: false,
+    inspecting: false,
+    savingId: null,
     error: null,
   },
   dataObjectsByPrefix: {},
@@ -1309,6 +1390,132 @@ function renderEngagement() {
     </section>`;
 }
 
+function sampleIdealDistribution(distribution, shots) {
+  const counts = Object.fromEntries(distribution.map(([outcome]) => [outcome, 0]));
+  for (let sample = 0; sample < shots; sample += 1) {
+    const choice = Math.random();
+    let cumulative = 0;
+    const selected = distribution.find(([outcome, probability], index) => {
+      cumulative += probability;
+      return choice < cumulative || index === distribution.length - 1;
+    });
+    counts[selected[0]] += 1;
+  }
+  return counts;
+}
+
+function openTrainingInBasicComposer() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "compose");
+  url.searchParams.set("basic", "simulate");
+  window.history.replaceState({}, "", url);
+  switchView("compose");
+}
+
+function askTrainingChatQEC(prompt) {
+  state.assistant.draftQuestion = prompt;
+  switchView("assistant");
+  window.setTimeout(() => {
+    const input = document.querySelector("#assistant-question");
+    if (!input) return;
+    input.focus();
+  }, 0);
+}
+
+function renderTraining() {
+  const training = state.training;
+  const lesson = TRAINING_LESSONS.find(item => item.id === training.lessonId)
+    || TRAINING_LESSONS[0];
+  const resultRows = training.counts
+    ? Object.entries(training.counts).map(([outcome, count]) => {
+      const percent = Math.round((count / training.shots) * 100);
+      return `<tr><th scope="row">${escapeHtml(outcome)}</th><td>${count}</td><td>${percent}%</td></tr>`;
+    }).join("")
+    : "";
+
+  workspace.innerHTML = sectionHeader(
+    "Quantum computing training",
+    "Short, bounded lessons for learning circuit behavior before using research workflows or hardware.",
+  ) + `<div class="training-layout">
+    <nav class="training-navigation" aria-label="Quantum computing lessons">
+      <div>
+        <h2>Learning path</h2>
+        <p>Start with measurement, then move through gates, circuits, algorithms, and error correction.</p>
+      </div>
+      <ol>
+        ${TRAINING_LESSONS.map((item, index) => `<li><button type="button" data-training-lesson="${item.id}" ${item.id === lesson.id ? 'aria-current="step"' : ""}><span>${index + 1}</span><strong>${escapeHtml(item.title)}</strong></button></li>`).join("")}
+      </ol>
+      <p class="training-boundary">All lesson samples run as ideal, local browser models. They do not create an EQO run or submit to hardware.</p>
+    </nav>
+    <article class="training-lesson">
+      <header>
+        <div>
+          <h2>${escapeHtml(lesson.title)}</h2>
+          <p>${escapeHtml(lesson.summary)}</p>
+        </div>
+        <span>${escapeHtml(lesson.model)}</span>
+      </header>
+      <section class="training-circuit-section" aria-labelledby="training-circuit-title">
+        <h3 id="training-circuit-title">Ideal circuit sketch</h3>
+        <pre>${escapeHtml(lesson.circuit)}</pre>
+      </section>
+      <section class="training-experiment" aria-labelledby="training-experiment-title">
+        <div>
+          <h3 id="training-experiment-title">Try the local model</h3>
+          <p>Sample a bounded number of ideal shots. Real devices add noise, calibration limits, and queue time; this lesson intentionally does not.</p>
+          <label for="training-shots">Shots
+            <select id="training-shots">
+              ${[10, 100, 1000].map(value => `<option value="${value}" ${value === training.shots ? "selected" : ""}>${value}</option>`).join("")}
+            </select>
+          </label>
+          <button class="button" type="button" id="training-sample">Sample ideal measurements</button>
+        </div>
+        <div class="training-results" aria-live="polite">
+          ${training.counts
+            ? `<table><caption>Ideal local sample · ${training.shots} shots</caption><thead><tr><th>OUTCOME</th><th>COUNT</th><th>SHARE</th></tr></thead><tbody>${resultRows}</tbody></table>`
+            : `<p>Choose a shot count, then sample the ideal measurement outcomes.</p>`}
+        </div>
+      </section>
+      <footer class="training-actions">
+        <button class="button secondary" type="button" id="training-basic">Try it in Basic Composer</button>
+        <button class="button secondary" type="button" id="training-chatqec">Ask ChatQEC</button>
+      </footer>
+      <details class="training-glossary">
+        <summary>Lesson glossary</summary>
+        <dl>
+          <div><dt>Qubit</dt><dd>The basic quantum information unit; a measurement reports a classical outcome such as 0 or 1.</dd></div>
+          <div><dt>Shot</dt><dd>One repeated execution of the same circuit. Counts summarize the outcomes across many shots.</dd></div>
+          <div><dt>Superposition</dt><dd>A state that can yield more than one measurement outcome with defined probabilities.</dd></div>
+          <div><dt>Entanglement</dt><dd>A shared multi-qubit state whose measurement outcomes have correlations that separate qubits do not.</dd></div>
+          <div><dt>Parity check</dt><dd>A comparison that reports whether related measurements agree or differ without directly reading a protected logical state.</dd></div>
+        </dl>
+      </details>
+      <p class="training-classroom-note">Keyboard-friendly controls, no account requirement, and no hardware execution are included in this introductory workspace.</p>
+    </article>
+  </div>`;
+
+  workspace.querySelectorAll("[data-training-lesson]").forEach(button => {
+    button.addEventListener("click", () => {
+      training.lessonId = button.dataset.trainingLesson;
+      training.counts = null;
+      renderTraining();
+    });
+  });
+  document.querySelector("#training-shots").addEventListener("change", event => {
+    training.shots = Number(event.target.value);
+    training.counts = null;
+    renderTraining();
+  });
+  document.querySelector("#training-sample").addEventListener("click", () => {
+    training.counts = sampleIdealDistribution(lesson.distribution, training.shots);
+    renderTraining();
+  });
+  document.querySelector("#training-basic").addEventListener("click", openTrainingInBasicComposer);
+  document.querySelector("#training-chatqec").addEventListener("click", () => {
+    askTrainingChatQEC(lesson.prompt);
+  });
+}
+
 function assistantAnswerHtml(value) {
   return String(value ?? "")
     .split(/\n\s*\n/)
@@ -1532,7 +1739,7 @@ function renderAssistant() {
         <label for="assistant-question">${directTools && sourceLedger ? "QUESTION OR CIRCUIT REQUEST" : directTools ? "CIRCUIT REQUEST" : "QUESTION"}</label>
         ${contextNotice}
         <div>
-          <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="${directTools && sourceLedger ? "Question or circuit request for ChatQEC" : directTools ? "Circuit request for ChatQEC" : "Question for ChatQEC"}" placeholder="${directTools && sourceLedger ? "Ask about QEC, or paste explicit Stim/Tsim instructions" : directTools ? "Paste Stim/Tsim instructions, e.g. H 0 then M 0" : "Ask about codes, decoders, noise, or fault tolerance"}" ${available && !assistant.submitting ? "" : "disabled"}></textarea>
+          <textarea id="assistant-question" maxlength="8000" rows="3" aria-label="${directTools && sourceLedger ? "Question or circuit request for ChatQEC" : directTools ? "Circuit request" : "Question for ChatQEC"}" placeholder="${directTools && sourceLedger ? "Ask about QEC, or paste explicit Stim/Tsim instructions" : directTools ? "Paste Stim/Tsim instructions, e.g. H 0 then M 0" : "Ask about codes, decoders, noise, or fault tolerance"}" ${available && !assistant.submitting ? "" : "disabled"}>${escapeHtml(assistant.draftQuestion)}</textarea>
           ${assistant.submitting
             ? '<button class="button secondary" id="assistant-cancel" type="button">Cancel</button>'
             : `<button class="button" type="submit" ${available ? "" : "disabled"}>Send</button>`}
@@ -1562,10 +1769,14 @@ function renderAssistant() {
       event.currentTarget.form.requestSubmit();
     }
   });
+  document.querySelector("#assistant-question").addEventListener("input", event => {
+    assistant.draftQuestion = event.currentTarget.value;
+  });
   workspace.querySelectorAll("[data-assistant-prompt]").forEach(button => {
     button.addEventListener("click", () => {
       const input = document.querySelector("#assistant-question");
-      input.value = button.dataset.assistantPrompt;
+      assistant.draftQuestion = button.dataset.assistantPrompt;
+      input.value = assistant.draftQuestion;
       input.focus();
     });
   });
@@ -1829,6 +2040,7 @@ async function submitAssistantQuestion(event) {
   const question = input.value.trim();
   if (!question || state.assistant.submitting || !state.assistant.status?.available) return;
 
+  state.assistant.draftQuestion = "";
   const historyResult = boundedAssistantHistory(state.assistant.messages);
   const history = historyResult.history;
   state.assistant.contextNotice = historyResult.notice;
@@ -1914,6 +2126,7 @@ function clearAssistantConversation() {
   state.assistant.messages = [];
   state.assistant.submitting = false;
   state.assistant.contextNotice = "";
+  state.assistant.draftQuestion = "";
   renderAssistantSurfaces();
   const input = state.assistantDockOpen
     ? document.querySelector("#dock-assistant-question")
@@ -2274,6 +2487,187 @@ function renderRepositoryUpdates() {
   });
 }
 
+function componentTemplateLabel(template) {
+  return {
+    "python-operation": "Python operation",
+    "container-cli": "Containerized CLI",
+    "compiler-transpiler": "Compiler or transpiler",
+    simulator: "Simulator",
+    "http-service": "HTTP service",
+  }[template] || template;
+}
+
+function renderComponentOnboarding() {
+  const onboarding = state.componentOnboarding;
+  if (!onboarding.data && !onboarding.loading) {
+    onboarding.loading = true;
+    loadComponentOnboarding();
+  }
+  if (onboarding.loading && !onboarding.data) {
+    workspace.innerHTML = `<div class="loading">LOADING COMPONENT ONBOARDING</div>`;
+    return;
+  }
+  if (onboarding.error && !onboarding.data) {
+    workspace.innerHTML = `<div class="empty-state"><div><span class="empty-code">ERR</span><h2>Component onboarding is unavailable</h2><p>${escapeHtml(onboarding.error)}</p></div></div>`;
+    return;
+  }
+  if (!onboarding.data?.enabled) {
+    workspace.innerHTML = `<div class="empty-state"><div><span class="empty-code">ADD</span><h2>Component onboarding is disabled</h2><p>Enable the public-source inspection service to create a reviewable component draft. It never builds, imports, or activates repository code.</p></div></div>`;
+    return;
+  }
+
+  const drafts = onboarding.data.items || [];
+  const draftRows = drafts.map(item => {
+    const source = item.source || {};
+    const inspection = item.inspection || {};
+    const definition = item.draft || {};
+    const interfaceDefinition = definition.capability_interface || {};
+    const saving = onboarding.savingId === item.id;
+    const files = inspection.recognized_files || [];
+    const displayedFiles = files.slice(0, 8).map(name => `<li>${escapeHtml(name)}</li>`).join("");
+    const omitted = Math.max(0, (inspection.recognized_file_count || files.length) - files.slice(0, 8).length);
+    const sourceUrl = safeHttpUrl(source.repository_url);
+    const sourceLink = sourceUrl
+      ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.repository_url)}</a>`
+      : escapeHtml(source.repository_url || "");
+    return `<article class="component-draft">
+      <header>
+        <div><h3>${escapeHtml(definition.capability_interface?.id || item.id)}</h3><p>${escapeHtml(componentTemplateLabel(definition.template || "python-operation"))} · inspected, not built</p></div>
+        ${badge(item.status || "inspected", item.status || "inspected")}
+      </header>
+      <dl>
+        <div><dt>PINNED COMMIT</dt><dd title="${escapeHtml(source.resolved_revision || "")}">${escapeHtml((source.resolved_revision || "not resolved").slice(0, 16))}</dd></div>
+        <div><dt>SELECTED REF</dt><dd>${escapeHtml(source.requested_ref || "HEAD")}</dd></div>
+        <div><dt>SUBDIRECTORY</dt><dd>${escapeHtml(source.subdirectory || "repository root")}</dd></div>
+        <div><dt>BUILD GATE</dt><dd>${escapeHtml(definition.build_recipe?.state || "not-run")}</dd></div>
+      </dl>
+      <p class="component-draft-source">${sourceLink}</p>
+      <details><summary>Recognized files · ${inspection.recognized_file_count || 0}</summary><ul>${displayedFiles || "<li>No recognized source files</li>"}${omitted ? `<li>… and ${omitted} more</li>` : ""}</ul></details>
+      <details class="component-draft-editor"><summary>Edit integration draft</summary>
+        <form data-component-draft="${escapeHtml(item.id)}">
+          <label>Template<select name="template"><option value="python-operation" ${definition.template === "python-operation" ? "selected" : ""}>Python operation</option><option value="container-cli" ${definition.template === "container-cli" ? "selected" : ""}>Containerized CLI</option><option value="compiler-transpiler" ${definition.template === "compiler-transpiler" ? "selected" : ""}>Compiler or transpiler</option><option value="simulator" ${definition.template === "simulator" ? "selected" : ""}>Simulator</option><option value="http-service" ${definition.template === "http-service" ? "selected" : ""}>HTTP service</option></select></label>
+          <label>Capability ID<input name="capability_id" required value="${escapeHtml(interfaceDefinition.id || "")}"></label>
+          <label>Operation ID<input name="operation_id" required value="${escapeHtml(interfaceDefinition.operation_id || "")}"></label>
+          <label>Input artifact<input name="input_artifact" required value="${escapeHtml(interfaceDefinition.input_artifact || "")}"></label>
+          <label>Output artifact<input name="output_artifact" required value="${escapeHtml(interfaceDefinition.output_artifact || "")}"></label>
+          <button class="button secondary" type="submit" ${saving ? "disabled" : ""}>${saving ? "Saving draft" : "Save draft"}</button>
+        </form>
+      </details>
+      <p class="component-draft-gate">${escapeHtml(item.activation?.reason || "A reviewed admission process is required before activation.")}</p>
+    </article>`;
+  }).join("");
+
+  workspace.innerHTML = sectionHeader(
+    "Add a component from repository",
+    "Inspect a public Git source, pin its exact commit, and prepare a reviewable integration draft.",
+  ) + `<div class="component-onboarding-layout">
+    <form class="component-onboarding-form" id="component-onboarding-form">
+      <h2>Inspect a public source</h2>
+      <p>EQO reads Git metadata and tracked file names only. It does not execute source code, accept credentials, build an image, or activate a runtime here.</p>
+      <label>Public Git repository URL<input name="repository_url" type="url" required placeholder="https://github.com/owner/repository"></label>
+      <div class="component-onboarding-form-row">
+        <label>Branch, tag, or commit<input name="ref" value="HEAD" placeholder="HEAD"></label>
+        <label>Monorepo subdirectory<input name="subdirectory" placeholder="optional/path"></label>
+      </div>
+      <label>Integration template<select name="template"><option value="">Choose from detected files</option><option value="python-operation">Python operation</option><option value="container-cli">Containerized CLI</option><option value="compiler-transpiler">Compiler or transpiler</option><option value="simulator">Simulator</option><option value="http-service">HTTP service</option></select></label>
+      <button class="button" type="submit" ${onboarding.inspecting ? "disabled" : ""}>${onboarding.inspecting ? "Inspecting source" : "Inspect repository"}</button>
+      ${onboarding.error ? `<p class="component-onboarding-error" role="alert">${escapeHtml(onboarding.error)}</p>` : ""}
+    </form>
+    <section class="component-onboarding-drafts" aria-labelledby="component-drafts-title">
+      <header><h2 id="component-drafts-title">Reviewable drafts</h2><p>Each draft records a source pin. Isolated build, smoke test, immutable image digest, and admission remain separate gates.</p></header>
+      <div class="component-draft-list">${draftRows || `<p class="component-onboarding-empty">No sources have been inspected yet.</p>`}</div>
+    </section>
+  </div>`;
+  document.querySelector("#component-onboarding-form").addEventListener("submit", inspectComponentRepository);
+  workspace.querySelectorAll("[data-component-draft]").forEach(form => {
+    form.addEventListener("submit", updateComponentDraft);
+  });
+}
+
+async function loadComponentOnboarding() {
+  try {
+    state.componentOnboarding.data = await api("/component-onboarding");
+    state.componentOnboarding.error = null;
+  } catch (error) {
+    state.componentOnboarding.error = error.message;
+  } finally {
+    state.componentOnboarding.loading = false;
+    if (state.view === "components") renderComponentOnboarding();
+  }
+}
+
+async function inspectComponentRepository(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const values = new FormData(form);
+  const template = String(values.get("template") || "").trim();
+  state.componentOnboarding.inspecting = true;
+  state.componentOnboarding.error = null;
+  renderComponentOnboarding();
+  try {
+    const draft = await api("/component-onboarding/inspect", {
+      method: "POST",
+      body: JSON.stringify({
+        repository_url: String(values.get("repository_url") || "").trim(),
+        ref: String(values.get("ref") || "HEAD").trim() || "HEAD",
+        subdirectory: String(values.get("subdirectory") || "").trim(),
+        ...(template ? { template } : {}),
+      }),
+    });
+    const existing = state.componentOnboarding.data?.items || [];
+    state.componentOnboarding.data = {
+      ...state.componentOnboarding.data,
+      enabled: true,
+      items: [draft, ...existing.filter(item => item.id !== draft.id)],
+    };
+    showToast("Pinned component draft ready for review");
+  } catch (error) {
+    state.componentOnboarding.error = error.message;
+    showToast(error.message);
+  } finally {
+    state.componentOnboarding.inspecting = false;
+    if (state.view === "components") renderComponentOnboarding();
+  }
+}
+
+async function updateComponentDraft(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const draftId = form.dataset.componentDraft;
+  if (!draftId) return;
+  const values = new FormData(form);
+  const body = Object.fromEntries([
+    "template",
+    "capability_id",
+    "operation_id",
+    "input_artifact",
+    "output_artifact",
+  ].map(name => [name, String(values.get(name) || "").trim()]));
+  state.componentOnboarding.savingId = draftId;
+  state.componentOnboarding.error = null;
+  renderComponentOnboarding();
+  try {
+    const draft = await api(`/component-onboarding/drafts/${encodeURIComponent(draftId)}`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    state.componentOnboarding.data = {
+      ...state.componentOnboarding.data,
+      enabled: true,
+      items: (state.componentOnboarding.data?.items || []).map(item =>
+        item.id === draft.id ? draft : item,
+      ),
+    };
+    showToast("Component draft saved for review");
+  } catch (error) {
+    state.componentOnboarding.error = error.message;
+    showToast(error.message);
+  } finally {
+    state.componentOnboarding.savingId = null;
+    if (state.view === "components") renderComponentOnboarding();
+  }
+}
+
 async function loadRepositoryUpdates() {
   try {
     state.repositoryUpdates.data = await api("/repository-updates");
@@ -2356,7 +2750,7 @@ function render() {
   renderSummary();
   if (state.view !== "compose") window.QHPCComposer?.unmount();
   if (state.view !== "knowledge") window.QHPCKnowledge?.unmount();
-  ({ overview: renderOverview, showcases: renderShowcases, tools: renderTools, data: renderData, knowledge: renderKnowledge, openqse: renderOpenQSE, engagement: renderEngagement, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, updates: renderRepositoryUpdates })[state.view]();
+  ({ overview: renderOverview, showcases: renderShowcases, tools: renderTools, data: renderData, knowledge: renderKnowledge, openqse: renderOpenQSE, engagement: renderEngagement, training: renderTraining, assistant: renderAssistant, compose: renderCompose, runs: renderRuns, artifacts: renderArtifacts, environments: renderEnvironments, components: renderComponentOnboarding, updates: renderRepositoryUpdates })[state.view]();
 }
 
 function switchView(view) {
@@ -2374,7 +2768,10 @@ function switchView(view) {
   } else if (view !== "data") {
     url.searchParams.delete("data_service");
   }
-  if (view !== "compose") url.searchParams.delete("workflow");
+  if (view !== "compose") {
+    url.searchParams.delete("workflow");
+    url.searchParams.delete("basic");
+  }
   if (view !== "tools") url.searchParams.delete("capability");
   window.history.replaceState({}, "", url);
   document.querySelectorAll(".nav-item").forEach(item => {
@@ -2395,7 +2792,10 @@ function openInspector(html, kind = "DETAILS") {
   lastFocused = document.activeElement;
   document.querySelector("#inspector-kind").textContent = kind;
   document.querySelector("#inspector-content").innerHTML = html;
-  inspector.classList.toggle("is-wide", kind === "TOOL RECORD");
+  inspector.classList.toggle(
+    "is-wide",
+    kind === "TOOL RECORD" || kind === "RUN RECEIPT",
+  );
   inspector.classList.add("open");
   inspector.setAttribute("aria-hidden", "false");
   document.querySelector("#scrim").classList.add("open");
@@ -2631,6 +3031,7 @@ function openCapability(id) {
 
 function openRun(id) {
   const run = state.runs.find(item => item.id === id);
+  const workflowDigest = run.workflow_digest || "not recorded";
   const durations = run.tasks.map(task => elapsedMs(task.started_at, task.finished_at));
   const longest = Math.max(1, ...durations.filter(value => value !== null));
 
@@ -2672,29 +3073,46 @@ function openRun(id) {
   const lifecyclePanel = lifecycle.present && run.tasks.some(isIqmExecutionTask)
     ? `<section class="run-execution-status"><span class="panel-label">IQM EXECUTION LIFECYCLE</span><strong>${escapeHtml(lifecycle.status)}</strong><p>${escapeHtml(lifecycle.detail)}</p></section>`
     : "";
+  const inputs = Object.entries(run.inputs || {}).map(([name, artifactId]) =>
+    `<div class="run-output"><span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(artifactId)}</small></span></div>`
+  ).join("");
   const outputs = Object.entries(run.outputs || {}).map(([name, artifactId]) => {
     const contentPath = `api/v1/artifacts/${encodeURIComponent(artifactId)}/content`;
     return `<div class="run-output"><span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(artifactId)}</small></span><span class="artifact-actions"><a class="button secondary" href="${contentPath}" target="_blank" rel="noopener">Preview</a><a class="button secondary" href="${contentPath}?download=1">Download</a></span></div>`;
   }).join("");
-  openInspector(`<h2>${escapeHtml(run.workflow_id)}</h2>
-    <p class="description">${escapeHtml(run.id)}</p>
-    <p>${badge(run.state)}</p>
+  openInspector(`<article class="run-receipt">
+    <header class="run-receipt-header">
+      <div>
+        <h2>${escapeHtml(run.workflow_id)}</h2>
+        <p class="description">Run ${escapeHtml(run.id)}</p>
+      </div>
+      ${badge(run.state)}
+    </header>
+    <dl class="run-receipt-facts">
+      <div><dt>Workflow</dt><dd>${escapeHtml(run.workflow_id)}@${escapeHtml(run.workflow_version)}</dd></div>
+      <div><dt>Target</dt><dd>${escapeHtml(run.execution_target)}</dd></div>
+      <div><dt>Workflow digest</dt><dd title="${escapeHtml(workflowDigest)}">${escapeHtml(workflowDigest)}</dd></div>
+      <div><dt>Submitted</dt><dd>${escapeHtml(formatClock(run.created_at))}</dd></div>
+    </dl>
     <div class="run-actions">
-      <button class="button secondary" id="export-run">Export</button>
+      <button class="button secondary" id="export-run">Export receipt</button>
       ${["queued", "running"].includes(run.state) ? `<button class="button danger" id="cancel-run">Cancel run</button>` : ""}
       ${retry ? `<button class="button" id="retry-run" data-node="${escapeHtml(retry.node_id)}">Retry task</button>` : ""}
     </div>
     ${summary}
     ${lifecyclePanel}
-    ${outputs ? `<p class="panel-label" style="margin-top:18px">WORKFLOW OUTPUTS</p><div class="run-outputs">${outputs}</div>` : ""}
-    <p class="panel-label" style="margin-top:18px">TASK TIMELINE</p>
-    <div class="timeline">${timeline}</div>
-    <dl class="detail-list">
+    <section class="run-receipt-section">
+      <div class="run-receipt-section-header"><h3>Execution timeline</h3><span>${run.tasks.length} task${run.tasks.length === 1 ? "" : "s"}</span></div>
+      <div class="timeline">${timeline}</div>
+    </section>
+    ${inputs ? `<section class="run-receipt-section"><div class="run-receipt-section-header"><h3>Input artifacts</h3><a href="?view=artifacts">Artifact index</a></div><div class="run-outputs">${inputs}</div></section>` : ""}
+    ${outputs ? `<section class="run-receipt-section"><div class="run-receipt-section-header"><h3>Output artifacts</h3><a href="?view=artifacts">Artifact index</a></div><div class="run-outputs">${outputs}</div></section>` : ""}
+    <dl class="detail-list run-receipt-provenance">
       <dt>Started</dt><dd>${escapeHtml(formatClock(run.started_at))}</dd>
       <dt>Finished</dt><dd>${escapeHtml(formatClock(run.finished_at))}</dd>
-      <dt>Target</dt><dd>${escapeHtml(run.execution_target)}</dd>
       <dt>Submitted by</dt><dd>${escapeHtml(run.created_by)}</dd>
-    </dl>`, "RUN RECORD");
+    </dl>
+  </article>`, "RUN RECEIPT");
   document.querySelector("#export-run").addEventListener("click", () => exportRun(run.id));
   document.querySelector("#cancel-run")?.addEventListener("click", () => runAction(run.id, "cancel"));
   document.querySelector("#retry-run")?.addEventListener("click", event => retryRun(run.id, event.target.dataset.node));
@@ -2773,7 +3191,7 @@ function enhancePrimaryNavigation() {
   const groups = [
     ["workspace", "Workspace", ["overview", "showcases", "tools", "data", "knowledge", "openqse", "engagement", "assistant", "compose"]],
     ["execution", "Execution", ["runs", "artifacts"]],
-    ["system", "System", ["environments", "updates"]],
+    ["system", "System", ["environments", "components", "updates"]],
   ];
   navigation.setAttribute("aria-label", "EQO-QSC workspaces");
   groups.forEach(([id, label, views]) => {
@@ -2806,6 +3224,7 @@ document.querySelectorAll(".nav-item").forEach(item => item.addEventListener("cl
 document.querySelector("#refresh-button").addEventListener("click", () => {
   if (state.view === "assistant") state.assistant.status = null;
   if (state.view === "updates") state.repositoryUpdates.data = null;
+  if (state.view === "components") state.componentOnboarding.data = null;
   loadData();
   showToast("Workbench data refreshed");
 });

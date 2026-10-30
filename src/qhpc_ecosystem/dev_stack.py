@@ -48,12 +48,14 @@ class DevStackConfig:
     chatqec_openai_model: str = ""
     chatqec_openai_api_key: str = ""
     update_state_root: str = ".qhpc/live/updates"
+    component_onboarding_state_root: str = ".qhpc/live/component-onboarding"
     workspace_root: str = "."
     start_local_worker: bool = True
     start_target_worker: bool = True
     start_workbench: bool = True
     start_chatqec: bool = True
     start_repository_updates: bool = True
+    start_component_onboarding: bool = True
     start_databucket: bool = False
     start_iqm_worker: bool = False
     start_iqm_simulation_worker: bool = False
@@ -119,14 +121,27 @@ def build_service_specs(
         str(config.worker_stale_after_seconds),
     ]
     api_environment: tuple[tuple[str, str], ...] = ()
+    if config.start_repository_updates or config.start_component_onboarding:
+        api_command.extend(
+            (
+                "--workspace-root",
+                config.workspace_root,
+            )
+        )
     if config.start_repository_updates:
         api_command.extend(
             (
                 "--enable-repository-updates",
-                "--workspace-root",
-                config.workspace_root,
                 "--update-state-root",
                 config.update_state_root,
+            )
+        )
+    if config.start_component_onboarding:
+        api_command.extend(
+            (
+                "--enable-component-onboarding",
+                "--component-onboarding-state-root",
+                config.component_onboarding_state_root,
             )
         )
     if config.qappswiki_graph:

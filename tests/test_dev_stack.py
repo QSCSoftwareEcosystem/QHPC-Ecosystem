@@ -54,6 +54,8 @@ def test_dev_stack_builds_separate_api_and_worker_processes() -> None:
     assert "serve" in services[0].command
     assert "--enable-repository-updates" in services[0].command
     assert ".qhpc/live/updates" in services[0].command
+    assert "--enable-component-onboarding" in services[0].command
+    assert ".qhpc/live/component-onboarding" in services[0].command
     assert "chatqec-service" in services[1].command
     assert "qhpc_workbench" in services[2].command
     assert "worker" in services[3].command

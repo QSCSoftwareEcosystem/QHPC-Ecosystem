@@ -1,0 +1,47 @@
+api_version: qhpc/v1
+kind: CircuitExchange
+metadata:
+  id: qhpc.bell-circuit-exchange
+  name: Bell circuit exchange record
+  version: 1
+  source:
+    name: openqasm
+    version: "2.0"
+  transformation:
+    adapter: qiskit-to-pytket-subset
+    classification: equivalent-after-lowering
+    target:
+      name: pytket
+      version: "1"
+spec:
+  qubit_order: ["q[0]", "q[1]"]
+  classical_bit_order: ["c[0]", "c[1]"]
+  parameters: []
+  global_phase: null
+  operations:
+    - index: 0
+      gate: h
+      qubits: ["q[0]"]
+      classical_bits: []
+      parameters: []
+      condition: null
+    - index: 1
+      gate: cx
+      qubits: ["q[0]", "q[1]"]
+      classical_bits: []
+      parameters: []
+      condition: null
+    - index: 2
+      gate: measure
+      qubits: ["q[0]"]
+      classical_bits: ["c[0]"]
+      parameters: []
+      condition: null
+    - index: 3
+      gate: measure
+      qubits: ["q[1]"]
+      classical_bits: ["c[1]"]
+      parameters: []
+      condition: null
+  limitations:
+    - This record has no routing, noise, pulse, or hardware calibration semantics.

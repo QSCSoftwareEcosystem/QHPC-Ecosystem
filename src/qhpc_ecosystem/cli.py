@@ -21,6 +21,7 @@ from .catalog import (
     load_catalog,
 )
 from .chatqec_service import ChatQECServiceError
+from .component_onboarding import ComponentOnboardingManager
 from .contract import (
     CONTRACT_SCHEMAS,
     ContractError,
@@ -377,6 +378,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="enable controlled repository check and staging API routes",
     )
     serve_parser.add_argument(
+        "--enable-component-onboarding",
+        action="store_true",
+        help="enable public-source inspection and non-executable component drafts",
+    )
+    serve_parser.add_argument(
         "--qappswiki-graph",
         help=(
             "compiled QAppsWiki graph.json; defaults to "
@@ -385,6 +391,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve_parser.add_argument("--workspace-root", default=".")
     serve_parser.add_argument("--update-state-root", default=".qhpc/updates")
+    serve_parser.add_argument(
+        "--component-onboarding-state-root",
+        default=".qhpc/component-onboarding",
+    )
 
     local_parser = subparsers.add_parser(
         "local", help="operate the portable single-user EQO release"
@@ -757,6 +767,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-repository-updates",
         action="store_true",
         help="disable repository check and staging in the local Workbench",
+    )
+    dev_up.add_argument(
+        "--no-component-onboarding",
+        action="store_true",
+        help="disable public-source component inspection in the local Workbench",
     )
     dev_up.add_argument(
         "--stop-cluster-on-exit",
@@ -2111,6 +2126,12 @@ def dispatch(args: argparse.Namespace) -> int:
                 workspace_root=args.workspace_root,
                 state_root=args.update_state_root,
             )
+        component_onboarding = None
+        if args.enable_component_onboarding:
+            component_onboarding = ComponentOnboardingManager(
+                workspace_root=args.workspace_root,
+                state_root=args.component_onboarding_state_root,
+            )
         knowledge = None
         qappswiki_repository = catalog.repository("QAppsWiki")
         knowledge_path = (
@@ -2174,6 +2195,7 @@ def dispatch(args: argparse.Namespace) -> int:
                 worker_stale_after_seconds=args.worker_stale_after,
                 chatqec=chatqec,
                 repository_updates=repository_updates,
+                component_onboarding=component_onboarding,
                 knowledge=knowledge,
                 databucket=databucket,
             ),
@@ -2320,6 +2342,7 @@ def dispatch(args: argparse.Namespace) -> int:
             artifact_root=args.artifact_root,
             runtime_root=args.runtime_root,
             update_state_root=args.update_state_root,
+            component_onboarding_state_root=".qhpc/live/component-onboarding",
             workspace_root=str(Path(args.workspace_root).expanduser().resolve()),
             workflows=tuple(dict.fromkeys(args.workflow)),
             host=args.host,
@@ -2337,6 +2360,7 @@ def dispatch(args: argparse.Namespace) -> int:
             start_workbench=not args.no_django_workbench,
             start_chatqec=not args.no_chatqec,
             start_repository_updates=not args.no_repository_updates,
+            start_component_onboarding=not args.no_component_onboarding,
             start_databucket=databucket_enabled,
             start_iqm_worker=args.start_iqm_worker,
             start_iqm_simulation_worker=args.start_iqm_simulation_worker,

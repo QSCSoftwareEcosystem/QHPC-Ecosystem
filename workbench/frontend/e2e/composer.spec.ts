@@ -829,6 +829,14 @@ test("starts a basic circuit path without requiring EQO vocabulary", async ({ pa
   await expect(
     page.getByLabel("Simulate a circuit workflow blocks"),
   ).toContainText("Analyze results");
+  await page
+    .getByLabel("Simulate a circuit workflow blocks")
+    .getByRole("button", { name: /Simulate.*Local CPU execution/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Inspect Simulate" }),
+  ).toBeVisible();
+  await expect(page.getByText("nwqsim-cpu-simulation@0.1.0 / simulate-qasm")).toBeVisible();
   const basicBlockSearch = page.getByLabel("Find a basic block", {
     exact: true,
   });
@@ -847,6 +855,22 @@ test("starts a basic circuit path without requiring EQO vocabulary", async ({ pa
   await expect(
     page.getByRole("button", { name: "Run simulation", exact: true }),
   ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Customize in Advanced", exact: true })
+    .click();
+  await expect(
+    page.getByRole("tab", { name: "Advanced", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.locator(".composer-operation-node"),
+  ).toHaveCount(1);
+  await expect(
+    page.locator(".composer-boundary-node.is-input"),
+  ).toHaveCount(1);
+  await page.getByRole("tab", { name: "Basic", exact: true }).click();
+  await expect(
+    page.getByLabel("OpenQASM 2 circuit", { exact: true }),
+  ).toHaveValue(/OPENQASM 2\.0;/);
   await page.getByRole("button", { name: "Run simulation", exact: true }).click();
   await expect(page.locator(".composer-guided-status")).toContainText(
     "run-basic-browser-smoke",
@@ -877,6 +901,15 @@ test("starts a basic circuit path without requiring EQO vocabulary", async ({ pa
   await expect(
     page.getByLabel("Run on quantum hardware workflow blocks"),
   ).toContainText("Compile for target");
+  await page
+    .getByLabel("Run on quantum hardware workflow blocks")
+    .getByRole("button", { name: /Run on hardware.*Configured IQM worker/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Inspect Run on hardware" }),
+  ).toBeVisible();
+  await expect(page.getByText("Managed by the worker", { exact: true })).toBeVisible();
+  await expect(page.getByText("512", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Submitting this path creates a QPU job.", { exact: false }),
   ).toBeVisible();
@@ -941,12 +974,16 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   await expect(
     page
       .getByLabel("Scientific goals")
-      .getByText("Choose a runnable workflow, then add only the scientific input it needs."),
+      .getByText("Start from a scientific goal. EQO reveals the published workflow, inputs, evidence, and result it requires."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Recommended recipes" }),
   ).toBeVisible();
   await expect(
     page.getByText("Hamiltonian to inspectable circuit"),
   ).toBeVisible();
   await expect(page.getByText("Inspect result")).toBeVisible();
+  await page.getByText(/Browse \d+ more published workflows/).click();
   await page.getByRole("button", { name: /Evolution to hardware readiness/ }).click();
   await expect(page.getByRole("heading", { name: "Prepare an evolution circuit for QHPC execution" })).toBeVisible();
   const targetLabel = page.getByText("Mixed targets", { exact: true });
@@ -1041,7 +1078,11 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
       name: "Synthesize an OpenQEvo Trotter circuit",
     }),
   ).toBeVisible();
-  await expect(page.getByText("OpenQEvo + Qiskit")).toBeVisible();
+  await expect(
+    page.getByText(
+      "Start from a Pauli Hamiltonian and produce a Trotter circuit with its synthesis report.",
+    ),
+  ).toBeVisible();
   await expect(
     page
       .locator(".composer-guided-header")

@@ -140,6 +140,32 @@ class FakeRepositoryUpdates:
         }
 
 
+class FakeComponentOnboarding:
+    def __init__(self) -> None:
+        self.inspections: list[dict] = []
+
+    def list(self) -> dict:
+        return {"enabled": True, "items": self.inspections}
+
+    def inspect(self, repository_url, *, ref="HEAD", subdirectory="", template=None) -> dict:
+        item = {
+            "id": "onboarding-example",
+            "source": {
+                "repository_url": repository_url,
+                "requested_ref": ref,
+                "subdirectory": subdirectory or None,
+            },
+            "draft": {"template": template or "python-operation"},
+        }
+        self.inspections = [item]
+        return item
+
+    def update_draft(self, draft_id, changes) -> dict:
+        assert draft_id == "onboarding-example"
+        self.inspections[0]["draft"]["template"] = changes["template"]
+        return self.inspections[0]
+
+
 class FakeKnowledge:
     def summary(self) -> dict:
         return {
@@ -733,6 +759,70 @@ def test_api_repository_updates_use_allowlisted_fields(tmp_path: Path) -> None:
                     "component_id": "stabsim",
                     "candidate_revision": candidate,
                     "repository_url": "https://attacker.invalid/repository",
+                },
+            )
+        assert unsupported.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_component_onboarding_accepts_only_reviewable_source_fields(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    onboarding = FakeComponentOnboarding()
+    context = APIContext(
+        engine=engine,
+        registry=example_registry(),
+        component_onboarding=onboarding,
+    )
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, listing = request_json(base, "/api/v1/component-onboarding")
+        assert status == 200
+        assert listing == {"enabled": True, "items": []}
+
+        status, draft = request_json(
+            base,
+            "/api/v1/component-onboarding/inspect",
+            {
+                "repository_url": "https://github.com/example/adapter",
+                "ref": "refs/tags/v0.1.0",
+                "subdirectory": "adapter",
+                "template": "compiler-transpiler",
+            },
+        )
+        assert status == 201
+        assert draft["draft"]["template"] == "compiler-transpiler"
+        assert onboarding.inspections[0]["source"] == {
+            "repository_url": "https://github.com/example/adapter",
+            "requested_ref": "refs/tags/v0.1.0",
+            "subdirectory": "adapter",
+        }
+
+        status, edited = request_json(
+            base,
+            "/api/v1/component-onboarding/drafts/onboarding-example",
+            {"template": "simulator"},
+        )
+        assert status == 200
+        assert edited["draft"]["template"] == "simulator"
+
+        with pytest.raises(HTTPError) as unsupported:
+            request_json(
+                base,
+                "/api/v1/component-onboarding/inspect",
+                {
+                    "repository_url": "https://github.com/example/adapter",
+                    "credential": "not accepted",
                 },
             )
         assert unsupported.value.code == 400

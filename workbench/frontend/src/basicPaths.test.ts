@@ -5,7 +5,7 @@ let basicPaths: Array<{
   id: string;
   workflowId: string;
   actionLabel: string;
-  blocks: Array<{ title: string; kind: string }>;
+  blocks: Array<{ title: string; kind: string; nodeIds?: string[] }>;
   hardwareNotice?: string;
 }>;
 
@@ -32,6 +32,9 @@ describe("basic Composer paths", () => {
       "Analyze results",
       "Results",
     ]);
+    expect(simulation?.blocks.find((block) => block.title === "Simulate")?.nodeIds).toEqual([
+      "simulate",
+    ]);
   });
 
   it("offers a circuit transformation path with inspectable metrics", () => {
@@ -47,6 +50,9 @@ describe("basic Composer paths", () => {
       "analysis",
       "output",
     ]);
+    expect(transform?.blocks.find((block) => block.title === "Transform circuit")?.nodeIds).toEqual([
+      "transpile",
+    ]);
   });
 
   it("keeps hardware execution explicit and preflight-ready", () => {
@@ -61,6 +67,9 @@ describe("basic Composer paths", () => {
       "transform",
       "execution",
       "output",
+    ]);
+    expect(hardware?.blocks.find((block) => block.title === "Run on hardware")?.nodeIds).toEqual([
+      "execute",
     ]);
     expect(hardware?.hardwareNotice).toContain("QPU job");
   });

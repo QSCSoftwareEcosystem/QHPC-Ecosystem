@@ -178,6 +178,10 @@ class LocalPaths:
         return self.state_root / "updates"
 
     @property
+    def component_onboarding_root(self) -> Path:
+        return self.state_root / "component-onboarding"
+
+    @property
     def state_file(self) -> Path:
         return self.state_root / "local-state-v1.json"
 
@@ -197,6 +201,7 @@ class LocalPaths:
             self.service_root,
             self.export_root,
             self.backup_root,
+            self.component_onboarding_root,
         ):
             path.mkdir(parents=True, exist_ok=True)
 
@@ -1659,6 +1664,7 @@ def supervise_local(
         artifact_root=str(paths.artifact_root),
         runtime_root=str(paths.runtime_root),
         update_state_root=str(paths.update_root),
+        component_onboarding_state_root=str(paths.component_onboarding_root),
         workspace_root=str(Path(config.catalog).resolve().parent),
         workflows=config.workflows,
         host=config.host,
@@ -1685,6 +1691,7 @@ def supervise_local(
         start_workbench=True,
         start_chatqec=config.assistant_enabled,
         start_repository_updates=False,
+        start_component_onboarding=True,
         start_iqm_worker=config.iqm_worker_enabled,
         start_iqm_simulation_worker=config.iqm_simulation_enabled,
         iqm_endpoint=config.iqm_endpoint or "",

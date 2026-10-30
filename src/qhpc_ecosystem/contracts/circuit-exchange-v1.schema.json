@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qsc.ornl.gov/qhpc/contracts/circuit-exchange-v1.schema.json",
+  "title": "QHPC Circuit Exchange v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "spec"],
+  "properties": {
+    "api_version": {"const": "qhpc/v1"},
+    "kind": {"const": "CircuitExchange"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "source", "transformation"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"const": 1},
+        "source": {"$ref": "#/$defs/dialect"},
+        "transformation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["adapter", "classification"],
+          "properties": {
+            "adapter": {"type": "string", "minLength": 1},
+            "classification": {"enum": ["exact", "equivalent-after-lowering", "lossy", "unsupported"]},
+            "target": {"$ref": "#/$defs/dialect"}
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qubit_order", "classical_bit_order", "parameters", "operations", "limitations"],
+      "properties": {
+        "qubit_order": {"$ref": "#/$defs/bitOrder"},
+        "classical_bit_order": {"$ref": "#/$defs/bitOrder"},
+        "parameters": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "global_phase": {"type": ["string", "null"]},
+        "operations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/operation"}
+        },
+        "limitations": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "dialect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"enum": ["openqasm", "qiskit", "cirq", "pytket", "quantinuum-tket"]},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "bitOrder": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*\\[[0-9]+\\]$"}
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "gate", "qubits", "classical_bits", "parameters"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "gate": {"type": "string", "minLength": 1},
+        "qubits": {"$ref": "#/$defs/bitOrder"},
+        "classical_bits": {"$ref": "#/$defs/bitOrder"},
+        "parameters": {"type": "array", "items": {"type": "string"}},
+        "condition": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

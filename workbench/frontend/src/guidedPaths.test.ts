@@ -10,6 +10,7 @@ let scientificPaths: Array<{
   toolChain: string[];
   inputLabel?: string;
   inputPlaceholder?: string;
+  featuredRecipe?: { detail: string };
   examples?: Array<{ name: string; label: string; content: string }>;
   hardwareNotice?: { title: string; detail: string };
 }>;
@@ -24,6 +25,19 @@ beforeAll(async () => {
 
 
 describe("guided Composer paths", () => {
+  it("leads with four goal-oriented scientific recipes", () => {
+    const recipes = scientificPaths.filter((path) => path.featuredRecipe);
+
+    expect(recipes).toHaveLength(4);
+    expect(recipes.map((path) => path.workflowId)).toEqual(expect.arrayContaining([
+      "openqevo-trotter-synthesis",
+      "ct-hw-qasm-analysis",
+      "qec-memory-estimation",
+      "ftqc-iqm-bell-execution",
+    ]));
+    expect(recipes.every((path) => path.featuredRecipe?.detail)).toBe(true);
+  });
+
   it("offers a Bell-circuit IQM hardware execution example", () => {
     const bellExecution = scientificPaths.find(
       (path) => path.workflowId === "ftqc-iqm-bell-execution",

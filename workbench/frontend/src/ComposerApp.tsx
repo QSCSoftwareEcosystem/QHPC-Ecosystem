@@ -159,6 +159,9 @@ interface ScientificPathDefinition {
   code: string;
   shortName: string;
   section: "start" | "journey" | "tour" | "gated";
+  featuredRecipe?: {
+    detail: string;
+  };
   toolChain: string[];
   kind:
     | "Cross-tool study"
@@ -206,6 +209,7 @@ interface BasicPathDefinition {
     title: string;
     detail: string;
     kind: "input" | "transform" | "execution" | "analysis" | "output";
+    nodeIds?: string[];
   }>;
   hardwareNotice?: string;
 }
@@ -375,11 +379,13 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
         title: "Simulate",
         detail: "Local CPU execution",
         kind: "execution",
+        nodeIds: ["simulate"],
       },
       {
         title: "Analyze results",
         detail: "Measurement counts",
         kind: "analysis",
+        nodeIds: ["simulate"],
       },
       {
         title: "Results",
@@ -410,11 +416,13 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
         title: "Transform circuit",
         detail: "QASM conversion",
         kind: "transform",
+        nodeIds: ["transpile"],
       },
       {
         title: "Analyze metrics",
         detail: "Circuit resources",
         kind: "analysis",
+        nodeIds: ["analyze"],
       },
       {
         title: "Results",
@@ -445,11 +453,13 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
         title: "Compile for target",
         detail: "FTQC preparation",
         kind: "transform",
+        nodeIds: ["prepare"],
       },
       {
         title: "Run on hardware",
         detail: "Configured IQM worker",
         kind: "execution",
+        nodeIds: ["execute"],
       },
       {
         title: "Results",
@@ -684,6 +694,9 @@ export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     code: "F4",
     shortName: "Route and execute a two-qubit Bell circuit",
     section: "gated",
+    featuredRecipe: {
+      detail: "Compile a known Bell circuit, check the admitted target, then submit an IQM QPU job.",
+    },
     kind: "Hardware execution",
     toolChain: ["FTQC", "IQM route", "secured worker"],
     inputLabel: "Measured two-device-qubit OpenQASM 3 circuit",
@@ -707,6 +720,9 @@ export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     code: "03",
     shortName: "Circuit transformation and metrics",
     section: "tour",
+    featuredRecipe: {
+      detail: "Start with OpenQASM and receive a transformed circuit plus inspectable resource metrics.",
+    },
     kind: "Focused example",
     toolChain: ["QASMTrans", "STABSim"],
     inputLabel: "OpenQASM 2 circuit",
@@ -718,6 +734,9 @@ export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     code: "04",
     shortName: "Fault-tolerant memory estimate",
     section: "journey",
+    featuredRecipe: {
+      detail: "Build a memory experiment and estimate its logical error rate under published assumptions.",
+    },
     kind: "Focused example",
     toolChain: ["FTPrimitiveBench", "LightStim"],
   },
@@ -737,6 +756,9 @@ export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
     code: "GO",
     shortName: "Turn a Hamiltonian into a Trotter circuit",
     section: "start",
+    featuredRecipe: {
+      detail: "Start from a Pauli Hamiltonian and produce a Trotter circuit with its synthesis report.",
+    },
     kind: "Focused example",
     toolChain: ["OpenQEvo", "Qiskit"],
     inputLabel: "Pauli Hamiltonian",
@@ -808,10 +830,17 @@ export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
 ];
 
 const GUIDED_SECTIONS = [
-  { id: "start", title: "Start with a scientific goal", detail: "Runnable, scoped workflows with a clear result" },
-  { id: "journey", title: "Scientific journeys", detail: "Multi-tool studies for program review" },
-  { id: "tour", title: "Capability tours", detail: "Focused, bounded demonstrations" },
-  { id: "gated", title: "Gated and blueprint paths", detail: "Evidence or readiness gates remain" },
+  { id: "start", title: "Getting started", detail: "Runnable workflows with a clear result" },
+  { id: "journey", title: "Multi-tool studies", detail: "Connected workflows for program review" },
+  { id: "tour", title: "Focused examples", detail: "Bounded demonstrations of individual capabilities" },
+  { id: "gated", title: "Hardware and blueprints", detail: "Paths with readiness or evidence gates" },
+] as const;
+
+const GUIDED_RECIPE_ORDER = [
+  "openqevo-trotter-synthesis",
+  "ct-hw-qasm-analysis",
+  "qec-memory-estimation",
+  "ftqc-iqm-bell-execution",
 ] as const;
 
 const ARTIFACT_LABELS: Record<string, string> = {
@@ -876,6 +905,14 @@ function parameterLabel(value: string): string {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+
+function displayPublishedParameter(name: string, value: ParameterValue): string {
+  if (/(credential|secret|token|password|api[_-]?key)/i.test(name)) {
+    return "Managed by the worker";
+  }
+  return typeof value === "string" ? value : JSON.stringify(value);
 }
 
 
@@ -1269,6 +1306,7 @@ function ComposerSurface(): React.JSX.Element {
   const [serverValidation, setServerValidation] =
     useState<DraftValidation | null>(null);
   const [runInputs, setRunInputs] = useState<Record<string, string>>({});
+  const [runInputNames, setRunInputNames] = useState<Record<string, string>>({});
   const [publishing, setPublishing] = useState(false);
   const [queueing, setQueueing] = useState(false);
   const [lastRunId, setLastRunId] = useState<string | null>(null);
@@ -1413,6 +1451,7 @@ function ComposerSurface(): React.JSX.Element {
       setSelectedEdgeId(null);
       setServerValidation(null);
       setRunInputs({});
+      setRunInputNames({});
       setLastRunId(null);
       history.current = [];
       future.current = [];
@@ -1734,12 +1773,19 @@ function ComposerSurface(): React.JSX.Element {
       );
       setPublished(result.workflow);
       setWorkflows((items) => latestWorkflowVersions([result.workflow, ...items]));
-      setRunInputs(
+      setRunInputs((existing) =>
         Object.fromEntries(
           Object.keys(result.workflow.definition.spec.inputs).map((name) => [
             name,
-            "",
+            existing[name] ?? "",
           ]),
+        ),
+      );
+      setRunInputNames((existing) =>
+        Object.fromEntries(
+          Object.keys(result.workflow.definition.spec.inputs)
+            .filter((name) => Boolean(existing[name]))
+            .map((name) => [name, existing[name]]),
         ),
       );
       setSaveState("saved");
@@ -1790,7 +1836,11 @@ function ComposerSurface(): React.JSX.Element {
     if (!published) return;
     setQueueing(true);
     try {
-      const run = await submitPublishedWorkflow(published, runInputs);
+      const run = await submitPublishedWorkflow(
+        published,
+        runInputs,
+        runInputNames,
+      );
       setLastRunId(run.id);
       setStatusMessage(`Queued · ${run.id}`);
     } catch (error) {
@@ -1799,7 +1849,7 @@ function ComposerSurface(): React.JSX.Element {
     } finally {
       setQueueing(false);
     }
-  }, [published, runInputs, submitPublishedWorkflow]);
+  }, [published, runInputNames, runInputs, submitPublishedWorkflow]);
 
   const queueGuidedRun = useCallback(async () => {
     const workflow = selectedGuidedPath?.workflow;
@@ -1945,8 +1995,14 @@ function ComposerSurface(): React.JSX.Element {
   );
 
   const openWorkflowInAdvanced = useCallback(
-    (workflow: PublishedWorkflow) => {
+    (
+      workflow: PublishedWorkflow,
+      inputs: Record<string, string> = {},
+      inputNames: Record<string, string> = {},
+    ) => {
       openTemplate(workflow);
+      setRunInputs(inputs);
+      setRunInputNames(inputNames);
       setLibraryView("templates");
       setComposerMode("advanced");
     },
@@ -2198,6 +2254,7 @@ function ComposerSurface(): React.JSX.Element {
         <BasicComposer
           paths={basicPaths}
           selectedPath={selectedBasicPath}
+          capabilities={capabilities}
           inputs={
             selectedBasicWorkflow
               ? guidedInputs[selectedBasicWorkflow.id] ?? {}
@@ -2219,7 +2276,11 @@ function ComposerSurface(): React.JSX.Element {
           onOpenGuided={openBasicInGuided}
           onOpenAdvanced={() => {
             if (selectedBasicWorkflow) {
-              openWorkflowInAdvanced(selectedBasicWorkflow);
+              openWorkflowInAdvanced(
+                selectedBasicWorkflow,
+                guidedInputs[selectedBasicWorkflow.id] ?? {},
+                guidedInputNames[selectedBasicWorkflow.id] ?? {},
+              );
             }
           }}
         />
@@ -2882,6 +2943,7 @@ function IncubationBlueprintView({
 function BasicComposer({
   paths,
   selectedPath,
+  capabilities,
   inputs,
   inputNames,
   queueing,
@@ -2897,6 +2959,7 @@ function BasicComposer({
 }: {
   paths: BasicPath[];
   selectedPath: BasicPath | undefined;
+  capabilities: CapabilitySummary[];
   inputs: Record<string, string>;
   inputNames: Record<string, string>;
   queueing: boolean;
@@ -2917,6 +2980,7 @@ function BasicComposer({
 }): React.JSX.Element {
   const [fileError, setFileError] = useState<string | null>(null);
   const [blockQuery, setBlockQuery] = useState("");
+  const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   const workflow = selectedPath?.workflow;
   const normalizedBlockQuery = blockQuery.trim().toLocaleLowerCase();
   const visiblePaths = paths.filter((path) => {
@@ -2938,6 +3002,54 @@ function BasicComposer({
       ([name, input]) =>
         !(input.required ?? true) || Boolean(inputs[name]?.trim()),
     );
+  const selectedBlock = selectedPath?.blocks[selectedBlockIndex] ?? selectedPath?.blocks[0];
+  const selectedNodes = workflow && selectedBlock?.nodeIds
+    ? workflow.definition.spec.nodes.filter((node) =>
+        selectedBlock.nodeIds?.includes(node.id),
+      )
+    : [];
+  const blockInputArtifacts = new Set<string>();
+  const blockOutputArtifacts = new Set<string>();
+  if (workflow && selectedBlock) {
+    if (selectedBlock.kind === "input") {
+      workflowInputs.forEach(([, input]) =>
+        blockInputArtifacts.add(input.artifact_type),
+      );
+    } else if (selectedBlock.kind === "output") {
+      Object.values(workflow.definition.spec.outputs).forEach((output) =>
+        blockOutputArtifacts.add(output.artifact_type),
+      );
+    } else {
+      selectedNodes.forEach((node) => {
+        Object.values(workflow.definition.spec.inputs)
+          .filter((input) => input.to.node === node.id)
+          .forEach((input) => blockInputArtifacts.add(input.artifact_type));
+        workflow.definition.spec.edges
+          .filter((edge) => edge.to.node === node.id)
+          .forEach((edge) => blockInputArtifacts.add(edge.to.artifact_type));
+        workflow.definition.spec.edges
+          .filter((edge) => edge.from.node === node.id)
+          .forEach((edge) => blockOutputArtifacts.add(edge.from.artifact_type));
+        Object.values(workflow.definition.spec.outputs)
+          .filter((output) => output.from.node === node.id)
+          .forEach((output) => blockOutputArtifacts.add(output.artifact_type));
+      });
+    }
+  }
+  const selectedBlockTarget = selectedNodes
+    .map((node) => node.execution_target)
+    .find(Boolean) ?? readiness.report?.target ?? "Published target";
+  const selectedBlockParameters = selectedNodes.flatMap((node) =>
+    Object.entries(node.parameters).map(([name, value]) => ({
+      nodeId: node.id,
+      name,
+      value,
+    })),
+  );
+
+  useEffect(() => {
+    setSelectedBlockIndex(0);
+  }, [selectedPath?.id]);
 
   return (
     <div className="composer-basic-workspace">
@@ -3022,14 +3134,21 @@ function BasicComposer({
                 <ol className="composer-basic-flow" aria-label={`${selectedPath.title} workflow blocks`}>
                   {selectedPath.blocks.map((block, index) => (
                     <Fragment key={block.title}>
-                      <li className={`composer-basic-block is-${block.kind}`}>
-                        <span className="composer-basic-block-index" aria-hidden="true">
-                          {index + 1}
-                        </span>
-                        <span>
-                          <strong>{block.title}</strong>
-                          <small>{block.detail}</small>
-                        </span>
+                      <li>
+                        <button
+                          type="button"
+                          className={`composer-basic-block is-${block.kind}${selectedBlock === block ? " is-selected" : ""}`}
+                          aria-pressed={selectedBlock === block}
+                          onClick={() => setSelectedBlockIndex(index)}
+                        >
+                          <span className="composer-basic-block-index" aria-hidden="true">
+                            {index + 1}
+                          </span>
+                          <span>
+                            <strong>{block.title}</strong>
+                            <small>{block.detail}</small>
+                          </span>
+                        </button>
                       </li>
                       {index < selectedPath.blocks.length - 1 && (
                         <li className="composer-basic-connector" aria-hidden="true">
@@ -3040,6 +3159,80 @@ function BasicComposer({
                   ))}
                 </ol>
               </section>
+
+              {selectedBlock && (
+                <section
+                  className="composer-basic-block-inspector"
+                  aria-labelledby="basic-block-inspector-title"
+                >
+                  <div className="composer-basic-section-heading">
+                    <h3 id="basic-block-inspector-title">
+                      Inspect {selectedBlock.title}
+                    </h3>
+                    <p>{selectedBlock.detail}. This is the published information EQO will preserve with the run.</p>
+                  </div>
+                  <dl className="composer-basic-block-facts">
+                    <div>
+                      <dt>INPUT HANDOFF</dt>
+                      <dd>
+                        {[...blockInputArtifacts].map(artifactLabel).join(", ") || "None"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>OUTPUT HANDOFF</dt>
+                      <dd>
+                        {[...blockOutputArtifacts].map(artifactLabel).join(", ") || "None"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>EXECUTION TARGET</dt>
+                      <dd>{selectedBlockTarget}</dd>
+                    </div>
+                    <div>
+                      <dt>ADMISSION</dt>
+                      <dd>{readiness.canQueue ? "Ready after input" : readiness.message}</dd>
+                    </div>
+                  </dl>
+                  {selectedBlock.kind === "input" && inputName && inputDefinition && (
+                    <p className="composer-basic-block-source">
+                      Source: <strong>{inputNames[inputName] || "Pasted circuit"}</strong> · {inputDefinition.artifact_type} · {(inputs[inputName] ?? "").length.toLocaleString()} characters
+                    </p>
+                  )}
+                  {!!selectedNodes.length && (
+                    <div className="composer-basic-implementations">
+                      {selectedNodes.map((node) => {
+                        const operation = capabilities
+                          .find((capability) =>
+                            capability.id === node.operation.capability &&
+                            capability.version === node.operation.version,
+                          )
+                          ?.operations.find(
+                            (item) => item.id === node.operation.operation,
+                          );
+                        return (
+                          <div key={node.id}>
+                            <strong>{operation?.title ?? node.operation.operation}</strong>
+                            <small>
+                              {node.operation.capability}@{node.operation.version} / {node.operation.operation}
+                            </small>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {!!selectedBlockParameters.length && (
+                    <dl className="composer-basic-block-parameters">
+                      {selectedBlockParameters.map(({ nodeId, name, value }) => (
+                        <div key={`${nodeId}-${name}`}>
+                          <dt>{parameterLabel(name)}</dt>
+                          <dd>{displayPublishedParameter(name, value)}</dd>
+                          <small>{nodeId} · {name}</small>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </section>
+              )}
 
               {selectedPath.hardwareNotice && (
                 <aside className="composer-basic-hardware-notice" role="note">
@@ -3295,32 +3488,125 @@ function GuidedComposer({
   const target = workflow
     ? workflowTarget(workflow.definition, capabilities)
     : "Unavailable";
+  const recipePaths = GUIDED_RECIPE_ORDER.flatMap((workflowId) => {
+    const path = paths.find((item) => item.definition.workflowId === workflowId);
+    return path?.definition.featuredRecipe ? [path] : [];
+  });
+  const recipeWorkflowIds = new Set(
+    recipePaths.map((path) => path.definition.workflowId),
+  );
+  const catalogPaths = paths.filter(
+    (path) => !recipeWorkflowIds.has(path.definition.workflowId),
+  );
+  const selectedPathIsInCatalog = Boolean(
+    definition && !recipeWorkflowIds.has(definition.workflowId),
+  );
+  const [catalogOpen, setCatalogOpen] = useState(selectedPathIsInCatalog);
+
+  useEffect(() => {
+    if (selectedPathIsInCatalog) setCatalogOpen(true);
+  }, [selectedPathIsInCatalog]);
+
   return (
     <div className="composer-guided-workspace">
       <aside className="composer-path-index" aria-label="Scientific goals">
         <div className="composer-path-index-header">
-          <span>GOAL-FIRST COMPOSER</span>
-          <strong>
-            Choose a runnable workflow, then add only the scientific input it needs.
-          </strong>
+          <h2>Guided scientific recipes</h2>
+          <p>Start from a scientific goal. EQO reveals the published workflow, inputs, evidence, and result it requires.</p>
         </div>
         <div className="composer-path-list">
-          {GUIDED_SECTIONS.map((section) => {
-            const sectionPaths = paths.filter(
-              (path) => path.definition.section === section.id,
-            );
-            return <section className="composer-path-section" key={section.id}>
-              <header><strong>{section.title}</strong><small>{section.detail}</small></header>
-              {sectionPaths.map((path) => {
+          <section className="composer-recipe-section" aria-labelledby="recommended-recipes-title">
+            <h3 id="recommended-recipes-title">Recommended recipes</h3>
+            <div className="composer-recipe-list">
+              {recipePaths.map((path) => {
                 const selected = definition?.workflowId === path.definition.workflowId;
-                return <button type="button" className={`composer-path-item${selected ? " is-selected" : ""}${path.definition.blueprint ? " is-blueprint" : ""}`} aria-pressed={selected} onClick={() => { setFileError(null); onSelect(path.definition.workflowId); }} key={path.definition.workflowId}>
-                  <span className="composer-path-code">{path.definition.code}</span>
-                  <span><strong>{path.definition.shortName}</strong><small>{path.definition.kind} · {path.definition.toolChain.join(" + ")}</small></span>
-                  {path.definition.blueprint ? <FlaskConical size={14} aria-label="Incubation blueprint" /> : path.workflow ? <ChevronRight size={14} aria-hidden="true" /> : <CircleAlert size={14} aria-label="Unavailable" />}
-                </button>;
+                return (
+                  <button
+                    type="button"
+                    className={`composer-path-item composer-recipe-item${selected ? " is-selected" : ""}`}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setFileError(null);
+                      onSelect(path.definition.workflowId);
+                    }}
+                    key={path.definition.workflowId}
+                  >
+                    <span className="composer-path-code">{path.definition.code}</span>
+                    <span>
+                      <strong>{path.definition.shortName}</strong>
+                      <small>{path.definition.featuredRecipe?.detail}</small>
+                    </span>
+                    {path.workflow ? (
+                      <ChevronRight size={14} aria-hidden="true" />
+                    ) : (
+                      <CircleAlert size={14} aria-label="Unavailable" />
+                    )}
+                  </button>
+                );
               })}
-            </section>;
-          })}
+            </div>
+          </section>
+          <details
+            className="composer-path-catalog"
+            open={catalogOpen}
+            onToggle={(event) => setCatalogOpen(event.currentTarget.open)}
+          >
+            <summary>
+              Browse {catalogPaths.length} more published workflows
+            </summary>
+            <div className="composer-path-catalog-content">
+              {GUIDED_SECTIONS.map((section) => {
+                const sectionPaths = catalogPaths.filter(
+                  (path) => path.definition.section === section.id,
+                );
+                if (!sectionPaths.length) return null;
+                return (
+                  <section className="composer-path-section" key={section.id}>
+                    <header>
+                      <strong>{section.title}</strong>
+                      <small>{section.detail}</small>
+                    </header>
+                    {sectionPaths.map((path) => {
+                      const selected =
+                        definition?.workflowId === path.definition.workflowId;
+                      return (
+                        <button
+                          type="button"
+                          className={`composer-path-item${selected ? " is-selected" : ""}${path.definition.blueprint ? " is-blueprint" : ""}`}
+                          aria-pressed={selected}
+                          onClick={() => {
+                            setFileError(null);
+                            onSelect(path.definition.workflowId);
+                          }}
+                          key={path.definition.workflowId}
+                        >
+                          <span className="composer-path-code">
+                            {path.definition.code}
+                          </span>
+                          <span>
+                            <strong>{path.definition.shortName}</strong>
+                            <small>
+                              {path.definition.kind} · {path.definition.toolChain.join(" + ")}
+                            </small>
+                          </span>
+                          {path.definition.blueprint ? (
+                            <FlaskConical
+                              size={14}
+                              aria-label="Incubation blueprint"
+                            />
+                          ) : path.workflow ? (
+                            <ChevronRight size={14} aria-hidden="true" />
+                          ) : (
+                            <CircleAlert size={14} aria-label="Unavailable" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </section>
+                );
+              })}
+            </div>
+          </details>
         </div>
       </aside>
 

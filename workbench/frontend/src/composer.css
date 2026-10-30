@@ -282,6 +282,7 @@
 }
 
 .composer-basic-flow-section,
+.composer-basic-block-inspector,
 .composer-basic-input,
 .composer-basic-readiness,
 .composer-basic-output-summary {
@@ -324,6 +325,23 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.composer-basic-block:hover {
+  border-color: var(--ink-soft);
+}
+
+.composer-basic-block.is-selected {
+  border-color: var(--qsc-red);
+  background: color-mix(in srgb, var(--surface) 90%, var(--run-soft));
+}
+
+.composer-basic-block:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--run) 28%, transparent);
+  outline-offset: 2px;
 }
 
 .composer-basic-block > span:last-child {
@@ -363,6 +381,102 @@
   display: grid;
   place-items: center;
   color: var(--muted);
+}
+
+.composer-basic-block-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--line);
+}
+
+.composer-basic-block-facts > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-basic-block-facts > div:nth-child(2n) {
+  border-right: 0;
+}
+
+.composer-basic-block-facts > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.composer-basic-block-facts dt,
+.composer-basic-block-parameters dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1.3;
+}
+
+.composer-basic-block-facts dd,
+.composer-basic-block-parameters dd {
+  overflow-wrap: anywhere;
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.composer-basic-block-source {
+  overflow-wrap: anywhere;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font: 11px/1.45 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-basic-block-source strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.composer-basic-implementations {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.composer-basic-implementations > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.composer-basic-implementations > div:last-child {
+  border-bottom: 0;
+}
+
+.composer-basic-implementations strong {
+  font-size: 12px;
+}
+
+.composer-basic-implementations small,
+.composer-basic-block-parameters small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 11px/1.4 ui-monospace, "SFMono-Regular", monospace;
+}
+
+.composer-basic-block-parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 10px 0 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.composer-basic-block-parameters > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .composer-basic-hardware-notice {
@@ -572,27 +686,65 @@
 }
 
 .composer-path-index-header {
-  min-height: 58px;
+  min-height: 72px;
   display: grid;
   align-content: center;
-  gap: 5px;
+  gap: 4px;
   padding: 9px 11px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
 
-.composer-path-index-header span {
-  color: var(--muted);
-  font: 700 11px/1.25 ui-monospace, "SFMono-Regular", monospace;
+.composer-path-index-header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 720;
+  letter-spacing: -0.01em;
 }
 
-.composer-path-index-header strong {
-  font-size: 13px;
-  font-weight: 650;
+.composer-path-index-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .composer-path-list {
-  padding: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 10px 8px;
+}
+
+.composer-recipe-section h3 {
+  margin: 0 8px 7px;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.composer-recipe-list {
+  display: grid;
+  gap: 6px;
+}
+
+.composer-path-catalog {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.composer-path-catalog > summary {
+  cursor: pointer;
+  padding: 0 8px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.composer-path-catalog > summary::marker {
+  color: var(--qsc-red);
+}
+
+.composer-path-catalog-content {
+  padding-top: 4px;
 }
 
 .composer-path-section + .composer-path-section {
@@ -626,7 +778,6 @@
   margin-bottom: 6px;
   padding: 8px;
   border: 1px solid var(--line);
-  border-left: 3px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
@@ -638,9 +789,17 @@
 }
 
 .composer-path-item.is-selected {
-  border-color: var(--line-strong);
-  border-left-color: var(--qsc-red);
+  border-color: var(--qsc-red);
   background: color-mix(in srgb, var(--surface) 88%, var(--run-soft));
+}
+
+.composer-recipe-item {
+  min-height: 78px;
+}
+
+.composer-recipe-item small {
+  color: var(--muted);
+  font-family: inherit;
 }
 
 .composer-path-item.is-blueprint .composer-path-code {
@@ -649,7 +808,7 @@
 }
 
 .composer-path-item.is-blueprint.is-selected {
-  border-left-color: var(--warn);
+  border-color: var(--warn);
   background: color-mix(in srgb, var(--surface) 88%, var(--warn-soft));
 }
 
@@ -2841,11 +3000,27 @@
     min-height: 88px;
   }
 
+  .composer-basic-block-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .composer-basic-block-facts > div,
+  .composer-basic-block-facts > div:nth-child(2n),
+  .composer-basic-block-facts > div:nth-last-child(-n + 2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .composer-basic-block-facts > div:last-child {
+    border-bottom: 0;
+  }
+
   .composer-basic-connector {
     display: none;
   }
 
   .composer-basic-flow-section,
+  .composer-basic-block-inspector,
   .composer-basic-input,
   .composer-basic-readiness,
   .composer-basic-output-summary {
@@ -2882,18 +3057,46 @@
   }
 
   .composer-path-index-header {
-    min-height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    min-height: 59px;
+    display: grid;
   }
 
   .composer-path-list {
+    display: block;
+    overflow: visible;
+    padding: 9px 8px;
+  }
+
+  .composer-recipe-list {
+    grid-auto-columns: auto;
+    grid-auto-flow: row;
+    grid-template-rows: none;
+    overflow: visible;
+  }
+
+  .composer-path-catalog {
+    margin-top: 10px;
+  }
+
+  .composer-path-catalog-content {
     display: grid;
-    grid-auto-columns: minmax(210px, 76vw);
+    grid-auto-columns: minmax(210px, 72vw);
     grid-auto-flow: column;
     gap: 6px;
     overflow-x: auto;
+  }
+
+  .composer-path-section + .composer-path-section {
+    margin-top: 0;
+  }
+
+  .composer-path-section {
+    display: grid;
+    gap: 6px;
+  }
+
+  .composer-path-section > header {
+    padding-bottom: 0;
   }
 
   .composer-path-item {

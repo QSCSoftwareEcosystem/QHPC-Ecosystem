@@ -20,6 +20,7 @@ CONTRACT_SCHEMAS = {
     "artifact-type": "artifact-type-v1.schema.json",
     "capability": "capability-v1.schema.json",
     "chatqec-tool-proposal": "chatqec-tool-proposal-v1.schema.json",
+    "circuit-exchange": "circuit-exchange-v1.schema.json",
     "deployment-profile": "deployment-profile-v1.schema.json",
     "execution-target": "execution-target-v1.schema.json",
     "hpc-acceptance": "hpc-acceptance-v1.schema.json",

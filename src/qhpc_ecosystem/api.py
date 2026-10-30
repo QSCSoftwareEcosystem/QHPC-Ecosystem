@@ -15,6 +15,10 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .assistant import ChatQECGateway
+from .component_onboarding import (
+    ComponentOnboardingError,
+    ComponentOnboardingManager,
+)
 from .contract import ContractError
 from .engagement import engagement_catalog
 from .engine import DEFAULT_WORKER_STALE_AFTER_SECONDS, WorkflowEngine
@@ -41,6 +45,9 @@ KNOWLEDGE_NEIGHBORHOOD_ROUTE = re.compile(
 )
 KNOWLEDGE_NODE_ROUTE = re.compile(r"^/api/v1/knowledge/nodes/(.+)$")
 ASSISTANT_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$")
+COMPONENT_ONBOARDING_DRAFT_ROUTE = re.compile(
+    r"^/api/v1/component-onboarding/drafts/(onboarding-[a-z0-9]+)$"
+)
 
 
 @dataclass(frozen=True)
@@ -51,6 +58,7 @@ class APIContext:
     worker_stale_after_seconds: float = DEFAULT_WORKER_STALE_AFTER_SECONDS
     chatqec: ChatQECGateway | None = None
     repository_updates: RepositoryUpdateManager | None = None
+    component_onboarding: ComponentOnboardingManager | None = None
     knowledge: QAppsWikiKnowledge | None = None
     databucket: S3Client | None = None
 
@@ -537,7 +545,7 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 )
             elif isinstance(error, ServiceAdapterError):
                 self._error(HTTPStatus.BAD_GATEWAY, str(error))
-            elif isinstance(error, RepositoryUpdateError):
+            elif isinstance(error, (ComponentOnboardingError, RepositoryUpdateError)):
                 self._error(HTTPStatus.CONFLICT, str(error))
             elif isinstance(error, KnowledgeGraphError):
                 self._error(HTTPStatus.BAD_GATEWAY, str(error))
@@ -771,6 +779,18 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     self._json_response(
                         HTTPStatus.OK,
                         context.repository_updates.list(),
+                    )
+                    return
+                if path == "/api/v1/component-onboarding":
+                    if context.component_onboarding is None:
+                        self._json_response(
+                            HTTPStatus.OK,
+                            {"enabled": False, "items": []},
+                        )
+                        return
+                    self._json_response(
+                        HTTPStatus.OK,
+                        context.component_onboarding.list(),
                     )
                     return
                 if path == "/api/v1/assistant/chatqec/status":
@@ -1027,6 +1047,78 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     self._json_response(
                         HTTPStatus.OK,
                         context.repository_updates.discard(component_id),
+                    )
+                    return
+                if path == "/api/v1/component-onboarding/inspect":
+                    if context.component_onboarding is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "component onboarding is not enabled",
+                        )
+                        return
+                    unexpected = sorted(
+                        set(body) - {"repository_url", "ref", "subdirectory", "template"}
+                    )
+                    if unexpected:
+                        raise ValueError(
+                            "unsupported component onboarding fields: "
+                            + ", ".join(unexpected)
+                        )
+                    repository_url = body.get("repository_url")
+                    ref = body.get("ref", "HEAD")
+                    subdirectory = body.get("subdirectory", "")
+                    template = body.get("template")
+                    if not isinstance(repository_url, str) or not repository_url:
+                        raise ValueError("repository_url must be a non-empty string")
+                    if not isinstance(ref, str) or len(ref) > 260:
+                        raise ValueError("ref must be a string no longer than 260 characters")
+                    if not isinstance(subdirectory, str) or len(subdirectory) > 512:
+                        raise ValueError(
+                            "subdirectory must be a string no longer than 512 characters"
+                        )
+                    if template is not None and (
+                        not isinstance(template, str) or len(template) > 64
+                    ):
+                        raise ValueError("template must be a short string when provided")
+                    self._json_response(
+                        HTTPStatus.CREATED,
+                        context.component_onboarding.inspect(
+                            repository_url,
+                            ref=ref,
+                            subdirectory=subdirectory,
+                            template=template,
+                        ),
+                    )
+                    return
+                onboarding_draft_match = COMPONENT_ONBOARDING_DRAFT_ROUTE.fullmatch(path)
+                if onboarding_draft_match:
+                    if context.component_onboarding is None:
+                        self._error(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            "component onboarding is not enabled",
+                        )
+                        return
+                    allowed = {
+                        "template",
+                        "capability_id",
+                        "operation_id",
+                        "input_artifact",
+                        "output_artifact",
+                    }
+                    unexpected = sorted(set(body) - allowed)
+                    if unexpected:
+                        raise ValueError(
+                            "unsupported component draft fields: "
+                            + ", ".join(unexpected)
+                        )
+                    if not body or any(not isinstance(value, str) for value in body.values()):
+                        raise ValueError("component draft fields must be non-empty strings")
+                    self._json_response(
+                        HTTPStatus.OK,
+                        context.component_onboarding.update_draft(
+                            onboarding_draft_match.group(1),
+                            body,
+                        ),
                     )
                     return
                 if path in {
