@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The planned EQO Transpilation Service is an artifact-first adapter layer
+The EQO Transpilation Service is an artifact-first adapter layer
 inspired by XACC's interoperability model. It is not a replacement for XACC's
 programming or execution framework. Its job is to carry a circuit from one
 declared dialect through a normalized exchange artifact into another declared
@@ -39,10 +39,31 @@ The artifact records:
 - the adapter name, target dialect/version, and semantic classification; and
 - explicit semantic limitations.
 
-An EQO run must retain the source circuit, normalized `CircuitExchange`,
-transformed circuit, qubit mapping, and any warning/loss report as immutable
-artifacts. This keeps a circuit's transformation chain inspectable in both the
-Composer and run receipt.
+The service persists the source circuit reference, normalized
+`CircuitExchange`, transformed circuit, qubit mapping, and warning/loss report
+as checksum-verified immutable EQO artifacts. This keeps a conversion chain
+inspectable now; attaching a selected conversion chain to Composer and run
+receipt views remains a separate integration step.
+
+## Conversion API
+
+`POST /api/v1/transpilation/convert` accepts only an existing EQO artifact ID,
+a declared source format, and a declared target format. It never accepts or
+executes Python source. The initial source formats are `openqasm-2`,
+`openqasm-3`, `qiskit-qpy`, and `circuit-exchange`; the initial target formats
+are `openqasm-2`, `openqasm-3`, and `qiskit-qpy`.
+
+The source must have a declared EQO circuit artifact type. A successful
+conversion returns and persists:
+
+- the unchanged source artifact reference;
+- a `qhpc.circuit-exchange@1` normalized artifact;
+- a `qhpc.transpiled-circuit@1` transformed artifact; and
+- a `qhpc.transpilation-report@1` artifact that links the chain and records
+  mapping, classification, adapters, target profile, and warnings.
+
+The report has empty swap/decomposition lists only for the admitted exact
+subset; it is not target-compilation or hardware-admission evidence.
 
 ## Directional adapter registry
 

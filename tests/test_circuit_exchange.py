@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 
 import pytest
 
@@ -21,6 +22,11 @@ from qhpc_ecosystem.circuit_exchange import (
     qpy_to_exchange,
 )
 from qhpc_ecosystem.contract import validate_contract_data
+from qhpc_ecosystem.engine import WorkflowEngine
+from qhpc_ecosystem.transpilation_service import (
+    TranspilationService,
+    TranspilationServiceError,
+)
 
 
 qiskit = pytest.importorskip("qiskit")
@@ -230,3 +236,63 @@ def test_pytket_bridge_rejects_symbolic_and_barrier_exchange_semantics() -> None
     exchange = qpy_to_exchange(qpy_payload(source))
     with pytest.raises(CircuitExchangeError, match="barrier"):
         exchange_to_pytket(exchange)
+
+
+def test_transpilation_service_persists_a_complete_artifact_evidence_chain(
+    tmp_path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    source = engine.register_input_artifact(
+        artifact_type="qhpc.quantum-circuit@1",
+        content=b'''OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+creg c[2];
+h q[0];
+cx q[0],q[1];
+measure q[0] -> c[0];
+measure q[1] -> c[1];
+''',
+        name="bell.qasm",
+        created_by="test",
+    )
+
+    result = TranspilationService(engine).convert(
+        source["id"],
+        source_format="openqasm-2",
+        target_format="openqasm-3",
+        created_by="test",
+    )
+
+    assert result["source_artifact"]["id"] == source["id"]
+    assert result["normalized_artifact"]["artifact_type"] == "qhpc.circuit-exchange@1"
+    assert result["transformed_artifact"]["artifact_type"] == "qhpc.transpiled-circuit@1"
+    assert result["report_artifact"]["artifact_type"] == "qhpc.transpilation-report@1"
+    _, normalized, _ = engine.read_artifact_content(result["normalized_artifact"]["id"])
+    validate_contract_data("circuit-exchange", json.loads(normalized))
+    _, transformed, _ = engine.read_artifact_content(result["transformed_artifact"]["id"])
+    assert transformed.decode("utf-8").startswith("OPENQASM 3.0;")
+    _, report_bytes, _ = engine.read_artifact_content(result["report_artifact"]["id"])
+    report = json.loads(report_bytes)
+    assert report["source"]["artifact_id"] == source["id"]
+    assert report["normalized"]["artifact_id"] == result["normalized_artifact"]["id"]
+    assert report["transformed"]["artifact_id"] == result["transformed_artifact"]["id"]
+    assert report["warnings"] == []
+
+
+def test_transpilation_service_requires_a_preexisting_circuit_artifact(tmp_path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    non_circuit = engine.register_input_artifact(
+        artifact_type="qhpc.measurement-results@1",
+        content=b"{}",
+        name="results.json",
+        created_by="test",
+    )
+
+    with pytest.raises(TranspilationServiceError, match="declared EQO circuit"):
+        TranspilationService(engine).convert(
+            non_circuit["id"],
+            source_format="openqasm-2",
+            target_format="openqasm-3",
+            created_by="test",
+        )

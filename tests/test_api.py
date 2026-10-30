@@ -872,6 +872,69 @@ def test_api_repository_updates_include_locally_admitted_components(
         thread.join(timeout=3)
 
 
+def test_api_transpilation_converts_only_existing_circuit_artifacts(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    context = APIContext(engine=engine, registry=example_registry())
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, source = request_json(
+            base,
+            "/api/v1/artifacts",
+            {
+                "artifact_type": "qhpc.quantum-circuit@1",
+                "name": "bell.qasm",
+                "content": """OPENQASM 2.0;
+include \"qelib1.inc\";
+qreg q[2];
+creg c[2];
+h q[0];
+cx q[0],q[1];
+measure q[0] -> c[0];
+measure q[1] -> c[1];
+""",
+            },
+        )
+        assert status == 201
+
+        status, conversion = request_json(
+            base,
+            "/api/v1/transpilation/convert",
+            {
+                "source_artifact_id": source["id"],
+                "source_format": "openqasm-2",
+                "target_format": "openqasm-3",
+            },
+        )
+        assert status == 201
+        assert conversion["normalized_artifact"]["artifact_type"] == "qhpc.circuit-exchange@1"
+        assert conversion["report"]["source"]["artifact_id"] == source["id"]
+
+        with pytest.raises(HTTPError) as unsupported:
+            request_json(
+                base,
+                "/api/v1/transpilation/convert",
+                {
+                    "source_artifact_id": source["id"],
+                    "source_format": "openqasm-2",
+                    "target_format": "openqasm-3",
+                    "python": "import qiskit",
+                },
+            )
+        assert unsupported.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
 def test_api_component_onboarding_accepts_only_reviewable_source_fields(
     tmp_path: Path,
 ) -> None:

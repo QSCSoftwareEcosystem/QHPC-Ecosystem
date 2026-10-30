@@ -336,6 +336,34 @@ class _Artifacts:
         return Artifact(self._client, self._client._request_object("POST", "/api/v1/artifacts", payload))
 
 
+class _Transpilation:
+    """Artifact-first circuit conversion; never executes notebook Python."""
+
+    def __init__(self, client: "EQOClient") -> None:
+        self._client = client
+
+    def convert(
+        self,
+        source_artifact_id: str,
+        *,
+        source_format: str,
+        target_format: str,
+        created_by: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "source_artifact_id": source_artifact_id,
+            "source_format": source_format,
+            "target_format": target_format,
+        }
+        if created_by is not None:
+            payload["created_by"] = created_by
+        return self._client._request_object(
+            "POST",
+            "/api/v1/transpilation/convert",
+            payload,
+        )
+
+
 class _Assistant:
     def __init__(self, client: "EQOClient") -> None:
         self._client = client
@@ -419,6 +447,7 @@ class EQOClient:
         self.workflows = _Workflows(self)
         self.runs = _Runs(self)
         self.artifacts = _Artifacts(self)
+        self.transpilation = _Transpilation(self)
         self.assistant = _Assistant(self)
         self.data = _Data(self)
         self.engagement = _Engagement(self)

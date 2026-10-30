@@ -91,15 +91,23 @@ def test_sdk_uses_the_same_api_for_artifacts_runs_and_assistant(tmp_path: Path) 
 
         input_artifact = client.artifacts.create_input(
             "qhpc.quantum-circuit@1",
-            "OPENQASM 2.0;\nqreg q[1];\n",
+            "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[1];\nh q[0];\n",
             name="input.qasm",
             created_by="sdk-test",
         )
-        assert input_artifact.read_text() == "OPENQASM 2.0;\nqreg q[1];\n"
+        assert input_artifact.read_text() == "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[1];\nh q[0];\n"
         artifact_view = render_artifact(input_artifact)
         assert "OPENQASM" in artifact_view._repr_html_()
         destination = input_artifact.download(tmp_path / "notebook" / "input.qasm")
-        assert destination.read_text(encoding="utf-8") == "OPENQASM 2.0;\nqreg q[1];\n"
+        assert destination.read_text(encoding="utf-8") == "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[1];\nh q[0];\n"
+        conversion = client.transpilation.convert(
+            input_artifact.id,
+            source_format="openqasm-2",
+            target_format="openqasm-3",
+            created_by="sdk-test",
+        )
+        assert conversion["report"]["source"]["artifact_id"] == input_artifact.id
+        assert conversion["transformed_artifact"]["artifact_type"] == "qhpc.transpiled-circuit@1"
 
         run = client.workflows.submit(
             registered["id"],

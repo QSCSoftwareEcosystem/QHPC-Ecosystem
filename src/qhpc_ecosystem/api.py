@@ -27,6 +27,7 @@ from .registry import registry_entries
 from .repository_updates import RepositoryUpdateError, RepositoryUpdateManager
 from .s3_client import S3Client, S3ClientError
 from .service_adapters import ServiceAdapterError
+from .transpilation_service import TranspilationService
 
 
 RUN_ROUTE = re.compile(r"^/api/v1/runs/([^/]+)$")
@@ -1464,6 +1465,43 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         name=body.get("name", "input.txt"),
                         created_by=body.get("created_by", "workbench-user"),
                         labels=body.get("labels", {}),
+                    )
+                    self._json_response(HTTPStatus.CREATED, result)
+                    return
+                if path == "/api/v1/transpilation/convert":
+                    unexpected = sorted(
+                        set(body)
+                        - {
+                            "source_artifact_id",
+                            "source_format",
+                            "target_format",
+                            "created_by",
+                        }
+                    )
+                    if unexpected:
+                        raise ValueError(
+                            "unsupported transpilation fields: "
+                            + ", ".join(unexpected)
+                        )
+                    source_artifact_id = body.get("source_artifact_id")
+                    source_format = body.get("source_format")
+                    target_format = body.get("target_format")
+                    if not all(
+                        isinstance(value, str) and value.strip()
+                        for value in (
+                            source_artifact_id,
+                            source_format,
+                            target_format,
+                        )
+                    ):
+                        raise ValueError(
+                            "source_artifact_id, source_format, and target_format are required strings"
+                        )
+                    result = TranspilationService(context.engine).convert(
+                        source_artifact_id,
+                        source_format=source_format,
+                        target_format=target_format,
+                        created_by=body.get("created_by", "workbench-user"),
                     )
                     self._json_response(HTTPStatus.CREATED, result)
                     return
