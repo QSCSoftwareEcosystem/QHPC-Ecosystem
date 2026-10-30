@@ -209,3 +209,70 @@ def test_component_onboarding_refreshes_to_a_separate_immutable_candidate(
     original = next(item for item in manager.list()["items"] if item["id"] == draft["id"])
     assert original["refresh"]["state"] == "update-available"
     assert original["superseded_by"] == candidate["id"]
+
+
+def test_locally_admitted_components_use_the_controlled_update_lifecycle(
+    tmp_path: Path,
+) -> None:
+    source, current_revision = source_repository(tmp_path)
+    manager = ComponentOnboardingManager(
+        workspace_root=tmp_path,
+        allow_local_sources=True,
+        allowed_hosts=frozenset(),
+    )
+    draft = manager.inspect(str(source), ref="main", template="compiler-transpiler")
+
+    # This test exercises the source-update lifecycle independently from
+    # Docker.  The active record mirrors the evidence recorded by activate().
+    state = manager._load_state()
+    active = state["drafts"][draft["id"]]
+    active["status"] = "active"
+    active["build"] = {
+        "state": "succeeded",
+        "image_digest": "sha256:" + "b" * 64,
+        "smoke_test": {"state": "passed"},
+    }
+    state["active_components"]["source"] = {
+        "draft_id": draft["id"],
+        "component_id": "source",
+        "source_revision": current_revision,
+        "image_digest": "sha256:" + "b" * 64,
+        "activated_at": "2026-10-30T12:00:00Z",
+    }
+    manager._write_state(state)
+
+    initial = manager.repository_update_list()["items"]
+    assert len(initial) == 1
+    assert initial[0]["component_id"] == "onboarding:source"
+    assert initial[0]["status"] == "not-checked"
+    assert initial[0]["current_runtimes"][0]["digest"] == "sha256:" + "b" * 64
+
+    git("commit", "--allow-empty", "-m", "immutable candidate", cwd=source)
+    candidate_revision = git("rev-parse", "HEAD", cwd=source)
+    checked = manager.check_repository_updates()["items"][0]
+    assert checked["status"] == "prepared"
+    assert checked["latest_revision"] == candidate_revision
+    assert checked["staged_revision"] == candidate_revision
+    active_state = manager._load_state()["drafts"][draft["id"]]
+    candidate_id = active_state["refresh"]["candidate_draft_id"]
+
+    prepared = manager.prepare_repository_update(
+        "onboarding:source",
+        candidate_revision,
+    )
+    assert prepared["status"] == "prepared"
+    assert prepared["staged_revision"] == candidate_revision
+    assert prepared["next_action"].startswith("Build and smoke-test")
+
+    discarded = manager.discard_repository_update("onboarding:source")
+    assert discarded["status"] == "update-available"
+    listed = manager.list()
+    candidate = next(item for item in listed["items"] if item["id"] == candidate_id)
+    assert candidate["status"] == "discarded"
+    assert listed["active_components"]["source"]["source_revision"] == current_revision
+
+    reprepared = manager.prepare_repository_update("onboarding:source")
+    assert reprepared["status"] == "prepared"
+    candidate = next(item for item in manager.list()["items"] if item["id"] == candidate_id)
+    assert candidate["status"] == "inspected"
+    assert candidate["lifecycle"][-1]["action"] == "candidate-reprepared"

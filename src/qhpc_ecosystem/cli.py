@@ -21,7 +21,7 @@ from .catalog import (
     load_catalog,
 )
 from .chatqec_service import ChatQECServiceError
-from .component_onboarding import ComponentOnboardingManager
+from .component_onboarding import ComponentOnboardingError, ComponentOnboardingManager
 from .contract import (
     CONTRACT_SCHEMAS,
     ContractError,
@@ -299,7 +299,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     updates_parser = subparsers.add_parser(
         "updates",
-        help="check and prepare exact-revision repository updates",
+        help="check and prepare exact-revision deployment and local-component updates",
     )
     updates_commands = updates_parser.add_subparsers(
         dest="updates_command",
@@ -334,6 +334,11 @@ def build_parser() -> argparse.ArgumentParser:
         )
         command.add_argument("--workspace-root", default=".")
         command.add_argument("--state-root", default=".qhpc/updates")
+        command.add_argument(
+            "--component-onboarding-state-root",
+            default=".qhpc/component-onboarding",
+            help="state root for explicitly admitted local repository components",
+        )
         command.add_argument("--json", action="store_true")
     updates_check.add_argument("component", nargs="*")
     updates_stage.add_argument("component")
@@ -2037,19 +2042,67 @@ def dispatch(args: argparse.Namespace) -> int:
             workspace_root=args.workspace_root,
             state_root=args.state_root,
         )
+        component_updates = ComponentOnboardingManager(
+            workspace_root=args.workspace_root,
+            state_root=args.component_onboarding_state_root,
+        )
+
+        def combined_updates(
+            deployment_result: dict | None = None,
+            onboarding_result: dict | None = None,
+        ) -> dict:
+            deployment = deployment_result or manager.list()
+            onboarding = onboarding_result or component_updates.repository_update_list()
+            return {
+                "enabled": bool(deployment.get("enabled")) or bool(onboarding.get("enabled")),
+                "generated_at": onboarding.get("generated_at") or deployment.get("generated_at"),
+                "items": [*deployment.get("items", []), *onboarding.get("items", [])],
+            }
+
+        def is_onboarding_component(component_id: str) -> bool:
+            return component_id.startswith("onboarding:")
+
         if args.updates_command == "list":
-            result = manager.list()
+            result = combined_updates()
         elif args.updates_command == "check":
-            result = manager.check(args.component)
+            deployment_ids = [
+                component_id
+                for component_id in args.component
+                if not is_onboarding_component(component_id)
+            ]
+            onboarding_ids = [
+                component_id
+                for component_id in args.component
+                if is_onboarding_component(component_id)
+            ]
+            deployment_result = (
+                manager.check(deployment_ids)
+                if deployment_ids or not args.component
+                else manager.list()
+            )
+            onboarding_result = (
+                component_updates.check_repository_updates(onboarding_ids)
+                if onboarding_ids or not args.component
+                else component_updates.repository_update_list()
+            )
+            result = combined_updates(deployment_result, onboarding_result)
         elif args.updates_command == "stage":
-            item = manager.stage(args.component, args.revision)
+            item = (
+                component_updates.prepare_repository_update(args.component, args.revision)
+                if is_onboarding_component(args.component)
+                else manager.stage(args.component, args.revision)
+            )
             result = {
                 "enabled": True,
-                "generated_at": item["staged_at"],
+                "generated_at": item.get("staged_at") or item.get("checked_at"),
                 "items": [item],
             }
         elif args.updates_command == "discard":
-            item = manager.discard(args.component)
+            item = (
+                component_updates.discard_repository_update(args.component)
+                if is_onboarding_component(args.component)
+                else manager.discard(args.component)
+            )
             result = {
                 "enabled": True,
                 "generated_at": item.get("checked_at"),
@@ -3329,6 +3382,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (
         CatalogError,
         ChatQECServiceError,
+        ComponentOnboardingError,
         ContractError,
         LocalReleaseError,
         OperationRuntimeError,

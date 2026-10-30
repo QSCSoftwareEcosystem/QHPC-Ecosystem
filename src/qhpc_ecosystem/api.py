@@ -72,6 +72,48 @@ class APIContext:
     databucket: S3Client | None = None
 
 
+def _onboarding_updates_enabled(context: APIContext) -> bool:
+    return bool(
+        context.component_onboarding is not None
+        and callable(getattr(context.component_onboarding, "repository_update_list", None))
+    )
+
+
+def _repository_update_listing(
+    context: APIContext,
+    *,
+    deployment_updates: dict[str, Any] | None = None,
+    onboarding_updates: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Present deployment and local-onboarding revisions through one read API.
+
+    The two managers intentionally retain separate state and activation
+    boundaries.  This projection only makes their evidence visible together;
+    it never treats a locally admitted component as a published deployment
+    component.
+    """
+    items: list[dict[str, Any]] = []
+    enabled = False
+    if context.repository_updates is not None:
+        deployment_result = deployment_updates or context.repository_updates.list()
+        enabled = bool(deployment_result.get("enabled"))
+        items.extend(deployment_result.get("items", []))
+    if _onboarding_updates_enabled(context):
+        onboarding_result = (
+            onboarding_updates
+            or context.component_onboarding.repository_update_list()
+        )
+        enabled = enabled or bool(onboarding_result.get("enabled"))
+        items.extend(onboarding_result.get("items", []))
+    if not enabled:
+        return {"enabled": False, "items": []}
+    return {
+        "enabled": True,
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "items": items,
+    }
+
+
 def _capability_summary(entry: dict[str, Any]) -> dict[str, Any]:
     capability = entry["capability"]
     metadata = capability["metadata"]
@@ -779,15 +821,9 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     )
                     return
                 if path == "/api/v1/repository-updates":
-                    if context.repository_updates is None:
-                        self._json_response(
-                            HTTPStatus.OK,
-                            {"enabled": False, "items": []},
-                        )
-                        return
                     self._json_response(
                         HTTPStatus.OK,
-                        context.repository_updates.list(),
+                        _repository_update_listing(context),
                     )
                     return
                 if path == "/api/v1/component-onboarding":
@@ -976,7 +1012,7 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 path = urlparse(self.path).path
                 body = self._body()
                 if path == "/api/v1/repository-updates/check":
-                    if context.repository_updates is None:
+                    if context.repository_updates is None and not _onboarding_updates_enabled(context):
                         self._error(
                             HTTPStatus.SERVICE_UNAVAILABLE,
                             "repository updates are not enabled",
@@ -1002,13 +1038,49 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                             raise ValueError(
                                 "component_ids must be an array of component identifiers"
                             )
+                    deployment_component_ids = (
+                        [
+                            component_id
+                            for component_id in component_ids
+                            if not component_id.startswith("onboarding:")
+                        ]
+                        if component_ids is not None
+                        else None
+                    )
+                    onboarding_component_ids = (
+                        [
+                            component_id
+                            for component_id in component_ids
+                            if component_id.startswith("onboarding:")
+                        ]
+                        if component_ids is not None
+                        else None
+                    )
+                    deployment_result = None
+                    onboarding_result = None
+                    if deployment_component_ids:
+                        if context.repository_updates is None:
+                            raise RepositoryUpdateError("deployment repository updates are not enabled")
+                        deployment_result = context.repository_updates.check(deployment_component_ids)
+                    elif not component_ids and context.repository_updates is not None:
+                        deployment_result = context.repository_updates.check()
+                    if onboarding_component_ids:
+                        if not _onboarding_updates_enabled(context):
+                            raise ComponentOnboardingError("component onboarding updates are not enabled")
+                        onboarding_result = context.component_onboarding.check_repository_updates(onboarding_component_ids)
+                    elif not component_ids and _onboarding_updates_enabled(context):
+                        onboarding_result = context.component_onboarding.check_repository_updates()
                     self._json_response(
                         HTTPStatus.OK,
-                        context.repository_updates.check(component_ids),
+                        _repository_update_listing(
+                            context,
+                            deployment_updates=deployment_result,
+                            onboarding_updates=onboarding_result,
+                        ),
                     )
                     return
                 if path == "/api/v1/repository-updates/stage":
-                    if context.repository_updates is None:
+                    if context.repository_updates is None and not _onboarding_updates_enabled(context):
                         self._error(
                             HTTPStatus.SERVICE_UNAVAILABLE,
                             "repository updates are not enabled",
@@ -1031,14 +1103,24 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         and not isinstance(candidate_revision, str)
                     ):
                         raise ValueError("candidate_revision must be a string")
-                    result = context.repository_updates.stage(
-                        component_id,
-                        candidate_revision,
-                    )
+                    if component_id.startswith("onboarding:"):
+                        if not _onboarding_updates_enabled(context):
+                            raise ComponentOnboardingError("component onboarding updates are not enabled")
+                        result = context.component_onboarding.prepare_repository_update(
+                            component_id,
+                            candidate_revision,
+                        )
+                    else:
+                        if context.repository_updates is None:
+                            raise RepositoryUpdateError("deployment repository updates are not enabled")
+                        result = context.repository_updates.stage(
+                            component_id,
+                            candidate_revision,
+                        )
                     self._json_response(HTTPStatus.CREATED, result)
                     return
                 if path == "/api/v1/repository-updates/discard":
-                    if context.repository_updates is None:
+                    if context.repository_updates is None and not _onboarding_updates_enabled(context):
                         self._error(
                             HTTPStatus.SERVICE_UNAVAILABLE,
                             "repository updates are not enabled",
@@ -1053,10 +1135,15 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     component_id = body.get("component_id")
                     if not isinstance(component_id, str) or not component_id:
                         raise ValueError("component_id must be a string")
-                    self._json_response(
-                        HTTPStatus.OK,
-                        context.repository_updates.discard(component_id),
-                    )
+                    if component_id.startswith("onboarding:"):
+                        if not _onboarding_updates_enabled(context):
+                            raise ComponentOnboardingError("component onboarding updates are not enabled")
+                        result = context.component_onboarding.discard_repository_update(component_id)
+                    else:
+                        if context.repository_updates is None:
+                            raise RepositoryUpdateError("deployment repository updates are not enabled")
+                        result = context.repository_updates.discard(component_id)
+                    self._json_response(HTTPStatus.OK, result)
                     return
                 if path == "/api/v1/component-onboarding/inspect":
                     if context.component_onboarding is None:

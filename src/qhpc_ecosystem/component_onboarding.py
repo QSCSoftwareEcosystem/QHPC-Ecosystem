@@ -469,6 +469,13 @@ class ComponentOnboardingManager:
                 source_ref=selected_ref,
             )
             state = self._load_state()
+            existing = state["drafts"].get(draft["id"])
+            if isinstance(existing, dict):
+                # The draft identifier includes the immutable source revision
+                # and selected template.  Re-inspecting that exact candidate
+                # must never erase a reviewed build, a local admission record,
+                # or its lifecycle evidence.
+                return existing
             state["drafts"][draft["id"]] = draft
             self._write_state(state)
             return draft
@@ -646,6 +653,291 @@ class ComponentOnboardingManager:
             state["drafts"][candidate["id"]] = refreshed_candidate
             self._write_state(state)
             return refreshed_candidate
+
+    @staticmethod
+    def _update_component_id(component_id: str) -> str:
+        """Return a namespace-safe identifier for the shared updates surface."""
+        return f"onboarding:{component_id}"
+
+    def _active_update_draft(
+        self,
+        state: dict[str, Any],
+        update_component_id: str,
+    ) -> tuple[str, dict[str, Any], dict[str, Any]]:
+        """Resolve one active local component without accepting draft IDs as API IDs."""
+        if not isinstance(update_component_id, str) or not update_component_id.startswith(
+            "onboarding:"
+        ):
+            raise ComponentOnboardingError("component is not admitted for repository updates")
+        component_id = update_component_id.removeprefix("onboarding:")
+        if not IDENTIFIER.fullmatch(component_id):
+            raise ComponentOnboardingError("component is not admitted for repository updates")
+        active = state["active_components"].get(component_id)
+        if not isinstance(active, dict) or not isinstance(active.get("draft_id"), str):
+            raise ComponentOnboardingError("component is not admitted for repository updates")
+        draft = state["drafts"].get(active["draft_id"])
+        if not isinstance(draft, dict) or draft.get("status") != "active":
+            raise ComponentOnboardingError("active component revision is unavailable")
+        return component_id, active, draft
+
+    @staticmethod
+    def _candidate_for_active_draft(
+        state: dict[str, Any],
+        active_draft: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        refresh = active_draft.get("refresh")
+        candidate_id = refresh.get("candidate_draft_id") if isinstance(refresh, dict) else None
+        candidate = state["drafts"].get(candidate_id) if isinstance(candidate_id, str) else None
+        return candidate if isinstance(candidate, dict) else None
+
+    def _update_item(
+        self,
+        state: dict[str, Any],
+        component_id: str,
+        active: dict[str, Any],
+        draft: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Project an admitted local component into the repository-updates schema."""
+        source = draft.get("source")
+        definition = draft.get("draft")
+        if not isinstance(source, dict) or not isinstance(definition, dict):
+            raise ComponentOnboardingError("active component revision has invalid source evidence")
+        interface = definition.get("capability_interface")
+        if not isinstance(interface, dict):
+            raise ComponentOnboardingError("active component revision has invalid interface evidence")
+        repository_url = source.get("repository_url")
+        requested_ref = source.get("requested_ref")
+        current_revision = source.get("resolved_revision")
+        if not all(isinstance(value, str) and value for value in (
+            repository_url,
+            requested_ref,
+            current_revision,
+        )):
+            raise ComponentOnboardingError("active component revision has invalid source evidence")
+
+        refresh = draft.get("refresh") if isinstance(draft.get("refresh"), dict) else {}
+        candidate = self._candidate_for_active_draft(state, draft)
+        candidate_source = candidate.get("source") if isinstance(candidate, dict) else {}
+        candidate_revision = (
+            candidate_source.get("resolved_revision")
+            if isinstance(candidate_source, dict)
+            else None
+        )
+        refresh_state = refresh.get("state")
+        error = refresh.get("error") if isinstance(refresh.get("error"), str) else None
+        if error:
+            status = "error"
+        elif candidate and candidate.get("status") != "discarded":
+            status = "prepared"
+        elif refresh_state in {"update-available", "discarded"} or candidate:
+            status = "update-available"
+        elif refresh_state == "up-to-date":
+            status = "up-to-date"
+        else:
+            status = "not-checked"
+
+        build = draft.get("build") if isinstance(draft.get("build"), dict) else {}
+        image_digest = active.get("image_digest") or build.get("image_digest")
+        runtimes = []
+        if isinstance(image_digest, str) and image_digest.startswith("sha256:"):
+            runtimes.append(
+                {
+                    "type": "oci",
+                    "reference": "locally admitted onboarding image",
+                    "digest": image_digest,
+                }
+            )
+        candidate_commit = None
+        if isinstance(candidate_source, dict) and isinstance(candidate_revision, str):
+            candidate_commit = {
+                "revision": candidate_revision,
+                "committed_at": candidate_source.get("commit_date"),
+                "subject": candidate_source.get("commit_message"),
+            }
+        candidate_status = candidate.get("status") if isinstance(candidate, dict) else None
+        if status == "prepared":
+            next_action = (
+                "Build and smoke-test the prepared candidate in Components, then explicitly admit it locally."
+                if candidate_status == "inspected"
+                else "Review the immutable candidate evidence before explicit local admission."
+            )
+        elif status == "update-available":
+            next_action = "Prepare the exact candidate revision; the active local image will not change automatically."
+        elif status == "up-to-date":
+            next_action = "The active local component matches its tracked public source ref."
+        elif status == "error":
+            next_action = "Inspect the public source and retry the check; the active local image remains unchanged."
+        else:
+            next_action = "Check the tracked public source for an immutable candidate revision."
+
+        lifecycle = draft.get("lifecycle") if isinstance(draft.get("lifecycle"), list) else []
+        candidate_lifecycle = candidate.get("lifecycle") if isinstance(candidate, dict) and isinstance(candidate.get("lifecycle"), list) else []
+        history = [
+            event
+            for event in [*lifecycle, *candidate_lifecycle]
+            if isinstance(event, dict)
+        ]
+        history.sort(key=lambda event: str(event.get("at", "")), reverse=True)
+        return {
+            "component_id": self._update_component_id(component_id),
+            "name": str(interface.get("id", component_id)),
+            "role": "locally-admitted-component",
+            "source_kind": "component-onboarding",
+            "catalog_repository": None,
+            "repository_url": repository_url,
+            "current_repository_url": repository_url,
+            "tracked_ref": requested_ref,
+            "current_revision": current_revision,
+            "current_runtimes": runtimes,
+            "latest_revision": candidate_revision if isinstance(candidate_revision, str) else refresh.get("candidate_revision"),
+            "checked_at": refresh.get("checked_at"),
+            "status": status,
+            "error": error,
+            "capability_ids": [str(interface.get("id", component_id))],
+            "activation": "explicit-local-admission-required",
+            "next_action": next_action,
+            "staged_revision": candidate_revision if status == "prepared" else None,
+            "staged_at": candidate.get("created_at") if status == "prepared" and isinstance(candidate, dict) else None,
+            "candidate_commit": candidate_commit,
+            "checkout": None,
+            "history": history[:MAX_LIFECYCLE_EVENTS],
+        }
+
+    def repository_update_list(self) -> dict[str, Any]:
+        """List update state for explicitly admitted local components only."""
+        with self._lock:
+            state = self._load_state()
+            items = []
+            for component_id, active in sorted(state["active_components"].items()):
+                if not isinstance(component_id, str) or not isinstance(active, dict):
+                    raise ComponentOnboardingError("component onboarding active record is invalid")
+                draft_id = active.get("draft_id")
+                draft = state["drafts"].get(draft_id)
+                if not isinstance(draft, dict) or draft.get("status") != "active":
+                    raise ComponentOnboardingError("component onboarding active record is invalid")
+                items.append(self._update_item(state, component_id, active, draft))
+            return {"enabled": True, "generated_at": _timestamp(), "items": items}
+
+    def check_repository_updates(
+        self,
+        component_ids: Sequence[str] | None = None,
+    ) -> dict[str, Any]:
+        """Resolve tracked public refs without changing a locally active image."""
+        with self._lock:
+            state = self._load_state()
+            known = [self._update_component_id(component_id) for component_id in state["active_components"]]
+        selected = list(component_ids) if component_ids else known
+        if len(selected) != len(set(selected)):
+            raise ComponentOnboardingError("component selection contains duplicates")
+        for update_component_id in selected:
+            with self._lock:
+                state = self._load_state()
+                _, _, active_draft = self._active_update_draft(state, update_component_id)
+                active_draft_id = active_draft["id"]
+            try:
+                self.refresh(active_draft_id)
+            except ComponentOnboardingError as error:
+                with self._lock:
+                    state = self._load_state()
+                    _, _, active_draft = self._active_update_draft(state, update_component_id)
+                    checked_at = _timestamp()
+                    active_draft["refresh"] = {
+                        "checked_at": checked_at,
+                        "state": "error",
+                        "error": str(error),
+                    }
+                    self._record_lifecycle(active_draft, "source-checked", state="error")
+                    state["drafts"][active_draft["id"]] = active_draft
+                    self._write_state(state)
+        return self.repository_update_list()
+
+    def prepare_repository_update(
+        self,
+        update_component_id: str,
+        candidate_revision: str | None = None,
+    ) -> dict[str, Any]:
+        """Retain one resolved successor as a reviewable, immutable candidate."""
+        self.check_repository_updates([update_component_id])
+        with self._lock:
+            state = self._load_state()
+            component_id, active, active_draft = self._active_update_draft(
+                state,
+                update_component_id,
+            )
+            candidate = self._candidate_for_active_draft(state, active_draft)
+            if not isinstance(candidate, dict):
+                raise ComponentOnboardingError("no repository update is available to prepare")
+            source = candidate.get("source")
+            revision = source.get("resolved_revision") if isinstance(source, dict) else None
+            if not isinstance(revision, str):
+                raise ComponentOnboardingError("candidate component revision is invalid")
+            if candidate_revision is not None and candidate_revision.lower() != revision.lower():
+                raise ComponentOnboardingError("candidate revision is no longer the tracked remote revision")
+            if candidate.get("status") == "discarded":
+                restored_status = candidate.pop("discarded_from_status", "inspected")
+                candidate["status"] = restored_status if restored_status in {"inspected", "built", "build-failed"} else "inspected"
+                candidate["activation"] = {
+                    "state": "ready-for-admission" if candidate["status"] == "built" else "blocked",
+                    "reason": "This immutable candidate was explicitly prepared again; build and smoke evidence remain reviewable.",
+                }
+                self._record_lifecycle(candidate, "candidate-reprepared", source_revision=revision)
+            active_draft["refresh"] = {
+                "checked_at": _timestamp(),
+                "state": "prepared",
+                "candidate_revision": revision,
+                "candidate_draft_id": candidate["id"],
+            }
+            self._record_lifecycle(
+                active_draft,
+                "candidate-prepared",
+                candidate_draft_id=candidate["id"],
+                candidate_revision=revision,
+            )
+            candidate["updated_at"] = _timestamp()
+            state["drafts"][active_draft["id"]] = active_draft
+            state["drafts"][candidate["id"]] = candidate
+            self._write_state(state)
+            return self._update_item(state, component_id, active, active_draft)
+
+    def discard_repository_update(self, update_component_id: str) -> dict[str, Any]:
+        """Discard a candidate review without deleting its audit evidence or altering the active image."""
+        with self._lock:
+            state = self._load_state()
+            component_id, active, active_draft = self._active_update_draft(
+                state,
+                update_component_id,
+            )
+            candidate = self._candidate_for_active_draft(state, active_draft)
+            if not isinstance(candidate, dict):
+                raise ComponentOnboardingError("no prepared component update exists to discard")
+            source = candidate.get("source")
+            revision = source.get("resolved_revision") if isinstance(source, dict) else None
+            if not isinstance(revision, str):
+                raise ComponentOnboardingError("candidate component revision is invalid")
+            candidate["discarded_from_status"] = candidate.get("status")
+            candidate["status"] = "discarded"
+            candidate["activation"] = {
+                "state": "discarded",
+                "reason": "The immutable candidate was discarded from local review. The active local component remains unchanged.",
+            }
+            candidate["updated_at"] = _timestamp()
+            self._record_lifecycle(candidate, "candidate-discarded", source_revision=revision)
+            active_draft["refresh"] = {
+                "checked_at": _timestamp(),
+                "state": "discarded",
+                "candidate_revision": revision,
+                "candidate_draft_id": candidate["id"],
+            }
+            self._record_lifecycle(
+                active_draft,
+                "candidate-discarded",
+                candidate_draft_id=candidate["id"],
+                candidate_revision=revision,
+            )
+            state["drafts"][active_draft["id"]] = active_draft
+            state["drafts"][candidate["id"]] = candidate
+            self._write_state(state)
+            return self._update_item(state, component_id, active, active_draft)
 
     def _worktree_for_draft(self, draft: dict[str, Any]) -> tuple[Path, Path]:
         source = draft.get("source")

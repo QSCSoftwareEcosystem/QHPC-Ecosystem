@@ -145,6 +145,9 @@ class FakeComponentOnboarding:
         self.inspections: list[dict] = []
         self.built: list[str] = []
         self.activated: list[str] = []
+        self.update_checks: list[list[str] | None] = []
+        self.prepared_updates: list[tuple[str, str | None]] = []
+        self.discarded_updates: list[str] = []
 
     def list(self) -> dict:
         return {"enabled": True, "items": self.inspections}
@@ -183,6 +186,29 @@ class FakeComponentOnboarding:
         self.activated.append(draft_id)
         self.inspections[0]["status"] = "active"
         return self.inspections[0]
+
+    def repository_update_list(self) -> dict:
+        return {
+            "enabled": True,
+            "items": [
+                {
+                    "component_id": "onboarding:adapter",
+                    "status": "not-checked",
+                }
+            ],
+        }
+
+    def check_repository_updates(self, component_ids=None) -> dict:
+        self.update_checks.append(component_ids)
+        return self.repository_update_list()
+
+    def prepare_repository_update(self, component_id, candidate_revision=None) -> dict:
+        self.prepared_updates.append((component_id, candidate_revision))
+        return {"component_id": component_id, "status": "prepared"}
+
+    def discard_repository_update(self, component_id) -> dict:
+        self.discarded_updates.append(component_id)
+        return {"component_id": component_id, "status": "update-available"}
 
 
 class FakeKnowledge:
@@ -781,6 +807,65 @@ def test_api_repository_updates_use_allowlisted_fields(tmp_path: Path) -> None:
                 },
             )
         assert unsupported.value.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_repository_updates_include_locally_admitted_components(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    onboarding = FakeComponentOnboarding()
+    context = APIContext(
+        engine=engine,
+        registry=example_registry(),
+        component_onboarding=onboarding,
+    )
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, listing = request_json(base, "/api/v1/repository-updates")
+        assert status == 200
+        assert listing["enabled"] is True
+        assert listing["items"][0]["component_id"] == "onboarding:adapter"
+
+        status, checked = request_json(
+            base,
+            "/api/v1/repository-updates/check",
+            {"component_ids": ["onboarding:adapter"]},
+        )
+        assert status == 200
+        assert checked["enabled"] is True
+        assert onboarding.update_checks == [["onboarding:adapter"]]
+
+        candidate = "a" * 40
+        status, staged = request_json(
+            base,
+            "/api/v1/repository-updates/stage",
+            {
+                "component_id": "onboarding:adapter",
+                "candidate_revision": candidate,
+            },
+        )
+        assert status == 201
+        assert staged["status"] == "prepared"
+        assert onboarding.prepared_updates == [("onboarding:adapter", candidate)]
+
+        status, discarded = request_json(
+            base,
+            "/api/v1/repository-updates/discard",
+            {"component_id": "onboarding:adapter"},
+        )
+        assert status == 200
+        assert discarded["status"] == "update-available"
+        assert onboarding.discarded_updates == ["onboarding:adapter"]
     finally:
         server.shutdown()
         server.server_close()

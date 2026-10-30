@@ -67,6 +67,11 @@ POST /api/v1/component-onboarding/drafts/{id}/refresh
 POST /api/v1/component-onboarding/drafts/{id}/activate
 ```
 
+Locally admitted component revisions also appear in the shared repository
+updates API with an `onboarding:`-prefixed component ID. The update actions are
+the same exact-revision gates exposed by `eqo updates`; they do not convert a
+local admission into a published deployment component.
+
 The inspect request is limited to `repository_url`, `ref`, `subdirectory`, and
 `template`. The build and refresh requests accept no user fields. A refresh
 resolves the stored tracked ref again; if it moved, EQO creates a separate,
@@ -82,6 +87,13 @@ component retains the prior revision; activating that retained, proven revision
 again is an explicit rollback. The bounded per-draft lifecycle records
 inspection, builds, source checks, activation, retention, and rollback without
 recording credentials.
+
+For an active locally admitted component, an **Updates** check resolves only
+its stored public ref. A changed ref creates a separate, pinned successor
+draft. **Prepare** retains that exact candidate for review; **Discard** marks
+only the candidate as discarded and leaves the active image untouched. A
+prepared candidate must still undergo its isolated build and constrained smoke
+test before an explicit local admission can replace the active revision.
 
 ## Admission remains separate
 

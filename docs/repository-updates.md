@@ -4,9 +4,11 @@
 - Last updated: 2026-10-30
 - Decision: [ADR 0011](adr/0011-controlled-repository-updates.md)
 
-The update controller tracks only components admitted by the selected
-deployment profile and registry. It never pulls code into a running container
-or changes an active runtime digest.
+The update controller tracks both components admitted by the selected
+deployment profile and registry, and explicitly locally admitted component
+revisions produced by repository onboarding. Those remain separate activation
+domains. The controller never pulls code into a running container or changes
+an active runtime digest.
 
 ## CLI
 
@@ -19,6 +21,21 @@ eqo updates check stabsim chatqec
 eqo updates stage stabsim
 eqo updates discard stabsim
 ```
+
+Locally admitted onboarding components use a namespaced ID so they cannot be
+confused with deployment components:
+
+```bash
+eqo updates list
+eqo updates check onboarding:my-component
+eqo updates stage onboarding:my-component
+eqo updates discard onboarding:my-component
+```
+
+The locally admitted component state root defaults to
+`.qhpc/component-onboarding`; override it with
+`--component-onboarding-state-root` when the onboarding service uses a
+different state directory.
 
 Use `--json` on any command for automation. `stage --revision <full-commit>`
 adds an optimistic check: staging fails if that commit is no longer the
@@ -50,6 +67,13 @@ and subject from the verified detached checkout and records bounded lifecycle
 evidence (`checked`, `prepared`, and `discarded`). This makes source revision,
 active runtime digest, and the preparation decision visible together without
 claiming that a source commit has been activated.
+
+For an onboarding component, **prepare** means that an immutable successor
+source draft has been retained for review, not that a detached deployment
+checkout was created. Its next action is an isolated build and smoke test in
+the Components view, followed by a separate explicit local admission. Discard
+never modifies the currently active local image; it preserves the candidate's
+audit evidence and allows a later explicit re-prepare.
 
 Standalone `serve` processes expose these operations only with
 `--enable-repository-updates`. `eqo dev up` enables them using
