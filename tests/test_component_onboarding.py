@@ -92,6 +92,29 @@ def test_component_onboarding_resolves_an_immutable_public_source_without_execut
         manager.update_draft(draft["id"], {"input_artifact": "not-versioned"})
 
 
+def test_component_onboarding_accepts_a_historical_full_commit_pin(
+    tmp_path: Path,
+) -> None:
+    source, historical_revision = source_repository(tmp_path)
+    git("commit", "--allow-empty", "-m", "new branch tip", cwd=source)
+    assert git("rev-parse", "HEAD", cwd=source) != historical_revision
+    manager = ComponentOnboardingManager(
+        workspace_root=tmp_path,
+        allow_local_sources=True,
+        allowed_hosts=frozenset(),
+    )
+
+    draft = manager.inspect(
+        str(source),
+        ref=historical_revision,
+        template="compiler-transpiler",
+    )
+
+    assert draft["source"]["requested_ref"] == historical_revision
+    assert draft["source"]["resolved_revision"] == historical_revision
+    assert draft["inspection"]["executed_repository_code"] is False
+
+
 def test_component_onboarding_rejects_credentialed_and_unadmitted_urls() -> None:
     with pytest.raises(ComponentOnboardingError, match="credentials"):
         normalise_public_repository_url("https://token@example.com/org/repo")

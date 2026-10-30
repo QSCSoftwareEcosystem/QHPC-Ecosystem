@@ -258,6 +258,14 @@ class ComponentOnboardingManager:
         del events[:-MAX_LIFECYCLE_EVENTS]
 
     def _resolve_revision(self, repository_url: str, requested_ref: str) -> str:
+        # A caller may intentionally supply a historical release pin that is
+        # reachable from the public repository but is no longer a branch or
+        # tag tip.  The later exact-ID fetch verifies that the server really
+        # supplies this object; do not replace a full immutable pin with a
+        # moving advertised ref just to make it easier to list.
+        if REVISION.fullmatch(requested_ref):
+            return requested_ref.lower()
+
         lines = self._git(["ls-remote", "--refs", repository_url]).splitlines()
         advertised: dict[str, str] = {}
         for line in lines:
@@ -272,12 +280,6 @@ class ComponentOnboardingManager:
                 if len(parts) == 2 and REVISION.fullmatch(parts[0]):
                     return parts[0].lower()
             raise ComponentOnboardingError("public repository did not advertise HEAD")
-        if REVISION.fullmatch(requested_ref):
-            if requested_ref.lower() in advertised.values():
-                return requested_ref.lower()
-            raise ComponentOnboardingError(
-                "selected commit is not advertised by the public repository"
-            )
         revision = advertised.get(requested_ref)
         if revision is None:
             raise ComponentOnboardingError("selected branch or tag was not found")
@@ -293,8 +295,9 @@ class ComponentOnboardingManager:
         origin = self._git(["--git-dir", str(repository), "remote", "get-url", "origin"]).strip()
         if origin != repository_url:
             raise ComponentOnboardingError("repository object cache identity mismatch")
-        # Fetch an advertised object by exact ID.  No checkout, hooks, build,
-        # package manager, or repository-provided command is invoked.
+        # Fetch the requested immutable object by exact ID.  Git must return
+        # that same object; no checkout hooks, build, package manager, or
+        # repository-provided command is invoked.
         self._git([
             "--git-dir",
             str(repository),

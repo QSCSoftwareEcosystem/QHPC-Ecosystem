@@ -7,6 +7,12 @@ const SOURCE_AREAS = {
   "cross-project": "Cross-project",
 };
 
+const QASMTRANS_ONBOARDING_EXAMPLE = Object.freeze({
+  repositoryUrl: "https://github.com/pnnl/qasmtrans",
+  revision: "1843c98fa4bac9cf6b88412145b69457e9176124",
+  template: "compiler-transpiler",
+});
+
 // Names are transcribed only from the reviewed, pinned-source attribution
 // record.  They identify developers or publication authors, not current
 // maintainers; the latter requires an explicit project statement.
@@ -2556,6 +2562,49 @@ function componentTemplateLabel(template) {
   }[template] || template;
 }
 
+function repositoryIdentity(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\.git\/?$/i, "")
+    .replace(/\/$/, "")
+    .toLowerCase();
+}
+
+function publishedTranspilerForSource(source) {
+  const revision = String(source?.resolved_revision || "").toLowerCase();
+  const sourceRepository = repositoryIdentity(source?.repository_url);
+  if (!revision || !sourceRepository) return null;
+  return state.capabilities.find(capability => {
+    if (capability.id !== "qasmtrans-transpiler") return false;
+    const repository = capability.repository || {};
+    const publishedRepository = repositoryIdentity(
+      repository.canonical_url || repository.url,
+    );
+    return publishedRepository === sourceRepository
+      && String(repository.revision || "").toLowerCase() === revision
+      && capability.operations?.some(operation => operation.id === "transpile");
+  }) || null;
+}
+
+function openPublishedTranspilerInComposer() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "compose");
+  url.searchParams.set("basic", "transform");
+  window.history.replaceState({}, "", url);
+  switchView("compose");
+}
+
+function useQasmTransOnboardingExample() {
+  const form = document.querySelector("#component-onboarding-form");
+  if (!form) return;
+  form.elements.repository_url.value = QASMTRANS_ONBOARDING_EXAMPLE.repositoryUrl;
+  form.elements.ref.value = QASMTRANS_ONBOARDING_EXAMPLE.revision;
+  form.elements.subdirectory.value = "";
+  form.elements.template.value = QASMTRANS_ONBOARDING_EXAMPLE.template;
+  form.elements.repository_url.focus();
+  showToast("QASMTrans public-source example is ready to inspect");
+}
+
 function renderComponentOnboarding() {
   const onboarding = state.componentOnboarding;
   if (!onboarding.data && !onboarding.loading) {
@@ -2599,6 +2648,13 @@ function renderComponentOnboarding() {
     const sourceLink = sourceUrl
       ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.repository_url)}</a>`
       : escapeHtml(source.repository_url || "");
+    const publishedCapability = publishedTranspilerForSource(source);
+    const publishedMatch = publishedCapability
+      ? `<aside class="component-draft-published-match" aria-label="Published Composer operation">
+          <div><strong>Published operation available</strong><p>This exact source pin is already admitted as ${escapeHtml(publishedCapability.id)}@${escapeHtml(publishedCapability.version)}. Opening it uses the published operation, not this draft.</p></div>
+          <button class="button secondary" type="button" data-open-published-transpiler>Open Transform path</button>
+        </aside>`
+      : "";
     return `<article class="component-draft">
       <header>
         <div><h3>${escapeHtml(definition.capability_interface?.id || item.id)}</h3><p>${escapeHtml(componentTemplateLabel(definition.template || "python-operation"))} · ${buildSucceeded ? "isolated build passed" : "inspected, not built"}</p></div>
@@ -2611,6 +2667,7 @@ function renderComponentOnboarding() {
         <div><dt>BUILD GATE</dt><dd>${escapeHtml(definition.build_recipe?.state || "not-run")}</dd></div>
       </dl>
       <p class="component-draft-source">${sourceLink}</p>
+      ${publishedMatch}
       <details><summary>Recognized files · ${inspection.recognized_file_count || 0}</summary><ul>${displayedFiles || "<li>No recognized source files</li>"}${omitted ? `<li>… and ${omitted} more</li>` : ""}</ul></details>
       <div class="component-draft-build component-draft-refresh">
         <div><strong>Source revision</strong><small>${escapeHtml(refresh.state === "update-available" ? `New pinned candidate ${String(refresh.candidate_revision || "").slice(0, 12)}… is ready for review` : refresh.state === "up-to-date" ? "Tracked ref resolves to this pinned commit" : "Check the tracked ref explicitly; it cannot replace this revision automatically")}</small></div>
@@ -2651,6 +2708,11 @@ function renderComponentOnboarding() {
     <form class="component-onboarding-form" id="component-onboarding-form">
       <h2>Inspect a public source</h2>
       <p>EQO reads Git metadata and tracked file names only. It does not execute source code, accept credentials, build an image, or activate a runtime here.</p>
+      <div class="component-onboarding-example">
+        <strong>Try the QASMTrans example</strong>
+        <p>Load the exact public revision that already has a published transpilation operation, then inspect its source evidence.</p>
+        <button class="button secondary" type="button" id="component-onboarding-qasmtrans-example">Use QASMTrans example</button>
+      </div>
       <label>Public Git repository URL<input name="repository_url" type="url" required placeholder="https://github.com/owner/repository"></label>
       <div class="component-onboarding-form-row">
         <label>Branch, tag, or commit<input name="ref" value="HEAD" placeholder="HEAD"></label>
@@ -2666,6 +2728,10 @@ function renderComponentOnboarding() {
     </section>
   </div>`;
   document.querySelector("#component-onboarding-form").addEventListener("submit", inspectComponentRepository);
+  document.querySelector("#component-onboarding-qasmtrans-example").addEventListener("click", useQasmTransOnboardingExample);
+  workspace.querySelectorAll("[data-open-published-transpiler]").forEach(button => {
+    button.addEventListener("click", openPublishedTranspilerInComposer);
+  });
   workspace.querySelectorAll("[data-component-draft]").forEach(form => {
     form.addEventListener("submit", updateComponentDraft);
   });

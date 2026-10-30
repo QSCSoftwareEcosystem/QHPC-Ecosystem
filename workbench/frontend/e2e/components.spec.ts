@@ -165,3 +165,62 @@ test("inspects a public repository into a pinned, non-executable component draft
   await expect(page.getByText("adapter/transpiler.py", { exact: true })).toBeVisible();
   await expect(page.getByText("Simulator · isolated build passed")).toBeVisible();
 });
+
+
+test("uses the reviewed QASMTrans source example without treating a draft as a runtime", async ({ page }) => {
+  const revision = "1843c98fa4bac9cf6b88412145b69457e9176124";
+  let requestBody: Record<string, unknown> | undefined;
+  let hasDraft = false;
+  const draft = {
+    id: "onboarding-qasmtrans-reviewed",
+    status: "inspected",
+    source: {
+      repository_url: "https://github.com/pnnl/qasmtrans",
+      requested_ref: revision,
+      resolved_revision: revision,
+    },
+    inspection: { recognized_file_count: 0, recognized_files: [] },
+    draft: {
+      template: "compiler-transpiler",
+      capability_interface: { id: "qasmtrans", operation_id: "run" },
+      build_recipe: { state: "not-run" },
+    },
+    activation: { reason: "A separate build and admission are required for this draft." },
+  };
+
+  await page.route("**/api/v1/component-onboarding", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ enabled: true, items: hasDraft ? [draft] : [] }),
+    });
+  });
+  await page.route("**/api/v1/component-onboarding/inspect", async (route) => {
+    requestBody = route.request().postDataJSON() as Record<string, unknown>;
+    hasDraft = true;
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(draft),
+    });
+  });
+
+  await page.goto("/?view=components");
+  await page.getByRole("button", { name: "Use QASMTrans example" }).click();
+  await expect(page.getByLabel("Public Git repository URL")).toHaveValue(
+    "https://github.com/pnnl/qasmtrans",
+  );
+  await expect(page.getByLabel("Branch, tag, or commit")).toHaveValue(revision);
+  await expect(page.getByLabel("Integration template")).toHaveValue("compiler-transpiler");
+  await page.getByRole("button", { name: "Inspect repository" }).click();
+
+  expect(requestBody).toEqual({
+    repository_url: "https://github.com/pnnl/qasmtrans",
+    ref: revision,
+    subdirectory: "",
+    template: "compiler-transpiler",
+  });
+  await expect(page.getByText("Published operation available", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open Transform path" })).toBeVisible();
+  await page.getByRole("button", { name: "Open Transform path" }).click();
+  await expect(page).toHaveURL(/\?view=compose&basic=transform/);
+});
