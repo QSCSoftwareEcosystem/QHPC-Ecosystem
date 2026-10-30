@@ -363,6 +363,54 @@ def test_status_reports_health_and_compatible_worker(
     assert report["workers"] == ["eqo-local-worker"]
 
 
+def test_local_preflight_proxies_the_api_owned_non_secret_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path)
+    value = config(assistant_enabled=False)
+    write_local_state(
+        paths,
+        state_document(
+            value,
+            paths,
+            release_version="0.1.0",
+            supervisor_pid=4321,
+            status="ready",
+            services={"api": 10, "workbench": 11, "local-worker": 12},
+        ),
+    )
+    requested: dict[str, object] = {}
+    expected = {
+        "state": "ready",
+        "can_queue": True,
+        "checks": [{"id": "compatible-worker", "state": "passed"}],
+    }
+
+    def post(url: str, value: dict[str, object], **_kwargs: object) -> dict:
+        requested["url"] = url
+        requested["value"] = value
+        return expected
+
+    monkeypatch.setattr(local_release, "_post_json", post)
+
+    assert local_release.local_workflow_preflight(
+        paths,
+        workflow_id="ftqc-iqm-bell-execution",
+        version="0.2.0",
+        execution_target="local-development",
+        execution_class="quantum-backend",
+        input_artifacts={"circuit": "artifact-bell"},
+    ) == expected
+    assert requested["url"] == "http://127.0.0.1:18081/api/v1/workflow-preflight"
+    assert requested["value"] == {
+        "workflow_id": "ftqc-iqm-bell-execution",
+        "version": "0.2.0",
+        "execution_target": "local-development",
+        "execution_class": "quantum-backend",
+        "inputs": {"circuit": "artifact-bell"},
+    }
+
+
 def test_status_preserves_failed_startup_detail(tmp_path: Path, monkeypatch) -> None:
     paths = LocalPaths.discover(tmp_path)
     value = config(assistant_enabled=False)

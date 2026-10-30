@@ -416,6 +416,23 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
         assert status == 201
         assert published["workflow"]["digest"] == registered["digest"]
 
+        status, preflight = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {
+                "workflow_id": registered["id"],
+                "version": registered["version"],
+                "execution_target": "local-development",
+            },
+        )
+        assert status == 200
+        assert preflight["state"] == "unavailable"
+        assert not preflight["can_queue"]
+        assert any(
+            check["id"] == "compatible-worker" and check["state"] == "blocked"
+            for check in preflight["checks"]
+        )
+
         with pytest.raises(HTTPError) as unavailable:
             request_json(
                 base,
@@ -448,6 +465,9 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
                 "runtime_digests": sorted(
                     {item["runtime_digest"] for item in requirements}
                 ),
+                # Preflight responses must never relay worker metadata such as
+                # credential references to the browser.
+                "credential_reference": "secret://env/API_TEST_TOKEN",
             },
         )
         query = urlencode(
@@ -463,6 +483,20 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
         status, readiness = request_json(base, f"/api/v1/readiness?{query}")
         assert status == 200
         assert readiness["ready"]
+
+        status, preflight = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {
+                "workflow_id": registered["id"],
+                "version": registered["version"],
+                "execution_target": "local-development",
+            },
+        )
+        assert status == 200
+        assert preflight["state"] == "ready"
+        assert preflight["can_queue"]
+        assert "secret://env/API_TEST_TOKEN" not in json.dumps(preflight)
 
         status, run = request_json(
             base,
@@ -490,6 +524,150 @@ def test_api_serves_workbench_and_run_lifecycle(tmp_path: Path) -> None:
         status, bundle = request_json(base, f"/api/v1/runs/{run['id']}/export")
         assert status == 200
         assert bundle["kind"] == "RunBundle"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_preflight_validates_supplied_input_artifacts(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    workflow["metadata"].update(
+        {
+            "id": "api-preflight-input-artifacts",
+            "name": "API preflight input artifacts",
+        }
+    )
+    workflow["spec"]["nodes"] = [workflow["spec"]["nodes"][1]]
+    workflow["spec"]["edges"] = []
+    workflow["spec"]["inputs"] = {
+        "circuit": {
+            "artifact_type": "qhpc.quantum-circuit@1",
+            "to": {"node": "simulate", "port": "circuit"},
+        }
+    }
+    registered = engine.register_workflow(
+        workflow,
+        example_registry(),
+        created_by="api-test",
+    )
+    requirements = engine.workflow_execution_requirements(
+        registered["id"],
+        registered["version"],
+        execution_target="local-development",
+    )
+    engine.register_worker(
+        "api-preflight-input-worker",
+        kind="local",
+        metadata={
+            "execution_targets": ["local-development"],
+            "execution_classes": ["interactive-local"],
+            "runtime_digests": sorted(
+                {item["runtime_digest"] for item in requirements}
+            ),
+        },
+    )
+    context = APIContext(engine=engine, registry=example_registry())
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    payload = {
+        "workflow_id": registered["id"],
+        "version": registered["version"],
+        "execution_target": "local-development",
+    }
+    try:
+        status, circuit = request_json(
+            base,
+            "/api/v1/artifacts",
+            {
+                "artifact_type": "qhpc.quantum-circuit@1",
+                "name": "bell.qasm",
+                "content": "OPENQASM 2.0;\nqreg q[2];\n",
+                "created_by": "api-test",
+            },
+        )
+        assert status == 201
+        status, wrong = request_json(
+            base,
+            "/api/v1/artifacts",
+            {
+                "artifact_type": "qhpc.measurement-results@1",
+                "name": "counts.json",
+                "content": "{}",
+                "created_by": "api-test",
+            },
+        )
+        assert status == 201
+
+        status, missing = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {**payload, "inputs": {}},
+        )
+        assert status == 200
+        assert missing["state"] == "unavailable"
+        assert missing["reason"] == "Required input artifact missing: circuit."
+
+        status, unknown = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {**payload, "inputs": {"unknown": circuit["id"]}},
+        )
+        assert status == 200
+        assert unknown["state"] == "unavailable"
+        assert unknown["reason"] == "The published workflow does not declare input unknown."
+
+        status, absent = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {**payload, "inputs": {"circuit": "artifact-not-present"}},
+        )
+        assert status == 200
+        assert absent["state"] == "unavailable"
+        assert absent["reason"] == (
+            "Input artifact for circuit was not found: artifact-not-present."
+        )
+
+        status, mismatch = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {**payload, "inputs": {"circuit": wrong["id"]}},
+        )
+        assert status == 200
+        assert mismatch["state"] == "unavailable"
+        assert "requires qhpc.quantum-circuit@1" in mismatch["reason"]
+
+        status, accepted = request_json(
+            base,
+            "/api/v1/workflow-preflight",
+            {**payload, "inputs": {"circuit": circuit["id"]}},
+        )
+        assert status == 200
+        assert accepted["state"] == "ready"
+        assert any(
+            check["id"] == "input-artifacts" and check["state"] == "passed"
+            for check in accepted["checks"]
+        )
+
+        with pytest.raises(HTTPError) as rejected_run:
+            request_json(
+                base,
+                "/api/v1/runs",
+                {**payload, "inputs": {"circuit": wrong["id"]}},
+            )
+        assert rejected_run.value.code == 503
+        rejected = json.load(rejected_run.value)
+        assert "requires qhpc.quantum-circuit@1" in rejected["error"]
+        assert any(
+            check["id"] == "input-artifacts" and check["state"] == "blocked"
+            for check in rejected["details"]["checks"]
+        )
     finally:
         server.shutdown()
         server.server_close()

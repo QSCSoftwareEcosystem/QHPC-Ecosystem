@@ -21,9 +21,9 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from threading import Event
 from typing import Any, Mapping, Sequence
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import ProxyHandler, build_opener
+from urllib.request import ProxyHandler, Request, build_opener
 
 from .container_engine import ContainerEngineError, apptainer_requested, verified_sif
 from .contract import document_digest
@@ -813,6 +813,65 @@ def _fetch_json(url: str, *, timeout_seconds: float = 0.75) -> Any:
         if response.status != 200:
             raise LocalReleaseError(f"health endpoint returned {response.status}: {url}")
         return json.load(response)
+
+
+def _post_json(
+    url: str,
+    value: Mapping[str, Any],
+    *,
+    timeout_seconds: float = 3.0,
+) -> Any:
+    request = Request(
+        url,
+        data=json.dumps(value).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    with _DIRECT_OPENER.open(request, timeout=timeout_seconds) as response:
+        if response.status != 200:
+            raise LocalReleaseError(f"preflight endpoint returned {response.status}")
+        return json.load(response)
+
+
+def local_workflow_preflight(
+    paths: LocalPaths,
+    *,
+    workflow_id: str,
+    version: str,
+    execution_target: str = "local-development",
+    execution_class: str | None = None,
+    input_artifacts: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Request the active local API's non-secret workflow preflight report."""
+    state = read_local_state(paths)
+    api = state.get("endpoints", {}).get("api") if state else None
+    if not isinstance(api, str):
+        raise LocalReleaseError(
+            "EQO Local API is not configured; start EQO Local before requesting a preflight"
+        )
+    payload: dict[str, Any] = {
+        "workflow_id": workflow_id,
+        "version": version,
+        "execution_target": execution_target,
+    }
+    if execution_class is not None:
+        payload["execution_class"] = execution_class
+    if input_artifacts is not None:
+        payload["inputs"] = input_artifacts
+    try:
+        report = _post_json(f"{api}/api/v1/workflow-preflight", payload)
+    except HTTPError as error:
+        raise LocalReleaseError(
+            f"EQO Local preflight request returned HTTP status {error.code}; "
+            "restart EQO Local after updating EQO"
+        ) from error
+    except (OSError, URLError, ValueError) as error:
+        raise LocalReleaseError(
+            "EQO Local API is unavailable; run 'eqo local status' and retry"
+        ) from error
+    if not isinstance(report, dict):
+        raise LocalReleaseError("EQO Local preflight returned an invalid response")
+    return report
 
 
 def _endpoint_healthy(url: str) -> bool:

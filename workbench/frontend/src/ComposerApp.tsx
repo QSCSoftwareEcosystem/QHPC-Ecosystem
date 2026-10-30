@@ -47,6 +47,10 @@ import {
 
 import { composerApi } from "./api";
 import {
+  type PreflightDisplay,
+  workflowPreflightDisplay,
+} from "./preflight";
+import {
   canvasToWorkflow,
   capabilityOperationIndex,
   connectionEdge,
@@ -77,15 +81,14 @@ import type {
   PublishedWorkflow,
   Workflow,
   WorkflowDraft,
+  WorkflowPreflight,
 } from "./types";
 
 
 type LibraryView = "operations" | "templates" | "drafts";
-type ComposerMode = "guided" | "advanced";
+type ComposerMode = "basic" | "guided" | "advanced";
+type BasicPathId = "simulate" | "transform" | "hardware";
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
-type ReadinessState =
-  | { status: "idle" | "checking"; message: string }
-  | { status: "ready" | "unavailable" | "error"; message: string };
 
 interface GraphSnapshot {
   nodes: ComposerNode[];
@@ -184,6 +187,30 @@ interface ScientificPathDefinition {
 
 interface ScientificPath {
   definition: ScientificPathDefinition;
+  workflow?: PublishedWorkflow;
+}
+
+interface BasicPathDefinition {
+  id: BasicPathId;
+  workflowId: string;
+  title: string;
+  detail: string;
+  actionLabel: string;
+  inputLabel: string;
+  inputAccept: string;
+  inputPlaceholder: string;
+  exampleName: string;
+  exampleLabel: string;
+  exampleContent: string;
+  blocks: Array<{
+    title: string;
+    detail: string;
+    kind: "input" | "transform" | "execution" | "analysis" | "output";
+  }>;
+  hardwareNotice?: string;
+}
+
+interface BasicPath extends BasicPathDefinition {
   workflow?: PublishedWorkflow;
 }
 
@@ -324,6 +351,116 @@ h q[0];
 h q[0];
 result[0] = measure q[0];
 `;
+
+export const BASIC_PATHS: BasicPathDefinition[] = [
+  {
+    id: "simulate",
+    workflowId: "nwqsim-bell-simulation",
+    title: "Simulate a circuit",
+    detail: "Run a bounded local Bell-circuit simulation and inspect its measurements.",
+    actionLabel: "Run simulation",
+    inputLabel: "OpenQASM 2 circuit",
+    inputAccept: ".qasm,.txt,text/plain",
+    inputPlaceholder: "OPENQASM 2.0;",
+    exampleName: "bell.qasm",
+    exampleLabel: "Load Bell circuit",
+    exampleContent: QASMTRANS_BELL_EXAMPLE,
+    blocks: [
+      {
+        title: "Circuit input",
+        detail: "OpenQASM circuit",
+        kind: "input",
+      },
+      {
+        title: "Simulate",
+        detail: "Local CPU execution",
+        kind: "execution",
+      },
+      {
+        title: "Analyze results",
+        detail: "Measurement counts",
+        kind: "analysis",
+      },
+      {
+        title: "Results",
+        detail: "Run artifacts",
+        kind: "output",
+      },
+    ],
+  },
+  {
+    id: "transform",
+    workflowId: "ct-hw-qasm-analysis",
+    title: "Transform a circuit",
+    detail: "Convert an OpenQASM circuit into an inspectable form and review its resource metrics.",
+    actionLabel: "Transform circuit",
+    inputLabel: "OpenQASM 2 circuit",
+    inputAccept: ".qasm,.txt,text/plain",
+    inputPlaceholder: "OPENQASM 2.0;",
+    exampleName: "bell.qasm",
+    exampleLabel: "Load Bell circuit",
+    exampleContent: QASMTRANS_BELL_EXAMPLE,
+    blocks: [
+      {
+        title: "Circuit input",
+        detail: "OpenQASM circuit",
+        kind: "input",
+      },
+      {
+        title: "Transform circuit",
+        detail: "QASM conversion",
+        kind: "transform",
+      },
+      {
+        title: "Analyze metrics",
+        detail: "Circuit resources",
+        kind: "analysis",
+      },
+      {
+        title: "Results",
+        detail: "Circuit and metrics",
+        kind: "output",
+      },
+    ],
+  },
+  {
+    id: "hardware",
+    workflowId: "ftqc-iqm-bell-execution",
+    title: "Run on quantum hardware",
+    detail: "Prepare a Bell circuit for the configured IQM target, then submit it when the target is ready.",
+    actionLabel: "Submit hardware run",
+    inputLabel: "OpenQASM 3 circuit",
+    inputAccept: ".qasm,.txt,text/plain",
+    inputPlaceholder: "OPENQASM 3.0;",
+    exampleName: "bell-hardware.qasm",
+    exampleLabel: "Load Bell circuit",
+    exampleContent: FTQC_BELL_EXAMPLE,
+    blocks: [
+      {
+        title: "Circuit input",
+        detail: "OpenQASM circuit",
+        kind: "input",
+      },
+      {
+        title: "Compile for target",
+        detail: "FTQC preparation",
+        kind: "transform",
+      },
+      {
+        title: "Run on hardware",
+        detail: "Configured IQM worker",
+        kind: "execution",
+      },
+      {
+        title: "Results",
+        detail: "Counts and receipt",
+        kind: "output",
+      },
+    ],
+    hardwareNotice:
+      "Submitting this path creates a QPU job. EQO checks the admitted target first but does not reserve provider capacity.",
+  },
+];
 
 export const SCIENTIFIC_PATHS: ScientificPathDefinition[] = [
   {
@@ -879,8 +1016,57 @@ function preferredLocalTarget(targets: string[]): string | undefined {
   );
 }
 
-function isLocalExecutionTarget(target: string): boolean {
-  return target === "local-development" || target === "local-container";
+function useWorkflowPreflight(
+  workflow: PublishedWorkflow | null | undefined,
+  capabilities: CapabilitySummary[],
+): PreflightDisplay {
+  const [readiness, setReadiness] = useState<PreflightDisplay>({
+    status: "idle",
+    message: "Select a published workflow to inspect its execution requirements.",
+    canQueue: false,
+  });
+
+  useEffect(() => {
+    if (!workflow) {
+      setReadiness({
+        status: "idle",
+        message: "Publish a workflow to inspect its execution requirements.",
+        canQueue: false,
+      });
+      return;
+    }
+    let cancelled = false;
+    setReadiness({
+      status: "checking",
+      message: "Checking published requirements against available workers.",
+      canQueue: false,
+    });
+    const inspect = async () => {
+      try {
+        const target = executionTarget(workflow.definition, capabilities);
+        const report = await composerApi.workflowPreflight(
+          workflow.id,
+          workflow.version,
+          target,
+        );
+        if (!cancelled) setReadiness(workflowPreflightDisplay(report));
+      } catch (error) {
+        if (!cancelled) {
+          setReadiness({
+            status: "error",
+            message: `Execution check failed: ${toMessage(error)}`,
+            canQueue: false,
+          });
+        }
+      }
+    };
+    void inspect();
+    return () => {
+      cancelled = true;
+    };
+  }, [capabilities, workflow]);
+
+  return readiness;
 }
 
 
@@ -938,9 +1124,127 @@ function IconButton({
 }
 
 
+function preflightStateLabel(
+  state: PreflightDisplay["status"] | WorkflowPreflight["checks"][number]["state"],
+): string {
+  switch (state) {
+    case "passed":
+    case "ready":
+      return "Passed";
+    case "degraded":
+      return "Advisory";
+    case "warning":
+      return "Warning";
+    case "blocked":
+    case "unavailable":
+      return "Blocked";
+    case "checking":
+      return "Checking";
+    case "unknown":
+      return "Unknown";
+    case "error":
+      return "Unavailable";
+    default:
+      return "Not checked";
+  }
+}
+
+
+function PreflightMark({
+  state,
+}: {
+  state: PreflightDisplay["status"] | WorkflowPreflight["checks"][number]["state"];
+}): React.JSX.Element {
+  if (state === "ready" || state === "passed") {
+    return <Check size={15} aria-hidden="true" />;
+  }
+  if (state === "checking") {
+    return <LoaderCircle size={15} className="composer-spin" aria-hidden="true" />;
+  }
+  if (state === "idle") {
+    return <Unplug size={15} aria-hidden="true" />;
+  }
+  return <CircleAlert size={15} aria-hidden="true" />;
+}
+
+
+function ExecutionPreflight({
+  readiness,
+  compact = false,
+}: {
+  readiness: PreflightDisplay;
+  compact?: boolean;
+}): React.JSX.Element {
+  const report = readiness.report;
+  return (
+    <section
+      className={`composer-preflight is-${readiness.status}${compact ? " is-compact" : ""}`}
+      aria-label="Execution preflight"
+    >
+      <header className="composer-preflight-header">
+        <span className="composer-preflight-mark">
+          <PreflightMark state={readiness.status} />
+        </span>
+        <span>
+          <strong>Execution preflight</strong>
+          <small>{readiness.message}</small>
+        </span>
+        <b>{preflightStateLabel(readiness.status)}</b>
+      </header>
+      {report && (
+        <>
+          <dl className="composer-preflight-details">
+            <div>
+              <dt>Target</dt>
+              <dd>{report.target}</dd>
+            </div>
+            <div>
+              <dt>Requirements</dt>
+              <dd>{report.requirements.length}</dd>
+            </div>
+            <div>
+              <dt>Checked</dt>
+              <dd>{timestamp(report.checked_at)}</dd>
+            </div>
+          </dl>
+          <ul className="composer-preflight-checks">
+            {report.checks.map((check) => (
+              <li className={`is-${check.state}`} key={check.id}>
+                <PreflightMark state={check.state} />
+                <span>
+                  <strong>{check.title}</strong>
+                  <small>{check.detail}</small>
+                  {check.remediation && (
+                    <span className="composer-preflight-remediation">
+                      <em>{check.remediation.label}</em>
+                      <code>{check.remediation.command}</code>
+                    </span>
+                  )}
+                </span>
+                <b>{preflightStateLabel(check.state)}</b>
+              </li>
+            ))}
+          </ul>
+          <p className="composer-preflight-boundary">
+            Credentials and endpoint values remain isolated with the worker.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
+
 function ComposerSurface(): React.JSX.Element {
   const flow = useReactFlow<ComposerNode, ComposerEdge>();
-  const [composerMode, setComposerMode] = useState<ComposerMode>("guided");
+  const [composerMode, setComposerMode] = useState<ComposerMode>(() => {
+    const requested = new URLSearchParams(window.location.search).get("workflow");
+    return requested && SCIENTIFIC_PATHS.some(
+      (path) => path.workflowId === requested,
+    )
+      ? "guided"
+      : "basic";
+  });
   const [capabilities, setCapabilities] = useState<CapabilitySummary[]>([]);
   const [workflows, setWorkflows] = useState<PublishedWorkflow[]>([]);
   const [drafts, setDrafts] = useState<WorkflowDraft[]>([]);
@@ -988,10 +1292,13 @@ function ComposerSurface(): React.JSX.Element {
   );
   const [guidedError, setGuidedError] = useState(false);
   const [guidedRunId, setGuidedRunId] = useState<string | null>(null);
-  const [guidedReadiness, setGuidedReadiness] = useState<ReadinessState>({
-    status: "idle",
-    message: "Select a published workflow to check its runtime",
-  });
+  const [basicPathId, setBasicPathId] = useState<BasicPathId>("simulate");
+  const [basicQueueing, setBasicQueueing] = useState(false);
+  const [basicMessage, setBasicMessage] = useState(
+    "Choose a circuit, then run the local simulation",
+  );
+  const [basicError, setBasicError] = useState(false);
+  const [basicRunId, setBasicRunId] = useState<string | null>(null);
 
   const history = useRef<GraphSnapshot[]>([]);
   const future = useRef<GraphSnapshot[]>([]);
@@ -1024,6 +1331,19 @@ function ComposerSurface(): React.JSX.Element {
       })),
     [workflows],
   );
+  const basicPaths = useMemo<BasicPath[]>(
+    () =>
+      BASIC_PATHS.map((definition) => ({
+        ...definition,
+        workflow: workflows.find(
+          (workflow) => workflow.id === definition.workflowId,
+        ),
+      })),
+    [workflows],
+  );
+  const selectedBasicPath =
+    basicPaths.find((path) => path.id === basicPathId) ?? basicPaths[0];
+  const selectedBasicWorkflow = selectedBasicPath?.workflow;
   const selectedGuidedPath =
     (guidedWorkflowId
       ? guidedPaths.find(
@@ -1036,82 +1356,15 @@ function ComposerSurface(): React.JSX.Element {
     guidedPaths.find((item) => item.workflow) ??
     guidedPaths[0];
   const selectedGuidedWorkflow = selectedGuidedPath?.workflow;
-
-  useEffect(() => {
-    if (!selectedGuidedWorkflow) {
-      setGuidedReadiness({
-        status: "idle",
-        message: "No published runtime is attached to this path",
-      });
-      return;
-    }
-    let cancelled = false;
-    setGuidedReadiness({
-      status: "checking",
-      message: "Checking workers against pinned runtime digests",
-    });
-    const check = async () => {
-      try {
-        const target = executionTarget(
-          selectedGuidedWorkflow.definition,
-          capabilities,
-        );
-        const index = capabilityOperationIndex(capabilities);
-        const groups = new Map<string, Set<string>>();
-        for (const node of selectedGuidedWorkflow.definition.spec.nodes) {
-          const resolved = index.get(
-            `${node.operation.capability}@${node.operation.version}/${node.operation.operation}`,
-          );
-          if (!resolved) {
-            throw new Error(`Operation ${node.id} is missing from the registry.`);
-          }
-          const executionClass =
-            node.execution_class ??
-            (isLocalExecutionTarget(target)
-              ? "interactive-local"
-              : "batch-hpc");
-          const digests = groups.get(executionClass) ?? new Set<string>();
-          digests.add(resolved.operation.runtime.digest);
-          groups.set(executionClass, digests);
-        }
-        const checks = await Promise.all(
-          [...groups].map(([executionClass, digests]) =>
-            composerApi.readiness(target, executionClass, [...digests]),
-          ),
-        );
-        if (cancelled) return;
-        if (checks.every((result) => result.ready)) {
-          const runtimeCount = new Set(
-            checks.flatMap((result) =>
-              result.requirements.map((item) => item.runtime_digest),
-            ),
-          ).size;
-          setGuidedReadiness({
-            status: "ready",
-            message: `Compatible worker available for ${runtimeCount} pinned runtime${runtimeCount === 1 ? "" : "s"}`,
-          });
-          return;
-        }
-        setGuidedReadiness({
-          status: "unavailable",
-          message: checks
-            .filter((result) => !result.ready)
-            .map((result) => result.reason)
-            .join(" · "),
-        });
-      } catch (error) {
-        if (cancelled) return;
-        setGuidedReadiness({
-          status: "error",
-          message: `Readiness check failed: ${toMessage(error)}`,
-        });
-      }
-    };
-    void check();
-    return () => {
-      cancelled = true;
-    };
-  }, [capabilities, selectedGuidedWorkflow]);
+  const guidedReadiness = useWorkflowPreflight(
+    selectedGuidedWorkflow,
+    capabilities,
+  );
+  const basicReadiness = useWorkflowPreflight(
+    selectedBasicWorkflow,
+    capabilities,
+  );
+  const advancedReadiness = useWorkflowPreflight(published, capabilities);
 
   const markChanged = useCallback(() => {
     setPublished(null);
@@ -1279,6 +1532,7 @@ function ComposerSurface(): React.JSX.Element {
     setLibraryView("operations");
     setLibraryQuery(input.artifactType);
     setLeftOpen(true);
+    if (window.matchMedia("(max-width: 980px)").matches) setLeftOpen(false);
     setStatusMessage(
       `${input.title} added. Choose a compatible operation, then connect its input port.`,
     );
@@ -1554,7 +1808,7 @@ function ComposerSurface(): React.JSX.Element {
       setGuidedMessage("This published workflow is unavailable");
       return;
     }
-    if (guidedReadiness.status !== "ready") {
+    if (!guidedReadiness.canQueue) {
       setGuidedError(true);
       setGuidedMessage(guidedReadiness.message);
       return;
@@ -1584,6 +1838,59 @@ function ComposerSurface(): React.JSX.Element {
     selectedGuidedPath,
     submitPublishedWorkflow,
   ]);
+
+  const queueBasicRun = useCallback(async () => {
+    const workflow = selectedBasicPath?.workflow;
+    if (!workflow) {
+      setBasicError(true);
+      setBasicMessage("This published workflow is unavailable");
+      return;
+    }
+    if (!basicReadiness.canQueue) {
+      setBasicError(true);
+      setBasicMessage(basicReadiness.message);
+      return;
+    }
+    setBasicQueueing(true);
+    setBasicError(false);
+    setBasicRunId(null);
+    setBasicMessage(
+      selectedBasicPath.id === "hardware"
+        ? "Submitting hardware workflow"
+        : "Submitting simulation",
+    );
+    try {
+      const run = await submitPublishedWorkflow(
+        workflow,
+        guidedInputs[workflow.id] ?? {},
+        guidedInputNames[workflow.id] ?? {},
+      );
+      setBasicRunId(run.id);
+      setBasicMessage(`Queued · ${run.id}`);
+    } catch (error) {
+      setBasicError(true);
+      setBasicMessage(toMessage(error));
+    } finally {
+      setBasicQueueing(false);
+    }
+  }, [
+    basicReadiness,
+    guidedInputNames,
+    guidedInputs,
+    selectedBasicPath,
+    submitPublishedWorkflow,
+  ]);
+
+  const selectBasicPath = useCallback((pathId: BasicPathId) => {
+    setBasicPathId(pathId);
+    setBasicError(false);
+    setBasicRunId(null);
+    setBasicMessage(
+      pathId === "hardware"
+        ? "Add a circuit, then review target readiness before submitting"
+        : "Choose a circuit, then run the local simulation",
+    );
+  }, []);
 
   const selectGuidedPath = useCallback((workflowId: string) => {
     setGuidedWorkflowId(workflowId);
@@ -1622,12 +1929,40 @@ function ComposerSurface(): React.JSX.Element {
     [],
   );
 
+  const updateBasicInput = useCallback(
+    (
+      workflowId: string,
+      name: string,
+      content: string,
+      sourceName?: string,
+    ) => {
+      updateGuidedInput(workflowId, name, content, sourceName);
+      setBasicError(false);
+      setBasicRunId(null);
+      setBasicMessage(content.trim() ? "Circuit input ready" : "Circuit input required");
+    },
+    [updateGuidedInput],
+  );
+
+  const openWorkflowInAdvanced = useCallback(
+    (workflow: PublishedWorkflow) => {
+      openTemplate(workflow);
+      setLibraryView("templates");
+      setComposerMode("advanced");
+    },
+    [openTemplate],
+  );
+
   const openGuidedInAdvanced = useCallback(() => {
     if (!selectedGuidedPath?.workflow) return;
-    openTemplate(selectedGuidedPath.workflow);
-    setLibraryView("templates");
-    setComposerMode("advanced");
-  }, [openTemplate, selectedGuidedPath]);
+    openWorkflowInAdvanced(selectedGuidedPath.workflow);
+  }, [openWorkflowInAdvanced, selectedGuidedPath]);
+
+  const openBasicInGuided = useCallback(() => {
+    if (!selectedBasicPath) return;
+    setGuidedWorkflowId(selectedBasicPath.workflowId);
+    setComposerMode("guided");
+  }, [selectedBasicPath]);
 
   const deleteDraft = useCallback(async () => {
     if (!draft) return;
@@ -1816,6 +2151,15 @@ function ComposerSurface(): React.JSX.Element {
           <button
             type="button"
             role="tab"
+            aria-selected={composerMode === "basic"}
+            className={composerMode === "basic" ? "is-active" : ""}
+            onClick={() => setComposerMode("basic")}
+          >
+            Basic
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={composerMode === "guided"}
             className={composerMode === "guided" ? "is-active" : ""}
             onClick={() => setComposerMode("guided")}
@@ -1834,19 +2178,52 @@ function ComposerSurface(): React.JSX.Element {
         </div>
         <span className="composer-mode-context">
           <strong>
-            {composerMode === "guided"
-              ? "Start with a goal"
-              : "Workflow graph"}
+            {composerMode === "basic"
+              ? "Build with basic blocks"
+              : composerMode === "guided"
+                ? "Start with a goal"
+                : "Workflow graph"}
           </strong>
           <small>
-            {composerMode === "guided"
-              ? `${guidedPaths.filter((item) => item.workflow).length} runnable workflows · ${blueprintCountLabel(guidedPaths.filter((item) => item.definition.blueprint).length)}`
-              : `${nodes.filter((node) => node.type === "operation").length} operations`}
+            {composerMode === "basic"
+              ? "3 starter paths · inspectable workflow details"
+              : composerMode === "guided"
+                ? `${guidedPaths.filter((item) => item.workflow).length} runnable workflows · ${blueprintCountLabel(guidedPaths.filter((item) => item.definition.blueprint).length)}`
+                : `${nodes.filter((node) => node.type === "operation").length} operations`}
           </small>
         </span>
       </header>
 
-      {composerMode === "guided" ? (
+      {composerMode === "basic" ? (
+        <BasicComposer
+          paths={basicPaths}
+          selectedPath={selectedBasicPath}
+          inputs={
+            selectedBasicWorkflow
+              ? guidedInputs[selectedBasicWorkflow.id] ?? {}
+              : {}
+          }
+          inputNames={
+            selectedBasicWorkflow
+              ? guidedInputNames[selectedBasicWorkflow.id] ?? {}
+              : {}
+          }
+          queueing={basicQueueing}
+          statusMessage={basicMessage}
+          hasError={basicError}
+          lastRunId={basicRunId}
+          readiness={basicReadiness}
+          onSelect={selectBasicPath}
+          onInput={updateBasicInput}
+          onQueue={() => void queueBasicRun()}
+          onOpenGuided={openBasicInGuided}
+          onOpenAdvanced={() => {
+            if (selectedBasicWorkflow) {
+              openWorkflowInAdvanced(selectedBasicWorkflow);
+            }
+          }}
+        />
+      ) : composerMode === "guided" ? (
         <GuidedComposer
           paths={guidedPaths}
           selectedPath={selectedGuidedPath}
@@ -2302,6 +2679,7 @@ function ComposerSurface(): React.JSX.Element {
                 validation={serverValidation}
                 clientIssues={clientIssues}
                 runInputs={runInputs}
+                preflight={advancedReadiness}
                 publishing={publishing}
                 queueing={queueing}
                 lastRunId={lastRunId}
@@ -2501,6 +2879,342 @@ function IncubationBlueprintView({
 }
 
 
+function BasicComposer({
+  paths,
+  selectedPath,
+  inputs,
+  inputNames,
+  queueing,
+  statusMessage,
+  hasError,
+  lastRunId,
+  readiness,
+  onSelect,
+  onInput,
+  onQueue,
+  onOpenGuided,
+  onOpenAdvanced,
+}: {
+  paths: BasicPath[];
+  selectedPath: BasicPath | undefined;
+  inputs: Record<string, string>;
+  inputNames: Record<string, string>;
+  queueing: boolean;
+  statusMessage: string;
+  hasError: boolean;
+  lastRunId: string | null;
+  readiness: PreflightDisplay;
+  onSelect: (pathId: BasicPathId) => void;
+  onInput: (
+    workflowId: string,
+    name: string,
+    content: string,
+    sourceName?: string,
+  ) => void;
+  onQueue: () => void;
+  onOpenGuided: () => void;
+  onOpenAdvanced: () => void;
+}): React.JSX.Element {
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [blockQuery, setBlockQuery] = useState("");
+  const workflow = selectedPath?.workflow;
+  const normalizedBlockQuery = blockQuery.trim().toLocaleLowerCase();
+  const visiblePaths = paths.filter((path) => {
+    if (!normalizedBlockQuery) return true;
+    return [
+      path.title,
+      path.detail,
+      path.actionLabel,
+      ...path.blocks.flatMap((block) => [block.title, block.detail]),
+    ].some((value) => value.toLocaleLowerCase().includes(normalizedBlockQuery));
+  });
+  const workflowInputs = workflow
+    ? Object.entries(workflow.definition.spec.inputs)
+    : [];
+  const [inputName, inputDefinition] = workflowInputs[0] ?? [];
+  const inputReady =
+    !!workflow &&
+    workflowInputs.every(
+      ([name, input]) =>
+        !(input.required ?? true) || Boolean(inputs[name]?.trim()),
+    );
+
+  return (
+    <div className="composer-basic-workspace">
+      <aside className="composer-basic-library" aria-label="Basic building blocks">
+        <header>
+          <h2>Basic building blocks</h2>
+          <p>Start with a circuit, then choose what should happen next.</p>
+        </header>
+        <div className="composer-basic-picker">
+          <label htmlFor="basic-block-search">Find a basic block</label>
+          <input
+            id="basic-block-search"
+            type="search"
+            value={blockQuery}
+            placeholder="Search simulation, transform, hardware"
+            onChange={(event) => setBlockQuery(event.target.value)}
+          />
+          <p>
+            Each choice maps to a published workflow with compatible circuit input.
+          </p>
+        </div>
+        <div className="composer-basic-paths">
+          {visiblePaths.map((path) => {
+            const selected = path.id === selectedPath?.id;
+            return (
+              <button
+                type="button"
+                aria-pressed={selected}
+                className={`composer-basic-path${selected ? " is-selected" : ""}`}
+                key={path.id}
+                onClick={() => {
+                  setFileError(null);
+                  onSelect(path.id);
+                }}
+              >
+                <span>
+                  <strong>{path.title}</strong>
+                  <small>{path.detail}</small>
+                </span>
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+            );
+          })}
+          {!visiblePaths.length && (
+            <p className="composer-basic-empty" role="status">
+              No basic block matches “{blockQuery.trim()}”. Try simulation, transform, or hardware.
+            </p>
+          )}
+        </div>
+        <p className="composer-basic-library-note">
+          The selected blocks are compatible by design. Hardware stays explicit and is never selected automatically.
+        </p>
+      </aside>
+
+      <main className="composer-basic-detail">
+        {!selectedPath || !workflow ? (
+          <div className="composer-guided-unavailable">
+            <CircleAlert size={20} aria-hidden="true" />
+            <strong>Published starter workflow unavailable</strong>
+          </div>
+        ) : (
+          <>
+            <header className="composer-basic-header">
+              <span>
+                <h2>{selectedPath.title}</h2>
+                <p>{selectedPath.detail}</p>
+              </span>
+              <dl>
+                <dt>WORKFLOW</dt>
+                <dd>{workflow.id}@{workflow.version}</dd>
+                <dt>OUTPUTS</dt>
+                <dd>{Object.keys(workflow.definition.spec.outputs).length} artifacts</dd>
+              </dl>
+            </header>
+
+            <div className="composer-basic-body">
+              <section className="composer-basic-flow-section" aria-labelledby="basic-canvas-title">
+                <div className="composer-basic-section-heading">
+                  <h3 id="basic-canvas-title">Your workflow</h3>
+                  <p>Follow the blocks left to right. Each connection is an inspectable EQO artifact handoff.</p>
+                </div>
+                <ol className="composer-basic-flow" aria-label={`${selectedPath.title} workflow blocks`}>
+                  {selectedPath.blocks.map((block, index) => (
+                    <Fragment key={block.title}>
+                      <li className={`composer-basic-block is-${block.kind}`}>
+                        <span className="composer-basic-block-index" aria-hidden="true">
+                          {index + 1}
+                        </span>
+                        <span>
+                          <strong>{block.title}</strong>
+                          <small>{block.detail}</small>
+                        </span>
+                      </li>
+                      {index < selectedPath.blocks.length - 1 && (
+                        <li className="composer-basic-connector" aria-hidden="true">
+                          <ChevronRight size={18} />
+                        </li>
+                      )}
+                    </Fragment>
+                  ))}
+                </ol>
+              </section>
+
+              {selectedPath.hardwareNotice && (
+                <aside className="composer-basic-hardware-notice" role="note">
+                  <CircleAlert size={16} aria-hidden="true" />
+                  <span>{selectedPath.hardwareNotice}</span>
+                </aside>
+              )}
+
+              {selectedPath.id === "hardware" && (
+                <section
+                  className="composer-basic-target"
+                  aria-labelledby="basic-hardware-target-title"
+                >
+                  <div>
+                    <h3 id="basic-hardware-target-title">Hardware target</h3>
+                    <p>
+                      This starter workflow is pinned to its admitted execution target.
+                      The IQM device is configured by the isolated worker, not in this form.
+                    </p>
+                  </div>
+                  <dl>
+                    <dt>EXECUTION TARGET</dt>
+                    <dd>{readiness.report?.target ?? "Checking admission"}</dd>
+                    <dt>DEVICE</dt>
+                    <dd>Worker-configured IQM device</dd>
+                  </dl>
+                  <p className="composer-basic-target-note">
+                    To use a different target or device contract, open Advanced and publish a compatible workflow.
+                  </p>
+                </section>
+              )}
+
+              {inputName && inputDefinition && (
+                <section className="composer-basic-input" aria-labelledby="basic-input-title">
+                  <div className="composer-basic-section-heading">
+                    <h3 id="basic-input-title">Circuit input</h3>
+                    <p>Paste OpenQASM, upload a circuit file, or begin with the Bell example.</p>
+                  </div>
+                  <div className="composer-basic-input-actions">
+                    <label className="composer-button is-secondary">
+                      <FileUp size={14} aria-hidden="true" />
+                      Upload circuit
+                      <input
+                        type="file"
+                        accept={selectedPath.inputAccept}
+                        aria-label={`Upload ${selectedPath.inputLabel} file`}
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0];
+                          if (!file) return;
+                          setFileError(null);
+                          void file
+                            .text()
+                            .then((text) =>
+                              onInput(
+                                workflow.id,
+                                inputName,
+                                text,
+                                file.name,
+                              ),
+                            )
+                            .catch((error) => setFileError(toMessage(error)));
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="composer-button is-secondary"
+                      onClick={() => {
+                        setFileError(null);
+                        onInput(
+                          workflow.id,
+                          inputName,
+                          selectedPath.exampleContent,
+                          selectedPath.exampleName,
+                        );
+                      }}
+                    >
+                      <FileCode2 size={14} aria-hidden="true" />
+                      {selectedPath.exampleLabel}
+                    </button>
+                  </div>
+                  <textarea
+                    rows={8}
+                    aria-label={selectedPath.inputLabel}
+                    spellCheck={false}
+                    value={inputs[inputName] ?? ""}
+                    placeholder={selectedPath.inputPlaceholder}
+                    onChange={(event) =>
+                      onInput(workflow.id, inputName, event.target.value)
+                    }
+                  />
+                  <div className="composer-basic-input-meta">
+                    <span>{inputNames[inputName] || "Pasted text"}</span>
+                    <span>{(inputs[inputName] ?? "").length.toLocaleString()} characters</span>
+                    <span>{inputDefinition.artifact_type}</span>
+                  </div>
+                  {fileError && <p className="composer-guided-input-error">{fileError}</p>}
+                </section>
+              )}
+
+              <section className="composer-basic-readiness" aria-label="Execution readiness">
+                <ExecutionPreflight readiness={readiness} compact />
+              </section>
+
+              <section className="composer-basic-output-summary" aria-labelledby="basic-output-title">
+                <div className="composer-basic-section-heading">
+                  <h3 id="basic-output-title">What you will receive</h3>
+                  <p>Every result stays attached to the run with its exact workflow and target details.</p>
+                </div>
+                <ul>
+                  {Object.entries(workflow.definition.spec.outputs).map(([name, output]) => (
+                    <li key={name}>
+                      <FileCode2 size={15} aria-hidden="true" />
+                      <span>
+                        <strong>{artifactLabel(output.artifact_type)}</strong>
+                        <small>{name}</small>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+
+            <footer className="composer-basic-actions">
+              <span
+                className={`composer-guided-status${hasError ? " is-error" : ""}${lastRunId ? " is-queued" : ""}`}
+                title={statusMessage}
+              >
+                {queueing ? (
+                  <LoaderCircle size={14} className="composer-spin" aria-hidden="true" />
+                ) : hasError ? (
+                  <CircleAlert size={14} aria-hidden="true" />
+                ) : (
+                  <Check size={14} aria-hidden="true" />
+                )}
+                <span>{statusMessage}</span>
+              </span>
+              <div>
+                {lastRunId && (
+                  <a className="composer-button is-secondary" href="?view=runs">
+                    View run
+                  </a>
+                )}
+                <button type="button" className="composer-button is-secondary" onClick={onOpenGuided}>
+                  <GitFork size={14} aria-hidden="true" />
+                  See full workflow
+                </button>
+                <button type="button" className="composer-button is-secondary" onClick={onOpenAdvanced}>
+                  <Braces size={14} aria-hidden="true" />
+                  Customize in Advanced
+                </button>
+                <button
+                  type="button"
+                  className="composer-button is-primary"
+                  disabled={!inputReady || queueing || !readiness.canQueue}
+                  title={readiness.canQueue ? selectedPath.actionLabel : readiness.message}
+                  onClick={onQueue}
+                >
+                  {queueing ? (
+                    <LoaderCircle size={14} className="composer-spin" aria-hidden="true" />
+                  ) : (
+                    <Play size={14} aria-hidden="true" />
+                  )}
+                  {queueing ? "Submitting" : selectedPath.actionLabel}
+                </button>
+              </div>
+            </footer>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
+
 function GuidedComposer({
   paths,
   selectedPath,
@@ -2526,7 +3240,7 @@ function GuidedComposer({
   statusMessage: string;
   hasError: boolean;
   lastRunId: string | null;
-  readiness: ReadinessState;
+  readiness: PreflightDisplay;
   onSelect: (workflowId: string) => void;
   onInput: (
     workflowId: string,
@@ -2707,35 +3421,7 @@ function GuidedComposer({
                     );
                   })}
                 </ol>
-                <div
-                  className={`composer-runtime-readiness is-${readiness.status}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {readiness.status === "checking" ? (
-                    <LoaderCircle
-                      size={16}
-                      className="composer-spin"
-                      aria-hidden="true"
-                    />
-                  ) : readiness.status === "ready" ? (
-                    <Check size={16} aria-hidden="true" />
-                  ) : readiness.status === "idle" ? (
-                    <Unplug size={16} aria-hidden="true" />
-                  ) : (
-                    <CircleAlert size={16} aria-hidden="true" />
-                  )}
-                  <span>
-                    <strong>
-                      {readiness.status === "ready"
-                        ? "Runtime ready"
-                        : readiness.status === "checking"
-                          ? "Checking runtime"
-                          : "Runtime unavailable"}
-                    </strong>
-                    <small>{readiness.message}</small>
-                  </span>
-                </div>
+                <ExecutionPreflight readiness={readiness} />
               </section>
 
               <section className="composer-guided-section">
@@ -2916,10 +3602,10 @@ function GuidedComposer({
                     !inputReady ||
                     queueing ||
                     target === "No compatible target" ||
-                    readiness.status !== "ready"
+                    !readiness.canQueue
                   }
                   title={
-                    readiness.status === "ready"
+                    readiness.canQueue
                       ? "Run this published workflow"
                       : readiness.message
                   }
@@ -3154,6 +3840,7 @@ function WorkflowInspector({
   validation,
   clientIssues,
   runInputs,
+  preflight,
   publishing,
   queueing,
   lastRunId,
@@ -3169,6 +3856,7 @@ function WorkflowInspector({
   validation: DraftValidation | null;
   clientIssues: ReturnType<typeof validateCanvas>;
   runInputs: Record<string, string>;
+  preflight: PreflightDisplay;
   publishing: boolean;
   queueing: boolean;
   lastRunId: string | null;
@@ -3184,6 +3872,12 @@ function WorkflowInspector({
   const issues = validation?.valid === false
     ? validation.issues.map((item) => item.message)
     : clientIssues.map((item) => item.message);
+  const requiredInputsReady = published
+    ? Object.entries(published.definition.spec.inputs).every(
+        ([name, definition]) =>
+          !(definition.required ?? true) || Boolean(runInputs[name]?.trim()),
+      )
+    : false;
   return (
     <div className="composer-inspector-body">
       {published ? (
@@ -3203,6 +3897,7 @@ function WorkflowInspector({
             <dt>Digest</dt>
             <dd>{published.digest.slice(0, 20)}</dd>
           </dl>
+          <ExecutionPreflight readiness={preflight} compact />
           {Object.entries(published.definition.spec.inputs).map(
             ([name, definition]) => (
               <label className="composer-field" key={name}>
@@ -3221,7 +3916,14 @@ function WorkflowInspector({
             type="button"
             className="composer-button is-primary is-full"
             onClick={onQueue}
-            disabled={queueing}
+            disabled={queueing || !requiredInputsReady || !preflight.canQueue}
+            title={
+              !preflight.canQueue
+                ? preflight.message
+                : !requiredInputsReady
+                  ? "Provide all required input artifacts before queueing."
+                  : "Queue this published workflow"
+            }
           >
             {queueing ? (
               <LoaderCircle

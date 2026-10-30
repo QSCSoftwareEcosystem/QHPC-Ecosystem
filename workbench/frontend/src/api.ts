@@ -12,6 +12,7 @@ import type {
   PublishedWorkflow,
   RunRecord,
   RuntimeReadiness,
+  WorkflowPreflight,
   Workflow,
   WorkflowDraft,
 } from "./types";
@@ -173,6 +174,21 @@ export const composerApi = {
         inputs,
         execution_target: executionTarget,
         created_by: "workbench-user",
+      }),
+    });
+  },
+
+  workflowPreflight(
+    workflowId: string,
+    version: string,
+    executionTarget: string,
+  ): Promise<WorkflowPreflight> {
+    return request("/workflow-preflight", {
+      method: "POST",
+      body: JSON.stringify({
+        workflow_id: workflowId,
+        version,
+        execution_target: executionTarget,
       }),
     });
   },

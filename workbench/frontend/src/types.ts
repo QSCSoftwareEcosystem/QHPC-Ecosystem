@@ -256,6 +256,43 @@ export interface RuntimeReadiness {
   workers: Array<Record<string, unknown>>;
 }
 
+export type WorkflowPreflightCheckState =
+  | "passed"
+  | "warning"
+  | "blocked"
+  | "unknown";
+
+export interface WorkflowPreflight {
+  state: "ready" | "degraded" | "unavailable";
+  ready: boolean;
+  can_queue: boolean;
+  summary: string;
+  reason: string;
+  workflow: {
+    id: string;
+    version: string;
+    digest: string;
+  };
+  target: string;
+  checks: Array<{
+    id: string;
+    state: WorkflowPreflightCheckState;
+    title: string;
+    detail: string;
+    remediation?: {
+      label: string;
+      command: string;
+    };
+  }>;
+  requirements: Array<{
+    node_id: string;
+    execution_target: string;
+    execution_class: string;
+    runtime_digest: string;
+  }>;
+  checked_at: string;
+}
+
 export interface ArtifactRecord {
   id: string;
   artifact_type: string;

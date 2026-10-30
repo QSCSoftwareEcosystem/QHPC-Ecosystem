@@ -21,6 +21,12 @@ test("asks ChatQEC through the Workbench gateway and renders cited text safely",
       }),
     });
   });
+  await page.route("**/api/v1/assistant/chatqec/answers/stream", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({}),
+    });
+  });
   await page.route("**/api/v1/assistant/chatqec/answers", async (route) => {
     submitted = route.request().postDataJSON() as Record<string, unknown>;
     await route.fulfill({
@@ -188,8 +194,10 @@ test("presents the local direct-circuit capability without promising model-backe
   await expect(
     page.getByRole("heading", { name: "QEC circuit assistant" }),
   ).toBeVisible();
-  await expect(page.getByText("This local profile runs explicit Stim or Tsim circuit instructions.")).toBeVisible();
-  await expect(page.getByText("model-backed research assistant is not configured", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Run explicit Stim or Tsim circuits through the local ChatQEC tool boundary"),
+  ).toBeVisible();
+  await expect(page.getByText("source retrieval is not configured", { exact: false })).toBeVisible();
   await expect(page.getByLabel("Circuit request for ChatQEC")).toHaveAttribute(
     "placeholder",
     /Paste Stim\/Tsim instructions/,

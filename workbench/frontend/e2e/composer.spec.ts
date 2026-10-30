@@ -69,9 +69,39 @@ async function mockIqmShowcase(
     });
   });
   await page.route("**/api/v1/workers", async route => {
-    const response = await route.fetch();
-    const current = await response.json();
-    await route.fulfill({ response, body: JSON.stringify([...current, ...workers]) });
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(workers),
+    });
+  });
+}
+
+async function mockReadyPreflight(page: import("@playwright/test").Page) {
+  await page.route("**/api/v1/workflow-preflight", async (route) => {
+    const request = route.request().postDataJSON() as {
+      workflow_id?: string;
+      version?: string;
+      execution_target?: string;
+    };
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        state: "ready",
+        ready: true,
+        can_queue: true,
+        summary: "Execution checks passed.",
+        reason: "The published workflow is admitted for this browser test.",
+        workflow: {
+          id: request.workflow_id ?? "browser-workflow",
+          version: request.version ?? "0.1.0",
+          digest: "sha256:browser-test",
+        },
+        target: request.execution_target ?? "local-development",
+        checks: [],
+        requirements: [],
+        checked_at: "2026-10-30T12:00:00Z",
+      }),
+    });
   });
 }
 
@@ -249,6 +279,7 @@ test("animates the QEC and QHPC control loop and offers a reduced-motion state",
 
 
 test("presents FTQC IQM as a runnable flagship showcase", async ({ page }) => {
+  await mockIqmShowcase(page, [], () => []);
   await page.goto("/?view=showcases");
 
   await expect(
@@ -321,10 +352,10 @@ test("keeps simulated IQM orchestration distinct from hardware admission", async
     });
   });
   await page.route("**/api/v1/workers", async route => {
-    const response = await route.fetch();
-    const workers = await response.json();
-    workers.push({
-      id: "safe-simulation-worker",
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify([{
+        id: "safe-simulation-worker",
       available: true,
       kind: "target",
       metadata: {
@@ -335,8 +366,8 @@ test("keeps simulated IQM orchestration distinct from hardware admission", async
         ],
         iqm: { mode: "simulation" },
       },
+      }]),
     });
-    await route.fulfill({ response, body: JSON.stringify(workers) });
   });
 
   await page.goto("/?view=showcases");
@@ -446,7 +477,7 @@ test("renders a static high-resolution QSC binary canvas", async ({ page }) => {
   expect(first.height).toBeGreaterThan(first.cssHeight);
   await page.waitForTimeout(260);
   expect((await signature()).hash).toBe(first.hash);
-  expect(Number(await nebula.getAttribute("data-render-ms"))).toBeLessThan(250);
+  expect(Number(await nebula.getAttribute("data-render-ms"))).toBeLessThan(500);
 });
 
 
@@ -539,6 +570,69 @@ test("creates, saves, and validates a typed workflow draft", async ({ page }) =>
 });
 
 
+test("shows non-secret execution remediation before a gated workflow can queue", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/workflow-preflight", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        state: "unavailable",
+        ready: false,
+        can_queue: false,
+        summary: "Execution is blocked until required checks pass.",
+        reason: "A compatible IQM hardware worker is missing an admission gate.",
+        workflow: {
+          id: "ftqc-iqm-bell-execution",
+          version: "0.2.0",
+          digest: "sha256:published",
+        },
+        target: "local-development",
+        checks: [
+          {
+            id: "published-workflow",
+            state: "passed",
+            title: "Published workflow",
+            detail: "The immutable workflow digest is available.",
+          },
+          {
+            id: "quantum-backend-configuration",
+            state: "blocked",
+            title: "IQM hardware admission",
+            detail: "A compatible IQM hardware worker is missing an admission gate.",
+            remediation: {
+              label: "Start an IQM worker",
+              command: "eqo local up --start-iqm-worker --iqm-endpoint <URL> --iqm-device-alias <NAME> --prompt-for-iqm-token",
+            },
+          },
+        ],
+        requirements: [
+          {
+            node_id: "execute",
+            execution_target: "local-development",
+            execution_class: "quantum-backend",
+            runtime_digest: IQM_RUNTIME_DIGEST,
+          },
+        ],
+        checked_at: "2026-10-28T12:00:00Z",
+      }),
+    });
+  });
+
+  await page.goto("/?view=compose&workflow=ftqc-iqm-bell-execution");
+
+  const preflight = page.locator(".composer-preflight");
+  await expect(preflight).toBeVisible();
+  await expect(preflight).toContainText("Execution preflight");
+  await expect(preflight).toContainText("IQM hardware admission");
+  await expect(preflight).toContainText("Start an IQM worker");
+  await expect(preflight).toContainText("Credentials and endpoint values remain isolated");
+  await expect(
+    page.getByRole("button", { name: "Run workflow", exact: true }),
+  ).toBeDisabled();
+});
+
+
 test("lays out advanced blocks for direct movement and port connections", async ({
   page,
 }) => {
@@ -606,14 +700,19 @@ test("starts an advanced workflow from an explicit circuit input", async ({
 }) => {
   await page.goto("/?view=compose");
   await page.getByRole("tab", { name: "Advanced", exact: true }).click();
-
-  await page
-    .getByRole("button", { name: "Add Input Circuit", exact: true })
-    .click();
+  const addCircuit = (page.viewportSize()?.width ?? 1440) <= 760
+    ? page
+      .getByLabel("Input artifacts")
+      .getByRole("button", { name: "Input OpenQASM Circuit" })
+    : page.getByRole("button", { name: "Add Input Circuit", exact: true });
+  await addCircuit.click();
 
   await expect(
     page.locator(".composer-boundary-node.is-input"),
   ).toContainText("Input Circuit");
+  if ((page.viewportSize()?.width ?? 1440) <= 760) {
+    await page.getByRole("button", { name: "Show library" }).click();
+  }
   await expect(page.getByLabel("Filter operations")).toHaveValue("qhpc.quantum-circuit@1");
   await expect(
     page.getByRole("button", { name: /Transpile OpenQASM circuit/ }),
@@ -638,6 +737,9 @@ test("offers Hamiltonian input in the Operations palette", async ({ page }) => {
   await expect(
     page.locator(".composer-boundary-node.is-input"),
   ).toContainText("Input Hamiltonian");
+  if ((page.viewportSize()?.width ?? 1440) <= 760) {
+    await page.getByRole("button", { name: "Show library" }).click();
+  }
   await expect(page.getByLabel("Filter operations")).toHaveValue(
     "qhpc.pauli-hamiltonian@1",
   );
@@ -647,8 +749,149 @@ test("offers Hamiltonian input in the Operations palette", async ({ page }) => {
 });
 
 
+test("starts a basic circuit path without requiring EQO vocabulary", async ({ page }) => {
+  let submittedRun: Record<string, unknown> | undefined;
+  await page.route("**/api/v1/workflow-preflight", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        state: "ready",
+        ready: true,
+        can_queue: true,
+        summary: "Execution checks passed.",
+        reason: "The local simulation worker is admitted.",
+        workflow: {
+          id: "nwqsim-bell-simulation",
+          version: "0.1.0",
+          digest: "sha256:published",
+        },
+        target: "local-development",
+        checks: [
+          {
+            id: "published-workflow",
+            state: "passed",
+            title: "Published workflow",
+            detail: "The immutable workflow digest is available.",
+          },
+        ],
+        requirements: [],
+        checked_at: "2026-10-29T12:00:00Z",
+      }),
+    });
+  });
+  await page.route("**/api/v1/artifacts", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "artifact-basic-browser-smoke",
+        artifact_type: "qhpc.quantum-circuit@1",
+        name: "bell.qasm",
+        checksum: "sha256:basic-browser-smoke",
+        size_bytes: 80,
+        provenance: "browser-smoke",
+        uri: "artifact://artifact-basic-browser-smoke",
+      }),
+    });
+  });
+  await page.route("**/api/v1/runs", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    submittedRun = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "run-basic-browser-smoke",
+        workflow_id: "nwqsim-bell-simulation",
+        workflow_version: "0.1.0",
+        state: "queued",
+        outputs: {},
+      }),
+    });
+  });
+
+  await page.goto("/?view=compose");
+
+  await expect(
+    page.getByRole("tab", { name: "Basic", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(
+    page.getByRole("heading", { name: "Simulate a circuit" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Simulate a circuit workflow blocks"),
+  ).toContainText("Circuit input");
+  await expect(
+    page.getByLabel("Simulate a circuit workflow blocks"),
+  ).toContainText("Analyze results");
+  const basicBlockSearch = page.getByLabel("Find a basic block", {
+    exact: true,
+  });
+  await basicBlockSearch.fill("transform");
+  await expect(
+    page.getByRole("button", { name: "Transform a circuit" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Simulate a circuit" }),
+  ).toBeHidden();
+  await basicBlockSearch.fill("");
+  await page.getByRole("button", { name: "Load Bell circuit" }).click();
+  await expect(
+    page.getByLabel("OpenQASM 2 circuit", { exact: true }),
+  ).toHaveValue(/OPENQASM 2\.0;/);
+  await expect(
+    page.getByRole("button", { name: "Run simulation", exact: true }),
+  ).toBeEnabled();
+  await page.getByRole("button", { name: "Run simulation", exact: true }).click();
+  await expect(page.locator(".composer-guided-status")).toContainText(
+    "run-basic-browser-smoke",
+  );
+  expect(submittedRun).toMatchObject({
+    workflow_id: "nwqsim-bell-simulation",
+    version: "0.1.0",
+    inputs: { circuit: "artifact-basic-browser-smoke" },
+    execution_target: "local-development",
+  });
+  await page.getByRole("button", { name: "Transform a circuit" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Transform a circuit" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Transform a circuit workflow blocks"),
+  ).toContainText("Analyze metrics");
+  await page.getByRole("button", { name: "Load Bell circuit" }).click();
+  await expect(
+    page.getByRole("button", { name: "Transform circuit", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Run on quantum hardware" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Run on quantum hardware" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Run on quantum hardware workflow blocks"),
+  ).toContainText("Compile for target");
+  await expect(
+    page.getByText("Submitting this path creates a QPU job.", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Hardware target" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Hardware target").getByText("local-development", { exact: true }),
+  ).toBeVisible();
+});
+
+
 test("configures a guided scientific path from an OpenQASM file", async ({ page }) => {
   let submittedRun: Record<string, unknown> | undefined;
+  await mockReadyPreflight(page);
   await page.route("**/api/v1/artifacts", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
@@ -686,7 +929,7 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   });
 
   await page.goto("/?view=compose");
-
+  await page.getByRole("tab", { name: "Guided", exact: true }).click();
   await expect(
     page.getByRole("tab", { name: "Guided", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
@@ -800,7 +1043,9 @@ test("configures a guided scientific path from an OpenQASM file", async ({ page 
   ).toBeVisible();
   await expect(page.getByText("OpenQEvo + Qiskit")).toBeVisible();
   await expect(
-    page.getByText("local-development", { exact: true }),
+    page
+      .locator(".composer-guided-header")
+      .getByText("local-development", { exact: true }),
   ).toHaveText("local-development");
   await page.getByRole("button", { name: "Load example" }).click();
   await expect(

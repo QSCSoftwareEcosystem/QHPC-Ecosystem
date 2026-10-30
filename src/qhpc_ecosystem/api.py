@@ -7,6 +7,7 @@ import json
 import mimetypes
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -76,6 +77,367 @@ def _capability_summary(entry: dict[str, Any]) -> dict[str, Any]:
         "documentation": capability["spec"].get("documentation", {}),
         "description": component["description"],
     }
+
+
+def _preflight_check(
+    check_id: str,
+    state: str,
+    title: str,
+    detail: str,
+    *,
+    remediation: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Create a deliberately non-secret execution preflight check."""
+    check: dict[str, Any] = {
+        "id": check_id,
+        "state": state,
+        "title": title,
+        "detail": detail,
+    }
+    if remediation is not None:
+        check["remediation"] = remediation
+    return check
+
+
+def _finish_workflow_preflight(
+    *,
+    workflow: dict[str, Any],
+    execution_target: str,
+    checks: list[dict[str, Any]],
+    requirements: list[dict[str, str]],
+) -> dict[str, Any]:
+    blocked = [check for check in checks if check["state"] == "blocked"]
+    advisory = [
+        check for check in checks if check["state"] in {"warning", "unknown"}
+    ]
+    if blocked:
+        state = "unavailable"
+        summary = "Execution is blocked until required checks pass."
+        reason = blocked[0]["detail"]
+    elif advisory:
+        state = "degraded"
+        summary = "Execution can be queued with advisory checks."
+        reason = advisory[0]["detail"]
+    else:
+        state = "ready"
+        summary = "Execution checks passed."
+        reason = "execution checks passed"
+    return {
+        "state": state,
+        # Keep the historic readiness field for API consumers while exposing the
+        # more precise queueing decision used by the Workbench.
+        "ready": state == "ready",
+        "can_queue": not blocked,
+        "summary": summary,
+        "reason": reason,
+        "workflow": {
+            "id": workflow["id"],
+            "version": workflow["version"],
+            "digest": workflow["digest"],
+        },
+        "target": execution_target,
+        "checks": checks,
+        "requirements": requirements,
+        "checked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+
+
+def _input_artifact_preflight_checks(
+    engine: WorkflowEngine,
+    workflow: dict[str, Any],
+    input_artifacts: dict[str, str] | None,
+) -> list[dict[str, Any]]:
+    """Validate explicitly supplied workflow input artifacts without reading content.
+
+    A readiness-only preflight deliberately omits this check: a Composer can
+    inspect workers before the user has selected an input.  When callers do
+    provide an artifact map, the report uses the same published input contract
+    that ``submit_run`` enforces before queueing a run.
+    """
+    if input_artifacts is None:
+        return []
+
+    declared_inputs = workflow["definition"]["spec"]["inputs"]
+    unknown = sorted(set(input_artifacts) - set(declared_inputs))
+    if unknown:
+        return [
+            _preflight_check(
+                "input-artifacts",
+                "blocked",
+                "Input artifacts",
+                "The published workflow does not declare input "
+                + ", ".join(unknown)
+                + ".",
+            )
+        ]
+
+    missing = sorted(
+        name
+        for name, definition in declared_inputs.items()
+        if definition.get("required", True) and name not in input_artifacts
+    )
+    if missing:
+        return [
+            _preflight_check(
+                "input-artifacts",
+                "blocked",
+                "Input artifacts",
+                "Required input artifact missing: " + ", ".join(missing) + ".",
+            )
+        ]
+
+    for name, artifact_id in input_artifacts.items():
+        try:
+            artifact = engine.get_artifact(artifact_id)
+        except KeyError:
+            return [
+                _preflight_check(
+                    "input-artifacts",
+                    "blocked",
+                    "Input artifacts",
+                    f"Input artifact for {name} was not found: {artifact_id}.",
+                )
+            ]
+        expected_type = declared_inputs[name]["artifact_type"]
+        actual_type = artifact["artifact_type"]
+        if actual_type != expected_type:
+            return [
+                _preflight_check(
+                    "input-artifacts",
+                    "blocked",
+                    "Input artifacts",
+                    f"Input {name} requires {expected_type}; artifact {artifact_id} is {actual_type}.",
+                )
+            ]
+
+    count = len(input_artifacts)
+    return [
+        _preflight_check(
+            "input-artifacts",
+            "passed",
+            "Input artifacts",
+            f"{count} supplied input artifact{'s' if count != 1 else ''} match the published workflow contract.",
+        )
+    ]
+
+
+def workflow_preflight(
+    engine: WorkflowEngine,
+    *,
+    workflow_id: str,
+    version: str,
+    execution_target: str,
+    execution_class: str | None = None,
+    input_artifacts: dict[str, str] | None = None,
+    worker_stale_after_seconds: float = DEFAULT_WORKER_STALE_AFTER_SECONDS,
+) -> dict[str, Any]:
+    """Assess a published workflow without exposing worker or secret metadata.
+
+    The worker remains the final admission authority.  This report gives the UI
+    a stable, actionable preview from the same workflow requirements used when
+    a run is submitted.
+    """
+    workflow = engine.get_workflow(workflow_id, version)
+    checks = [
+        _preflight_check(
+            "published-workflow",
+            "passed",
+            "Published workflow",
+            f"{workflow_id}@{version} is immutable and pinned to its published digest.",
+        )
+    ]
+    checks.extend(_input_artifact_preflight_checks(engine, workflow, input_artifacts))
+    try:
+        requirements = engine.workflow_execution_requirements(
+            workflow_id,
+            version,
+            execution_target=execution_target,
+            execution_class=execution_class,
+        )
+    except ContractError as error:
+        checks.append(
+            _preflight_check(
+                "target-contract",
+                "blocked",
+                "Execution target",
+                str(error),
+                remediation={"label": "Inspect local services", "command": "eqo local status"},
+            )
+        )
+        return _finish_workflow_preflight(
+            workflow=workflow,
+            execution_target=execution_target,
+            checks=checks,
+            requirements=[],
+        )
+
+    safe_requirements = [
+        {
+            "node_id": requirement["node_id"],
+            "execution_target": requirement["execution_target"],
+            "execution_class": requirement["execution_class"],
+            "runtime_digest": requirement["runtime_digest"],
+        }
+        for requirement in requirements
+    ]
+    runtime_count = len({item["runtime_digest"] for item in safe_requirements})
+    checks.append(
+        _preflight_check(
+            "pinned-runtimes",
+            "passed",
+            "Pinned runtimes",
+            f"{runtime_count} published runtime{'s' if runtime_count != 1 else ''} resolved from the workflow digest.",
+        )
+    )
+
+    readiness = engine.worker_readiness(
+        requirements,
+        stale_after_seconds=worker_stale_after_seconds,
+    )
+    missing_requirements = [
+        item for item in readiness["requirements"] if not item["ready"]
+    ]
+    if missing_requirements:
+        missing = ", ".join(
+            f"{item['node_id']} ({item['execution_target']}/{item['execution_class']})"
+            for item in missing_requirements
+        )
+        checks.append(
+            _preflight_check(
+                "compatible-worker",
+                "blocked",
+                "Compatible worker",
+                f"no healthy compatible worker for {missing}.",
+                remediation={"label": "Inspect local services", "command": "eqo local status"},
+            )
+        )
+    else:
+        checks.append(
+            _preflight_check(
+                "compatible-worker",
+                "passed",
+                "Compatible worker",
+                f"A healthy worker matches all {len(safe_requirements)} operation requirement{'s' if len(safe_requirements) != 1 else ''}.",
+            )
+        )
+
+    quantum_requirements = [
+        item
+        for item in requirements
+        if item["execution_class"] == "quantum-backend"
+    ]
+    if quantum_requirements and not missing_requirements:
+        compatible_ids = {
+            worker_id
+            for requirement in readiness["requirements"]
+            for worker_id in requirement["compatible_workers"]
+        }
+        compatible_workers = [
+            worker
+            for worker in readiness["workers"]
+            if worker["id"] in compatible_ids
+        ]
+        iqm_workers = [
+            worker
+            for worker in compatible_workers
+            if isinstance(worker.get("metadata", {}).get("iqm"), dict)
+        ]
+        if not iqm_workers:
+            checks.append(
+                _preflight_check(
+                    "quantum-backend-configuration",
+                    "unknown",
+                    "Quantum backend admission",
+                    "The selected quantum worker did not publish IQM-specific configuration; its worker remains the admission authority.",
+                )
+            )
+        else:
+            hardware_workers = [
+                worker
+                for worker in iqm_workers
+                if worker["metadata"]["iqm"].get("mode") == "hardware"
+            ]
+            if hardware_workers:
+                configured = all(
+                    bool(worker["metadata"]["iqm"].get("endpoint_configured"))
+                    and bool(worker["metadata"]["iqm"].get("device_alias"))
+                    and bool(worker["metadata"]["iqm"].get("credential_available"))
+                    for worker in hardware_workers
+                )
+                if configured:
+                    checks.append(
+                        _preflight_check(
+                            "quantum-backend-configuration",
+                            "passed",
+                            "IQM hardware admission",
+                            f"{len(hardware_workers)} hardware worker{'s are' if len(hardware_workers) != 1 else ' is'} configured without disclosing provider settings.",
+                        )
+                    )
+                else:
+                    checks.append(
+                        _preflight_check(
+                            "quantum-backend-configuration",
+                            "blocked",
+                            "IQM hardware admission",
+                            "A compatible IQM hardware worker is missing a non-secret admission gate or its isolated credential.",
+                            remediation={
+                                "label": "Start an IQM worker",
+                                "command": "eqo local up --start-iqm-worker --iqm-endpoint <URL> --iqm-device-alias <NAME> --prompt-for-iqm-token",
+                            },
+                        )
+                    )
+            else:
+                checks.append(
+                    _preflight_check(
+                        "quantum-backend-configuration",
+                        "warning",
+                        "IQM backend mode",
+                        "Only simulated IQM workers are currently compatible; this run will not execute on hardware.",
+                    )
+                )
+
+    return _finish_workflow_preflight(
+        workflow=workflow,
+        execution_target=execution_target,
+        checks=checks,
+        requirements=safe_requirements,
+    )
+
+
+def _preflight_request_arguments(body: dict[str, Any]) -> tuple[str, str, str, str | None]:
+    workflow_id = body.get("workflow_id")
+    version = body.get("version")
+    execution_target = body.get("execution_target", "local-development")
+    execution_class = body.get("execution_class")
+    for name, value in (
+        ("workflow_id", workflow_id),
+        ("version", version),
+        ("execution_target", execution_target),
+    ):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{name} must be a non-empty string")
+    if execution_class is not None and (
+        not isinstance(execution_class, str) or not execution_class.strip()
+    ):
+        raise ValueError("execution_class must be a non-empty string when supplied")
+    return workflow_id, version, execution_target, execution_class
+
+
+def _preflight_input_artifacts(body: dict[str, Any]) -> dict[str, str] | None:
+    """Read an optional input-name-to-artifact-id map from an API request."""
+    if "inputs" not in body:
+        return None
+    inputs = body["inputs"]
+    if not isinstance(inputs, dict):
+        raise ValueError("inputs must be an object when supplied")
+    result: dict[str, str] = {}
+    for name, artifact_id in inputs.items():
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("input names must be non-empty strings")
+        if not isinstance(artifact_id, str) or not artifact_id.strip():
+            raise ValueError("input artifact IDs must be non-empty strings")
+        result[name] = artifact_id
+    return result
 
 
 def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
@@ -792,36 +1154,59 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     )
                     self._json_response(HTTPStatus.CREATED, result)
                     return
-                if path == "/api/v1/runs":
-                    execution_target = body.get(
-                        "execution_target", "local-development"
+                if path == "/api/v1/workflow-preflight":
+                    (
+                        workflow_id,
+                        version,
+                        execution_target,
+                        execution_class,
+                    ) = _preflight_request_arguments(body)
+                    input_artifacts = _preflight_input_artifacts(body)
+                    self._json_response(
+                        HTTPStatus.OK,
+                        workflow_preflight(
+                            context.engine,
+                            workflow_id=workflow_id,
+                            version=version,
+                            execution_target=execution_target,
+                            execution_class=execution_class,
+                            input_artifacts=input_artifacts,
+                            worker_stale_after_seconds=context.worker_stale_after_seconds,
+                        ),
                     )
-                    execution_class = body.get("execution_class")
-                    requirements = context.engine.workflow_execution_requirements(
-                        body["workflow_id"],
-                        body["version"],
+                    return
+                if path == "/api/v1/runs":
+                    (
+                        workflow_id,
+                        version,
+                        execution_target,
+                        execution_class,
+                    ) = _preflight_request_arguments(body)
+                    input_artifacts = _preflight_input_artifacts(body) or {}
+                    preflight = workflow_preflight(
+                        context.engine,
+                        workflow_id=workflow_id,
+                        version=version,
                         execution_target=execution_target,
                         execution_class=execution_class,
-                    )
-                    readiness = context.engine.worker_readiness(
-                        requirements,
-                        stale_after_seconds=context.worker_stale_after_seconds,
+                        input_artifacts=input_artifacts,
+                        worker_stale_after_seconds=context.worker_stale_after_seconds,
                     )
                     queue_if_unavailable = body.get("queue_if_unavailable", False)
                     if not isinstance(queue_if_unavailable, bool):
                         raise ValueError("queue_if_unavailable must be a boolean")
-                    if not readiness["ready"] and not queue_if_unavailable:
+                    if not preflight["can_queue"] and not queue_if_unavailable:
                         self._error(
                             HTTPStatus.SERVICE_UNAVAILABLE,
-                            readiness["reason"],
-                            readiness,
+                            preflight["reason"],
+                            preflight,
                         )
                         return
                     result = context.engine.submit_run(
-                        body["workflow_id"],
-                        body["version"],
+                        workflow_id,
+                        version,
                         registry=context.registry,
-                        inputs=body.get("inputs", {}),
+                        inputs=input_artifacts,
                         execution_target=execution_target,
                         execution_class=execution_class,
                         created_by=body.get("created_by", "workbench-user"),

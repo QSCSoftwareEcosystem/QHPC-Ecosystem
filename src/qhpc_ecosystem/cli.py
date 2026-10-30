@@ -62,6 +62,23 @@ def _assignments(values: Sequence[str]) -> dict[str, str]:
     return result
 
 
+def _print_workflow_preflight(report: dict) -> None:
+    """Render the API-owned, non-secret execution preflight for a terminal."""
+    print(f"Execution preflight: {report['state']}")
+    print(
+        "Workflow: "
+        f"{report['workflow']['id']}@{report['workflow']['version']} "
+        f"({report['workflow']['digest']})"
+    )
+    print(f"Target: {report['target']}")
+    print(f"Summary: {report['summary']}")
+    for check in report["checks"]:
+        print(f"{check['state'].upper():<7} {check['title']}: {check['detail']}")
+        remediation = check.get("remediation")
+        if remediation:
+            print(f"        {remediation['label']}: {remediation['command']}")
+
+
 def _prompt_iqm_token(environment_variable: str) -> str:
     """Read an IQM token only from the invoking terminal, without echoing it."""
     try:
@@ -387,6 +404,10 @@ def build_parser() -> argparse.ArgumentParser:
     local_status = local_commands.add_parser(
         "status", help="report local services, worker readiness, and storage"
     )
+    local_preflight = local_commands.add_parser(
+        "preflight",
+        help="inspect execution readiness through the active local control API",
+    )
     local_open = local_commands.add_parser(
         "open", help="open the running EQO Workbench"
     )
@@ -427,6 +448,7 @@ def build_parser() -> argparse.ArgumentParser:
     for command in (
         local_up,
         local_status,
+        local_preflight,
         local_open,
         local_export,
         local_import,
@@ -569,6 +591,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     local_status.add_argument(
         "--json", action="store_true", help="emit machine-readable status"
+    )
+    local_preflight.add_argument("workflow_id")
+    local_preflight.add_argument("version")
+    local_preflight.add_argument("--target", default="local-development")
+    local_preflight.add_argument("--execution-class")
+    local_preflight.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        metavar="NAME=ARTIFACT_ID",
+        help="validate a supplied input artifact against the published workflow; repeat as needed",
+    )
+    local_preflight.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the API-equivalent preflight document",
     )
     local_export.add_argument(
         "destination",
@@ -1182,6 +1220,34 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_info.add_argument("version")
     workflow_info.add_argument("--database", default=".qhpc/workbench.sqlite")
     workflow_info.add_argument("--artifact-root", default=".qhpc/artifacts")
+    workflow_preflight = workflow_commands.add_parser(
+        "preflight",
+        help="inspect non-secret execution readiness for a published workflow",
+    )
+    workflow_preflight.add_argument("workflow_id")
+    workflow_preflight.add_argument("version")
+    workflow_preflight.add_argument("--target", default="local-development")
+    workflow_preflight.add_argument("--execution-class")
+    workflow_preflight.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        metavar="NAME=ARTIFACT_ID",
+        help="validate a supplied input artifact against the published workflow; repeat as needed",
+    )
+    workflow_preflight.add_argument(
+        "--worker-stale-after",
+        type=float,
+        default=15.0,
+        help="treat a worker heartbeat older than this many seconds as unavailable",
+    )
+    workflow_preflight.add_argument(
+        "--json",
+        action="store_true",
+        help="emit the API-equivalent preflight document",
+    )
+    workflow_preflight.add_argument("--database", default=".qhpc/workbench.sqlite")
+    workflow_preflight.add_argument("--artifact-root", default=".qhpc/artifacts")
 
     run_parser = subparsers.add_parser("run-record", help="manage workflow runs")
     run_commands = run_parser.add_subparsers(dest="run_command", required=True)
@@ -1569,6 +1635,7 @@ def dispatch(args: argparse.Namespace) -> int:
             diagnostic_report,
             format_status,
             launch_local,
+            local_workflow_preflight,
             local_status,
             open_local,
             resolve_paths,
@@ -1594,6 +1661,20 @@ def dispatch(args: argparse.Namespace) -> int:
                 print(json.dumps(report, indent=2, sort_keys=True))
             else:
                 print(format_status(report))
+            return 0
+        if args.local_command == "preflight":
+            report = local_workflow_preflight(
+                paths,
+                workflow_id=args.workflow_id,
+                version=args.version,
+                execution_target=args.target,
+                execution_class=args.execution_class,
+                input_artifacts=_assignments(args.input) if args.input else None,
+            )
+            if args.json:
+                print(json.dumps(report, indent=2, sort_keys=True))
+            else:
+                _print_workflow_preflight(report)
             return 0
         if args.local_command == "open":
             print(f"EQO Local Workbench: {open_local(paths)}")
@@ -3009,6 +3090,24 @@ def dispatch(args: argparse.Namespace) -> int:
         if args.workflow_command == "list":
             for workflow in engine.list_workflows():
                 print(f"{workflow['id']}\t{workflow['version']}\t{workflow['digest']}")
+            return 0
+        if args.workflow_command == "preflight":
+            from .api import workflow_preflight
+
+            result = workflow_preflight(
+                engine,
+                workflow_id=args.workflow_id,
+                version=args.version,
+                execution_target=args.target,
+                execution_class=args.execution_class,
+                input_artifacts=_assignments(args.input) if args.input else None,
+                worker_stale_after_seconds=args.worker_stale_after,
+            )
+            if args.json:
+                json.dump(result, sys.stdout, indent=2, sort_keys=True)
+                print()
+            else:
+                _print_workflow_preflight(result)
             return 0
         result = engine.get_workflow(args.workflow_id, args.version)
         json.dump(result, sys.stdout, indent=2, sort_keys=True)

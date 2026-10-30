@@ -117,6 +117,48 @@ If you only need discovery and the lightweight interactive tools, use
 ecosystem execution profile. See [the EQO Local guide](docs/local-release.md)
 for its container and lifecycle details.
 
+### Optional local capabilities and secure credentials
+
+`eqo local up` starts the standard local profile without asking for a
+credential. Add an optional capability only when you intend to use it:
+
+| Option | Enables | Credential handling |
+| --- | --- | --- |
+| `--chatqec-openai-model MODEL --prompt-for-openai-api-key` | Source-grounded model answers in ChatQEC | Prompts for `OPENAI_API_KEY` without echoing it; the key is scoped to the contained ChatQEC service. |
+| `--iqm-simulation` | Credential-free simulated IQM worker | No network call and no token. Results are labelled `simulated-iqm`. |
+| `--start-iqm-worker --iqm-endpoint URL --iqm-device-alias ALIAS --prompt-for-iqm-token` | Isolated internal-alpha IQM hardware worker | Prompts for `IQM_TOKEN` without echoing it; the token is scoped to that worker. |
+| `--no-ecosystem-execution` | Lightweight discovery and interactive profile | Does not start the virtual-Slurm ecosystem worker. |
+| `--no-assistant` | Control plane without ChatQEC | Does not start the local Assistant service. |
+
+For example, start ChatQEC with the optional OpenAI backend:
+
+```bash
+eqo local up \
+  --chatqec-openai-model gpt-5.6-terra \
+  --prompt-for-openai-api-key \
+  --open
+```
+
+To use both optional services, provide the IQM endpoint and the device alias
+admitted for your account. This example uses `default`; replace it if your IQM
+service gives you a different admitted alias.
+
+```bash
+eqo local up \
+  --start-iqm-worker \
+  --iqm-endpoint https://qccsw.ccs.ornl.gov \
+  --iqm-device-alias default \
+  --prompt-for-iqm-token \
+  --chatqec-openai-model gpt-5.6-terra \
+  --prompt-for-openai-api-key \
+  --open
+```
+
+Never put either secret after a command-line option or save it in a workflow,
+notebook, or shell history. Both prompt options keep the value out of command
+arguments, saved EQO configuration, the Workbench, and worker logs; `eqo local
+down` removes the in-memory local-service configuration.
+
 ### 5. Explore the Workbench
 
 | Area | Start here when you want to… |
@@ -246,7 +288,7 @@ eqo local down
 export IQM_BASE_URL='https://qccsw.ccs.ornl.gov'
 eqo local up \
   --start-iqm-worker \
-  --iqm-device-alias iqm-qpu-1 \
+  --iqm-device-alias default \
   --prompt-for-iqm-token \
   --open
 ```
@@ -390,6 +432,24 @@ eqo run-record cancel RUN_ID
 eqo run-record retry RUN_ID NODE_ID
 eqo run-record export RUN_ID --output run-bundle.json
 ```
+
+Before submitting a run, preflight can also validate the artifact IDs you plan
+to attach. It checks required inputs, declared input names, artifact existence,
+and artifact types without reading the artifact content or exposing credentials:
+
+```bash
+eqo workflow preflight WORKFLOW_ID VERSION \
+  --input circuit=ARTIFACT_ID
+
+# Use the active EQO Local API and its artifact store instead.
+eqo local preflight WORKFLOW_ID VERSION \
+  --input circuit=ARTIFACT_ID
+```
+
+Repeat `--input NAME=ARTIFACT_ID` for workflows with multiple external inputs.
+Run `eqo artifact list` to inspect artifact IDs in a direct engine workspace;
+the Workbench **Artifacts** view shows the IDs owned by the active EQO Local
+service.
 
 ### Catalog, registry, and contract operations
 

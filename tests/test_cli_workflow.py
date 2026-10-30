@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 
 from qhpc_ecosystem import cli
+from qhpc_ecosystem.engine import WorkflowEngine
 from test_workflow import ROOT, example_registry
 
 
@@ -46,6 +47,75 @@ def test_cli_publishes_submits_inspects_and_cancels_run(tmp_path: Path, capsys) 
         == 0
     )
     assert "Workflow published:" in capsys.readouterr().out
+
+    assert (
+        cli.main(
+            [
+                "workflow",
+                "preflight",
+                "example-generate-and-simulate",
+                "0.1.0",
+                "--json",
+                *engine_args,
+            ]
+        )
+        == 0
+    )
+    unavailable = capsys.readouterr().out
+    assert '"state": "unavailable"' in unavailable
+    assert '"id": "compatible-worker"' in unavailable
+
+    engine = WorkflowEngine(database, artifacts)
+    requirements = engine.workflow_execution_requirements(
+        "example-generate-and-simulate",
+        "0.1.0",
+        execution_target="local-development",
+    )
+    engine.register_worker(
+        "cli-preflight-worker",
+        kind="local",
+        metadata={
+            "execution_targets": ["local-development"],
+            "execution_classes": ["interactive-local"],
+            "runtime_digests": sorted(
+                {item["runtime_digest"] for item in requirements}
+            ),
+            "credential_reference": "secret://env/CLI_TEST_TOKEN",
+        },
+    )
+    assert (
+        cli.main(
+            [
+                "workflow",
+                "preflight",
+                "example-generate-and-simulate",
+                "0.1.0",
+                *engine_args,
+            ]
+        )
+        == 0
+    )
+    available = capsys.readouterr().out
+    assert "Execution preflight: ready" in available
+    assert "CLI_TEST_TOKEN" not in available
+
+    assert (
+        cli.main(
+            [
+                "workflow",
+                "preflight",
+                "example-generate-and-simulate",
+                "0.1.0",
+                "--input",
+                "unexpected=artifact-missing",
+                *engine_args,
+            ]
+        )
+        == 0
+    )
+    input_check = capsys.readouterr().out
+    assert "Execution preflight: unavailable" in input_check
+    assert "does not declare input unexpected" in input_check
 
     assert (
         cli.main(
