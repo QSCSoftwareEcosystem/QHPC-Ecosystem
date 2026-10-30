@@ -79,6 +79,46 @@ Standalone `serve` processes expose these operations only with
 `--enable-repository-updates`. `eqo dev up` enables them using
 `.qhpc/live/updates` unless `--no-repository-updates` is supplied.
 
+## Opt-In Upstream Detection
+
+An operator can request periodic discovery checks without granting any update
+or deployment action:
+
+```bash
+eqo serve \
+  --registry examples/registry.yaml \
+  --deployment-profile deployments/initial.yaml \
+  --enable-repository-updates \
+  --repository-update-poll-seconds 3600
+```
+
+The interval must be at least 30 seconds. A check updates the candidate
+listing only; it cannot prepare a checkout, rebuild an image, activate a
+component, or alter a running worker.
+
+For event-driven discovery, enable a provider separately and keep its secret
+in a local file rather than a command line or environment variable:
+
+```bash
+eqo serve \
+  --registry examples/registry.yaml \
+  --deployment-profile deployments/initial.yaml \
+  --enable-repository-updates \
+  --github-webhook-secret-file /secure/path/github-webhook-secret \
+  --gitlab-webhook-signing-token-file /secure/path/gitlab-webhook-token
+```
+
+The optional endpoints are `POST /api/v1/repository-updates/webhooks/github`
+and `POST /api/v1/repository-updates/webhooks/gitlab`. GitHub requests must
+use a valid `X-Hub-Signature-256` HMAC-SHA256 signature over the exact raw
+request body. GitLab requests use its Standard Webhooks signature headers and
+a `whsec_` signing token; stale signatures are rejected. Only push events
+trigger a coalesced discovery check. Other correctly signed events receive a
+202 response marked `ignored`; unsigned, invalid, stale, and disabled
+endpoints fail closed. EQO does not expose these routes outside the serving
+host: TLS termination, an authenticated reverse proxy, and provider delivery
+configuration remain the operator's responsibility.
+
 ## State And Checkouts
 
 The controller stores:

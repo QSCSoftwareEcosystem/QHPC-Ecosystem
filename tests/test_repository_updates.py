@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import subprocess
+import threading
 from pathlib import Path
 
 import pytest
 
 from qhpc_ecosystem.repository_updates import (
     RepositoryUpdateError,
+    RepositoryUpdateDetector,
     RepositoryUpdateManager,
     split_repository_source,
 )
@@ -223,3 +225,24 @@ def test_repository_updates_track_canonical_repo_from_older_release_source(
     staged = manager.stage("example", candidate)
     assert staged["status"] == "prepared"
     assert git("rev-parse", "HEAD", cwd=tmp_path / staged["checkout"]) == candidate
+
+
+def test_repository_update_detector_only_runs_check_callbacks() -> None:
+    completed = threading.Event()
+    calls: list[str] = []
+
+    detector = RepositoryUpdateDetector(
+        [lambda: calls.append("checked") or completed.set()],
+    )
+
+    assert detector.trigger() is True
+    assert completed.wait(timeout=1)
+    assert calls == ["checked"]
+    status = detector.status()
+    assert status["last_started_at"] is not None
+    assert status["last_completed_at"] is not None
+    assert status["last_error"] is None
+    detector.stop()
+
+    with pytest.raises(RepositoryUpdateError, match="at least 30"):
+        RepositoryUpdateDetector([lambda: None], interval_seconds=1)

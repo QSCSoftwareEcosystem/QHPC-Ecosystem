@@ -95,6 +95,10 @@ only the candidate as discarded and leaves the active image untouched. A
 prepared candidate must still undergo its isolated build and constrained smoke
 test before an explicit local admission can replace the active revision.
 
+For a real inspection-only walkthrough using the public QASMTrans source and
+the existing Basic Composer transpilation path, see
+[Public QASMTrans Onboarding Demonstration](component-onboarding-qasmtrans-demo.md).
+
 ## Admission remains separate
 
 A draft moves to `built` only after its isolated build and constrained smoke

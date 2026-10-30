@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from qhpc_ecosystem import cli, runtime
 
 
@@ -19,6 +21,42 @@ def test_eqo_is_the_primary_cli_name() -> None:
 
     assert parser.prog == "eqo"
     assert parser.format_help().startswith("usage: eqo ")
+
+
+def test_serve_parses_opt_in_repository_update_detection_controls(
+    tmp_path: Path,
+) -> None:
+    parser = cli.build_parser()
+    secret_file = tmp_path / "github-secret"
+    secret_file.write_text("github-test-secret\n", encoding="utf-8")
+
+    args = parser.parse_args(
+        [
+            "serve",
+            "--registry",
+            "examples/registry.yaml",
+            "--deployment-profile",
+            "deployments/initial.yaml",
+            "--enable-repository-updates",
+            "--repository-update-poll-seconds",
+            "60",
+            "--github-webhook-secret-file",
+            str(secret_file),
+        ]
+    )
+
+    assert args.repository_update_poll_seconds == 60
+    assert args.github_webhook_secret_file == str(secret_file)
+    assert cli._read_server_secret(
+        str(secret_file), option="--github-webhook-secret-file"
+    ) == b"github-test-secret"
+
+    empty_secret = tmp_path / "empty-secret"
+    empty_secret.write_text("\n", encoding="utf-8")
+    with pytest.raises(cli.ContractError, match="non-empty"):
+        cli._read_server_secret(
+            str(empty_secret), option="--github-webhook-secret-file"
+        )
 
 
 def test_iqm_base_url_defaults_to_the_isolated_worker_endpoint(monkeypatch) -> None:

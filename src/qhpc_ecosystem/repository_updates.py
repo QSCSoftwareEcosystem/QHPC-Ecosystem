@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator, Sequence
+from typing import Any, Callable, Iterator, Sequence
 from urllib.parse import unquote, urlparse
 
 REVISION = re.compile(r"^[0-9a-fA-F]{40,64}$")
@@ -710,3 +710,98 @@ class RepositoryUpdateManager:
             )
             self._write_state(state)
             return self._item(target, state)
+
+
+class RepositoryUpdateDetector:
+    """Coalesce opt-in poll and webhook requests into detection-only checks.
+
+    The detector owns no repository state and has no stage, build, activation,
+    or deployment capability.  Its callbacks may only record upstream check
+    results through the existing update managers.
+    """
+
+    def __init__(
+        self,
+        checks: Sequence[Callable[[], Any]],
+        *,
+        interval_seconds: float | None = None,
+    ) -> None:
+        if not checks:
+            raise RepositoryUpdateError("repository update detector requires at least one check")
+        if interval_seconds is not None and interval_seconds < 30:
+            raise RepositoryUpdateError(
+                "repository update polling interval must be at least 30 seconds"
+            )
+        self._checks = tuple(checks)
+        self._interval_seconds = interval_seconds
+        self._lock = threading.RLock()
+        self._stop = threading.Event()
+        self._poller: threading.Thread | None = None
+        self._check_thread: threading.Thread | None = None
+        self._last_started_at: str | None = None
+        self._last_completed_at: str | None = None
+        self._last_error: str | None = None
+
+    def _run_once(self) -> None:
+        with self._lock:
+            self._last_started_at = _timestamp()
+            self._last_error = None
+        try:
+            for check in self._checks:
+                check()
+        except Exception as error:  # A scheduled check must not terminate serving.
+            with self._lock:
+                self._last_error = str(error)[:500]
+        finally:
+            with self._lock:
+                self._last_completed_at = _timestamp()
+
+    def trigger(self) -> bool:
+        """Request one asynchronous check; return False when one is already running."""
+        with self._lock:
+            if self._check_thread is not None and self._check_thread.is_alive():
+                return False
+            self._check_thread = threading.Thread(
+                target=self._run_once,
+                name="eqo-repository-update-check",
+                daemon=True,
+            )
+            self._check_thread.start()
+            return True
+
+    def start(self) -> None:
+        """Start optional periodic detection; a webhook can still trigger checks without it."""
+        if self._interval_seconds is None:
+            return
+        with self._lock:
+            if self._poller is not None and self._poller.is_alive():
+                return
+
+            def poll() -> None:
+                self.trigger()
+                while not self._stop.wait(self._interval_seconds):
+                    self.trigger()
+
+            self._poller = threading.Thread(
+                target=poll,
+                name="eqo-repository-update-poller",
+                daemon=True,
+            )
+            self._poller.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        poller = self._poller
+        if poller is not None:
+            poller.join(timeout=1)
+
+    def status(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "polling": self._poller is not None and self._poller.is_alive(),
+                "interval_seconds": self._interval_seconds,
+                "checking": self._check_thread is not None and self._check_thread.is_alive(),
+                "last_started_at": self._last_started_at,
+                "last_completed_at": self._last_completed_at,
+                "last_error": self._last_error,
+            }

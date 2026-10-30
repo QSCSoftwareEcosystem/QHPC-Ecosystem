@@ -42,7 +42,11 @@ from .registry import (
     registry_entries,
     write_registry,
 )
-from .repository_updates import RepositoryUpdateError, RepositoryUpdateManager
+from .repository_updates import (
+    RepositoryUpdateDetector,
+    RepositoryUpdateError,
+    RepositoryUpdateManager,
+)
 from .service_adapters import ServiceAdapterError
 from .slurm_test_cluster import SlurmTestClusterError
 from . import runtime
@@ -61,6 +65,18 @@ def _assignments(values: Sequence[str]) -> dict[str, str]:
             raise ContractError(f"expected NAME=VALUE, received: {value}")
         result[name] = item
     return result
+
+
+def _read_server_secret(path: str, *, option: str) -> bytes:
+    """Load one non-empty server-side webhook secret without echoing it."""
+    secret_path = Path(path).expanduser().resolve()
+    try:
+        value = secret_path.read_bytes().strip()
+    except OSError as error:
+        raise ContractError(f"{option} could not be read") from error
+    if not value or len(value) > 4096 or b"\x00" in value:
+        raise ContractError(f"{option} must contain one non-empty secret value")
+    return value
 
 
 def _print_workflow_preflight(report: dict) -> None:
@@ -386,6 +402,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--enable-component-onboarding",
         action="store_true",
         help="enable public-source inspection and non-executable component drafts",
+    )
+    serve_parser.add_argument(
+        "--repository-update-poll-seconds",
+        type=float,
+        default=0,
+        help="opt-in detection-only upstream check interval; 0 disables polling",
+    )
+    serve_parser.add_argument(
+        "--github-webhook-secret-file",
+        help="file containing the GitHub HMAC-SHA256 webhook secret",
+    )
+    serve_parser.add_argument(
+        "--gitlab-webhook-signing-token-file",
+        help="file containing a GitLab whsec_ signing token",
     )
     serve_parser.add_argument(
         "--qappswiki-graph",
@@ -2185,6 +2215,61 @@ def dispatch(args: argparse.Namespace) -> int:
                 workspace_root=args.workspace_root,
                 state_root=args.component_onboarding_state_root,
             )
+        update_checks = []
+        if repository_updates is not None:
+            update_checks.append(repository_updates.check)
+        if component_onboarding is not None:
+            update_checks.append(component_onboarding.check_repository_updates)
+        if args.repository_update_poll_seconds < 0:
+            raise ContractError("repository update poll seconds must not be negative")
+        if args.repository_update_poll_seconds and not update_checks:
+            raise ContractError(
+                "repository update polling requires repository updates or component onboarding"
+            )
+        if (
+            args.github_webhook_secret_file or args.gitlab_webhook_signing_token_file
+        ) and not update_checks:
+            raise ContractError(
+                "repository update webhooks require repository updates or component onboarding"
+            )
+        github_webhook_secret = (
+            _read_server_secret(
+                args.github_webhook_secret_file,
+                option="--github-webhook-secret-file",
+            )
+            if args.github_webhook_secret_file
+            else None
+        )
+        gitlab_webhook_signing_token = None
+        if args.gitlab_webhook_signing_token_file:
+            raw_token = _read_server_secret(
+                args.gitlab_webhook_signing_token_file,
+                option="--gitlab-webhook-signing-token-file",
+            )
+            try:
+                gitlab_webhook_signing_token = raw_token.decode("ascii")
+            except UnicodeDecodeError as error:
+                raise ContractError(
+                    "--gitlab-webhook-signing-token-file must contain an ASCII signing token"
+                ) from error
+            if not gitlab_webhook_signing_token.startswith("whsec_"):
+                raise ContractError(
+                    "--gitlab-webhook-signing-token-file must contain a whsec_ signing token"
+                )
+        update_detector = (
+            RepositoryUpdateDetector(
+                update_checks,
+                interval_seconds=(
+                    args.repository_update_poll_seconds
+                    if args.repository_update_poll_seconds
+                    else None
+                ),
+            )
+            if update_checks
+            else None
+        )
+        if update_detector is not None:
+            update_detector.start()
         knowledge = None
         qappswiki_repository = catalog.repository("QAppsWiki")
         knowledge_path = (
@@ -2241,20 +2326,27 @@ def dispatch(args: argparse.Namespace) -> int:
             f"{len(registry_entries(registry))} published capabilities)"
         )
         print(f"QHPC Workbench: http://{args.host}:{args.port}")
-        serve(
-            APIContext(
-                engine=engine,
-                registry=registry,
-                worker_stale_after_seconds=args.worker_stale_after,
-                chatqec=chatqec,
-                repository_updates=repository_updates,
-                component_onboarding=component_onboarding,
-                knowledge=knowledge,
-                databucket=databucket,
-            ),
-            args.host,
-            args.port,
-        )
+        try:
+            serve(
+                APIContext(
+                    engine=engine,
+                    registry=registry,
+                    worker_stale_after_seconds=args.worker_stale_after,
+                    chatqec=chatqec,
+                    repository_updates=repository_updates,
+                    component_onboarding=component_onboarding,
+                    repository_update_detector=update_detector,
+                    github_webhook_secret=github_webhook_secret,
+                    gitlab_webhook_signing_token=gitlab_webhook_signing_token,
+                    knowledge=knowledge,
+                    databucket=databucket,
+                ),
+                args.host,
+                args.port,
+            )
+        finally:
+            if update_detector is not None:
+                update_detector.stop()
         return 0
 
     if args.subcommand == "dev":

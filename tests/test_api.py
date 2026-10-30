@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
 import json
 import threading
+import time
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
@@ -14,6 +17,7 @@ import pytest
 from qhpc_ecosystem.api import APIContext, handler_for
 from qhpc_ecosystem.contract import load_document
 from qhpc_ecosystem.engine import WorkflowEngine
+from qhpc_ecosystem.repository_updates import RepositoryUpdateDetector
 from test_engine import make_runner
 from test_workflow import example_registry
 
@@ -294,6 +298,22 @@ def request_json(
         data=data,
         headers={"Content-Type": "application/json"},
         method=method or ("POST" if body is not None else "GET"),
+    )
+    with urlopen(request, timeout=3) as response:
+        return response.status, json.load(response)
+
+
+def request_signed_json(
+    base: str,
+    path: str,
+    payload: bytes,
+    headers: dict[str, str],
+):
+    request = Request(
+        base + path,
+        data=payload,
+        headers={"Content-Type": "application/json", **headers},
+        method="POST",
     )
     with urlopen(request, timeout=3) as response:
         return response.status, json.load(response)
@@ -812,6 +832,140 @@ def test_api_repository_updates_use_allowlisted_fields(tmp_path: Path) -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=3)
+
+
+def test_api_github_update_webhook_triggers_detection_only(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    updates = FakeRepositoryUpdates()
+    completed = threading.Event()
+
+    def check() -> None:
+        updates.check()
+        completed.set()
+
+    secret = b"github-webhook-test-secret"
+    detector = RepositoryUpdateDetector([check])
+    context = APIContext(
+        engine=engine,
+        registry=example_registry(),
+        repository_updates=updates,
+        repository_update_detector=detector,
+        github_webhook_secret=secret,
+    )
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    payload = b'{"ref":"refs/heads/main"}'
+    try:
+        with pytest.raises(HTTPError) as rejected:
+            request_signed_json(
+                base,
+                "/api/v1/repository-updates/webhooks/github",
+                payload,
+                {
+                    "X-GitHub-Event": "push",
+                    "X-Hub-Signature-256": "sha256=not-a-valid-signature",
+                },
+            )
+        assert rejected.value.code == 401
+        assert not completed.is_set()
+
+        signature = "sha256=" + hmac.new(
+            secret,
+            payload,
+            hashlib.sha256,
+        ).hexdigest()
+        status, accepted = request_signed_json(
+            base,
+            "/api/v1/repository-updates/webhooks/github",
+            payload,
+            {
+                "X-GitHub-Event": "push",
+                "X-Hub-Signature-256": signature,
+            },
+        )
+        assert status == 202
+        assert accepted == {
+            "accepted": True,
+            "provider": "github",
+            "event": "push",
+            "detection_only": True,
+            "ignored": False,
+            "check_started": True,
+        }
+        assert completed.wait(timeout=1)
+        assert updates.checked == [None]
+        assert updates.staged == []
+        assert updates.discarded == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+        detector.stop()
+
+
+def test_api_gitlab_update_webhook_triggers_detection_only(tmp_path: Path) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    updates = FakeRepositoryUpdates()
+    completed = threading.Event()
+
+    def check() -> None:
+        updates.check()
+        completed.set()
+
+    signing_key = b"gitlab-webhook-test-secret"
+    signing_token = "whsec_" + base64.b64encode(signing_key).decode("ascii")
+    detector = RepositoryUpdateDetector([check])
+    context = APIContext(
+        engine=engine,
+        registry=example_registry(),
+        repository_updates=updates,
+        repository_update_detector=detector,
+        gitlab_webhook_signing_token=signing_token,
+    )
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_for(context))
+    except PermissionError:
+        pytest.skip("test runner does not permit binding a localhost socket")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    payload = b'{"ref":"refs/heads/main"}'
+    message_id = "msg-123"
+    timestamp = str(int(time.time()))
+    signed_body = f"{message_id}.{timestamp}.".encode("utf-8") + payload
+    signature = "v1," + base64.b64encode(
+        hmac.new(signing_key, signed_body, hashlib.sha256).digest()
+    ).decode("ascii")
+    try:
+        status, accepted = request_signed_json(
+            base,
+            "/api/v1/repository-updates/webhooks/gitlab",
+            payload,
+            {
+                "X-Gitlab-Event": "Push Hook",
+                "webhook-id": message_id,
+                "webhook-timestamp": timestamp,
+                "webhook-signature": signature,
+            },
+        )
+        assert status == 202
+        assert accepted["provider"] == "gitlab"
+        assert accepted["detection_only"] is True
+        assert accepted["check_started"] is True
+        assert completed.wait(timeout=1)
+        assert updates.checked == [None]
+        assert updates.staged == []
+        assert updates.discarded == []
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+        detector.stop()
 
 
 def test_api_repository_updates_include_locally_admitted_components(

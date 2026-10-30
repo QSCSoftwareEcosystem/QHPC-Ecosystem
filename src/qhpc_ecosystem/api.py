@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
+import hmac
 import json
 import mimetypes
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -25,7 +28,11 @@ from .engagement import engagement_catalog
 from .engine import DEFAULT_WORKER_STALE_AFTER_SECONDS, WorkflowEngine
 from .knowledge import KnowledgeGraphError, QAppsWikiKnowledge
 from .registry import registry_entries
-from .repository_updates import RepositoryUpdateError, RepositoryUpdateManager
+from .repository_updates import (
+    RepositoryUpdateDetector,
+    RepositoryUpdateError,
+    RepositoryUpdateManager,
+)
 from .s3_client import S3Client, S3ClientError
 from .service_adapters import ServiceAdapterError
 from .transpilation_service import TranspilationService
@@ -70,6 +77,9 @@ class APIContext:
     chatqec: ChatQECGateway | None = None
     repository_updates: RepositoryUpdateManager | None = None
     component_onboarding: ComponentOnboardingManager | None = None
+    repository_update_detector: RepositoryUpdateDetector | None = None
+    github_webhook_secret: bytes | None = None
+    gitlab_webhook_signing_token: str | None = None
     knowledge: QAppsWikiKnowledge | None = None
     databucket: S3Client | None = None
 
@@ -113,6 +123,11 @@ def _repository_update_listing(
         "enabled": True,
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "items": items,
+        **(
+            {"detection": context.repository_update_detector.status()}
+            if context.repository_update_detector is not None
+            else {}
+        ),
     }
 
 
@@ -583,10 +598,94 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                 raise ValueError(
                     f"request body exceeds {maximum // 1_000_000} MB"
                 )
-            value = json.loads(self.rfile.read(length))
+            raw = self.rfile.read(length)
+            self._request_body = raw
+            value = json.loads(raw)
             if not isinstance(value, dict):
                 raise ValueError("JSON body must be an object")
             return value
+
+        def _accept_repository_update_webhook(self, provider: str) -> None:
+            """Validate one signed push notification and trigger detection only."""
+            detector = context.repository_update_detector
+            if detector is None:
+                self._error(HTTPStatus.NOT_FOUND, "repository update webhooks are not enabled")
+                return
+            body = getattr(self, "_request_body", b"")
+            if provider == "github":
+                secret = context.github_webhook_secret
+                signature = self.headers.get("X-Hub-Signature-256", "")
+                if not secret:
+                    self._error(HTTPStatus.NOT_FOUND, "GitHub repository update webhook is not enabled")
+                    return
+                expected = "sha256=" + hmac.new(
+                    secret,
+                    body,
+                    hashlib.sha256,
+                ).hexdigest()
+                if not signature or not hmac.compare_digest(expected, signature):
+                    self._error(HTTPStatus.UNAUTHORIZED, "invalid GitHub webhook signature")
+                    return
+                event = self.headers.get("X-GitHub-Event", "")
+                is_push = event == "push"
+            elif provider == "gitlab":
+                signing_token = context.gitlab_webhook_signing_token
+                signature_header = self.headers.get("webhook-signature", "")
+                message_id = self.headers.get("webhook-id", "")
+                timestamp = self.headers.get("webhook-timestamp", "")
+                if not signing_token:
+                    self._error(HTTPStatus.NOT_FOUND, "GitLab repository update webhook is not enabled")
+                    return
+                try:
+                    raw_key = base64.b64decode(
+                        signing_token.removeprefix("whsec_"),
+                        validate=True,
+                    )
+                    received_at = int(timestamp)
+                except (ValueError, binascii.Error):
+                    self._error(HTTPStatus.SERVICE_UNAVAILABLE, "GitLab webhook signing token is invalid")
+                    return
+                if (
+                    not signing_token.startswith("whsec_")
+                    or not raw_key
+                    or not message_id
+                    or not signature_header
+                    or abs(time.time() - received_at) > 300
+                ):
+                    self._error(HTTPStatus.UNAUTHORIZED, "invalid or stale GitLab webhook signature")
+                    return
+                signed_body = (
+                    message_id.encode("utf-8")
+                    + b"."
+                    + timestamp.encode("utf-8")
+                    + b"."
+                    + body
+                )
+                expected = "v1," + base64.b64encode(
+                    hmac.new(raw_key, signed_body, hashlib.sha256).digest()
+                ).decode("ascii")
+                if not any(
+                    hmac.compare_digest(expected, candidate)
+                    for candidate in signature_header.split(" ")
+                ):
+                    self._error(HTTPStatus.UNAUTHORIZED, "invalid GitLab webhook signature")
+                    return
+                event = self.headers.get("X-Gitlab-Event", "")
+                is_push = event == "Push Hook"
+            else:  # pragma: no cover - routes below own the provider set.
+                self._error(HTTPStatus.NOT_FOUND, "repository update webhook is not supported")
+                return
+            self._json_response(
+                HTTPStatus.ACCEPTED,
+                {
+                    "accepted": True,
+                    "provider": provider,
+                    "event": event,
+                    "detection_only": True,
+                    "ignored": not is_push,
+                    "check_started": detector.trigger() if is_push else False,
+                },
+            )
 
         def _dispatch_error(self, error: Exception) -> None:
             if isinstance(error, KeyError):
@@ -1017,6 +1116,12 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
             try:
                 path = urlparse(self.path).path
                 body = self._body()
+                if path == "/api/v1/repository-updates/webhooks/github":
+                    self._accept_repository_update_webhook("github")
+                    return
+                if path == "/api/v1/repository-updates/webhooks/gitlab":
+                    self._accept_repository_update_webhook("gitlab")
+                    return
                 if path == "/api/v1/repository-updates/check":
                     if context.repository_updates is None and not _onboarding_updates_enabled(context):
                         self._error(
