@@ -26,8 +26,8 @@ from .workflow import resolve_workflow, topological_nodes
 
 TERMINAL_STATES = {"succeeded", "failed", "canceled"}
 ARTIFACT_TYPE = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*@[1-9][0-9]*$")
-DATABASE_SCHEMA_VERSION = 4
-PORTABLE_STATE_SCHEMA_VERSION = 1
+DATABASE_SCHEMA_VERSION = 5
+PORTABLE_STATE_SCHEMA_VERSION = 2
 DEFAULT_WORKER_STALE_AFTER_SECONDS = 15.0
 
 
@@ -214,6 +214,23 @@ class WorkflowEngine:
                     outputs TEXT NOT NULL DEFAULT '{}',
                     FOREIGN KEY (workflow_id, workflow_version)
                       REFERENCES workflow_versions(workflow_id, version)
+                );
+                CREATE TABLE IF NOT EXISTS studies (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    created_by TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS study_runs (
+                    study_id TEXT NOT NULL,
+                    run_id TEXT NOT NULL,
+                    added_at TEXT NOT NULL,
+                    added_by TEXT NOT NULL,
+                    PRIMARY KEY (study_id, run_id),
+                    FOREIGN KEY (study_id) REFERENCES studies(id),
+                    FOREIGN KEY (run_id) REFERENCES runs(id)
                 );
                 CREATE TABLE IF NOT EXISTS tasks (
                     run_id TEXT NOT NULL,
@@ -516,6 +533,14 @@ class WorkflowEngine:
                 "SELECT * FROM execution_events ORDER BY sequence",
                 json_columns=("details",),
             )
+            studies = decoded_rows(
+                connection,
+                "SELECT * FROM studies ORDER BY created_at, id",
+            )
+            study_runs = decoded_rows(
+                connection,
+                "SELECT * FROM study_runs ORDER BY study_id, added_at, run_id",
+            )
 
         return {
             "schema_version": PORTABLE_STATE_SCHEMA_VERSION,
@@ -528,6 +553,8 @@ class WorkflowEngine:
             "task_attempts": attempts,
             "output_artifacts": output_artifacts,
             "execution_events": events,
+            "studies": studies,
+            "study_runs": study_runs,
         }
 
     def import_portable_state(
@@ -538,7 +565,7 @@ class WorkflowEngine:
     ) -> None:
         """Rebuild a clean current-schema database from logical records."""
 
-        collection_names = (
+        base_collection_names = (
             "workflow_versions",
             "workflow_drafts",
             "input_artifacts",
@@ -548,6 +575,17 @@ class WorkflowEngine:
             "output_artifacts",
             "execution_events",
         )
+        schema_version = document.get("schema_version") if isinstance(document, dict) else None
+        if schema_version not in {1, PORTABLE_STATE_SCHEMA_VERSION}:
+            raise RuntimeError(
+                "unsupported portable state schema version: "
+                f"{schema_version}"
+            )
+        collection_names = (
+            (*base_collection_names, "studies", "study_runs")
+            if schema_version == PORTABLE_STATE_SCHEMA_VERSION
+            else base_collection_names
+        )
         expected_keys = {
             "schema_version",
             "database_schema_version",
@@ -555,11 +593,6 @@ class WorkflowEngine:
         }
         if not isinstance(document, dict) or set(document) != expected_keys:
             raise RuntimeError("portable state document has an unsupported shape")
-        if document["schema_version"] != PORTABLE_STATE_SCHEMA_VERSION:
-            raise RuntimeError(
-                "unsupported portable state schema version: "
-                f"{document['schema_version']}"
-            )
         source_database_version = document["database_schema_version"]
         if (
             isinstance(source_database_version, bool)
@@ -684,6 +717,15 @@ class WorkflowEngine:
             "duration_ms",
             "details",
         )
+        study_fields = (
+            "id",
+            "name",
+            "description",
+            "created_at",
+            "created_by",
+            "updated_at",
+        )
+        study_run_fields = ("study_id", "run_id", "added_at", "added_by")
 
         workflows = [
             require_row(row, workflow_fields, "workflow version")
@@ -739,6 +781,27 @@ class WorkflowEngine:
             require_row(row, event_fields, "execution event")
             for row in document["execution_events"]
         ]
+        studies = (
+            [require_row(row, study_fields, "study") for row in document["studies"]]
+            if schema_version == PORTABLE_STATE_SCHEMA_VERSION
+            else []
+        )
+        study_runs = (
+            [
+                require_row(row, study_run_fields, "study run")
+                for row in document["study_runs"]
+            ]
+            if schema_version == PORTABLE_STATE_SCHEMA_VERSION
+            else []
+        )
+        study_ids = {str(row["id"]) for row in studies}
+        run_ids = {str(row["id"]) for row in runs}
+        if any(
+            str(row["study_id"]) not in study_ids
+            or str(row["run_id"]) not in run_ids
+            for row in study_runs
+        ):
+            raise RuntimeError("portable study membership references an unknown record")
         artifact_ids = {str(row["id"]) for row in (*inputs, *outputs)}
         if artifact_ids != set(artifact_uris):
             raise RuntimeError("portable artifact payload identities do not match state")
@@ -754,6 +817,8 @@ class WorkflowEngine:
                     "task_attempts",
                     "artifacts",
                     "execution_events",
+                    "studies",
+                    "study_runs",
                 )
                 existing = sum(
                     int(
@@ -850,6 +915,22 @@ class WorkflowEngine:
                             row["finished_at"],
                             _json(row["inputs"]),
                             _json(row["outputs"]),
+                        ),
+                    )
+                for row in studies:
+                    connection.execute(
+                        """
+                        INSERT INTO studies
+                          (id, name, description, created_at, created_by, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["id"],
+                            row["name"],
+                            row["description"],
+                            row["created_at"],
+                            row["created_by"],
+                            row["updated_at"],
                         ),
                     )
                 for row in tasks:
@@ -951,6 +1032,19 @@ class WorkflowEngine:
                             row["recorded_at"],
                             row["duration_ms"],
                             _json(row["details"]),
+                        ),
+                    )
+                for row in study_runs:
+                    connection.execute(
+                        """
+                        INSERT INTO study_runs(study_id, run_id, added_at, added_by)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            row["study_id"],
+                            row["run_id"],
+                            row["added_at"],
+                            row["added_by"],
                         ),
                     )
                 violations = connection.execute("PRAGMA foreign_key_check").fetchall()
@@ -1428,8 +1522,13 @@ class WorkflowEngine:
         execution_target: str,
         execution_class: str | None = None,
         created_by: str,
+        study_id: str | None = None,
     ) -> dict[str, Any]:
         with self._connect() as connection:
+            if study_id is not None and not connection.execute(
+                "SELECT 1 FROM studies WHERE id=?", (study_id,)
+            ).fetchone():
+                raise KeyError(f"study not found: {study_id}")
             workflow_row = connection.execute(
                 "SELECT * FROM workflow_versions WHERE workflow_id=? AND version=?",
                 (workflow_id, version),
@@ -1519,6 +1618,14 @@ class WorkflowEngine:
                         operation["runtime"]["digest"],
                     ),
                 )
+            if study_id is not None:
+                connection.execute(
+                    """
+                    INSERT INTO study_runs(study_id, run_id, added_at, added_by)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (study_id, run_id, now, created_by),
+                )
         return self.get_run(run_id)
 
     def list_runs(self) -> list[dict[str, Any]]:
@@ -1527,6 +1634,131 @@ class WorkflowEngine:
                 "SELECT id FROM runs ORDER BY created_at DESC"
             ).fetchall()
         return [self.get_run(row["id"]) for row in rows]
+
+    @staticmethod
+    def _study_text(value: str, field: str, *, maximum: int, allow_empty: bool) -> str:
+        if not isinstance(value, str):
+            raise ContractError(f"study {field} must be text")
+        normalized = value.strip()
+        if (not allow_empty and not normalized) or len(normalized) > maximum:
+            qualifier = "may be empty but " if allow_empty else ""
+            raise ContractError(
+                f"study {field} {qualifier}must contain at most {maximum} characters"
+            )
+        if any(ord(character) < 32 and character not in {"\n", "\t"} for character in normalized):
+            raise ContractError(f"study {field} contains a control character")
+        return normalized
+
+    def create_study(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        created_by: str,
+    ) -> dict[str, Any]:
+        name = self._study_text(name, "name", maximum=120, allow_empty=False)
+        description = self._study_text(
+            description, "description", maximum=2_000, allow_empty=True
+        )
+        created_by = self._study_text(
+            created_by, "creator", maximum=120, allow_empty=False
+        )
+        study_id = "study-" + uuid.uuid4().hex
+        now = _now()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO studies(id, name, description, created_at, created_by, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (study_id, name, description, now, created_by, now),
+            )
+        return self.get_study(study_id)
+
+    def list_studies(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id FROM studies ORDER BY updated_at DESC, id"
+            ).fetchall()
+        return [self.get_study(row["id"]) for row in rows]
+
+    def add_run_to_study(
+        self,
+        study_id: str,
+        run_id: str,
+        *,
+        added_by: str,
+    ) -> dict[str, Any]:
+        added_by = self._study_text(
+            added_by, "member creator", maximum=120, allow_empty=False
+        )
+        now = _now()
+        with self._connect() as connection:
+            if not connection.execute(
+                "SELECT 1 FROM studies WHERE id=?", (study_id,)
+            ).fetchone():
+                raise KeyError(f"study not found: {study_id}")
+            if not connection.execute(
+                "SELECT 1 FROM runs WHERE id=?", (run_id,)
+            ).fetchone():
+                raise KeyError(f"run not found: {run_id}")
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO study_runs(study_id, run_id, added_at, added_by)
+                VALUES (?, ?, ?, ?)
+                """,
+                (study_id, run_id, now, added_by),
+            )
+            connection.execute(
+                "UPDATE studies SET updated_at=? WHERE id=?", (now, study_id)
+            )
+        return self.get_study(study_id)
+
+    def get_study(self, study_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            study = connection.execute(
+                "SELECT * FROM studies WHERE id=?", (study_id,)
+            ).fetchone()
+            if not study:
+                raise KeyError(f"study not found: {study_id}")
+            runs = connection.execute(
+                """
+                SELECT runs.id, runs.workflow_id, runs.workflow_version,
+                       runs.workflow_digest, runs.execution_target, runs.state,
+                       runs.created_at, study_runs.added_at, study_runs.added_by
+                FROM study_runs
+                JOIN runs ON runs.id=study_runs.run_id
+                WHERE study_runs.study_id=?
+                ORDER BY study_runs.added_at, runs.created_at, runs.id
+                """,
+                (study_id,),
+            ).fetchall()
+        profiles: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+        records = [dict(row) for row in runs]
+        for run in records:
+            key = (
+                run["workflow_id"],
+                run["workflow_version"],
+                run["workflow_digest"],
+                run["execution_target"],
+            )
+            profile = profiles.setdefault(
+                key,
+                {
+                    "workflow_id": key[0],
+                    "workflow_version": key[1],
+                    "workflow_digest": key[2],
+                    "execution_target": key[3],
+                    "run_count": 0,
+                    "states": {},
+                },
+            )
+            profile["run_count"] += 1
+            profile["states"][run["state"]] = profile["states"].get(run["state"], 0) + 1
+        result = dict(study)
+        result["runs"] = records
+        result["execution_profiles"] = list(profiles.values())
+        return result
 
     def get_run(self, run_id: str) -> dict[str, Any]:
         with self._connect() as connection:

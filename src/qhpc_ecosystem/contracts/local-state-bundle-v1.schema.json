@@ -83,7 +83,8 @@
         "execution_events": {"$ref": "#/$defs/count"},
         "input_artifacts": {"$ref": "#/$defs/count"},
         "output_artifacts": {"$ref": "#/$defs/count"},
-        "artifact_payloads": {"$ref": "#/$defs/count"}
+        "artifact_payloads": {"$ref": "#/$defs/count"},
+        "studies": {"$ref": "#/$defs/count"}
       }
     }
   },

@@ -228,7 +228,7 @@ def test_schema_migration_links_attempt_outputs_and_artifacts(
 
     engine = WorkflowEngine(database, tmp_path / "artifacts")
 
-    assert engine.schema_version() == 4
+    assert engine.schema_version() == 5
     with sqlite3.connect(database) as connection:
         artifact_columns = {
             row[1] for row in connection.execute("PRAGMA table_info(artifacts)")
@@ -252,6 +252,68 @@ def test_schema_migration_links_attempt_outputs_and_artifacts(
     assert "outputs" in attempt_columns
     assert ["attempt_id", "port"] in unique_columns
     assert ["run_id", "task_id", "port", "checksum"] not in unique_columns
+
+
+def test_studies_group_runs_and_summarize_pinned_execution_profiles(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    registered = engine.register_workflow(
+        workflow, example_registry(), created_by="test-user"
+    )
+    study = engine.create_study(
+        "Bell-state validation",
+        description="Compare repeated local reference executions.",
+        created_by="test-user",
+    )
+    run = engine.submit_run(
+        registered["id"],
+        registered["version"],
+        inputs={},
+        execution_target="local-development",
+        created_by="test-user",
+        study_id=study["id"],
+    )
+    assert engine.run_until_idle(make_runner()) == 2
+
+    result = engine.add_run_to_study(
+        study["id"], run["id"], added_by="test-user"
+    )
+
+    assert [member["id"] for member in result["runs"]] == [run["id"]]
+    assert result["execution_profiles"] == [
+        {
+            "workflow_id": registered["id"],
+            "workflow_version": registered["version"],
+            "workflow_digest": registered["digest"],
+            "execution_target": "local-development",
+            "run_count": 1,
+            "states": {"succeeded": 1},
+        }
+    ]
+    state = engine.export_portable_state()
+    assert state["schema_version"] == 2
+    assert state["studies"][0]["id"] == study["id"]
+    assert state["study_runs"][0]["run_id"] == run["id"]
+
+    legacy_state = copy.deepcopy(state)
+    legacy_state["schema_version"] = 1
+    legacy_state["database_schema_version"] = 4
+    legacy_state.pop("studies")
+    legacy_state.pop("study_runs")
+    for collection_name in ("input_artifacts", "output_artifacts"):
+        for artifact in legacy_state[collection_name]:
+            artifact["payload"] = f"legacy/{artifact['id']}"
+    restored = WorkflowEngine(
+        tmp_path / "legacy.sqlite", tmp_path / "legacy-artifacts"
+    )
+    artifact_uris = {
+        artifact["id"]: artifact["uri"] for artifact in engine.list_artifacts()
+    }
+    restored.import_portable_state(legacy_state, artifact_uris=artifact_uris)
+    assert restored.list_studies() == []
+    assert restored.get_run(run["id"])["state"] == "succeeded"
 
 
 def test_failed_task_can_be_retried_without_repeating_parent(tmp_path: Path) -> None:

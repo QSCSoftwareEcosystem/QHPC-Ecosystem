@@ -1,0 +1,29 @@
+api_version: qhpc/v1
+kind: TranspilationTargetProfile
+metadata:
+  id: quantinuum-h2-offline
+  name: Quantinuum H2 static compilation profile
+  version: 0.59.3
+  owners: [software-engineering]
+  visibility: internal
+  status: active
+  evidence:
+    - docs/transpilation-service.md
+spec:
+  provider: quantinuum
+  device_name: H2-1
+  offline_backend:
+    max_qubits: 56
+    max_classical_registers: 4000
+    compiler_gate_set: [PhasedX, Rz, TK2, ZZMax, ZZPhase]
+    expected_output_gate_set: [PhasedX, Rz, TK2, ZZMax, ZZPhase, Measure]
+  compiler:
+    package: pytket-quantinuum
+    version: 0.59.3
+    optimisation_level: 1
+    allow_implicit_swaps: false
+  scope:
+    input_contract: qhpc.circuit-exchange@1-static
+    routing: compiler-controlled-no-implicit-swaps
+    noise_handling: none
+    provider_submission: false

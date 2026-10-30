@@ -782,7 +782,7 @@ def test_database_upgrade_creates_retained_backup(tmp_path: Path) -> None:
 
     assert report["upgraded"]
     assert report["from_database_schema_version"] == 3
-    assert report["database_schema_version"] == 4
+    assert report["database_schema_version"] == 5
     assert (backup_root / "workbench.sqlite").is_file()
     assert json.loads((backup_root / "upgrade.json").read_text())["status"] == (
         "upgraded"

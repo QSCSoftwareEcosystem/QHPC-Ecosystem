@@ -143,6 +143,11 @@ To use both optional services, provide the IQM endpoint and the device alias
 admitted for your account. This example uses `default`; replace it if your IQM
 service gives you a different admitted alias.
 
+The Basic Composer hardware path keeps its preparation step local, then sends
+only the prepared circuit to the separate `iqm-hardware` target. It shows that
+target and its preflight result before submission; the configured worker, not
+the browser, owns the endpoint, device alias, and credential.
+
 ```bash
 eqo local up \
   --start-iqm-worker \
@@ -450,7 +455,19 @@ eqo run-record info RUN_ID
 eqo run-record cancel RUN_ID
 eqo run-record retry RUN_ID NODE_ID
 eqo run-record export RUN_ID --output run-bundle.json
+
+# Group related runs and retain their pinned target/workflow profiles.
+eqo run-record study create "Bell validation" \
+  --description "Compare repeated local reference runs"
+eqo run-record submit WORKFLOW_ID VERSION --study STUDY_ID
+eqo run-record study info STUDY_ID
 ```
+
+Studies are durable, many-to-many run groups. Their inspection view reports the
+immutable workflow digest, execution target, state distribution, and member
+runs for each observed execution profile. They are included in `eqo local
+export` / `eqo local import`; the REST and Python APIs expose the same feature.
+See [studies and execution profiles](docs/studies.md).
 
 Before submitting a run, preflight can also validate the artifact IDs you plan
 to attach. It checks required inputs, declared input names, artifact existence,

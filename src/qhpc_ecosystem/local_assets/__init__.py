@@ -15,6 +15,7 @@ ASSETS = {
     "arm64-alpha-image-manifest": "images/arm64-internal-alpha-v1.json",
     "slurm-test-cluster": "test-clusters/slurm-docker-cluster/cluster.yaml",
     "qappswiki-graph": "knowledge/qappswiki-graph-v1.json",
+    "transpilation-profile-quantinuum-h2-offline": "transpilation/quantinuum-h2-offline.yaml",
     "workflow-chatqec-code-parameters": "workflows/chatqec-code-parameters.yaml",
     "workflow-chatqec-qec-toolchain": "workflows/chatqec-qec-toolchain.yaml",
     "workflow-chatqec-threshold-sweep": "workflows/chatqec-threshold-sweep.yaml",

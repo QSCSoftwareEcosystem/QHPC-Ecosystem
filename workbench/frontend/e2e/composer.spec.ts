@@ -189,7 +189,12 @@ test("lets a newcomer drag a compatible basic path onto the canvas", async ({ pa
   }
 
   await expect(page.getByRole("heading", { name: "Run on quantum hardware" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Hardware target" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hardware route" })).toBeVisible();
+  const hardwareRoute = page.getByLabel("Hardware route");
+  await expect(hardwareRoute.getByText("PREPARATION TARGET", { exact: true })).toBeVisible();
+  await expect(hardwareRoute.getByText("local-development", { exact: true })).toBeVisible();
+  await expect(hardwareRoute.getByText("HARDWARE TARGET", { exact: true })).toBeVisible();
+  await expect(hardwareRoute.getByText("iqm-hardware", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Submitting this path creates a QPU job.", { exact: false }),
   ).toBeVisible();

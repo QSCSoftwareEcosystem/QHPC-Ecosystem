@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 
+import numpy as np
 import pytest
 
 from qhpc_ecosystem.circuit_exchange import (
@@ -23,6 +24,7 @@ from qhpc_ecosystem.circuit_exchange import (
 )
 from qhpc_ecosystem.contract import validate_contract_data
 from qhpc_ecosystem.engine import WorkflowEngine
+from qhpc_ecosystem.quantinuum_adapter import lower_to_quantinuum_h2
 from qhpc_ecosystem.transpilation_service import (
     TranspilationService,
     TranspilationServiceError,
@@ -238,6 +240,36 @@ def test_pytket_bridge_rejects_symbolic_and_barrier_exchange_semantics() -> None
         exchange_to_pytket(exchange)
 
 
+def test_quantinuum_lowering_uses_the_pinned_offline_h2_profile() -> None:
+    pytket = pytest.importorskip("pytket")
+    pytest.importorskip("pytket.extensions.quantinuum")
+    source = QuantumCircuit(2)
+    source.h(0)
+    source.cx(0, 1)
+    exchange = qpy_to_exchange(qpy_payload(source))
+
+    lowered, evidence = lower_to_quantinuum_h2(exchange)
+    compiled = pytket.Circuit.from_dict(lowered)
+    original = exchange_to_pytket(exchange)
+    original_unitary = original.get_unitary()
+    compiled_unitary = compiled.get_unitary()
+    pivot = np.unravel_index(np.argmax(np.abs(original_unitary)), original_unitary.shape)
+    phase = compiled_unitary[pivot] / original_unitary[pivot]
+
+    assert np.allclose(compiled_unitary, phase * original_unitary, atol=1e-9)
+    assert {
+        command["op"]["type"] for command in lowered["commands"]
+    } <= {"PhasedX", "Rz", "TK2", "ZZMax", "ZZPhase", "Measure"}
+    assert evidence["classification"] == "equivalent-after-lowering"
+    assert evidence["implicit_swaps"] == []
+    assert evidence["target_profile"] == {
+        "id": "quantinuum-h2-offline",
+        "version": "0.59.3",
+        "digest": "sha256:38ab363c386db2d95dd0a36b9224182290a9949eadd5a9b7793706ac5d298960",
+        "device_name": "H2-1",
+    }
+
+
 def test_transpilation_service_persists_a_complete_artifact_evidence_chain(
     tmp_path,
 ) -> None:
@@ -336,3 +368,34 @@ measure q[1] -> c[1];
         {"source": "q[0]", "target": "q[0]"},
         {"source": "q[1]", "target": "q[1]"},
     ]
+
+
+def test_transpilation_service_persists_quantinuum_lowering_evidence(tmp_path) -> None:
+    pytest.importorskip("pytket.extensions.quantinuum")
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    source = engine.register_input_artifact(
+        artifact_type="qhpc.quantum-circuit@1",
+        content=b'''OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+creg c[2];
+h q[0];
+cx q[0],q[1];
+measure q[0] -> c[0];
+measure q[1] -> c[1];
+''',
+        name="bell.qasm",
+        created_by="test",
+    )
+
+    result = TranspilationService(engine).convert(
+        source["id"],
+        source_format="openqasm-2",
+        target_format="quantinuum-tket-json",
+        created_by="test",
+    )
+
+    _, transformed, _ = engine.read_artifact_content(result["transformed_artifact"]["id"])
+    assert json.loads(transformed)["commands"]
+    assert result["report"]["target_profile"]["id"] == "quantinuum-h2-offline"
+    assert result["report"]["compiler_options"]["network"] == "none"

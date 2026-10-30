@@ -1312,6 +1312,10 @@ def build_parser() -> argparse.ArgumentParser:
     run_submit.add_argument("version")
     run_submit.add_argument("--input", action="append", default=[])
     run_submit.add_argument("--target", default="local-development")
+    run_submit.add_argument(
+        "--study",
+        help="add the submitted run to an existing EQO study",
+    )
     run_submit.add_argument("--created-by", default="cli-user")
     run_submit.add_argument("--database", default=".qhpc/workbench.sqlite")
     run_submit.add_argument("--artifact-root", default=".qhpc/artifacts")
@@ -1323,6 +1327,25 @@ def build_parser() -> argparse.ArgumentParser:
             command.add_argument("node_id")
         if name == "export":
             command.add_argument("--output")
+        command.add_argument("--database", default=".qhpc/workbench.sqlite")
+        command.add_argument("--artifact-root", default=".qhpc/artifacts")
+
+    study_parser = run_commands.add_parser(
+        "study", help="group related workflow runs and inspect their execution profiles"
+    )
+    study_commands = study_parser.add_subparsers(dest="study_command", required=True)
+    study_create = study_commands.add_parser("create", help="create an empty study")
+    study_create.add_argument("name")
+    study_create.add_argument("--description", default="")
+    study_create.add_argument("--created-by", default="cli-user")
+    study_info = study_commands.add_parser("info", help="show study runs and profiles")
+    study_info.add_argument("study_id")
+    study_add = study_commands.add_parser("add-run", help="add an existing run to a study")
+    study_add.add_argument("study_id")
+    study_add.add_argument("run_id")
+    study_add.add_argument("--added-by", default="cli-user")
+    study_commands.add_parser("list", help="list studies")
+    for command in (study_create, study_info, study_add, study_commands.choices["list"]):
         command.add_argument("--database", default=".qhpc/workbench.sqlite")
         command.add_argument("--artifact-root", default=".qhpc/artifacts")
 
@@ -2850,6 +2873,7 @@ def dispatch(args: argparse.Namespace) -> int:
         delegate = IQMAsyncRunner(
             client,
             allowed_credential_references=(credential_reference,),
+            execution_target="iqm-hardware",
         )
         engine = WorkflowEngine(args.database, args.artifact_root)
         runner = RegistryBoundAsyncRunner(delegate, registry)
@@ -2924,6 +2948,7 @@ def dispatch(args: argparse.Namespace) -> int:
             SimulatedIQMBackendClient(),
             secret_resolver=lambda _reference: "simulation-only",
             allowed_credential_references=("secret://env/IQM_TOKEN",),
+            execution_target="iqm-simulation",
         )
         engine = WorkflowEngine(args.database, args.artifact_root)
         runner = RegistryBoundAsyncRunner(delegate, registry)
@@ -3305,6 +3330,27 @@ def dispatch(args: argparse.Namespace) -> int:
         from .engine import WorkflowEngine
 
         engine = WorkflowEngine(args.database, args.artifact_root)
+        if args.run_command == "study":
+            if args.study_command == "create":
+                result = engine.create_study(
+                    args.name,
+                    description=args.description,
+                    created_by=args.created_by,
+                )
+                print(f"Study created: {result['id']} ({result['name']})")
+                return 0
+            if args.study_command == "add-run":
+                result = engine.add_run_to_study(
+                    args.study_id,
+                    args.run_id,
+                    added_by=args.added_by,
+                )
+            elif args.study_command == "info":
+                result = engine.get_study(args.study_id)
+            else:
+                result = engine.list_studies()
+            print(json.dumps(result, indent=2, sort_keys=True))
+            return 0
         if args.run_command == "submit":
             result = engine.submit_run(
                 args.workflow_id,
@@ -3312,6 +3358,7 @@ def dispatch(args: argparse.Namespace) -> int:
                 inputs=_assignments(args.input),
                 execution_target=args.target,
                 created_by=args.created_by,
+                study_id=args.study,
             )
             print(f"Run submitted: {result['id']} ({result['state']})")
             return 0

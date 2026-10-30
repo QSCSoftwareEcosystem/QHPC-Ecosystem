@@ -41,6 +41,8 @@ from .transpilation_service import TranspilationService
 RUN_ROUTE = re.compile(r"^/api/v1/runs/([^/]+)$")
 RUN_ACTION_ROUTE = re.compile(r"^/api/v1/runs/([^/]+)/(execute|cancel|export)$")
 TASK_RETRY_ROUTE = re.compile(r"^/api/v1/runs/([^/]+)/tasks/([^/]+)/retry$")
+STUDY_ROUTE = re.compile(r"^/api/v1/studies/([^/]+)$")
+STUDY_RUN_ROUTE = re.compile(r"^/api/v1/studies/([^/]+)/runs$")
 WORKFLOW_ROUTE = re.compile(r"^/api/v1/workflows/([^/]+)/([^/]+)$")
 DRAFT_ROUTE = re.compile(r"^/api/v1/workflow-drafts/([^/]+)$")
 DRAFT_ACTION_ROUTE = re.compile(
@@ -1040,6 +1042,16 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         ),
                     )
                     return
+                if path == "/api/v1/studies":
+                    self._json_response(HTTPStatus.OK, context.engine.list_studies())
+                    return
+                study_match = STUDY_ROUTE.fullmatch(path)
+                if study_match:
+                    self._json_response(
+                        HTTPStatus.OK,
+                        context.engine.get_study(unquote(study_match.group(1))),
+                    )
+                    return
                 if path == "/api/v1/runs":
                     self._json_response(HTTPStatus.OK, context.engine.list_runs())
                     return
@@ -1527,6 +1539,53 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                     )
                     self._json_response(HTTPStatus.CREATED, result)
                     return
+                if path == "/api/v1/studies":
+                    allowed = {"name", "description", "created_by"}
+                    unexpected = sorted(set(body) - allowed)
+                    if unexpected:
+                        raise ValueError(
+                            "unsupported study fields: " + ", ".join(unexpected)
+                        )
+                    name = body.get("name")
+                    description = body.get("description", "")
+                    created_by = body.get("created_by", "workbench-user")
+                    if not isinstance(name, str) or not isinstance(description, str):
+                        raise ValueError("study name and description must be text")
+                    if not isinstance(created_by, str):
+                        raise ValueError("study created_by must be text")
+                    self._json_response(
+                        HTTPStatus.CREATED,
+                        context.engine.create_study(
+                            name,
+                            description=description,
+                            created_by=created_by,
+                        ),
+                    )
+                    return
+                study_run_match = STUDY_RUN_ROUTE.fullmatch(path)
+                if study_run_match:
+                    allowed = {"run_id", "added_by"}
+                    unexpected = sorted(set(body) - allowed)
+                    if unexpected:
+                        raise ValueError(
+                            "unsupported study membership fields: "
+                            + ", ".join(unexpected)
+                        )
+                    run_id = body.get("run_id")
+                    added_by = body.get("added_by", "workbench-user")
+                    if not isinstance(run_id, str) or not run_id:
+                        raise ValueError("study membership requires a run_id")
+                    if not isinstance(added_by, str):
+                        raise ValueError("study membership added_by must be text")
+                    self._json_response(
+                        HTTPStatus.OK,
+                        context.engine.add_run_to_study(
+                            unquote(study_run_match.group(1)),
+                            run_id,
+                            added_by=added_by,
+                        ),
+                    )
+                    return
                 if path == "/api/v1/workflow-preflight":
                     (
                         workflow_id,
@@ -1575,6 +1634,11 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                             preflight,
                         )
                         return
+                    study_id = body.get("study_id")
+                    if study_id is not None and (
+                        not isinstance(study_id, str) or not study_id
+                    ):
+                        raise ValueError("study_id must be a non-empty string when provided")
                     result = context.engine.submit_run(
                         workflow_id,
                         version,
@@ -1583,6 +1647,7 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         execution_target=execution_target,
                         execution_class=execution_class,
                         created_by=body.get("created_by", "workbench-user"),
+                        study_id=study_id,
                     )
                     self._json_response(HTTPStatus.ACCEPTED, result)
                     return

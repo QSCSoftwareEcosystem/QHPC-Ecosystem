@@ -24,11 +24,18 @@ from .circuit_exchange import (
 )
 from .contract import ContractError, validate_contract_data
 from .engine import WorkflowEngine
+from .quantinuum_adapter import lower_to_quantinuum_h2
 
 
 SOURCE_FORMATS = frozenset({"openqasm-2", "openqasm-3", "qiskit-qpy", "circuit-exchange"})
 TARGET_FORMATS = frozenset(
-    {"openqasm-2", "openqasm-3", "qiskit-qpy", "pytket-json"}
+    {
+        "openqasm-2",
+        "openqasm-3",
+        "qiskit-qpy",
+        "pytket-json",
+        "quantinuum-tket-json",
+    }
 )
 SOURCE_ARTIFACT_TYPES = frozenset(
     {
@@ -120,6 +127,14 @@ class TranspilationService:
                     "pytket.json",
                     "circuit-exchange-to-pytket",
                     pytket_conversion_report(document),
+                )
+            if target_format == "quantinuum-tket-json":
+                circuit, evidence = lower_to_quantinuum_h2(document)
+                return (
+                    _canonical_json(circuit),
+                    "quantinuum.tket.json",
+                    "circuit-exchange-to-quantinuum-h2-offline",
+                    evidence,
                 )
         except CircuitExchangeError as error:
             raise TranspilationServiceError(str(error)) from error

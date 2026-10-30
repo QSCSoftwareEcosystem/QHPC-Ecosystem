@@ -98,6 +98,26 @@ def test_ct_hw_workflow_resolves_pinned_cross_project_operations() -> None:
     assert resolved.operations["analyze"].project == "hybrid-workflows"
 
 
+@pytest.mark.parametrize(
+    "workflow_name",
+    ("ftqc-iqm-bell-execution.yaml", "ftqc-iqm-steane-execution.yaml"),
+)
+def test_iqm_execution_workflows_separate_local_preparation_from_hardware(
+    workflow_name: str,
+) -> None:
+    workflow = load_document(ROOT / "examples/workflows" / workflow_name)
+    registry = load_registry(ROOT / "examples/registry.yaml")
+
+    resolved = resolve_workflow(workflow, registry)
+    nodes = {node["id"]: node for node in workflow["spec"]["nodes"]}
+
+    assert set(resolved.operations) == {"prepare", "execute"}
+    assert nodes["prepare"]["execution_target"] == "local-development"
+    assert nodes["prepare"]["execution_class"] == "interactive-local"
+    assert nodes["execute"]["execution_target"] == "iqm-hardware"
+    assert nodes["execute"]["execution_class"] == "quantum-backend"
+
+
 def test_evolution_showcase_resolves_four_tools_and_five_outputs() -> None:
     workflow = load_document(
         ROOT / "examples/workflows/showcase-evolution-readiness.yaml"

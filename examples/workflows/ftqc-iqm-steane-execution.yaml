@@ -29,7 +29,7 @@ spec:
         shots: 512
         credential_reference: secret://env/IQM_TOKEN
         max_wait_seconds: 1800
-      execution_target: local-development
+      execution_target: iqm-hardware
       execution_class: quantum-backend
   edges:
     - from:

@@ -590,7 +590,7 @@ spec:
         documentation:
           qappswiki: packages/ftprimitivebench.md
           url: https://github.com/QSCSoftwareThrust/FTPrimitiveBench/blob/ba15eba263ac6d641d225984fa074f4ee25bb462/README.md
-  - descriptor_digest: sha256:638f420aeb32023b85a9109988c9031e605e3a7866660a901111c000b172cd55
+  - descriptor_digest: sha256:cd0e457abfe18765832eb1449519db6893349507b72f548b38e01e20f32a2e93
     catalog_repository: ftqc
     validation:
       contract: valid
@@ -811,7 +811,7 @@ spec:
             memory_mb: 2048
             walltime_seconds: 7200
           execution_targets:
-          - local-development
+          - iqm-hardware
   - descriptor_digest: sha256:332081d59e4f0c407c48cefdfb6b6650b4eb87ffd27f6a4949380783faa77b32
     catalog_repository: IRIS-QIRIS
     validation:

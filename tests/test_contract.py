@@ -50,6 +50,7 @@ VALID_EXAMPLES = {
         / "cluster.yaml"
     ),
     "storage-profile": VALID / "storage-profile.yaml",
+    "transpilation-target-profile": VALID / "transpilation-target-profile.yaml",
     "workflow": VALID / "workflow.yaml",
     "workflow-draft": VALID / "workflow-draft.yaml",
 }

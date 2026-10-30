@@ -35,6 +35,12 @@ def populated_home(root: Path) -> tuple[LocalPaths, WorkflowEngine, str]:
         created_by="test-user",
     )
     assert engine.run_until_idle(make_runner()) == 2
+    study = engine.create_study(
+        "Portable local demonstration",
+        description="One terminal workflow run preserved with its study.",
+        created_by="test-user",
+    )
+    engine.add_run_to_study(study["id"], run["id"], added_by="test-user")
     return paths, engine, run["id"]
 
 
@@ -53,6 +59,7 @@ def test_portable_bundle_round_trips_logical_state_and_artifacts(
     assert Path(export_report["path"]) == bundle
     assert export_report["checksum"].startswith("sha256:")
     assert export_report["counts"]["runs"] == 1
+    assert export_report["counts"]["studies"] == 1
     assert export_report["counts"]["artifact_payloads"] == 2
 
     target_paths = LocalPaths.discover(tmp_path / "target")

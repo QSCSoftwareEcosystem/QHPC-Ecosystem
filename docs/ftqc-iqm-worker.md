@@ -1,8 +1,9 @@
 # FTQC–IQM Quantum Worker
 
 The FTQC preparation workflows are credential-free. The two execution workflows
-add a separate `quantum-backend` task only after the local preparation report
-and IQM-native circuit are available. They are claimed exclusively by
+prepare locally on `local-development`, then add a separate `quantum-backend`
+task on the controlled `iqm-hardware` target once the preparation report and
+IQM-native circuit are available. They are claimed exclusively by
 `qhpc-iqm-worker`; ordinary local and Slurm workers never admit that class.
 
 ## Install the provider in the isolated worker environment
@@ -56,7 +57,9 @@ token.
 `eqo dev up --start-iqm-worker` can supervise the same worker after receiving
 the endpoint and alias flags. It passes `IQM_TOKEN` only to the IQM child
 process and removes it from the API, Workbench, local-worker, and
-virtual-Slurm-worker environments.
+virtual-Slurm-worker environments. The worker advertises only the
+`iqm-hardware` target, so it cannot lease an ordinary `local-development`
+operation by mistake.
 
 ## Run the safe simulation worker
 

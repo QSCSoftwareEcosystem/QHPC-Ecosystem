@@ -3109,6 +3109,12 @@ function BasicComposer({
   const selectedBlockTarget = selectedNodes
     .map((node) => node.execution_target)
     .find(Boolean) ?? readiness.report?.target ?? "Published target";
+  const hardwarePreparationTarget = workflow?.definition.spec.nodes.find(
+    (node) => node.id === "prepare",
+  )?.execution_target;
+  const hardwareExecutionTarget = workflow?.definition.spec.nodes.find(
+    (node) => node.id === "execute",
+  )?.execution_target;
   const selectedBlockParameters = selectedNodes.flatMap((node) =>
     Object.entries(node.parameters).map(([name, value]) => ({
       nodeId: node.id,
@@ -3478,20 +3484,22 @@ function BasicComposer({
                   aria-labelledby="basic-hardware-target-title"
                 >
                   <div>
-                    <h3 id="basic-hardware-target-title">Hardware target</h3>
+                    <h3 id="basic-hardware-target-title">Hardware route</h3>
                     <p>
-                      This starter workflow is pinned to its admitted execution target.
-                      The IQM device is configured by the isolated worker, not in this form.
+                      Preparation stays local; the submitted circuit is pinned to a
+                      separately admitted hardware worker.
                     </p>
                   </div>
                   <dl>
-                    <dt>EXECUTION TARGET</dt>
-                    <dd>{readiness.report?.target ?? "Checking admission"}</dd>
+                    <dt>PREPARATION TARGET</dt>
+                    <dd>{hardwarePreparationTarget ?? "Published local target"}</dd>
+                    <dt>HARDWARE TARGET</dt>
+                    <dd>{hardwareExecutionTarget ?? "Checking admission"}</dd>
                     <dt>DEVICE</dt>
                     <dd>Worker-configured IQM device</dd>
                   </dl>
                   <p className="composer-basic-target-note">
-                    To use a different target or device contract, open Advanced and publish a compatible workflow.
+                    Target selection is explicit when EQO Local starts: the isolated worker admits one configured device alias and keeps its endpoint and credential private. To use another target or device contract, open Advanced and publish a compatible workflow.
                   </p>
                 </section>
               )}

@@ -107,7 +107,12 @@ class MockIQMService:
         self.cancellations.append(job_id)
 
 
-def request(tmp_path: Path, **parameter_changes: Any) -> TaskRequest:
+def request(
+    tmp_path: Path,
+    *,
+    execution_target: str = "local-development",
+    **parameter_changes: Any,
+) -> TaskRequest:
     circuit = tmp_path / "input.json"
     circuit_document = steane_circuit()
     circuit.write_text(json.dumps(circuit_document), encoding="utf-8")
@@ -167,7 +172,7 @@ def request(tmp_path: Path, **parameter_changes: Any) -> TaskRequest:
             "logical_result": "qhpc.ftqc-logical-result@1",
         },
         work_directory=tmp_path / "work",
-        execution_target="local-development",
+        execution_target=execution_target,
         execution_class="quantum-backend",
     )
 
@@ -245,6 +250,21 @@ def test_mock_iqm_submit_poll_collect_is_typed_and_secret_free(tmp_path: Path) -
         TOKEN.encode() not in path.read_bytes()
         for path in task.work_directory.iterdir()
     )
+
+
+def test_iqm_worker_binds_to_its_explicit_hardware_target(tmp_path: Path) -> None:
+    runner = IQMAsyncRunner(
+        MockIQMService(),
+        secret_resolver=secret_resolver,
+        clock=submitted_clock,
+        execution_target="iqm-hardware",
+    )
+    task = request(tmp_path, execution_target="iqm-hardware")
+
+    assert runner.execution_targets == frozenset({"iqm-hardware"})
+    assert runner.submit(task).state == "queued"
+    with pytest.raises(TaskRejectedError, match="iqm-hardware"):
+        runner.submit(request(tmp_path, execution_target="local-development"))
 
 
 def test_safe_simulation_uses_the_typed_boundary_without_a_credential(

@@ -53,11 +53,18 @@ workflow or a hardware-admission claim.
 `POST /api/v1/transpilation/convert` accepts only an existing EQO artifact ID,
 a declared source format, and a declared target format. It never accepts or
 executes Python source. The initial source formats are `openqasm-2`,
-`openqasm-3`, `qiskit-qpy`, and `circuit-exchange`; the initial target formats
-are `openqasm-2`, `openqasm-3`, `qiskit-qpy`, and `pytket-json`. The
+`openqasm-3`, `qiskit-qpy`, and `circuit-exchange`; the target formats are
+`openqasm-2`, `openqasm-3`, `qiskit-qpy`, `pytket-json`, and
+`quantinuum-tket-json`. The
 `pytket-json` target is the declared static `q`/`c` bridge subset; its report
-records the exact identity mapping and does not claim device routing or a
-Quantinuum compilation pass.
+records the exact identity mapping and does not claim device routing.
+
+`quantinuum-tket-json` invokes the optional `pytket-quantinuum` compiler using
+the checked-in `quantinuum-h2-offline@0.59.3` target profile. The profile holds
+the static H2 compiler data, fixed compiler version, native-gate set, capacity
+limits, no-implicit-swap policy, and explicit no-network/no-submission scope.
+It does not query live device information, perform provider authentication,
+use calibration data, reserve capacity, or create a provider job.
 
 The standard artifact endpoint accepts UTF-8 `content` or bounded binary
 `content_base64` (exactly one), so a QPY source can enter through the same
@@ -88,7 +95,7 @@ its own contract and tests; it is never inferred from a forward converter.
 | CircuitExchange → Qiskit QPY | same gate subset and symbolic parameters | exact within the implemented subset | implemented |
 | Qiskit QPY ↔ CircuitExchange | bounded QPY artifact and declared gate subset | exact within the implemented subset | implemented |
 | Qiskit QPY ↔ CircuitExchange ↔ pytket | static `q`/`c` register circuits, identity qubit mapping, static numeric angles | exact within the implemented subset | implemented |
-| CircuitExchange → pytket / Quantinuum target | declared native gate subset, explicit routing profile | equivalent after lowering | planned |
+| CircuitExchange → Quantinuum H2 offline tket JSON | static non-parameterized exchange circuit; pinned static H2 profile; compiler-controlled no-implicit-swaps policy | equivalent after lowering | implemented, compile-only |
 | pytket / Quantinuum target → CircuitExchange | bounded circuit artifact with mappings | depends on target metadata | planned |
 | OpenQASM 3 ↔ CircuitExchange | static gate-model subset; no timing, pulse, control-flow, or custom-operation semantics | exact within the implemented subset | implemented |
 | Qiskit QPY ↔ CircuitExchange ↔ Cirq | static contiguous `LineQubit` circuits; declared gate subset; `c<number>` measurement keys | exact within the implemented subset | implemented |
@@ -116,10 +123,17 @@ The static pytket bridge publishes a structured conversion report with the
 logical qubit mapping, implicit-swap list, gate-decomposition list, compiler
 options, target profile, and warnings. In the admitted initial subset these are
 an identity mapping and empty evidence lists; symbolic parameters, barriers,
-multi-register layouts, routing, and target compilation fail closed. A real
-Quantinuum target compiler remains separate because a target-specific default
-compilation pass needs live device information and can introduce routing and
-native-gate lowering that must be captured as distinct evidence.
+multi-register layouts, and routing fail closed.
+
+The Quantinuum target adapter is deliberately narrower. Its reviewed,
+static-H2 profile is packaged and contract-validated, and it creates tket JSON
+plus the profile digest, compiler options, native output gate sequence,
+identity mapping, and an explicit whole-circuit decomposition record. The
+adapter rejects symbolic/limited CircuitExchange inputs and any compiler output
+outside the profile's native gate set or with an implicit permutation. Unit
+tests compare an admitted unitary circuit before and after lowering up to global
+phase. This is equivalence evidence for the bounded compile-only subset—not a
+claim about current hardware calibration, noise, routing, or execution.
 
 The OpenQASM and Qiskit ↔ Cirq paths require the same declaration discipline
 before they are admitted as operations.

@@ -272,11 +272,11 @@ def _metrics(value: Any) -> dict[str, int]:
     return normalized
 
 
-def _policy(request: TaskRequest) -> _RequestPolicy:
+def _policy(request: TaskRequest, *, execution_target: str) -> _RequestPolicy:
     if request.operation_id != "route-submit-collect":
         raise TaskRejectedError("IQM worker admits only route-submit-collect")
-    if request.execution_target != "local-development":
-        raise TaskRejectedError("IQM worker admits only local-development")
+    if request.execution_target != execution_target:
+        raise TaskRejectedError(f"IQM worker admits only {execution_target}")
     if request.execution_class != "quantum-backend":
         raise TaskRejectedError("IQM worker requires execution_class quantum-backend")
     allowed = {
@@ -521,7 +521,6 @@ def _logical_result(
 class IQMAsyncRunner:
     """Route and run IQM circuits without exposing a credential to EQO clients."""
 
-    execution_targets = frozenset({"local-development"})
     execution_classes = frozenset({"quantum-backend"})
 
     def __init__(
@@ -531,6 +530,7 @@ class IQMAsyncRunner:
         secret_resolver: SecretResolver = resolve_environment_secret,
         clock: Clock = _utc_now,
         allowed_credential_references: Sequence[str] | None = None,
+        execution_target: str = "local-development",
     ) -> None:
         self.client = client
         self.secret_resolver = secret_resolver
@@ -542,9 +542,12 @@ class IQMAsyncRunner:
         )
         if self.allowed_credential_references is not None and not self.allowed_credential_references:
             raise ValueError("IQM worker must allow at least one credential reference")
+        if not re.fullmatch(r"[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*", execution_target):
+            raise ValueError("IQM worker execution target has an invalid format")
+        self.execution_targets = frozenset({execution_target})
 
     def _policy(self, request: TaskRequest) -> _RequestPolicy:
-        policy = _policy(request)
+        policy = _policy(request, execution_target=next(iter(self.execution_targets)))
         if (
             self.allowed_credential_references is not None
             and policy.credential_reference not in self.allowed_credential_references

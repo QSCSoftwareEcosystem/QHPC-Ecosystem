@@ -113,6 +113,10 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     service = validate_contract(
         "service-interface", asset_path("assistant-interface")
     )
+    transpilation_profile = validate_contract(
+        "transpilation-target-profile",
+        asset_path("transpilation-profile-quantinuum-h2-offline"),
+    )
     workflows = [
         validate_contract("workflow", asset_path(name))
         for name in SOURCE_ASSETS
@@ -126,6 +130,7 @@ def test_packaged_local_assets_are_valid_release_inputs() -> None:
     assert registry["metadata"]["entry_count"] == len(registry["spec"]["entries"])
     assert profile["metadata"]["id"] == "initial"
     assert service["metadata"]["id"] == "chatqec-internal-api"
+    assert transpilation_profile["metadata"]["id"] == "quantinuum-h2-offline"
     assert len(workflows) == 19
 
 

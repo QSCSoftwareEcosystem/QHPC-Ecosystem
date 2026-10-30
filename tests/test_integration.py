@@ -341,6 +341,7 @@ def test_ftqc_uses_private_ecosystem_source_and_oci_preparation_runtime() -> Non
         "local-development"
     ]
     backend = operations["route-submit-collect"]
+    assert backend["execution_targets"] == ["iqm-hardware"]
     assert backend["runtime"]["type"] == "python-wheel"
     assert backend["parameters"]["shots"]["maximum"] == 4096
     assert backend["parameters"]["credential_reference"]["default"] == (

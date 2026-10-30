@@ -18901,11 +18901,11 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 	N && V && (V.kind === "input" ? L.forEach(([, e]) => W.add(e.artifact_type)) : V.kind === "output" ? Object.values(N.definition.spec.outputs).forEach((e) => G.add(e.artifact_type)) : U.forEach((e) => {
 		Object.values(N.definition.spec.inputs).filter((t) => t.to.node === e.id).forEach((e) => W.add(e.artifact_type)), N.definition.spec.edges.filter((t) => t.to.node === e.id).forEach((e) => W.add(e.to.artifact_type)), N.definition.spec.edges.filter((t) => t.from.node === e.id).forEach((e) => G.add(e.from.artifact_type)), Object.values(N.definition.spec.outputs).filter((t) => t.from.node === e.id).forEach((e) => G.add(e.artifact_type));
 	}));
-	let K = U.map((e) => e.execution_target).find(Boolean) ?? l.report?.target ?? "Published target", ee = U.flatMap((e) => Object.entries(e.parameters).map(([t, n]) => ({
+	let K = U.map((e) => e.execution_target).find(Boolean) ?? l.report?.target ?? "Published target", ee = N?.definition.spec.nodes.find((e) => e.id === "prepare")?.execution_target, q = N?.definition.spec.nodes.find((e) => e.id === "execute")?.execution_target, J = U.flatMap((e) => Object.entries(e.parameters).map(([t, n]) => ({
 		nodeId: e.id,
 		name: t,
 		value: n
-	}))), q = M?.id === "transform" && N ? N.definition.spec.nodes.flatMap((e) => {
+	}))), te = M?.id === "transform" && N ? N.definition.spec.nodes.flatMap((e) => {
 		let t = n.find((t) => t.id === e.operation.capability && t.version === e.operation.version), r = t?.operations.find((t) => t.id === e.operation.operation);
 		if (e.operation.capability !== "qasmtrans-transpiler" || !r) return [];
 		let i = Object.entries(N.definition.spec.outputs).filter(([, t]) => t.from.node === e.id);
@@ -18921,25 +18921,25 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 	(0, y.useEffect)(() => {
 		S((e) => Math.min(e, Math.max(0, I.length - 1)));
 	}, [I.length]);
-	let J = (t) => {
+	let ne = (t) => {
 		g(null);
 		let n = e.find((e) => e.id === t);
 		n && E(n.blocks.map((e) => e.id)), u(t);
-	}, te = (t) => {
+	}, re = (t) => {
 		if (!F.has(t)) return;
 		let n = [...T, t], r = e.filter((e) => n.every((t, n) => e.blocks[n]?.id === t)), i = r.find((e) => e.blocks.length === n.length) ?? (r.length === 1 ? r[0] : void 0);
 		g(null), E(n), i && u(i.id);
-	}, ne = () => {
+	}, ie = () => {
 		g(null), S(0), E([]);
-	}, re = (e) => e.includes("application/x-eqo-basic-path") || e.includes("application/x-eqo-basic-intent"), ie = /* @__PURE__ */ (0, x.jsxs)("section", {
+	}, ae = (e) => e.includes("application/x-eqo-basic-path") || e.includes("application/x-eqo-basic-intent"), oe = /* @__PURE__ */ (0, x.jsxs)("section", {
 		className: `composer-basic-flow-section${C ? " is-drop-target" : ""}`,
 		"aria-labelledby": "basic-canvas-title",
 		"aria-describedby": "basic-canvas-hint",
 		onDragEnter: (e) => {
-			re(e.dataTransfer.types) && (e.preventDefault(), w(!0));
+			ae(e.dataTransfer.types) && (e.preventDefault(), w(!0));
 		},
 		onDragOver: (e) => {
-			re(e.dataTransfer.types) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy");
+			ae(e.dataTransfer.types) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy");
 		},
 		onDragLeave: (e) => {
 			e.currentTarget === e.target && w(!1);
@@ -18948,11 +18948,11 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			t.preventDefault(), w(!1);
 			let n = t.dataTransfer.getData("application/x-eqo-basic-path");
 			if (e.some((e) => e.id === n)) {
-				J(n);
+				ne(n);
 				return;
 			}
 			let r = t.dataTransfer.getData("application/x-eqo-basic-intent");
-			qp.has(r) && te(r);
+			qp.has(r) && re(r);
 		},
 		children: [
 			/* @__PURE__ */ (0, x.jsxs)("div", {
@@ -19037,7 +19037,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							},
 							onDragEnd: () => w(!1),
 							onClick: () => {
-								J(e.id);
+								ne(e.id);
 							},
 							children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] }), /* @__PURE__ */ (0, x.jsx)(yf, {
 								size: 16,
@@ -19060,7 +19060,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 					children: [
 						/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Build a path" }), /* @__PURE__ */ (0, x.jsx)("button", {
 							type: "button",
-							onClick: ne,
+							onClick: ie,
 							children: "Start new"
 						})] }),
 						/* @__PURE__ */ (0, x.jsx)("p", { children: "Drop the next compatible intent onto the canvas. EQO adds the typed connection." }),
@@ -19075,7 +19075,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 									t.dataTransfer.effectAllowed = "copy", t.dataTransfer.setData("application/x-eqo-basic-intent", e.id), t.dataTransfer.setData("text/plain", e.title);
 								},
 								onDragEnd: () => w(!1),
-								onClick: () => te(e.id),
+								onClick: () => re(e.id),
 								title: t ? `Add ${e.title} to the compatible workflow path` : "Complete or restart the current path before this block can connect",
 								children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] }), /* @__PURE__ */ (0, x.jsx)(yf, {
 									size: 15,
@@ -19109,7 +19109,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				/* @__PURE__ */ (0, x.jsxs)("div", {
 					className: "composer-basic-body",
 					children: [
-						ie,
+						oe,
 						V && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-block-inspector",
 							"aria-labelledby": "basic-block-inspector-title",
@@ -19155,9 +19155,9 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 										] })] }, e.id);
 									})
 								}),
-								!!ee.length && /* @__PURE__ */ (0, x.jsx)("dl", {
+								!!J.length && /* @__PURE__ */ (0, x.jsx)("dl", {
 									className: "composer-basic-block-parameters",
-									children: ee.map(({ nodeId: e, name: t, value: n }) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [
+									children: J.map(({ nodeId: e, name: t, value: n }) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [
 										/* @__PURE__ */ (0, x.jsx)("dt", { children: am(t) }),
 										/* @__PURE__ */ (0, x.jsx)("dd", { children: om(t, n) }),
 										/* @__PURE__ */ (0, x.jsxs)("small", { children: [
@@ -19183,21 +19183,23 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							children: [
 								/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("h3", {
 									id: "basic-hardware-target-title",
-									children: "Hardware target"
-								}), /* @__PURE__ */ (0, x.jsx)("p", { children: "This starter workflow is pinned to its admitted execution target. The IQM device is configured by the isolated worker, not in this form." })] }),
+									children: "Hardware route"
+								}), /* @__PURE__ */ (0, x.jsx)("p", { children: "Preparation stays local; the submitted circuit is pinned to a separately admitted hardware worker." })] }),
 								/* @__PURE__ */ (0, x.jsxs)("dl", { children: [
-									/* @__PURE__ */ (0, x.jsx)("dt", { children: "EXECUTION TARGET" }),
-									/* @__PURE__ */ (0, x.jsx)("dd", { children: l.report?.target ?? "Checking admission" }),
+									/* @__PURE__ */ (0, x.jsx)("dt", { children: "PREPARATION TARGET" }),
+									/* @__PURE__ */ (0, x.jsx)("dd", { children: ee ?? "Published local target" }),
+									/* @__PURE__ */ (0, x.jsx)("dt", { children: "HARDWARE TARGET" }),
+									/* @__PURE__ */ (0, x.jsx)("dd", { children: q ?? "Checking admission" }),
 									/* @__PURE__ */ (0, x.jsx)("dt", { children: "DEVICE" }),
 									/* @__PURE__ */ (0, x.jsx)("dd", { children: "Worker-configured IQM device" })
 								] }),
 								/* @__PURE__ */ (0, x.jsx)("p", {
 									className: "composer-basic-target-note",
-									children: "To use a different target or device contract, open Advanced and publish a compatible workflow."
+									children: "Target selection is explicit when EQO Local starts: the isolated worker admits one configured device alias and keeps its endpoint and credential private. To use another target or device contract, open Advanced and publish a compatible workflow."
 								})
 							]
 						}),
-						q.map((e) => /* @__PURE__ */ (0, x.jsxs)("section", {
+						te.map((e) => /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-transformation-evidence",
 							"aria-labelledby": `transformation-evidence-${e.node.id}`,
 							children: [
@@ -19388,7 +19390,7 @@ function wm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				})
 			] }) : /* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "composer-basic-body",
-				children: [ie, /* @__PURE__ */ (0, x.jsxs)("section", {
+				children: [oe, /* @__PURE__ */ (0, x.jsxs)("section", {
 					className: "composer-basic-plan-boundary",
 					"aria-label": "Basic plan validation",
 					children: [/* @__PURE__ */ (0, x.jsx)(bf, {
@@ -36715,16 +36717,16 @@ var fA = /*#__PURE__*/ function() {
 
       uniform mat3 uPanZoomMatrix;
       uniform int  uAtlasSize;
-      
+
       // instanced
       in vec2 aPosition; // a vertex from the unit square
-      
+
       in mat3 aTransform; // used to transform verticies, eg into a bounding box
       in int aVertType; // the type of thing we are rendering
 
       // the z-index that is output when using picking mode
       in vec4 aIndex;
-      
+
       // For textures
       in int aAtlasId; // which shader unit/atlas to use
       in vec4 aTex; // x/y/w/h of texture in atlas
@@ -36744,7 +36746,7 @@ var fA = /*#__PURE__*/ function() {
       out vec4 vColor;
       out vec2 vPosition;
       // flat values are not interpolated
-      flat out int vAtlasId; 
+      flat out int vAtlasId;
       flat out int vVertType;
       flat out vec2 vTopRight;
       flat out vec2 vBotLeft;
@@ -36752,7 +36754,7 @@ var fA = /*#__PURE__*/ function() {
       flat out vec4 vBorderColor;
       flat out vec2 vBorderWidth;
       flat out vec4 vIndex;
-      
+
       void main(void) {
         int vid = gl_VertexID;
         vec2 position = aPosition; // TODO make this a vec3, simplifies some code below
@@ -36805,7 +36807,7 @@ var fA = /*#__PURE__*/ function() {
 
           gl_Position = vec4(uPanZoomMatrix * vec3(point, 1.0), 1.0);
           vColor = aColor;
-        } 
+        }
         else if(aVertType == ${SA}) {
           vec2 pointA = aPointAPointB.xy;
           vec2 pointB = aPointAPointB.zw;
@@ -36854,7 +36856,7 @@ var fA = /*#__PURE__*/ function() {
           }
 
           vColor = aColor;
-        } 
+        }
         else if(aVertType == ${CA} && vid < 3) {
           // massage the first triangle into an edge arrow
           if(vid == 0)
@@ -36907,16 +36909,16 @@ var fA = /*#__PURE__*/ function() {
       ${_A}
 
       vec4 blend(vec4 top, vec4 bot) { // blend colors with premultiplied alpha
-        return vec4( 
+        return vec4(
           top.rgb + (bot.rgb * (1.0 - top.a)),
-          top.a   + (bot.a   * (1.0 - top.a)) 
+          top.a   + (bot.a   * (1.0 - top.a))
         );
       }
 
       vec4 distInterp(vec4 cA, vec4 cB, float d) { // interpolate color using Signed Distance
         // scale to the zoom level so that borders don't look blurry when zoomed in
         // note 1.5 is an aribitrary value chosen because it looks good
-        return mix(cA, cB, 1.0 - smoothstep(0.0, 1.5 / uZoom, abs(d))); 
+        return mix(cA, cB, 1.0 - smoothstep(0.0, 1.5 / uZoom, abs(d)));
       }
 
       void main(void) {
@@ -36925,7 +36927,7 @@ var fA = /*#__PURE__*/ function() {
           ${r.map(function(e) {
 					return `if(vAtlasId == ${e}) outColor = texture(uTexture${e}, vTexCoord);`;
 				}).join("\n	else ")}
-        } 
+        }
         else if(vVertType == ${CA}) {
           // mimics how canvas renderer uses context.globalCompositeOperation = 'destination-out';
           outColor = blend(vColor, uBGColor);
@@ -36969,7 +36971,7 @@ var fA = /*#__PURE__*/ function() {
               vec4 outerColor = outerBorder == 0.0 ? vec4(0) : vBorderColor;
               vec4 innerBorderColor = blend(vBorderColor, vColor);
               outColor = distInterp(innerBorderColor, outerColor, d);
-            } 
+            }
             else {
               vec4 outerColor;
               if(innerBorder == 0.0 && outerBorder == 0.0) {

@@ -171,4 +171,4 @@ spec:
         cpu: 1
         memory_mb: 2048
         walltime_seconds: 7200
-      execution_targets: [local-development]
+      execution_targets: [iqm-hardware]

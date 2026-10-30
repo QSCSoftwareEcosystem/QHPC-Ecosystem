@@ -34,6 +34,7 @@ CONTRACT_SCHEMAS = {
     "service-interface": "service-interface-v1.schema.json",
     "slurm-test-cluster": "slurm-test-cluster-v1.schema.json",
     "storage-profile": "storage-profile-v1.schema.json",
+    "transpilation-target-profile": "transpilation-target-profile-v1.schema.json",
     "workflow": "workflow-v1.schema.json",
     "workflow-draft": "workflow-draft-v1.schema.json",
 }

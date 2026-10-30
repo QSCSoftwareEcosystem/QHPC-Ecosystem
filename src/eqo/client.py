@@ -181,6 +181,34 @@ class Run:
         return self.client.artifacts.for_run(self.id)
 
 
+@dataclass(frozen=True)
+class Study:
+    """A durable group of related EQO workflow runs."""
+
+    client: "EQOClient"
+    metadata: dict[str, Any]
+
+    @property
+    def id(self) -> str:
+        value = self.metadata.get("id")
+        if not isinstance(value, str) or not value:
+            raise EQOProtocolError("EQO study has no valid ID")
+        return value
+
+    @property
+    def name(self) -> str:
+        value = self.metadata.get("name")
+        if not isinstance(value, str) or not value:
+            raise EQOProtocolError("EQO study has no valid name")
+        return value
+
+    def refresh(self) -> "Study":
+        return self.client.studies.get(self.id)
+
+    def add_run(self, run_id: str, *, added_by: str | None = None) -> "Study":
+        return self.client.studies.add_run(self.id, run_id, added_by=added_by)
+
+
 class _Capabilities:
     def __init__(self, client: "EQOClient") -> None:
         self._client = client
@@ -232,6 +260,7 @@ class _Workflows:
         execution_class: str | None = None,
         queue_if_unavailable: bool = False,
         created_by: str | None = None,
+        study_id: str | None = None,
     ) -> Run:
         return self._client.runs.submit(
             workflow_id,
@@ -241,6 +270,7 @@ class _Workflows:
             execution_class=execution_class,
             queue_if_unavailable=queue_if_unavailable,
             created_by=created_by,
+            study_id=study_id,
         )
 
 
@@ -267,6 +297,7 @@ class _Runs:
         execution_class: str | None = None,
         queue_if_unavailable: bool = False,
         created_by: str | None = None,
+        study_id: str | None = None,
     ) -> Run:
         if not isinstance(workflow_id, str) or not workflow_id:
             raise ValueError("workflow_id must be a non-empty string")
@@ -287,6 +318,10 @@ class _Runs:
             payload["execution_class"] = execution_class
         if created_by is not None:
             payload["created_by"] = created_by
+        if study_id is not None:
+            if not isinstance(study_id, str) or not study_id:
+                raise ValueError("study_id must be a non-empty string when provided")
+            payload["study_id"] = study_id
         return Run(self._client, self._client._request_object("POST", "/api/v1/runs", payload))
 
     def cancel(self, run_id: str) -> Run:
@@ -298,6 +333,54 @@ class _Runs:
     def export(self, run_id: str) -> dict[str, Any]:
         return self._client._request_object("GET", f"/api/v1/runs/{quote(run_id, safe='')}/export")
 
+
+class _Studies:
+    def __init__(self, client: "EQOClient") -> None:
+        self._client = client
+
+    def list(self) -> list[Study]:
+        return [
+            Study(self._client, item)
+            for item in self._client._request_object_list("GET", "/api/v1/studies")
+        ]
+
+    def get(self, study_id: str) -> Study:
+        return Study(
+            self._client,
+            self._client._request_object(
+                "GET", f"/api/v1/studies/{quote(study_id, safe='')}"
+            ),
+        )
+
+    def create(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        created_by: str | None = None,
+    ) -> Study:
+        payload: dict[str, Any] = {"name": name, "description": description}
+        if created_by is not None:
+            payload["created_by"] = created_by
+        return Study(
+            self._client,
+            self._client._request_object("POST", "/api/v1/studies", payload),
+        )
+
+    def add_run(
+        self, study_id: str, run_id: str, *, added_by: str | None = None
+    ) -> Study:
+        payload: dict[str, Any] = {"run_id": run_id}
+        if added_by is not None:
+            payload["added_by"] = added_by
+        return Study(
+            self._client,
+            self._client._request_object(
+                "POST",
+                f"/api/v1/studies/{quote(study_id, safe='')}/runs",
+                payload,
+            ),
+        )
 
 class _Artifacts:
     def __init__(self, client: "EQOClient") -> None:
@@ -471,6 +554,7 @@ class EQOClient:
         self.capabilities = _Capabilities(self)
         self.workflows = _Workflows(self)
         self.runs = _Runs(self)
+        self.studies = _Studies(self)
         self.artifacts = _Artifacts(self)
         self.transpilation = _Transpilation(self)
         self.assistant = _Assistant(self)

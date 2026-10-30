@@ -88,6 +88,13 @@ def test_sdk_uses_the_same_api_for_artifacts_runs_and_assistant(tmp_path: Path) 
         assert client.workflows.latest(registered["id"])["version"] == registered["version"]
         assert client.assistant.status()["available"]
         assert client.assistant.ask("What is this?")["citations"][0]["title"] == "Fixture"
+        study = client.studies.create(
+            "SDK execution study",
+            description="Group a submitted run through the Python client.",
+            created_by="sdk-test",
+        )
+        assert study.name == "SDK execution study"
+        assert client.studies.list()[0].id == study.id
 
         input_artifact = client.artifacts.create_input(
             "qhpc.quantum-circuit@1",
@@ -120,12 +127,18 @@ def test_sdk_uses_the_same_api_for_artifacts_runs_and_assistant(tmp_path: Path) 
             registered["id"],
             registered["version"],
             created_by="sdk-test",
+            study_id=study.id,
         )
         assert run.state == "queued"
         engine.run_until_idle(make_runner())
         completed = run.wait(timeout=2, poll_interval=0.01)
         assert completed.state == "succeeded"
         assert completed.export()["kind"] == "RunBundle"
+        refreshed_study = study.refresh()
+        assert [member["id"] for member in refreshed_study.metadata["runs"]] == [
+            run.id
+        ]
+        assert refreshed_study.metadata["execution_profiles"][0]["run_count"] == 1
         assert len(completed.artifacts) == 2
         assert completed.artifacts.by_type("qhpc.quantum-circuit@1").read_text().startswith("OPENQASM")
         assert "succeeded" in render_run(completed)._repr_html_()

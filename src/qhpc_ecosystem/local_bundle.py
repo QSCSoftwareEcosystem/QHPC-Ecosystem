@@ -96,7 +96,7 @@ def _require_stopped(paths: LocalPaths, operation: str) -> None:
 
 
 def _counts(state: dict[str, Any]) -> dict[str, int]:
-    return {
+    counts = {
         "workflow_versions": len(state["workflow_versions"]),
         "workflow_drafts": len(state["workflow_drafts"]),
         "runs": len(state["runs"]),
@@ -109,6 +109,9 @@ def _counts(state: dict[str, Any]) -> dict[str, int]:
             len(state["input_artifacts"]) + len(state["output_artifacts"])
         ),
     }
+    if "studies" in state:
+        counts["studies"] = len(state["studies"])
+    return counts
 
 
 def _default_destination(paths: LocalPaths) -> Path:
@@ -345,7 +348,11 @@ def _validate_payload_records(
         actual_counts = _counts(state)
     except (KeyError, TypeError) as error:
         raise LocalReleaseError("portable state collections are incomplete") from error
-    if actual_counts != manifest["counts"]:
+    expected_counts = manifest["counts"]
+    for name, expected in expected_counts.items():
+        if actual_counts.get(name) != expected:
+            raise LocalReleaseError("portable state counts do not match the manifest")
+    if set(actual_counts) - set(expected_counts):
         raise LocalReleaseError("portable state counts do not match the manifest")
 
     entries = {entry["id"]: entry for entry in manifest["artifacts"]}
