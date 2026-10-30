@@ -224,6 +224,99 @@
   line-height: 1.45;
 }
 
+.composer-basic-intent-library {
+  display: grid;
+  gap: 7px;
+  padding: 12px 10px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.composer-basic-intent-library > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.composer-basic-intent-library > div strong {
+  font-size: 12px;
+}
+
+.composer-basic-intent-library > div button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 11px/1.4 inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.composer-basic-intent-library > p {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.composer-basic-intent {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.composer-basic-intent:not(:disabled):hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.composer-basic-intent:not(:disabled)[draggable="true"] {
+  cursor: grab;
+}
+
+.composer-basic-intent:not(:disabled)[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.composer-basic-intent:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  opacity: 0.64;
+}
+
+.composer-basic-intent:focus-visible,
+.composer-basic-intent-library > div button:focus-visible {
+  outline: 2px solid var(--qsc-red);
+  outline-offset: 2px;
+}
+
+.composer-basic-intent > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.composer-basic-intent strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.composer-basic-intent small {
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .composer-basic-library-note {
   margin: 4px 14px 16px;
 }
@@ -336,6 +429,58 @@
   border: 1px solid var(--line);
   background: var(--surface-sunken);
   list-style: none;
+}
+
+.composer-basic-empty-canvas,
+.composer-basic-plan-boundary {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+}
+
+.composer-basic-empty-canvas {
+  min-height: 104px;
+  place-content: center start;
+  padding: 14px;
+}
+
+.composer-basic-empty-canvas > svg,
+.composer-basic-plan-boundary > svg {
+  color: var(--qsc-red);
+}
+
+.composer-basic-empty-canvas strong,
+.composer-basic-plan-boundary strong {
+  font-size: 12px;
+}
+
+.composer-basic-empty-canvas p,
+.composer-basic-plan-boundary p {
+  grid-column: 2;
+  margin: -3px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.composer-basic-plan-boundary {
+  margin: 14px 18px;
+  padding: 12px;
+}
+
+.composer-basic-plan-boundary > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.composer-basic-plan-boundary p {
+  grid-column: auto;
+  margin: 0;
 }
 
 .composer-basic-block {

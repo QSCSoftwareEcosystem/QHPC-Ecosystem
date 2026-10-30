@@ -196,6 +196,46 @@ test("lets a newcomer drag a compatible basic path onto the canvas", async ({ pa
 });
 
 
+test("builds a Basic Composer path one compatible intent at a time", async ({ page }) => {
+  await page.goto("/?view=compose");
+
+  await page.getByRole("button", { name: "Start new" }).click();
+  await expect(
+    page.getByText("Start with Circuit input", { exact: true }),
+  ).toBeVisible();
+
+  const circuitInput = page.getByRole("button", {
+    name: /Circuit input OpenQASM circuit/,
+  });
+  await expect(circuitInput).toBeEnabled();
+  await circuitInput.click();
+  await expect(
+    page.getByText("Next compatible block:", { exact: false }),
+  ).toBeVisible();
+
+  const compile = page.getByRole("button", {
+    name: /Compile for target FTQC preparation/,
+  });
+  await expect(compile).toBeEnabled();
+  await compile.click();
+  await expect(
+    page.getByRole("heading", { name: "Run on quantum hardware" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Next compatible block: Run on hardware.", { exact: false }),
+  ).toBeVisible();
+
+  await page.getByRole("button", {
+    name: /Run on hardware Configured IQM worker/,
+  }).click();
+  await page.getByRole("button", { name: /Results Run artifacts and receipt/ }).click();
+  await expect(
+    page.getByText("Compatible published workflow selected:", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Submit hardware run" })).toBeDisabled();
+});
+
+
 test("explains what a tool does and how to use it", async ({ page }) => {
   await page.goto("/?view=tools");
 

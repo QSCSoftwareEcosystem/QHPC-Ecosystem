@@ -169,8 +169,27 @@ down` removes the in-memory local-service configuration.
 | **Knowledge** | Explore QAppsWiki-connected ecosystem knowledge. |
 | **Engagement** | Open public course material, training tutorials, and community events. |
 | **Assistant** | Ask the local, citation-backed ChatQEC fallback about QEC concepts. |
-| **Compose** | Start a guided workflow or build an advanced typed workflow. |
+| **Compose** | Begin with Basic Composer's compatible circuit-intent blocks, choose a guided scientific recipe, or build an advanced typed workflow. |
 | **Runs** and **Artifacts** | Follow execution and inspect provenance-linked results. |
+
+### Build a first circuit path
+
+Open **Compose → Basic** when you know what you want to do with a circuit but
+not yet the names of EQO tools or artifact types. Start from a circuit input,
+then drag or select the next compatible intent block. EQO joins only admitted
+handoffs and progressively reveals the one pinned published workflow that
+matches the complete plan. For example:
+
+```text
+Circuit input → Simulate → Analyze results → Results
+```
+
+The same constrained builder supports transform and hardware-oriented paths.
+Until a full compatible plan is selected, it cannot submit a run. When it is
+complete, the canvas shows the selected workflow, typed inputs, implementation,
+target, and plain-language preflight result. Use **Advanced** only when you
+need to inspect or edit the underlying typed workflow graph; switching keeps
+the chosen connections and provenance.
 
 ### 6. Check, stop, or recover
 

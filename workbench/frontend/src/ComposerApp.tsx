@@ -88,6 +88,15 @@ import type {
 type LibraryView = "operations" | "templates" | "drafts";
 type ComposerMode = "basic" | "guided" | "advanced";
 type BasicPathId = "simulate" | "transform" | "hardware";
+type BasicBlockKind = "input" | "transform" | "execution" | "analysis" | "output";
+type BasicIntentId =
+  | "circuit-input"
+  | "simulate"
+  | "transform"
+  | "compile-target"
+  | "analyze-results"
+  | "run-hardware"
+  | "results";
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
 interface GraphSnapshot {
@@ -205,13 +214,19 @@ interface BasicPathDefinition {
   exampleName: string;
   exampleLabel: string;
   exampleContent: string;
-  blocks: Array<{
-    title: string;
-    detail: string;
-    kind: "input" | "transform" | "execution" | "analysis" | "output";
-    nodeIds?: string[];
-  }>;
+  blocks: BasicPathBlock[];
   hardwareNotice?: string;
+}
+
+interface BasicIntentBlock {
+  id: BasicIntentId;
+  title: string;
+  detail: string;
+  kind: BasicBlockKind;
+}
+
+interface BasicPathBlock extends BasicIntentBlock {
+  nodeIds?: string[];
 }
 
 interface BasicPath extends BasicPathDefinition {
@@ -356,6 +371,64 @@ h q[0];
 result[0] = measure q[0];
 `;
 
+const BASIC_INTENT_BLOCKS: readonly BasicIntentBlock[] = [
+  {
+    id: "circuit-input",
+    title: "Circuit input",
+    detail: "OpenQASM circuit",
+    kind: "input",
+  },
+  {
+    id: "simulate",
+    title: "Simulate",
+    detail: "Local CPU execution",
+    kind: "execution",
+  },
+  {
+    id: "transform",
+    title: "Transform circuit",
+    detail: "QASM conversion",
+    kind: "transform",
+  },
+  {
+    id: "compile-target",
+    title: "Compile for target",
+    detail: "FTQC preparation",
+    kind: "transform",
+  },
+  {
+    id: "analyze-results",
+    title: "Analyze results",
+    detail: "Measurement counts or circuit resources",
+    kind: "analysis",
+  },
+  {
+    id: "run-hardware",
+    title: "Run on hardware",
+    detail: "Configured IQM worker",
+    kind: "execution",
+  },
+  {
+    id: "results",
+    title: "Results",
+    detail: "Run artifacts and receipt",
+    kind: "output",
+  },
+];
+
+const BASIC_INTENT_BY_ID = new Map(
+  BASIC_INTENT_BLOCKS.map((block) => [block.id, block]),
+);
+
+function basicPathBlock(
+  id: BasicIntentId,
+  nodeIds?: string[],
+): BasicPathBlock {
+  const block = BASIC_INTENT_BY_ID.get(id);
+  if (!block) throw new Error(`Unknown basic intent block: ${id}`);
+  return { ...block, nodeIds };
+}
+
 export const BASIC_PATHS: BasicPathDefinition[] = [
   {
     id: "simulate",
@@ -370,28 +443,10 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
     exampleLabel: "Load Bell circuit",
     exampleContent: QASMTRANS_BELL_EXAMPLE,
     blocks: [
-      {
-        title: "Circuit input",
-        detail: "OpenQASM circuit",
-        kind: "input",
-      },
-      {
-        title: "Simulate",
-        detail: "Local CPU execution",
-        kind: "execution",
-        nodeIds: ["simulate"],
-      },
-      {
-        title: "Analyze results",
-        detail: "Measurement counts",
-        kind: "analysis",
-        nodeIds: ["simulate"],
-      },
-      {
-        title: "Results",
-        detail: "Run artifacts",
-        kind: "output",
-      },
+      basicPathBlock("circuit-input"),
+      basicPathBlock("simulate", ["simulate"]),
+      basicPathBlock("analyze-results", ["simulate"]),
+      basicPathBlock("results"),
     ],
   },
   {
@@ -407,27 +462,16 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
     exampleLabel: "Load Bell circuit",
     exampleContent: QASMTRANS_BELL_EXAMPLE,
     blocks: [
+      basicPathBlock("circuit-input"),
+      basicPathBlock("transform", ["transpile"]),
       {
-        title: "Circuit input",
-        detail: "OpenQASM circuit",
-        kind: "input",
-      },
-      {
-        title: "Transform circuit",
-        detail: "QASM conversion",
-        kind: "transform",
-        nodeIds: ["transpile"],
-      },
-      {
+        ...basicPathBlock("analyze-results", ["analyze"]),
         title: "Analyze metrics",
         detail: "Circuit resources",
-        kind: "analysis",
-        nodeIds: ["analyze"],
       },
       {
-        title: "Results",
+        ...basicPathBlock("results"),
         detail: "Circuit and metrics",
-        kind: "output",
       },
     ],
   },
@@ -444,27 +488,12 @@ export const BASIC_PATHS: BasicPathDefinition[] = [
     exampleLabel: "Load Bell circuit",
     exampleContent: FTQC_BELL_EXAMPLE,
     blocks: [
+      basicPathBlock("circuit-input"),
+      basicPathBlock("compile-target", ["prepare"]),
+      basicPathBlock("run-hardware", ["execute"]),
       {
-        title: "Circuit input",
-        detail: "OpenQASM circuit",
-        kind: "input",
-      },
-      {
-        title: "Compile for target",
-        detail: "FTQC preparation",
-        kind: "transform",
-        nodeIds: ["prepare"],
-      },
-      {
-        title: "Run on hardware",
-        detail: "Configured IQM worker",
-        kind: "execution",
-        nodeIds: ["execute"],
-      },
-      {
-        title: "Results",
+        ...basicPathBlock("results"),
         detail: "Counts and receipt",
-        kind: "output",
       },
     ],
     hardwareNotice:
@@ -2989,7 +3018,9 @@ function BasicComposer({
   const [blockQuery, setBlockQuery] = useState("");
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   const [canvasDropActive, setCanvasDropActive] = useState(false);
-  const workflow = selectedPath?.workflow;
+  const [intentPlan, setIntentPlan] = useState<BasicIntentId[]>(
+    () => selectedPath?.blocks.map((block) => block.id) ?? [],
+  );
   const normalizedBlockQuery = blockQuery.trim().toLocaleLowerCase();
   const visiblePaths = paths.filter((path) => {
     if (!normalizedBlockQuery) return true;
@@ -3000,20 +3031,51 @@ function BasicComposer({
       ...path.blocks.flatMap((block) => [block.title, block.detail]),
     ].some((value) => value.toLocaleLowerCase().includes(normalizedBlockQuery));
   });
+  const visibleIntentBlocks = BASIC_INTENT_BLOCKS.filter((block) =>
+    !normalizedBlockQuery || [block.title, block.detail].some(
+      (value) => value.toLocaleLowerCase().includes(normalizedBlockQuery),
+    ),
+  );
+  const matchingPaths = paths.filter((path) =>
+    intentPlan.every((id, index) => path.blocks[index]?.id === id),
+  );
+  const completePath = matchingPaths.find(
+    (path) => path.blocks.length === intentPlan.length,
+  );
+  const planPath = completePath ?? (
+    matchingPaths.length === 1 ? matchingPaths[0] : undefined
+  );
+  const workflow = planPath?.workflow;
+  const isPlanExecutable = Boolean(completePath && workflow);
+  const nextIntentIds = new Set(
+    matchingPaths
+      .map((path) => path.blocks[intentPlan.length]?.id)
+      .filter((id): id is BasicIntentId => Boolean(id)),
+  );
+  const activeBlocks = intentPlan
+    .map(
+      (id) => planPath?.blocks.find((block) => block.id === id)
+        ?? BASIC_INTENT_BY_ID.get(id),
+    )
+    .filter((block): block is BasicIntentBlock => Boolean(block));
   const workflowInputs = workflow
     ? Object.entries(workflow.definition.spec.inputs)
     : [];
   const [inputName, inputDefinition] = workflowInputs[0] ?? [];
   const inputReady =
+    isPlanExecutable &&
     !!workflow &&
     workflowInputs.every(
       ([name, input]) =>
         !(input.required ?? true) || Boolean(inputs[name]?.trim()),
     );
-  const selectedBlock = selectedPath?.blocks[selectedBlockIndex] ?? selectedPath?.blocks[0];
-  const selectedNodes = workflow && selectedBlock?.nodeIds
+  const selectedBlock = activeBlocks[selectedBlockIndex] ?? activeBlocks[0];
+  const selectedPathBlock = planPath?.blocks.find(
+    (block) => block.id === selectedBlock?.id,
+  );
+  const selectedNodes = workflow && selectedPathBlock?.nodeIds
     ? workflow.definition.spec.nodes.filter((node) =>
-        selectedBlock.nodeIds?.includes(node.id),
+        selectedPathBlock.nodeIds?.includes(node.id),
       )
     : [];
   const blockInputArtifacts = new Set<string>();
@@ -3056,13 +3118,124 @@ function BasicComposer({
   );
 
   useEffect(() => {
-    setSelectedBlockIndex(0);
-  }, [selectedPath?.id]);
+    setSelectedBlockIndex((index) => Math.min(index, Math.max(0, activeBlocks.length - 1)));
+  }, [activeBlocks.length]);
 
   const choosePath = (pathId: BasicPathId) => {
     setFileError(null);
+    const path = paths.find((item) => item.id === pathId);
+    if (path) setIntentPlan(path.blocks.map((block) => block.id));
     onSelect(pathId);
   };
+
+  const addIntentBlock = (id: BasicIntentId) => {
+    if (!nextIntentIds.has(id)) return;
+    const nextPlan = [...intentPlan, id];
+    const nextMatches = paths.filter((path) =>
+      nextPlan.every((intent, index) => path.blocks[index]?.id === intent),
+    );
+    const nextPath = nextMatches.find(
+      (path) => path.blocks.length === nextPlan.length,
+    ) ?? (nextMatches.length === 1 ? nextMatches[0] : undefined);
+    setFileError(null);
+    setIntentPlan(nextPlan);
+    if (nextPath) onSelect(nextPath.id);
+  };
+
+  const resetIntentPlan = () => {
+    setFileError(null);
+    setSelectedBlockIndex(0);
+    setIntentPlan([]);
+  };
+
+  const canDropBasicItem = (types: readonly string[]) =>
+    types.includes("application/x-eqo-basic-path") ||
+    types.includes("application/x-eqo-basic-intent");
+
+  const flowCanvas = (
+    <section
+      className={`composer-basic-flow-section${canvasDropActive ? " is-drop-target" : ""}`}
+      aria-labelledby="basic-canvas-title"
+      aria-describedby="basic-canvas-hint"
+      onDragEnter={(event) => {
+        if (canDropBasicItem(event.dataTransfer.types)) {
+          event.preventDefault();
+          setCanvasDropActive(true);
+        }
+      }}
+      onDragOver={(event) => {
+        if (canDropBasicItem(event.dataTransfer.types)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget === event.target) setCanvasDropActive(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setCanvasDropActive(false);
+        const pathId = event.dataTransfer.getData("application/x-eqo-basic-path");
+        if (paths.some((path) => path.id === pathId)) {
+          choosePath(pathId as BasicPathId);
+          return;
+        }
+        const intentId = event.dataTransfer.getData("application/x-eqo-basic-intent") as BasicIntentId;
+        if (BASIC_INTENT_BY_ID.has(intentId)) addIntentBlock(intentId);
+      }}
+    >
+      <div className="composer-basic-section-heading">
+        <h3 id="basic-canvas-title">Your workflow</h3>
+        <p>Drag an intent block here. EQO connects only compatible published handoffs.</p>
+      </div>
+      <p id="basic-canvas-hint" className="composer-basic-canvas-hint" role="status">
+        {isPlanExecutable
+          ? `Compatible published workflow selected: ${completePath?.title}.`
+          : nextIntentIds.size
+            ? `Next compatible block: ${[...nextIntentIds].map((id) => BASIC_INTENT_BY_ID.get(id)?.title).join(" or ")}.`
+            : "Start a new plan with Circuit input."}
+        {" Drag a starter path here to switch the canvas, or build one compatible intent at a time."}
+      </p>
+      {activeBlocks.length ? (
+        <ol
+          className="composer-basic-flow"
+          aria-label={`${planPath?.title ?? selectedPath?.title ?? "Basic"} workflow blocks`}
+        >
+          {activeBlocks.map((block, index) => (
+            <Fragment key={`${block.id}-${index}`}>
+              <li>
+                <button
+                  type="button"
+                  className={`composer-basic-block is-${block.kind}${selectedBlock?.id === block.id && selectedBlockIndex === index ? " is-selected" : ""}`}
+                  aria-pressed={selectedBlock?.id === block.id && selectedBlockIndex === index}
+                  onClick={() => setSelectedBlockIndex(index)}
+                >
+                  <span className="composer-basic-block-index" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <span>
+                    <strong>{block.title}</strong>
+                    <small>{block.detail}</small>
+                  </span>
+                </button>
+              </li>
+              {index < activeBlocks.length - 1 && (
+                <li className="composer-basic-connector" aria-hidden="true">
+                  <ChevronRight size={18} />
+                </li>
+              )}
+            </Fragment>
+          ))}
+        </ol>
+      ) : (
+        <div className="composer-basic-empty-canvas">
+          <FileCode2 size={18} aria-hidden="true" />
+          <strong>Start with Circuit input</strong>
+          <p>EQO will reveal only the next compatible intent block.</p>
+        </div>
+      )}
+    </section>
+  );
 
   return (
     <div className="composer-basic-workspace">
@@ -3086,7 +3259,7 @@ function BasicComposer({
         </div>
         <div className="composer-basic-paths">
           {visiblePaths.map((path) => {
-            const selected = path.id === selectedPath?.id;
+            const selected = path.id === completePath?.id;
             return (
               <button
                 type="button"
@@ -3118,23 +3291,68 @@ function BasicComposer({
             </p>
           )}
         </div>
+        <div className="composer-basic-intent-library" aria-label="Intent blocks">
+          <div>
+            <strong>Build a path</strong>
+            <button type="button" onClick={resetIntentPlan}>
+              Start new
+            </button>
+          </div>
+          <p>Drop the next compatible intent onto the canvas. EQO adds the typed connection.</p>
+          {visibleIntentBlocks.map((block) => {
+            const compatible = nextIntentIds.has(block.id);
+            return (
+              <button
+                type="button"
+                className="composer-basic-intent"
+                key={block.id}
+                disabled={!compatible}
+                draggable={compatible}
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "copy";
+                  event.dataTransfer.setData("application/x-eqo-basic-intent", block.id);
+                  event.dataTransfer.setData("text/plain", block.title);
+                }}
+                onDragEnd={() => setCanvasDropActive(false)}
+                onClick={() => addIntentBlock(block.id)}
+                title={
+                  compatible
+                    ? `Add ${block.title} to the compatible workflow path`
+                    : "Complete or restart the current path before this block can connect"
+                }
+              >
+                <span>
+                  <strong>{block.title}</strong>
+                  <small>{block.detail}</small>
+                </span>
+                <ChevronRight size={15} aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
         <p className="composer-basic-library-note">
-          The selected blocks are compatible by design. Hardware stays explicit and is never selected automatically.
+          Hardware stays explicit and is never selected automatically. A blank or incomplete plan cannot be submitted.
         </p>
       </aside>
 
       <main className="composer-basic-detail">
-        {!selectedPath || !workflow ? (
-          <div className="composer-guided-unavailable">
-            <CircleAlert size={20} aria-hidden="true" />
-            <strong>Published starter workflow unavailable</strong>
+        {!workflow ? (
+          <div className="composer-basic-body">
+            {flowCanvas}
+            <section className="composer-basic-plan-boundary" aria-label="Basic plan validation">
+              <CircleAlert size={18} aria-hidden="true" />
+              <div>
+                <strong>Complete a compatible path before configuring a run</strong>
+                <p>EQO will reveal circuit input, target constraints, and preflight only after this intent plan maps to a published workflow.</p>
+              </div>
+            </section>
           </div>
         ) : (
           <>
             <header className="composer-basic-header">
               <span>
-                <h2>{selectedPath.title}</h2>
-                <p>{selectedPath.detail}</p>
+                <h2>{planPath.title}</h2>
+                <p>{planPath.detail}</p>
               </span>
               <dl>
                 <dt>WORKFLOW</dt>
@@ -3145,67 +3363,7 @@ function BasicComposer({
             </header>
 
             <div className="composer-basic-body">
-              <section
-                className={`composer-basic-flow-section${canvasDropActive ? " is-drop-target" : ""}`}
-                aria-labelledby="basic-canvas-title"
-                aria-describedby="basic-canvas-hint"
-                onDragEnter={(event) => {
-                  if (event.dataTransfer.types.includes("application/x-eqo-basic-path")) {
-                    event.preventDefault();
-                    setCanvasDropActive(true);
-                  }
-                }}
-                onDragOver={(event) => {
-                  if (event.dataTransfer.types.includes("application/x-eqo-basic-path")) {
-                    event.preventDefault();
-                    event.dataTransfer.dropEffect = "copy";
-                  }
-                }}
-                onDragLeave={(event) => {
-                  if (event.currentTarget === event.target) setCanvasDropActive(false);
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  setCanvasDropActive(false);
-                  const pathId = event.dataTransfer.getData("application/x-eqo-basic-path");
-                  if (paths.some((path) => path.id === pathId)) choosePath(pathId as BasicPathId);
-                }}
-              >
-                <div className="composer-basic-section-heading">
-                  <h3 id="basic-canvas-title">Your workflow</h3>
-                  <p>Follow the blocks left to right. Each connection is an inspectable EQO artifact handoff.</p>
-                </div>
-                <p id="basic-canvas-hint" className="composer-basic-canvas-hint" role="status">
-                  Drag a starter path here to switch the canvas, or choose it from the picker. EQO only reveals compatible published blocks.
-                </p>
-                <ol className="composer-basic-flow" aria-label={`${selectedPath.title} workflow blocks`}>
-                  {selectedPath.blocks.map((block, index) => (
-                    <Fragment key={block.title}>
-                      <li>
-                        <button
-                          type="button"
-                          className={`composer-basic-block is-${block.kind}${selectedBlock === block ? " is-selected" : ""}`}
-                          aria-pressed={selectedBlock === block}
-                          onClick={() => setSelectedBlockIndex(index)}
-                        >
-                          <span className="composer-basic-block-index" aria-hidden="true">
-                            {index + 1}
-                          </span>
-                          <span>
-                            <strong>{block.title}</strong>
-                            <small>{block.detail}</small>
-                          </span>
-                        </button>
-                      </li>
-                      {index < selectedPath.blocks.length - 1 && (
-                        <li className="composer-basic-connector" aria-hidden="true">
-                          <ChevronRight size={18} />
-                        </li>
-                      )}
-                    </Fragment>
-                  ))}
-                </ol>
-              </section>
+              {flowCanvas}
 
               {selectedBlock && (
                 <section
@@ -3281,14 +3439,14 @@ function BasicComposer({
                 </section>
               )}
 
-              {selectedPath.hardwareNotice && (
+              {planPath.hardwareNotice && (
                 <aside className="composer-basic-hardware-notice" role="note">
                   <CircleAlert size={16} aria-hidden="true" />
-                  <span>{selectedPath.hardwareNotice}</span>
+                  <span>{planPath.hardwareNotice}</span>
                 </aside>
               )}
 
-              {selectedPath.id === "hardware" && (
+              {planPath.id === "hardware" && (
                 <section
                   className="composer-basic-target"
                   aria-labelledby="basic-hardware-target-title"
@@ -3324,8 +3482,8 @@ function BasicComposer({
                       Upload circuit
                       <input
                         type="file"
-                        accept={selectedPath.inputAccept}
-                        aria-label={`Upload ${selectedPath.inputLabel} file`}
+                        accept={planPath.inputAccept}
+                        aria-label={`Upload ${planPath.inputLabel} file`}
                         onChange={(event) => {
                           const file = event.currentTarget.files?.[0];
                           if (!file) return;
@@ -3353,21 +3511,21 @@ function BasicComposer({
                         onInput(
                           workflow.id,
                           inputName,
-                          selectedPath.exampleContent,
-                          selectedPath.exampleName,
+                          planPath.exampleContent,
+                          planPath.exampleName,
                         );
                       }}
                     >
                       <FileCode2 size={14} aria-hidden="true" />
-                      {selectedPath.exampleLabel}
+                      {planPath.exampleLabel}
                     </button>
                   </div>
                   <textarea
                     rows={8}
-                    aria-label={selectedPath.inputLabel}
+                    aria-label={planPath.inputLabel}
                     spellCheck={false}
                     value={inputs[inputName] ?? ""}
-                    placeholder={selectedPath.inputPlaceholder}
+                    placeholder={planPath.inputPlaceholder}
                     onChange={(event) =>
                       onInput(workflow.id, inputName, event.target.value)
                     }
@@ -3435,8 +3593,14 @@ function BasicComposer({
                 <button
                   type="button"
                   className="composer-button is-primary"
-                  disabled={!inputReady || queueing || !readiness.canQueue}
-                  title={readiness.canQueue ? selectedPath.actionLabel : readiness.message}
+                  disabled={!isPlanExecutable || !inputReady || queueing || !readiness.canQueue}
+                  title={
+                    !isPlanExecutable
+                      ? "Complete a compatible Basic Composer path before submitting."
+                      : readiness.canQueue
+                        ? planPath.actionLabel
+                        : readiness.message
+                  }
                   onClick={onQueue}
                 >
                   {queueing ? (
@@ -3444,7 +3608,7 @@ function BasicComposer({
                   ) : (
                     <Play size={14} aria-hidden="true" />
                   )}
-                  {queueing ? "Submitting" : selectedPath.actionLabel}
+                  {queueing ? "Submitting" : planPath.actionLabel}
                 </button>
               </div>
             </footer>
