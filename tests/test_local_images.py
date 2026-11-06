@@ -153,6 +153,27 @@ def test_linux_arm64_refuses_an_amd64_only_admitted_release_set(
     assert commands == []
 
 
+def test_linux_arm64_allows_amd64_apptainer_acquisition_with_an_explicit_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    manifest, _digest = write_manifest(tmp_path)
+    commands: list[list[str]] = []
+    monkeypatch.setenv("USE_APPTAINER", "1")
+    monkeypatch.setattr(local_images.sys, "platform", "linux")
+    monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
+    monkeypatch.setattr(container_engine, "default_image_dir", lambda: tmp_path)
+
+    result = ensure_public_images(
+        manifest=manifest, runner=apptainer_runner(commands)
+    )
+
+    assert [(entry.id, entry.action) for entry in result] == [
+        ("test-image", "installed")
+    ]
+    assert commands[0][0:5] == ["apptainer", "pull", "--force", "--arch", "amd64"]
+    assert "qemu-user/binfmt emulation" in capsys.readouterr().err
+
+
 def test_unsigned_arm64_alpha_manifest_requires_explicit_native_opt_in(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -346,10 +367,9 @@ def test_ensure_public_images_warns_on_apptainer_arch_mismatch(
     assert "exec format error" in warning
 
 
-def test_ensure_public_images_refuses_unsigned_arm64_candidates(
+def test_native_linux_arm64_docker_path_refuses_unsigned_candidates(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("USE_APPTAINER", "1")
     monkeypatch.setattr(container_engine.platform, "machine", lambda: "aarch64")
     monkeypatch.setattr(local_images.sys, "platform", "linux")
     manifest, _digest = write_manifest(tmp_path)

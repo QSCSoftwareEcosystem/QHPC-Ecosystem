@@ -261,15 +261,18 @@ def _warn_on_arch_mismatch(images: Sequence[PublicImage]) -> None:
 
 
 def _require_admitted_native_linux_images(images: Sequence[PublicImage]) -> None:
-    """Reject an AMD64-only release set on a native Linux/ARM64 host.
+    """Reject an AMD64-only release set when Docker would run it natively.
 
-    Docker Desktop on macOS can deliberately run an admitted AMD64 image set
-    under its own emulation policy, so this guard is intentionally restricted
-    to the Linux runtime that actually executes EQO operations.  It prevents a
-    native Linux/ARM64 installation from silently acquiring an AMD64-only
+    Apptainer always pulls the exact admitted architecture and explicitly
+    warns when a host needs qemu/binfmt emulation. Docker Desktop on macOS can
+    deliberately run an admitted AMD64 image set under its own emulation
+    policy. This guard therefore applies only to the native Linux Docker path,
+    preventing an ARM64 installation from silently acquiring an AMD64-only
     release while ARM64 candidates remain outside the signed admission set.
     """
 
+    if apptainer_requested():
+        return
     if sys.platform != "linux" or host_oci_arch() != "arm64":
         return
     admitted_platforms = {image.platform for image in images}
