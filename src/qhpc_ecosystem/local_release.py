@@ -1706,6 +1706,7 @@ def supervise_local(
         workflows=config.workflows,
         host=config.host,
         workbench_allowed_hosts=config.workbench_allowed_hosts,
+        workbench_trusted_origins=config.workbench_trusted_origins,
         port=config.workbench_port,
         api_port=config.api_port,
         chatqec_service_interface=config.assistant_interface,

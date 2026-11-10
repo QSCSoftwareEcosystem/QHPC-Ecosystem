@@ -579,6 +579,7 @@ def test_supervisor_launches_services_before_waiting_for_api(
     tmp_path: Path, monkeypatch
 ) -> None:
     events: list[str] = []
+    captured_stack_configs = []
 
     class RecordingSupervisor:
         processes: dict[str, object] = {}
@@ -607,15 +608,26 @@ def test_supervisor_launches_services_before_waiting_for_api(
         def stop(self) -> None:
             events.append("stop")
 
-    monkeypatch.setattr(dev_stack, "build_service_specs", lambda _config: ())
+    def record_stack_config(stack_config):
+        captured_stack_configs.append(stack_config)
+        return ()
+
+    monkeypatch.setattr(dev_stack, "build_service_specs", record_stack_config)
     monkeypatch.setattr(dev_stack, "DevStackSupervisor", RecordingSupervisor)
     monkeypatch.setattr(local_release.signal, "signal", lambda *_args: None)
 
     assert local_release.supervise_local(
-        config(assistant_enabled=False),
+        config(
+            assistant_enabled=False,
+            workbench_allowed_hosts=("eqo.example.test",),
+            workbench_trusted_origins=("https://eqo.example.test:8443",),
+        ),
         LocalPaths.discover(tmp_path / "local-home"),
         release_version="0.1.0",
     ) == 0
+    assert captured_stack_configs[0].workbench_trusted_origins == (
+        "https://eqo.example.test:8443",
+    )
     assert events == [
         "start_api",
         "start_services",
