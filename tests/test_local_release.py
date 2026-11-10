@@ -118,6 +118,15 @@ def test_local_config_rejects_non_loopback_and_port_collisions(
         config(api_port=18080).validate()
     with pytest.raises(LocalReleaseError, match="allowed hosts"):
         config(workbench_allowed_hosts=("*",)).validate()
+    with pytest.raises(LocalReleaseError, match="trusted origins"):
+        config(
+            workbench_trusted_origins=("https://unlisted.example.test:8443",)
+        ).validate()
+    with pytest.raises(LocalReleaseError, match="trusted origins"):
+        config(
+            workbench_allowed_hosts=("eqo.example.test",),
+            workbench_trusted_origins=("https://eqo.example.test:8443/path",),
+        ).validate()
     with pytest.raises(LocalReleaseError, match="QAppsWiki graph"):
         config(qappswiki_graph=str(tmp_path / "missing-graph.json")).validate()
 
@@ -490,6 +499,23 @@ def test_supervisor_command_preserves_explicit_workbench_allowed_hosts(
     second = command.index("--workbench-allowed-host", first + 1)
     assert command[first + 1] == "128.219.7.192"
     assert command[second + 1] == "eqo.example.test"
+
+
+def test_supervisor_command_preserves_explicit_workbench_trusted_origins(
+    tmp_path: Path,
+) -> None:
+    command = supervisor_command(
+        config(
+            assistant_enabled=False,
+            workbench_allowed_hosts=("eqo.example.test",),
+            workbench_trusted_origins=("https://eqo.example.test:8443",),
+        ),
+        LocalPaths.discover(tmp_path),
+    )
+
+    assert command.count("--workbench-trusted-origin") == 1
+    option = command.index("--workbench-trusted-origin")
+    assert command[option + 1] == "https://eqo.example.test:8443"
 
 
 def test_supervisor_command_can_enable_the_safe_iqm_simulation(tmp_path: Path) -> None:

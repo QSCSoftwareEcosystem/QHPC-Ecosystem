@@ -249,6 +249,7 @@ class LocalStackConfig:
     api_port: int
     assistant_port: int
     workbench_allowed_hosts: tuple[str, ...] = ()
+    workbench_trusted_origins: tuple[str, ...] = ()
     assistant_enabled: bool = True
     iqm_simulation_enabled: bool = False
     iqm_worker_enabled: bool = False
@@ -296,6 +297,39 @@ class LocalStackConfig:
             raise LocalReleaseError(
                 "Workbench allowed hosts must be explicit hostnames or IP addresses "
                 "without a scheme, path, or wildcard"
+            )
+        allowed_host_names = {
+            host.strip("[]").lower()
+            for host in (*self.workbench_allowed_hosts, self.host, *LOOPBACK_HOSTS)
+        }
+        invalid_trusted_origins = []
+        for origin in self.workbench_trusted_origins:
+            parsed = urlparse(origin)
+            try:
+                port = parsed.port
+            except ValueError:
+                invalid_trusted_origins.append(origin)
+                continue
+            origin_host = (parsed.hostname or "").lower()
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not origin_host
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path
+                or parsed.params
+                or parsed.query
+                or parsed.fragment
+                or "*" in origin_host
+                or port is not None and not 1 <= port <= 65535
+                or origin_host not in allowed_host_names
+            ):
+                invalid_trusted_origins.append(origin)
+        if invalid_trusted_origins:
+            raise LocalReleaseError(
+                "Workbench trusted origins must be explicit http(s) origins without "
+                "a path, wildcard, or credentials, and their host must be an allowed "
+                "Workbench host"
             )
         if not Path(self.qappswiki_graph).is_file():
             raise LocalReleaseError(
@@ -388,6 +422,7 @@ class LocalStackConfig:
             "slurm_test_checkout": self.slurm_test_checkout,
             "host": self.host,
             "workbench_allowed_hosts": list(self.workbench_allowed_hosts),
+            "workbench_trusted_origins": list(self.workbench_trusted_origins),
             "workbench_port": self.workbench_port,
             "api_port": self.api_port,
             "assistant_port": self.assistant_port,
@@ -1405,6 +1440,8 @@ def supervisor_command(
     ]
     for allowed_host in config.workbench_allowed_hosts:
         command.extend(("--workbench-allowed-host", allowed_host))
+    for trusted_origin in config.workbench_trusted_origins:
+        command.extend(("--workbench-trusted-origin", trusted_origin))
     if config.assistant_source_checkout:
         command.extend(
             ("--assistant-source-checkout", config.assistant_source_checkout)

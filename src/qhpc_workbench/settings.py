@@ -25,6 +25,13 @@ ALLOWED_HOSTS = sorted(
     configured_allowed_hosts
     | {configured_host, "127.0.0.1", "localhost", "testserver"}
 )
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "QHPC_WORKBENCH_CSRF_TRUSTED_ORIGINS", ""
+    ).split(",")
+    if origin.strip()
+]
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",

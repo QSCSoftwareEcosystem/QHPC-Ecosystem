@@ -42,6 +42,7 @@ class DevStackConfig:
     lease_seconds: int
     worker_stale_after_seconds: float
     workbench_allowed_hosts: tuple[str, ...] = ()
+    workbench_trusted_origins: tuple[str, ...] = ()
     qappswiki_graph: str = ""
     cluster_checkout: str = ""
     chatqec_container_image: str = ""
@@ -261,12 +262,21 @@ def build_service_specs(
                 )
             )
     if config.start_workbench:
-        workbench_environment = (
-            (
-                "QHPC_WORKBENCH_ALLOWED_HOSTS",
-                ",".join(config.workbench_allowed_hosts),
-            ),
-        ) if config.workbench_allowed_hosts else ()
+        workbench_environment = []
+        if config.workbench_allowed_hosts:
+            workbench_environment.append(
+                (
+                    "QHPC_WORKBENCH_ALLOWED_HOSTS",
+                    ",".join(config.workbench_allowed_hosts),
+                )
+            )
+        if config.workbench_trusted_origins:
+            workbench_environment.append(
+                (
+                    "QHPC_WORKBENCH_CSRF_TRUSTED_ORIGINS",
+                    ",".join(config.workbench_trusted_origins),
+                )
+            )
         services.append(
             ServiceSpec(
                 "workbench",
@@ -281,7 +291,7 @@ def build_service_specs(
                     "--api-base",
                     f"http://{config.host}:{config.api_port}",
                 ),
-                workbench_environment,
+                tuple(workbench_environment),
             )
         )
     if config.start_local_worker:

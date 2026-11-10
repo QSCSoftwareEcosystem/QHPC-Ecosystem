@@ -92,6 +92,19 @@ The command prints the Workbench address and opens it when your system permits.
 Keep that terminal open while you use EQO. To reopen an already running
 Workbench, use `eqo local open`.
 
+For a private HTTPS reverse proxy, keep EQO bound to loopback, explicitly
+allow the proxy host, and trust the exact browser-facing origin for Django CSRF
+checks. For example:
+
+```bash
+eqo local up \
+  --workbench-allowed-host eqo.internal.example \
+  --workbench-trusted-origin https://eqo.internal.example:8443
+```
+
+The reverse proxy—not EQO's API, Assistant, or worker ports—must be the only
+network-facing service.
+
 ### 4. Let EQO start the complete execution profile
 
 The first `eqo local up` starts the isolated virtual-Slurm fixture and obtains

@@ -97,6 +97,29 @@ def test_dev_stack_allows_explicit_reverse_proxy_host_for_workbench_only() -> No
     )
 
 
+def test_dev_stack_passes_explicit_reverse_proxy_origin_to_workbench_only() -> None:
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "workbench_allowed_hosts": ("eqo.example.test",),
+            "workbench_trusted_origins": ("https://eqo.example.test:8443",),
+        }
+    )
+
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+    workbench = next(service for service in services if service.name == "workbench")
+
+    assert workbench.environment == (
+        ("QHPC_WORKBENCH_ALLOWED_HOSTS", "eqo.example.test"),
+        ("QHPC_WORKBENCH_CSRF_TRUSTED_ORIGINS", "https://eqo.example.test:8443"),
+    )
+    assert all(
+        "QHPC_WORKBENCH_CSRF_TRUSTED_ORIGINS" not in dict(service.environment)
+        for service in services
+        if service is not workbench
+    )
+
+
 def test_dev_stack_passes_explicit_qappswiki_graph_to_api_only() -> None:
     value = DevStackConfig(
         **{

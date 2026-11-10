@@ -586,6 +586,16 @@ def build_parser() -> argparse.ArgumentParser:
                 "repeat for reverse-proxy access"
             ),
         )
+        command.add_argument(
+            "--workbench-trusted-origin",
+            action="append",
+            default=[],
+            metavar="ORIGIN",
+            help=(
+                "explicit http(s) origin trusted for CSRF through a reverse proxy; "
+                "its host must also be supplied with --workbench-allowed-host"
+            ),
+        )
         command.add_argument("--port", type=int, default=8080)
         command.add_argument("--api-port", type=int, default=8081)
         command.add_argument("--assistant-port", type=int, default=8082)
@@ -1924,6 +1934,7 @@ def dispatch(args: argparse.Namespace) -> int:
             qappswiki_graph=str(Path(args.qappswiki_graph).expanduser().resolve()),
             host=args.host,
             workbench_allowed_hosts=tuple(args.workbench_allowed_host),
+            workbench_trusted_origins=tuple(args.workbench_trusted_origin),
             workbench_port=args.port,
             api_port=args.api_port,
             assistant_port=args.assistant_port,
