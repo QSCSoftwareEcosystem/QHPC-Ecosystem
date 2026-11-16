@@ -215,18 +215,27 @@ tokens unusable, so back it up through the site's approved secret process.
 
 A shared deployment must derive the user identity at its trusted reverse proxy.
 For Caddy Basic Auth, configure the proxy that is the **only** network route to
-the loopback-bound Workbench to overwrite this header after `basic_auth`:
+the loopback-bound Workbench to overwrite this header after `basic_auth`. Put
+the handlers in a `route` so their order cannot be changed by Caddy's directive
+sorting:
 
 ```caddyfile
-reverse_proxy 127.0.0.1:8180 {
-    header_up X-EQO-Pilot-User {http.auth.user.id}
+route {
+    basic_auth {
+        # Define each authorized account here with its hashed password.
+        alice <hashed-password>
+    }
+    reverse_proxy 127.0.0.1:8180 {
+        header_up X-EQO-Pilot-User "{http.auth.user.id}"
+    }
 }
 ```
 
 `basic_auth` provides `{http.auth.user.id}` after successful authentication,
 and Caddy's `header_up` setting overwrites the corresponding upstream request
 header. Do not expose the Workbench directly or accept this identity header
-from an untrusted proxy. See the [Caddy Basic Auth documentation](https://caddyserver.com/docs/caddyfile/directives/basic_auth)
+from an untrusted proxy. See the [Caddy Basic Auth documentation](https://caddyserver.com/docs/caddyfile/directives/basic_auth),
+the [route documentation](https://caddyserver.com/docs/caddyfile/directives/route),
 and [reverse-proxy header documentation](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#headers).
 
 ### 5. Explore the Workbench
