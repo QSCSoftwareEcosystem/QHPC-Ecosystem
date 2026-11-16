@@ -140,6 +140,7 @@ credential. Add an optional capability only when you intend to use it:
 | `--chatqec-openai-model MODEL --prompt-for-openai-api-key` | Source-grounded model answers in ChatQEC | Prompts for `OPENAI_API_KEY` without echoing it; the key is scoped to the contained ChatQEC service. |
 | `--iqm-simulation` | Credential-free simulated IQM worker | No network call and no token. Results are labelled `simulated-iqm`. |
 | `--start-iqm-worker --iqm-endpoint URL --iqm-device-alias ALIAS --prompt-for-iqm-token` | Isolated internal-alpha IQM hardware worker | Prompts for `IQM_TOKEN` without echoing it; the token is scoped to that worker. |
+| `--start-iqm-worker --enable-user-iqm-credentials --iqm-credential-key-file PATH` | Per-user IQM hardware credentials | Uses an operator-owned encryption key and a per-user vault; each signed-in user supplies their token in the Workbench. |
 | `--no-ecosystem-execution` | Lightweight discovery and interactive profile | Does not start the virtual-Slurm ecosystem worker. |
 | `--no-assistant` | Control plane without ChatQEC | Does not start the local Assistant service. |
 
@@ -176,6 +177,57 @@ Never put either secret after a command-line option or save it in a workflow,
 notebook, or shell history. Both prompt options keep the value out of command
 arguments, saved EQO configuration, the Workbench, and worker logs; `eqo local
 down` removes the in-memory local-service configuration.
+
+### Per-user IQM credentials for an internal Workbench
+
+For a shared, internally authenticated EQO deployment, the operator can opt in
+to a token vault instead of supplying one shared `IQM_TOKEN`. Each user then
+adds, replaces, or removes only their own IQM token from **Basic → Run on
+quantum hardware**. The browser never receives a stored token, and tokens are
+not written into workflows, runs, artifacts, local state, command arguments,
+or worker logs.
+
+The operator owns a Fernet key outside the checkout and starts the fixed IQM
+endpoint/device worker in per-user mode. Create and protect the key with the
+site's secret-management process; this local example creates a `0600` file
+without printing its value:
+
+```bash
+install -d -m 700 "$HOME/.local/share/eqo/secrets"
+python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode("ascii"))' \
+  > "$HOME/.local/share/eqo/secrets/iqm-user-vault.key"
+chmod 600 "$HOME/.local/share/eqo/secrets/iqm-user-vault.key"
+
+eqo local up \
+  --start-iqm-worker \
+  --iqm-endpoint https://qccsw.ccs.ornl.gov \
+  --iqm-device-alias default \
+  --enable-user-iqm-credentials \
+  --iqm-credential-key-file "$HOME/.local/share/eqo/secrets/iqm-user-vault.key" \
+  --open
+```
+
+Do not combine this mode with `--prompt-for-iqm-token`: the static worker token
+and per-user vault are deliberately mutually exclusive. The vault key reaches
+only the Workbench and isolated IQM worker, and the encrypted SQLite vault is
+separate from the EQO run database. Losing the key makes existing encrypted
+tokens unusable, so back it up through the site's approved secret process.
+
+A shared deployment must derive the user identity at its trusted reverse proxy.
+For Caddy Basic Auth, configure the proxy that is the **only** network route to
+the loopback-bound Workbench to overwrite this header after `basic_auth`:
+
+```caddyfile
+reverse_proxy 127.0.0.1:8180 {
+    header_up X-EQO-Pilot-User {http.auth.user.id}
+}
+```
+
+`basic_auth` provides `{http.auth.user.id}` after successful authentication,
+and Caddy's `header_up` setting overwrites the corresponding upstream request
+header. Do not expose the Workbench directly or accept this identity header
+from an untrusted proxy. See the [Caddy Basic Auth documentation](https://caddyserver.com/docs/caddyfile/directives/basic_auth)
+and [reverse-proxy header documentation](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#headers).
 
 ### 5. Explore the Workbench
 
@@ -332,7 +384,9 @@ eqo local up \
 
 The final command asks for `IQM_TOKEN` without echoing it. The token is passed
 only to the IQM worker; do not paste it into the Workbench or add it to a
-workflow. Starting the worker does **not** submit an experiment.
+workflow. For a shared internally authenticated Workbench, use the per-user
+vault mode above instead. Starting the worker does **not** submit an
+experiment.
 
 In the Workbench, open **Guided** and choose **Route and execute one Steane
 logical qubit**. Click **Load logical |0⟩**, review the circuit, then click

@@ -110,6 +110,30 @@ def test_engine_executes_persistent_workflow_and_exports_bundle(tmp_path: Path) 
     assert bundle["digest"].startswith("sha256:")
 
 
+def test_task_request_carries_the_run_principal_to_an_isolated_worker(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    registered = engine.register_workflow(
+        workflow, example_registry(), created_by="operator"
+    )
+    run = engine.submit_run(
+        registered["id"],
+        registered["version"],
+        inputs={},
+        execution_target="local-development",
+        created_by="nqx",
+    )
+
+    engine.register_worker("test-worker", kind="local")
+    lease = engine.claim_task("test-worker", lease_seconds=60)
+
+    assert lease is not None
+    assert lease.run_id == run["id"]
+    assert engine.task_request(lease).created_by == "nqx"
+
+
 def test_workflow_versions_are_immutable(tmp_path: Path) -> None:
     engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
     workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")

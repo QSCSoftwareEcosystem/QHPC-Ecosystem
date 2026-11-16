@@ -12,6 +12,12 @@ accepted by an external QPU.  EQO preflight checks the worker's non-secret
 admission metadata immediately before queueing; the isolated worker performs
 the final operation, runtime, target, and credential-reference checks.
 
+In the optional per-user credential mode, the fixed endpoint and device alias
+remain operator controlled. A run's reverse-proxy-authenticated principal is
+used only inside the IQM worker to select that principal's encrypted vault
+entry. The token is never placed in the workflow, run, artifact, or API
+response.
+
 `iqm-simulation` is deliberately a separate, credential-free worker target.
 It produces simulation evidence only and is never selected by the published
 hardware workflow.

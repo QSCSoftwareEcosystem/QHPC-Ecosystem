@@ -100,6 +100,26 @@ eqo local up --start-iqm-worker --prompt-for-iqm-token \
   --iqm-device-alias iqm-qpu-1
 ```
 
+For a shared Workbench where each authenticated user must use a different IQM
+token, enable the per-user vault rather than the static worker token. The
+operator supplies a private `0600` Fernet-key file; each user then manages only
+their own token in the Composer hardware route.
+
+```bash
+eqo local up --start-iqm-worker \
+  --iqm-endpoint https://qccsw.ccs.ornl.gov \
+  --iqm-device-alias iqm-qpu-1 \
+  --enable-user-iqm-credentials \
+  --iqm-credential-key-file /secure/eqo/iqm-user-vault.key
+```
+
+This option cannot be combined with `--prompt-for-iqm-token`. The key and
+encrypted vault remain absent from EQO Local state and supervisor arguments.
+When the Workbench is proxied for other users, the proxy must inject and
+overwrite `X-EQO-Pilot-User` from its authenticated identity before forwarding
+to the loopback-bound Workbench; see the shared-deployment guidance in the
+[README](../README.md#per-user-iqm-credentials-for-an-internal-workbench).
+
 For a credential-free demonstration of the complete FTQC route/collect path,
 start the optional safe simulation worker. It never contacts IQM, reads an IQM
 token, or produces hardware evidence; all resulting artifacts are labelled

@@ -676,6 +676,7 @@
 }
 
 .composer-basic-target h3,
+.composer-basic-target h4,
 .composer-basic-target p,
 .composer-basic-target dl,
 .composer-basic-target dt,
@@ -725,6 +726,100 @@
 
 .composer-basic-target-note {
   grid-column: 1 / -1;
+}
+
+.composer-iqm-credential {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.composer-iqm-credential-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.composer-iqm-credential-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.composer-iqm-credential h4 {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.composer-iqm-credential-heading p,
+.composer-iqm-credential-copy,
+.composer-iqm-credential-feedback p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.composer-iqm-credential-state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.composer-iqm-credential-state.is-ready {
+  color: var(--ok);
+}
+
+.composer-iqm-credential-state.is-error {
+  color: var(--bad);
+}
+
+.composer-iqm-credential-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.composer-iqm-credential-form label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.composer-iqm-credential-form label > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.composer-iqm-credential-form input {
+  min-width: 0;
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.composer-iqm-credential-form input:focus-visible {
+  outline: 2px solid var(--qsc-red);
+  outline-offset: 2px;
+}
+
+.composer-iqm-credential-actions,
+.composer-iqm-credential-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .composer-basic-transformation-evidence {

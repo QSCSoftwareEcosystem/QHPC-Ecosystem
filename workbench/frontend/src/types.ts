@@ -293,6 +293,13 @@ export interface WorkflowPreflight {
   checked_at: string;
 }
 
+export interface IQMCredentialStatus {
+  enabled: boolean;
+  configured: boolean;
+  principal?: string;
+  updated_at?: string;
+}
+
 export interface ArtifactRecord {
   id: string;
   artifact_type: string;

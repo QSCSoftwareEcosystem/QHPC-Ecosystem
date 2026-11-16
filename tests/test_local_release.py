@@ -221,6 +221,14 @@ def test_iqm_worker_configuration_requires_a_credential_free_https_endpoint() ->
         ).validate()
 
 
+def test_per_user_iqm_credentials_require_the_hardware_worker() -> None:
+    with pytest.raises(LocalReleaseError, match="require the IQM hardware worker"):
+        config(
+            iqm_user_credential_vault="/secure/iqm-user-credentials.sqlite",
+            iqm_user_credential_key="vault-key",
+        ).validate()
+
+
 def test_ftqc_runtime_preflight_accepts_only_the_admitted_image(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -546,6 +554,25 @@ def test_supervisor_command_passes_nonsecret_iqm_configuration_only(
     assert "do-not-place-in-arguments" not in command
 
 
+def test_supervisor_command_enables_per_user_iqm_credentials_without_a_key(
+    tmp_path: Path,
+) -> None:
+    command = supervisor_command(
+        config(
+            assistant_enabled=False,
+            iqm_worker_enabled=True,
+            iqm_endpoint="https://qccsw.ccs.ornl.gov",
+            iqm_device_alias="iqm-qpu-1",
+            iqm_user_credential_vault="/secure/iqm-user-credentials.sqlite",
+            iqm_user_credential_key="vault-key-not-for-arguments",
+        ),
+        LocalPaths.discover(tmp_path),
+    )
+
+    assert "--enable-user-iqm-credentials" in command
+    assert "vault-key-not-for-arguments" not in command
+
+
 def test_openai_chatqec_configuration_scopes_the_key_and_persists_only_model(
     tmp_path: Path,
 ) -> None:
@@ -716,6 +743,43 @@ def test_cli_local_iqm_configuration_scopes_terminal_credential(
 
     assert captured[0].iqm_token == "terminal-secret"
     assert "terminal-secret" not in capsys.readouterr().out
+
+
+def test_cli_local_per_user_iqm_configuration_reads_only_a_private_key_file(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    captured: list[LocalStackConfig] = []
+    key_file = tmp_path / "iqm-vault.key"
+    key_file.write_text("AWpEyYJZudYqpyrdnIvC2zUAo10tWqMjiCZT7OIRp0E=", encoding="ascii")
+    key_file.chmod(0o600)
+    monkeypatch.setattr(
+        local_release,
+        "launch_local",
+        lambda value, *_args, **_kwargs: captured.append(value)
+        or {"status": "ready"},
+    )
+
+    assert cli.main(
+        [
+            "local",
+            "up",
+            "--home",
+            str(tmp_path),
+            "--no-assistant",
+            "--start-iqm-worker",
+            "--iqm-endpoint",
+            "https://qccsw.ccs.ornl.gov",
+            "--iqm-device-alias",
+            "iqm-qpu-1",
+            "--enable-user-iqm-credentials",
+            "--iqm-credential-key-file",
+            str(key_file),
+        ]
+    ) == 0
+
+    assert captured[0].iqm_token == ""
+    assert captured[0].iqm_user_credential_key
+    assert captured[0].iqm_user_credential_key not in capsys.readouterr().out
 
 
 def test_cli_local_openai_configuration_scopes_terminal_credential(

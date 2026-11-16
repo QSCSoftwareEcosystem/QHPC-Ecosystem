@@ -8,6 +8,7 @@ license = { text = "MIT" }
 authors = [{ name = "QSC Software Thrust" }]
 keywords = ["apptainer", "hpc", "quantum-computing", "containers"]
 dependencies = [
+    "cryptography>=41",
     "jsonschema>=4.19",
     "numpy>=2",
     "pyyaml>=6",

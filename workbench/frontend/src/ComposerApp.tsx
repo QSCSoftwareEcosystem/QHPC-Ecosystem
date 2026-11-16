@@ -75,6 +75,7 @@ import type {
   ComposerEdge,
   ComposerNode,
   DraftValidation,
+  IQMCredentialStatus,
   OperationDefinition,
   ParameterDefinition,
   ParameterValue,
@@ -98,6 +99,7 @@ type BasicIntentId =
   | "run-hardware"
   | "results";
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+type IQMCredentialGate = "checking" | "ready" | "required" | "unavailable";
 
 interface GraphSnapshot {
   nodes: ComposerNode[];
@@ -2976,6 +2978,154 @@ function IncubationBlueprintView({
 }
 
 
+function IQMCredentialPanel({
+  onGateChange,
+}: {
+  onGateChange: (gate: IQMCredentialGate) => void;
+}): React.JSX.Element {
+  const [status, setStatus] = useState<IQMCredentialStatus | null>(null);
+  const [token, setToken] = useState("");
+  const [state, setState] = useState<"loading" | "ready" | "saving" | "deleting" | "error">("loading");
+  const [message, setMessage] = useState("");
+
+  const refresh = useCallback(async () => {
+    setState("loading");
+    setMessage("");
+    onGateChange("checking");
+    try {
+      const next = await composerApi.iqmCredentialStatus();
+      setStatus(next);
+      setState("ready");
+      onGateChange(next.enabled && !next.configured ? "required" : "ready");
+    } catch {
+      setStatus(null);
+      setState("error");
+      setMessage("EQO could not check your personal IQM credential. Check the deployment and try again.");
+      onGateChange("unavailable");
+    }
+  }, [onGateChange]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const save = async () => {
+    if (!token.trim()) return;
+    setState("saving");
+    setMessage("");
+    onGateChange("checking");
+    try {
+      const next = await composerApi.saveIqmCredential(token);
+      setToken("");
+      setStatus(next);
+      setState("ready");
+      onGateChange("ready");
+    } catch {
+      setState("error");
+      setMessage("EQO could not save your personal IQM credential. Verify the token and try again.");
+      onGateChange("unavailable");
+    }
+  };
+
+  const remove = async () => {
+    setState("deleting");
+    setMessage("");
+    onGateChange("checking");
+    try {
+      const next = await composerApi.deleteIqmCredential();
+      setToken("");
+      setStatus(next);
+      setState("ready");
+      onGateChange("required");
+    } catch {
+      setState("error");
+      setMessage("EQO could not remove your personal IQM credential. Try again.");
+      onGateChange("unavailable");
+    }
+  };
+
+  const busy = state === "loading" || state === "saving" || state === "deleting";
+  const personalCredentialsEnabled = status?.enabled === true;
+
+  return (
+    <section className="composer-iqm-credential" aria-labelledby="iqm-credential-title">
+      <div className="composer-iqm-credential-heading">
+        <div>
+          <h4 id="iqm-credential-title">Personal IQM credential</h4>
+          <p>Used only for your hardware submissions through this signed-in EQO account.</p>
+        </div>
+        <span className={`composer-iqm-credential-state is-${state}`} role="status">
+          {busy && <LoaderCircle size={14} className="composer-spin" aria-hidden="true" />}
+          {state === "loading" ? "Checking" : state === "saving" ? "Saving" : state === "deleting" ? "Removing" : personalCredentialsEnabled && status?.configured ? "Configured" : personalCredentialsEnabled ? "Required" : "Worker managed"}
+        </span>
+      </div>
+
+      {state === "error" ? (
+        <div className="composer-iqm-credential-feedback" role="alert">
+          <p>{message}</p>
+          <button type="button" className="composer-button is-secondary" onClick={() => void refresh()}>
+            Retry check
+          </button>
+        </div>
+      ) : !personalCredentialsEnabled && state === "ready" ? (
+        <p className="composer-iqm-credential-copy">
+          This deployment uses a worker-managed IQM credential, so no personal token is requested here.
+        </p>
+      ) : personalCredentialsEnabled ? (
+        <>
+          <p className="composer-iqm-credential-copy" id="iqm-credential-help">
+            {status?.configured
+              ? "A personal token is configured and is never shown here. Replace it if it has changed."
+              : "Add your IQM token before submitting this hardware workflow."} Tokens are encrypted in the deployment vault and released only within the isolated hardware worker.
+          </p>
+          <form
+            className="composer-iqm-credential-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void save();
+            }}
+          >
+            <label htmlFor="iqm-personal-token">
+              <span>IQM token</span>
+              <input
+                id="iqm-personal-token"
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                value={token}
+                disabled={busy}
+                aria-describedby="iqm-credential-help"
+                onChange={(event) => setToken(event.target.value)}
+              />
+            </label>
+            <div className="composer-iqm-credential-actions">
+              <button
+                type="submit"
+                className="composer-button is-primary"
+                disabled={busy || !token.trim()}
+              >
+                {status?.configured ? "Replace token" : "Save token"}
+              </button>
+              {status?.configured && (
+                <button
+                  type="button"
+                  className="composer-button is-danger"
+                  disabled={busy}
+                  onClick={() => void remove()}
+                >
+                  Remove token
+                </button>
+              )}
+            </div>
+          </form>
+        </>
+      ) : (
+        <p className="composer-iqm-credential-copy">Checking whether this deployment supports personal credentials.</p>
+      )}
+    </section>
+  );
+}
+
 function BasicComposer({
   paths,
   selectedPath,
@@ -3018,6 +3168,7 @@ function BasicComposer({
   const [blockQuery, setBlockQuery] = useState("");
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   const [canvasDropActive, setCanvasDropActive] = useState(false);
+  const [iqmCredentialGate, setIqmCredentialGate] = useState<IQMCredentialGate>("checking");
   const [intentPlan, setIntentPlan] = useState<BasicIntentId[]>(
     () => selectedPath?.blocks.map((block) => block.id) ?? [],
   );
@@ -3047,6 +3198,12 @@ function BasicComposer({
   );
   const workflow = planPath?.workflow;
   const isPlanExecutable = Boolean(completePath && workflow);
+  const hardwareCredentialBlocked =
+    planPath?.id === "hardware" && iqmCredentialGate !== "ready";
+  const setHardwareCredentialGate = useCallback(
+    (gate: IQMCredentialGate) => setIqmCredentialGate(gate),
+    [],
+  );
   const nextIntentIds = new Set(
     matchingPaths
       .map((path) => path.blocks[intentPlan.length]?.id)
@@ -3501,6 +3658,7 @@ function BasicComposer({
                   <p className="composer-basic-target-note">
                     Target selection is explicit when EQO Local starts: the isolated worker admits one configured device alias and keeps its endpoint and credential private. To use another target or device contract, open Advanced and publish a compatible workflow.
                   </p>
+                  <IQMCredentialPanel onGateChange={setHardwareCredentialGate} />
                 </section>
               )}
 
@@ -3684,10 +3842,16 @@ function BasicComposer({
                 <button
                   type="button"
                   className="composer-button is-primary"
-                  disabled={!isPlanExecutable || !inputReady || queueing || !readiness.canQueue}
+                  disabled={!isPlanExecutable || !inputReady || queueing || !readiness.canQueue || hardwareCredentialBlocked}
                   title={
                     !isPlanExecutable
                       ? "Complete a compatible Basic Composer path before submitting."
+                      : hardwareCredentialBlocked
+                        ? iqmCredentialGate === "checking"
+                          ? "Checking your personal IQM credential."
+                          : iqmCredentialGate === "required"
+                            ? "Save a personal IQM credential before submitting hardware work."
+                            : "Your personal IQM credential is unavailable. Retry the credential check."
                       : readiness.canQueue
                         ? planPath.actionLabel
                         : readiness.message

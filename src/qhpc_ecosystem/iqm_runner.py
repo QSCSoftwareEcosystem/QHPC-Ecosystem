@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
@@ -14,6 +14,12 @@ from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
 from .engine import ArtifactResult, TaskRejectedError, TaskRequest, TaskResult
+from .iqm_credentials import (
+    IQMCredentialVault,
+    IQMCredentialVaultError,
+    principal_from_user_iqm_secret_reference,
+    user_iqm_secret_reference,
+)
 from .security import validate_secret_reference
 from .worker import TargetStatus, TargetSubmission
 
@@ -87,6 +93,16 @@ def resolve_environment_secret(reference: str) -> str:
     if len(value) > 16_384:
         raise IQMAdapterError("IQM credential exceeds the worker limit")
     return value
+
+
+def resolve_user_iqm_vault_secret(
+    vault: IQMCredentialVault, reference: str
+) -> str:
+    """Resolve one user's encrypted credential only inside the IQM worker."""
+    try:
+        return vault.get(principal_from_user_iqm_secret_reference(reference))
+    except IQMCredentialVaultError as error:
+        raise IQMAdapterError(str(error)) from error
 
 
 def _utc_now() -> datetime:
@@ -530,6 +546,7 @@ class IQMAsyncRunner:
         secret_resolver: SecretResolver = resolve_environment_secret,
         clock: Clock = _utc_now,
         allowed_credential_references: Sequence[str] | None = None,
+        credential_reference_for_request: Callable[[TaskRequest], str] | None = None,
         execution_target: str = "local-development",
     ) -> None:
         self.client = client
@@ -540,6 +557,7 @@ class IQMAsyncRunner:
             if allowed_credential_references is not None
             else None
         )
+        self.credential_reference_for_request = credential_reference_for_request
         if self.allowed_credential_references is not None and not self.allowed_credential_references:
             raise ValueError("IQM worker must allow at least one credential reference")
         if not re.fullmatch(r"[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*", execution_target):
@@ -548,6 +566,14 @@ class IQMAsyncRunner:
 
     def _policy(self, request: TaskRequest) -> _RequestPolicy:
         policy = _policy(request, execution_target=next(iter(self.execution_targets)))
+        if self.credential_reference_for_request is not None:
+            try:
+                reference = validate_secret_reference(
+                    self.credential_reference_for_request(request)
+                )
+            except (IQMCredentialVaultError, ValueError) as error:
+                raise TaskRejectedError("IQM user credential is unavailable") from error
+            return replace(policy, credential_reference=reference)
         if (
             self.allowed_credential_references is not None
             and policy.credential_reference not in self.allowed_credential_references

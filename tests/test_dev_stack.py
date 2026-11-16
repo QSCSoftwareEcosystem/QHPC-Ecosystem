@@ -222,6 +222,36 @@ def test_dev_stack_starts_iqm_worker_only_when_explicit_and_scopes_token(monkeyp
     supervisor.stop()
 
 
+def test_dev_stack_scopes_per_user_iqm_vault_key_to_workbench_and_worker() -> None:
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "start_iqm_worker": True,
+            "iqm_endpoint": "https://iqm.example.test/cocos",
+            "iqm_device_alias": "approved-qpu",
+            "iqm_user_credential_vault": "/secure/iqm-user-credentials.sqlite",
+            "iqm_user_credential_key": "vault-key-not-for-other-services",
+        }
+    )
+
+    services = build_service_specs(value, python_executable="/usr/bin/python3")
+    workbench = next(service for service in services if service.name == "workbench")
+    iqm = next(service for service in services if service.name == "iqm-worker")
+
+    assert ("QHPC_IQM_CREDENTIAL_VAULT", "/secure/iqm-user-credentials.sqlite") in workbench.environment
+    assert ("QHPC_IQM_CREDENTIAL_VAULT_KEY", "vault-key-not-for-other-services") in workbench.environment
+    assert "QHPC_IQM_CREDENTIAL_VAULT_KEY" in workbench.secret_environment_names
+    assert "--credential-vault" in iqm.command
+    assert "/secure/iqm-user-credentials.sqlite" in iqm.command
+    assert ("EQO_IQM_CREDENTIAL_VAULT_KEY", "vault-key-not-for-other-services") in iqm.environment
+    assert "EQO_IQM_CREDENTIAL_VAULT_KEY" in iqm.secret_environment_names
+    assert all(
+        "vault-key-not-for-other-services" not in dict(service.environment).values()
+        for service in services
+        if service not in {workbench, iqm}
+    )
+
+
 def test_dev_stack_starts_simulation_worker_without_iqm_configuration() -> None:
     value = DevStackConfig(
         **{

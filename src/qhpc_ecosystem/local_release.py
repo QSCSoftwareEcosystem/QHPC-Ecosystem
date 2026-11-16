@@ -256,6 +256,8 @@ class LocalStackConfig:
     iqm_endpoint: str | None = None
     iqm_device_alias: str | None = None
     iqm_token: str = ""
+    iqm_user_credential_vault: str = ""
+    iqm_user_credential_key: str = ""
     chatqec_openai_model: str | None = None
     chatqec_openai_api_key: str = ""
     ftqc_source_checkout: str | None = None
@@ -362,6 +364,16 @@ class LocalStackConfig:
             raise LocalReleaseError(
                 "select either the safe IQM simulation worker or the IQM worker"
             )
+        if bool(self.iqm_user_credential_vault) != bool(
+            self.iqm_user_credential_key
+        ):
+            raise LocalReleaseError(
+                "per-user IQM credentials require both an encrypted vault and key"
+            )
+        if self.iqm_user_credential_vault and not self.iqm_worker_enabled:
+            raise LocalReleaseError(
+                "per-user IQM credentials require the IQM hardware worker"
+            )
         if self.iqm_worker_enabled:
             if not (self.iqm_endpoint and self.iqm_device_alias):
                 raise LocalReleaseError(
@@ -378,6 +390,10 @@ class LocalStackConfig:
             ):
                 raise LocalReleaseError(
                     "the IQM endpoint must be a credential-free HTTPS URL"
+                )
+            if self.iqm_user_credential_vault and self.iqm_token:
+                raise LocalReleaseError(
+                    "choose either a worker IQM token or per-user IQM credentials"
                 )
 
     @property
@@ -413,6 +429,9 @@ class LocalStackConfig:
             "iqm_worker_enabled": self.iqm_worker_enabled,
             "iqm_endpoint": self.iqm_endpoint,
             "iqm_device_alias": self.iqm_device_alias,
+            "per_user_iqm_credentials_enabled": bool(
+                self.iqm_user_credential_vault
+            ),
             "chatqec_openai_model": self.chatqec_openai_model,
             "ftqc_source_checkout": self.ftqc_source_checkout,
             "ftqc_runtime_manifest": self.ftqc_runtime_manifest,
@@ -1462,6 +1481,8 @@ def supervisor_command(
                 config.iqm_device_alias or "",
             )
         )
+    if config.iqm_user_credential_vault:
+        command.append("--enable-user-iqm-credentials")
     if config.chatqec_openai_model:
         command.extend(("--chatqec-openai-model", config.chatqec_openai_model))
     if config.ftqc_source_checkout:
@@ -1517,10 +1538,15 @@ def launch_local(
     child_environment = {**os.environ, "PYTHONUNBUFFERED": "1"}
     child_environment.pop("IQM_TOKEN", None)
     child_environment.pop("EQO_LOCAL_IQM_TOKEN", None)
+    child_environment.pop("EQO_LOCAL_IQM_CREDENTIAL_VAULT_KEY", None)
     child_environment.pop("OPENAI_API_KEY", None)
     child_environment.pop("EQO_LOCAL_OPENAI_API_KEY", None)
     if config.iqm_token:
         child_environment["EQO_LOCAL_IQM_TOKEN"] = config.iqm_token
+    if config.iqm_user_credential_key:
+        child_environment["EQO_LOCAL_IQM_CREDENTIAL_VAULT_KEY"] = (
+            config.iqm_user_credential_key
+        )
     if config.chatqec_openai_api_key:
         child_environment["EQO_LOCAL_OPENAI_API_KEY"] = config.chatqec_openai_api_key
     with paths.log_file.open("ab") as log_stream:
@@ -1735,6 +1761,8 @@ def supervise_local(
         iqm_endpoint=config.iqm_endpoint or "",
         iqm_device_alias=config.iqm_device_alias or "",
         iqm_token=config.iqm_token,
+        iqm_user_credential_vault=config.iqm_user_credential_vault,
+        iqm_user_credential_key=config.iqm_user_credential_key,
         local_worker_id="eqo-local-worker",
         target_worker_id="eqo-local-virtual-slurm-worker",
         iqm_worker_id="eqo-local-iqm-worker",

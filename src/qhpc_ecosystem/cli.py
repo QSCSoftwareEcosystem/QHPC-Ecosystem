@@ -627,6 +627,15 @@ def build_parser() -> argparse.ArgumentParser:
             "--iqm-device-alias",
             help="single IQM device alias admitted to the internal worker",
         )
+        command.add_argument(
+            "--enable-user-iqm-credentials",
+            action="store_true",
+            help="enable encrypted per-user IQM credentials for the isolated hardware worker",
+        )
+        command.add_argument(
+            "--iqm-credential-key-file",
+            help="mode-0600 Fernet key file for encrypted per-user IQM credentials",
+        )
     local_up.add_argument(
         "--prompt-for-iqm-token",
         action="store_true",
@@ -978,6 +987,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--prompt-for-token",
         action="store_true",
         help="read the worker token without echoing it; never pass a token as an argument",
+    )
+    iqm_worker.add_argument(
+        "--credential-vault",
+        help="encrypted per-user IQM credential vault; enables user-scoped resolution",
+    )
+    iqm_worker.add_argument(
+        "--credential-vault-key-environment-variable",
+        default="EQO_IQM_CREDENTIAL_VAULT_KEY",
+        help="environment variable containing the credential-vault Fernet key",
     )
     iqm_worker.add_argument("--poll-interval", type=float, default=1.0)
     iqm_worker.add_argument("--lease-seconds", type=int, default=300)
@@ -1897,6 +1915,39 @@ def dispatch(args: argparse.Namespace) -> int:
             raise LocalReleaseError(
                 "--prompt-for-iqm-token requires --start-iqm-worker"
             )
+        if args.enable_user_iqm_credentials and not args.start_iqm_worker:
+            raise LocalReleaseError(
+                "--enable-user-iqm-credentials requires --start-iqm-worker"
+            )
+        if args.enable_user_iqm_credentials and args.prompt_for_iqm_token:
+            raise LocalReleaseError(
+                "per-user IQM credentials cannot be combined with --prompt-for-iqm-token"
+            )
+        iqm_credential_key = ""
+        iqm_credential_vault = ""
+        if args.enable_user_iqm_credentials:
+            from .iqm_credentials import IQMCredentialVault
+
+            iqm_credential_vault = str(paths.data_root / "iqm-user-credentials.sqlite")
+            if args.local_command == "_supervise":
+                iqm_credential_key = os.environ.get(
+                    "EQO_LOCAL_IQM_CREDENTIAL_VAULT_KEY", ""
+                )
+            else:
+                if not args.iqm_credential_key_file:
+                    raise LocalReleaseError(
+                        "--enable-user-iqm-credentials requires --iqm-credential-key-file"
+                    )
+                key_file = Path(args.iqm_credential_key_file).expanduser().resolve()
+                if key_file.is_symlink() or not key_file.is_file():
+                    raise LocalReleaseError("IQM credential key file must be a regular file")
+                if key_file.stat().st_mode & 0o077:
+                    raise LocalReleaseError("IQM credential key file must not be group- or world-readable")
+                iqm_credential_key = key_file.read_text(encoding="ascii").strip()
+            try:
+                IQMCredentialVault(iqm_credential_vault, iqm_credential_key)
+            except Exception as error:
+                raise LocalReleaseError("IQM credential vault key is invalid") from error
         if (
             getattr(args, "prompt_for_openai_api_key", False)
             and not args.chatqec_openai_model
@@ -1905,7 +1956,7 @@ def dispatch(args: argparse.Namespace) -> int:
                 "--prompt-for-openai-api-key requires --chatqec-openai-model"
             )
         iqm_token = ""
-        if args.start_iqm_worker:
+        if args.start_iqm_worker and not args.enable_user_iqm_credentials:
             if args.local_command == "up" and args.prompt_for_iqm_token:
                 iqm_token = _prompt_iqm_token("IQM_TOKEN")
             elif args.local_command == "_supervise":
@@ -1944,6 +1995,8 @@ def dispatch(args: argparse.Namespace) -> int:
             iqm_endpoint=args.iqm_endpoint,
             iqm_device_alias=args.iqm_device_alias,
             iqm_token=iqm_token,
+            iqm_user_credential_vault=iqm_credential_vault,
+            iqm_user_credential_key=iqm_credential_key,
             chatqec_openai_model=args.chatqec_openai_model,
             chatqec_openai_api_key=openai_api_key,
             ftqc_source_checkout=ftqc_source_checkout,
@@ -2865,6 +2918,18 @@ def dispatch(args: argparse.Namespace) -> int:
             raise ContractError("IQM worker requires --endpoint or IQM_BASE_URL")
         if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}", args.credential_environment_variable) is None:
             raise ContractError("IQM credential environment variable has an invalid name")
+        if (
+            re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]{0,127}",
+                args.credential_vault_key_environment_variable,
+            )
+            is None
+        ):
+            raise ContractError("IQM credential vault key environment variable has an invalid name")
+        if args.credential_vault and args.prompt_for_token:
+            raise ContractError(
+                "--credential-vault cannot be combined with --prompt-for-token"
+            )
         if args.prompt_for_token:
             os.environ[args.credential_environment_variable] = _prompt_iqm_token(
                 args.credential_environment_variable
@@ -2880,12 +2945,47 @@ def dispatch(args: argparse.Namespace) -> int:
             client.validate_environment()
         except IQMProviderUnavailable as error:
             raise ContractError(str(error)) from error
-        credential_reference = "secret://env/" + args.credential_environment_variable
-        delegate = IQMAsyncRunner(
-            client,
-            allowed_credential_references=(credential_reference,),
-            execution_target="iqm-hardware",
-        )
+        credential_metadata: dict[str, object]
+        if args.credential_vault:
+            from .iqm_credentials import IQMCredentialVault, user_iqm_secret_reference
+            from .iqm_runner import resolve_user_iqm_vault_secret
+
+            vault_key = os.environ.get(
+                args.credential_vault_key_environment_variable, ""
+            )
+            if not vault_key:
+                raise ContractError("IQM credential vault key is unavailable")
+            try:
+                vault = IQMCredentialVault(args.credential_vault, vault_key)
+            except Exception as error:
+                raise ContractError("IQM credential vault is unavailable") from error
+            delegate = IQMAsyncRunner(
+                client,
+                secret_resolver=lambda reference: resolve_user_iqm_vault_secret(
+                    vault, reference
+                ),
+                credential_reference_for_request=lambda request: user_iqm_secret_reference(
+                    request.created_by
+                ),
+                execution_target="iqm-hardware",
+            )
+            credential_metadata = {
+                "credential_mode": "per-user-vault",
+                "credential_available": True,
+            }
+        else:
+            credential_reference = "secret://env/" + args.credential_environment_variable
+            delegate = IQMAsyncRunner(
+                client,
+                allowed_credential_references=(credential_reference,),
+                execution_target="iqm-hardware",
+            )
+            credential_metadata = {
+                "credential_reference": credential_reference,
+                "credential_available": bool(
+                    os.environ.get(args.credential_environment_variable)
+                ),
+            }
         engine = WorkflowEngine(args.database, args.artifact_root)
         runner = RegistryBoundAsyncRunner(delegate, registry)
         worker = AsyncWorker(
@@ -2900,10 +3000,7 @@ def dispatch(args: argparse.Namespace) -> int:
                     "mode": "hardware",
                     "endpoint_configured": True,
                     "device_alias": args.device_alias,
-                    "credential_reference": credential_reference,
-                    "credential_available": bool(
-                        os.environ.get(args.credential_environment_variable)
-                    ),
+                    **credential_metadata,
                     "access_scope": "internal-alpha",
                 }
             },
@@ -2911,8 +3008,8 @@ def dispatch(args: argparse.Namespace) -> int:
         metadata = profile["metadata"]
         print(
             f"QHPC IQM Worker: {metadata['id']}@{metadata['version']} "
-            f"(device {args.device_alias}; credential "
-            f"{'available' if os.environ.get(args.credential_environment_variable) else 'unavailable'})"
+                f"(device {args.device_alias}; credential mode "
+                f"{credential_metadata.get('credential_mode', 'worker-environment')})"
         )
         if args.once:
             transitions = int(worker.run_once())

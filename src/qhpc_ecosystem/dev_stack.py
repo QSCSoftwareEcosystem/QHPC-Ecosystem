@@ -67,6 +67,8 @@ class DevStackConfig:
     iqm_endpoint: str = ""
     iqm_device_alias: str = ""
     iqm_token: str = ""
+    iqm_user_credential_vault: str = ""
+    iqm_user_credential_key: str = ""
     local_worker_id: str = "dev-local-worker"
     target_worker_id: str = "dev-virtual-slurm-worker"
     iqm_worker_id: str = "dev-iqm-worker"
@@ -277,6 +279,13 @@ def build_service_specs(
                     ",".join(config.workbench_trusted_origins),
                 )
             )
+        if config.iqm_user_credential_vault:
+            workbench_environment.extend(
+                (
+                    ("QHPC_IQM_CREDENTIAL_VAULT", config.iqm_user_credential_vault),
+                    ("QHPC_IQM_CREDENTIAL_VAULT_KEY", config.iqm_user_credential_key),
+                )
+            )
         services.append(
             ServiceSpec(
                 "workbench",
@@ -292,6 +301,11 @@ def build_service_specs(
                     f"http://{config.host}:{config.api_port}",
                 ),
                 tuple(workbench_environment),
+                (
+                    ("QHPC_IQM_CREDENTIAL_VAULT_KEY",)
+                    if config.iqm_user_credential_vault
+                    else ()
+                ),
             )
         )
     if config.start_local_worker:
@@ -340,26 +354,38 @@ def build_service_specs(
             )
         )
     if config.start_iqm_worker:
+        iqm_command = [
+            *base,
+            "iqm-worker",
+            *shared,
+            "--endpoint",
+            config.iqm_endpoint,
+            "--device-alias",
+            config.iqm_device_alias,
+            "--poll-interval",
+            str(config.poll_interval_seconds),
+            "--lease-seconds",
+            str(config.lease_seconds),
+            "--worker-id",
+            config.iqm_worker_id,
+        ]
+        iqm_environment: list[tuple[str, str]] = []
+        iqm_secret_names: list[str] = []
+        if config.iqm_token:
+            iqm_environment.append(("IQM_TOKEN", config.iqm_token))
+            iqm_secret_names.append("IQM_TOKEN")
+        if config.iqm_user_credential_vault:
+            iqm_command.extend(("--credential-vault", config.iqm_user_credential_vault))
+            iqm_environment.append(
+                ("EQO_IQM_CREDENTIAL_VAULT_KEY", config.iqm_user_credential_key)
+            )
+            iqm_secret_names.append("EQO_IQM_CREDENTIAL_VAULT_KEY")
         services.append(
             ServiceSpec(
                 "iqm-worker",
-                (
-                    *base,
-                    "iqm-worker",
-                    *shared,
-                    "--endpoint",
-                    config.iqm_endpoint,
-                    "--device-alias",
-                    config.iqm_device_alias,
-                    "--poll-interval",
-                    str(config.poll_interval_seconds),
-                    "--lease-seconds",
-                    str(config.lease_seconds),
-                    "--worker-id",
-                    config.iqm_worker_id,
-                ),
-                (("IQM_TOKEN", config.iqm_token),) if config.iqm_token else (),
-                ("IQM_TOKEN",),
+                tuple(iqm_command),
+                tuple(iqm_environment),
+                tuple(iqm_secret_names),
             )
         )
     if config.start_iqm_simulation_worker:

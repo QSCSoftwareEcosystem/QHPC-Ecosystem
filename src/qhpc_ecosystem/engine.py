@@ -79,6 +79,7 @@ class TaskRequest:
     entrypoint: tuple[str, ...] = ()
     arguments: tuple[str, ...] = ()
     resources: dict[str, Any] = field(default_factory=dict)
+    created_by: str = ""
 
 
 @dataclass(frozen=True)
@@ -2494,6 +2495,7 @@ class WorkflowEngine:
             entrypoint=tuple(invocation.get("entrypoint", ())),
             arguments=tuple(invocation.get("arguments", ())),
             resources=dict(definition.get("resources", {})),
+            created_by=run["created_by"],
         )
 
     def task_request(self, lease: TaskLease) -> TaskRequest:

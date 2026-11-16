@@ -6,6 +6,7 @@ from email.message import Message
 from pathlib import Path
 
 import django
+from cryptography.fernet import Fernet
 from django.contrib.staticfiles import finders
 from django.test import Client
 
@@ -105,6 +106,76 @@ def test_django_proxy_uses_fixed_api_origin_and_enforces_csrf(monkeypatch) -> No
     )
     assert upstream.method == "POST"
     assert timeout == 30
+
+
+def test_django_iqm_credential_vault_is_private_to_the_proxy_principal(
+    tmp_path: Path, monkeypatch
+) -> None:
+    vault_path = tmp_path / "iqm-user-credentials.sqlite"
+    token = "nqx-private-token"
+    monkeypatch.setenv("QHPC_IQM_CREDENTIAL_VAULT", str(vault_path))
+    monkeypatch.setenv(
+        "QHPC_IQM_CREDENTIAL_VAULT_KEY", Fernet.generate_key().decode("ascii")
+    )
+    client = Client()
+
+    anonymous = client.get("/api/v1/credentials/iqm")
+    assert anonymous.status_code == 403
+
+    nqx_headers = {"HTTP_X_EQO_PILOT_USER": "nqx"}
+    initial = client.get("/api/v1/credentials/iqm", **nqx_headers)
+    assert initial.status_code == 200
+    assert initial.json() == {
+        "enabled": True,
+        "principal": "nqx",
+        "configured": False,
+        "updated_at": "",
+    }
+    assert initial["Cache-Control"] == "no-store"
+
+    saved = client.put(
+        "/api/v1/credentials/iqm",
+        data=json.dumps({"token": token}),
+        content_type="application/json",
+        **nqx_headers,
+    )
+    assert saved.status_code == 200
+    assert saved.json()["configured"] is True
+    assert token.encode("utf-8") not in saved.content
+    raw = vault_path.read_bytes()
+    assert token.encode("utf-8") not in raw
+
+    nk8 = client.get("/api/v1/credentials/iqm", HTTP_X_EQO_PILOT_USER="nk8")
+    assert nk8.status_code == 200
+    assert nk8.json()["configured"] is False
+
+    deleted = client.delete("/api/v1/credentials/iqm", **nqx_headers)
+    assert deleted.status_code == 200
+    assert deleted.json()["configured"] is False
+    assert client.post("/api/v1/credentials/iqm", **nqx_headers).status_code == 405
+
+
+def test_django_proxy_binds_runs_to_the_injected_pilot_principal(monkeypatch) -> None:
+    from qhpc_workbench import views
+
+    requests = []
+
+    def fake_urlopen(request, timeout):
+        requests.append((request, timeout))
+        return FakeUpstream({"status": "accepted"})
+
+    monkeypatch.setattr(views, "urlopen", fake_urlopen)
+    client = Client()
+    response = client.post(
+        "/api/v1/runs",
+        data=json.dumps({"workflow_id": "demo", "created_by": "forged-user"}),
+        content_type="application/json",
+        HTTP_X_EQO_PILOT_USER="nqx",
+    )
+
+    assert response.status_code == 200
+    upstream, _timeout = requests[-1]
+    assert json.loads(upstream.data) == {"workflow_id": "demo", "created_by": "nqx"}
 
 
 def test_django_proxy_preserves_encoded_slashes_in_query_values(monkeypatch) -> None:

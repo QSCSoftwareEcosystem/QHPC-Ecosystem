@@ -61,6 +61,34 @@ virtual-Slurm-worker environments. The worker advertises only the
 `iqm-hardware` target, so it cannot lease an ordinary `local-development`
 operation by mistake.
 
+## Per-user credentials for a shared Workbench
+
+An operator may replace the static worker token with the opt-in per-user vault:
+
+```bash
+eqo local up --start-iqm-worker \
+  --iqm-endpoint https://qccsw.ccs.ornl.gov \
+  --iqm-device-alias approved-device \
+  --enable-user-iqm-credentials \
+  --iqm-credential-key-file /secure/eqo/iqm-user-vault.key
+```
+
+The key file must be a regular file readable only by its owner. EQO validates
+it before launch and supplies its value only to the Workbench and the IQM
+worker; it does not place it in the command, local configuration, or local
+state. The Workbench stores Fernet-encrypted token ciphertext in a separate
+vault database. A submitted run is bound to the reverse-proxy-authenticated
+principal, and the IQM worker derives that principal's vault reference itself;
+the workflow's published `credential_reference` cannot select another user's
+token.
+
+This requires a trusted gateway to overwrite `X-EQO-Pilot-User` from the
+authenticated user before proxying to the loopback-only Workbench. The
+Workbench rejects missing or malformed identities for vault operations. A user
+can never retrieve their stored token through EQO; they may replace or delete
+it from the Composer. `--prompt-for-iqm-token` is intentionally incompatible
+with this mode.
+
 ## Run the safe simulation worker
 
 For a complete local route/submit/collect demonstration before a site has

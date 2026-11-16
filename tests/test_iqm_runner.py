@@ -10,11 +10,17 @@ from jsonschema import Draft202012Validator
 
 from qhpc_ecosystem.contract import load_document
 from qhpc_ecosystem.engine import TaskRejectedError, TaskRequest
+from qhpc_ecosystem.iqm_credentials import (
+    IQMCredentialVault,
+    user_iqm_secret_reference,
+)
 from qhpc_ecosystem.iqm_runner import (
     IQMAdapterError,
     IQMAsyncRunner,
     SimulatedIQMBackendClient,
+    resolve_user_iqm_vault_secret,
 )
+from cryptography.fernet import Fernet
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,6 +117,7 @@ def request(
     tmp_path: Path,
     *,
     execution_target: str = "local-development",
+    created_by: str = "",
     **parameter_changes: Any,
 ) -> TaskRequest:
     circuit = tmp_path / "input.json"
@@ -174,6 +181,7 @@ def request(
         work_directory=tmp_path / "work",
         execution_target=execution_target,
         execution_class="quantum-backend",
+        created_by=created_by,
     )
 
 
@@ -265,6 +273,62 @@ def test_iqm_worker_binds_to_its_explicit_hardware_target(tmp_path: Path) -> Non
     assert runner.submit(task).state == "queued"
     with pytest.raises(TaskRejectedError, match="iqm-hardware"):
         runner.submit(request(tmp_path, execution_target="local-development"))
+
+
+def test_iqm_worker_resolves_only_the_submitting_users_vault_token(
+    tmp_path: Path,
+) -> None:
+    vault = IQMCredentialVault(
+        tmp_path / "iqm-credentials.sqlite", Fernet.generate_key().decode("ascii")
+    )
+    vault.put("nqx", "nqx-private-token")
+    vault.put("nk8", "nk8-private-token")
+    service = MockIQMService()
+    runner = IQMAsyncRunner(
+        service,
+        secret_resolver=lambda reference: resolve_user_iqm_vault_secret(vault, reference),
+        credential_reference_for_request=lambda task: user_iqm_secret_reference(
+            task.created_by
+        ),
+        clock=submitted_clock,
+        execution_target="iqm-hardware",
+    )
+    task = request(
+        tmp_path,
+        execution_target="iqm-hardware",
+        created_by="nqx",
+        credential_reference="secret://env/IQM_TOKEN",
+    )
+
+    runner.submit(task)
+
+    assert service.tokens == ["nqx-private-token"]
+    assert "nk8-private-token" not in service.tokens
+
+
+def test_iqm_worker_rejects_a_missing_submitting_users_vault_token(
+    tmp_path: Path,
+) -> None:
+    vault = IQMCredentialVault(
+        tmp_path / "iqm-credentials.sqlite", Fernet.generate_key().decode("ascii")
+    )
+    runner = IQMAsyncRunner(
+        MockIQMService(),
+        secret_resolver=lambda reference: resolve_user_iqm_vault_secret(vault, reference),
+        credential_reference_for_request=lambda task: user_iqm_secret_reference(
+            task.created_by
+        ),
+        execution_target="iqm-hardware",
+    )
+
+    with pytest.raises(IQMAdapterError, match="credential resolution failed"):
+        runner.submit(
+            request(
+                tmp_path,
+                execution_target="iqm-hardware",
+                created_by="nqx",
+            )
+        )
 
 
 def test_safe_simulation_uses_the_typed_boundary_without_a_credential(

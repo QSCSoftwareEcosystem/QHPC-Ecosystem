@@ -3,6 +3,7 @@ import type {
   CapabilitySummary,
   DraftLayout,
   DraftValidation,
+  IQMCredentialStatus,
   KnowledgeGraphSlice,
   KnowledgeNodeRecord,
   KnowledgePath,
@@ -66,6 +67,21 @@ export async function request<T>(
 
 
 export const composerApi = {
+  iqmCredentialStatus(): Promise<IQMCredentialStatus> {
+    return request("/credentials/iqm");
+  },
+
+  saveIqmCredential(token: string): Promise<IQMCredentialStatus> {
+    return request("/credentials/iqm", {
+      method: "PUT",
+      body: JSON.stringify({ token }),
+    });
+  },
+
+  deleteIqmCredential(): Promise<IQMCredentialStatus> {
+    return request("/credentials/iqm", { method: "DELETE" });
+  },
+
   capabilities(): Promise<CapabilitySummary[]> {
     return request("/capabilities");
   },
