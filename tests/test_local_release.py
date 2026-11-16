@@ -782,6 +782,33 @@ def test_cli_local_per_user_iqm_configuration_reads_only_a_private_key_file(
     assert captured[0].iqm_user_credential_key not in capsys.readouterr().out
 
 
+def test_cli_hidden_supervisor_accepts_per_user_iqm_credentials(
+    tmp_path: Path, monkeypatch
+) -> None:
+    paths = LocalPaths.discover(tmp_path)
+    value = config(
+        assistant_enabled=False,
+        iqm_worker_enabled=True,
+        iqm_endpoint="https://qccsw.ccs.ornl.gov",
+        iqm_device_alias="iqm-qpu-1",
+        iqm_user_credential_vault=str(paths.data_root / "iqm-user-credentials.sqlite"),
+        iqm_user_credential_key="aJmTMR6I2F1QAj6Y_aOIWHJRkkIdoSNsiwwyMqsfZn0=",
+    )
+    command = supervisor_command(value, paths)
+    captured: list[LocalStackConfig] = []
+    monkeypatch.setenv(
+        "EQO_LOCAL_IQM_CREDENTIAL_VAULT_KEY", value.iqm_user_credential_key
+    )
+    monkeypatch.setattr(
+        local_release,
+        "supervise_local",
+        lambda config_value, *_args, **_kwargs: captured.append(config_value) or 0,
+    )
+
+    assert cli.main(list(command[3:])) == 0
+    assert captured[0].iqm_user_credential_vault == value.iqm_user_credential_vault
+
+
 def test_cli_local_openai_configuration_scopes_terminal_credential(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:

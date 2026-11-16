@@ -1919,7 +1919,9 @@ def dispatch(args: argparse.Namespace) -> int:
             raise LocalReleaseError(
                 "--enable-user-iqm-credentials requires --start-iqm-worker"
             )
-        if args.enable_user_iqm_credentials and args.prompt_for_iqm_token:
+        if args.enable_user_iqm_credentials and getattr(
+            args, "prompt_for_iqm_token", False
+        ):
             raise LocalReleaseError(
                 "per-user IQM credentials cannot be combined with --prompt-for-iqm-token"
             )
