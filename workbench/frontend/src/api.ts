@@ -9,6 +9,7 @@ import type {
   KnowledgePath,
   KnowledgeSearchResults,
   KnowledgeSummary,
+  ParameterValue,
   PublishedDraft,
   PublishedWorkflow,
   RunRecord,
@@ -181,6 +182,7 @@ export const composerApi = {
     version: string,
     inputs: Record<string, string>,
     executionTarget: string,
+    parameterOverrides?: Record<string, Record<string, ParameterValue>>,
   ): Promise<RunRecord> {
     return request("/runs", {
       method: "POST",
@@ -190,6 +192,7 @@ export const composerApi = {
         inputs,
         execution_target: executionTarget,
         created_by: "workbench-user",
+        parameter_overrides: parameterOverrides,
       }),
     });
   },

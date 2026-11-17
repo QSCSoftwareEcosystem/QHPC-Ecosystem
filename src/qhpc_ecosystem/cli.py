@@ -2969,6 +2969,7 @@ def dispatch(args: argparse.Namespace) -> int:
                 credential_reference_for_request=lambda request: user_iqm_secret_reference(
                     request.created_by
                 ),
+                admitted_device_alias=args.device_alias,
                 execution_target="iqm-hardware",
             )
             credential_metadata = {
@@ -2980,6 +2981,7 @@ def dispatch(args: argparse.Namespace) -> int:
             delegate = IQMAsyncRunner(
                 client,
                 allowed_credential_references=(credential_reference,),
+                admitted_device_alias=args.device_alias,
                 execution_target="iqm-hardware",
             )
             credential_metadata = {

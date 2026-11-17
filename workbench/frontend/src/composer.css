@@ -728,6 +728,54 @@
   grid-column: 1 / -1;
 }
 
+.composer-basic-experiment-settings {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+  align-items: end;
+  gap: 8px 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.composer-basic-experiment-settings > div {
+  gap: 3px;
+}
+
+.composer-basic-experiment-settings h4 {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.composer-basic-experiment-settings p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.composer-basic-experiment-settings label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.composer-basic-experiment-settings input {
+  width: 100%;
+}
+
+.composer-basic-experiment-settings > p,
+.composer-basic-setting-error {
+  grid-column: 1 / -1;
+}
+
+.composer-basic-experiment-settings .composer-basic-setting-error {
+  color: var(--bad);
+}
+
 .composer-iqm-credential {
   grid-column: 1 / -1;
   display: grid;
@@ -3359,6 +3407,15 @@
   }
 
   .composer-basic-target-note {
+    grid-column: auto;
+  }
+
+  .composer-basic-experiment-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .composer-basic-experiment-settings > p,
+  .composer-basic-setting-error {
     grid-column: auto;
   }
 

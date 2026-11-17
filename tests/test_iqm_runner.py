@@ -275,6 +275,38 @@ def test_iqm_worker_binds_to_its_explicit_hardware_target(tmp_path: Path) -> Non
         runner.submit(request(tmp_path, execution_target="local-development"))
 
 
+def test_iqm_worker_binds_the_logical_default_to_its_admitted_device(
+    tmp_path: Path,
+) -> None:
+    service = MockIQMService()
+    runner = IQMAsyncRunner(
+        service,
+        secret_resolver=secret_resolver,
+        clock=submitted_clock,
+        admitted_device_alias="iqm-qpu-1",
+        execution_target="iqm-hardware",
+    )
+
+    submission = runner.submit(
+        request(
+            tmp_path,
+            execution_target="iqm-hardware",
+            device_alias="default",
+        )
+    )
+
+    assert service.submissions[-1]["device_alias"] == "iqm-qpu-1"
+    assert submission.metadata["device_alias"] == "iqm-qpu-1"
+    with pytest.raises(TaskRejectedError, match="must request default"):
+        runner.submit(
+            request(
+                tmp_path,
+                execution_target="iqm-hardware",
+                device_alias="another-device",
+            )
+        )
+
+
 def test_iqm_worker_resolves_only_the_submitting_users_vault_token(
     tmp_path: Path,
 ) -> None:

@@ -94,9 +94,11 @@ spec:
         shots:
           type: integer
           title: Measurement shots
+          description: Per-run hardware measurement count. Higher values use more provider allocation.
           default: 512
           minimum: 1
           maximum: 4096
+          run_tunable: true
         credential_reference:
           type: string
           title: Worker-local secret reference

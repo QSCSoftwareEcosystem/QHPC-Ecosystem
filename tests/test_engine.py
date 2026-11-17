@@ -134,6 +134,54 @@ def test_task_request_carries_the_run_principal_to_an_isolated_worker(
     assert engine.task_request(lease).created_by == "nqx"
 
 
+def test_engine_persists_only_declared_run_scoped_parameter_overrides(
+    tmp_path: Path,
+) -> None:
+    engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
+    workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")
+    registry = example_registry()
+    simulate = registry["spec"]["entries"][0]["capability"]["spec"][
+        "operations"
+    ][1]
+    simulate["parameters"]["shots"].update(
+        {"run_tunable": True, "maximum": 4096}
+    )
+    registered = engine.register_workflow(workflow, registry, created_by="test-user")
+
+    run = engine.submit_run(
+        registered["id"],
+        registered["version"],
+        inputs={},
+        execution_target="local-development",
+        created_by="test-user",
+        parameter_overrides={"simulate": {"shots": 256}},
+    )
+
+    tasks = {task["node_id"]: task for task in run["tasks"]}
+    assert tasks["simulate"]["operation"]["parameters"]["shots"] == 256
+    assert registered["definition"]["spec"]["nodes"][1]["parameters"]["shots"] == 1024
+
+    with pytest.raises(ContractError, match="not run-tunable"):
+        engine.submit_run(
+            registered["id"],
+            registered["version"],
+            inputs={},
+            execution_target="local-development",
+            created_by="test-user",
+            parameter_overrides={"generate": {"qubits": 5}},
+        )
+
+    with pytest.raises(ContractError, match="exceeds its maximum"):
+        engine.submit_run(
+            registered["id"],
+            registered["version"],
+            inputs={},
+            execution_target="local-development",
+            created_by="test-user",
+            parameter_overrides={"simulate": {"shots": 4097}},
+        )
+
+
 def test_workflow_versions_are_immutable(tmp_path: Path) -> None:
     engine = WorkflowEngine(tmp_path / "engine.sqlite", tmp_path / "artifacts")
     workflow = load_document(ROOT / "examples/contracts/valid/workflow.yaml")

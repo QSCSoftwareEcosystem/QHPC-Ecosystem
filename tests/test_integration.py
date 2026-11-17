@@ -344,6 +344,7 @@ def test_ftqc_uses_private_ecosystem_source_and_oci_preparation_runtime() -> Non
     assert backend["execution_targets"] == ["iqm-hardware"]
     assert backend["runtime"]["type"] == "python-wheel"
     assert backend["parameters"]["shots"]["maximum"] == 4096
+    assert backend["parameters"]["shots"]["run_tunable"] is True
     assert backend["parameters"]["credential_reference"]["default"] == (
         "secret://env/IQM_TOKEN"
     )

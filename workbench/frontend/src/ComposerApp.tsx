@@ -1842,6 +1842,7 @@ function ComposerSurface(): React.JSX.Element {
       workflow: PublishedWorkflow,
       inputs: Record<string, string>,
       inputNames: Record<string, string> = {},
+      parameterOverrides?: Record<string, Record<string, ParameterValue>>,
     ) => {
       const inputArtifacts: Record<string, string> = {};
       for (const [name, definition] of Object.entries(
@@ -1865,6 +1866,7 @@ function ComposerSurface(): React.JSX.Element {
         workflow.version,
         inputArtifacts,
         executionTarget(workflow.definition, capabilities),
+        parameterOverrides,
       );
     },
     [capabilities],
@@ -1927,7 +1929,9 @@ function ComposerSurface(): React.JSX.Element {
     submitPublishedWorkflow,
   ]);
 
-  const queueBasicRun = useCallback(async () => {
+  const queueBasicRun = useCallback(async (
+    parameterOverrides?: Record<string, Record<string, ParameterValue>>,
+  ) => {
     const workflow = selectedBasicPath?.workflow;
     if (!workflow) {
       setBasicError(true);
@@ -1952,6 +1956,7 @@ function ComposerSurface(): React.JSX.Element {
         workflow,
         guidedInputs[workflow.id] ?? {},
         guidedInputNames[workflow.id] ?? {},
+        parameterOverrides,
       );
       setBasicRunId(run.id);
       setBasicMessage(`Queued · ${run.id}`);
@@ -2310,7 +2315,7 @@ function ComposerSurface(): React.JSX.Element {
           readiness={basicReadiness}
           onSelect={selectBasicPath}
           onInput={updateBasicInput}
-          onQueue={() => void queueBasicRun()}
+          onQueue={(parameterOverrides) => void queueBasicRun(parameterOverrides)}
           onOpenGuided={openBasicInGuided}
           onOpenAdvanced={() => {
             if (selectedBasicWorkflow) {
@@ -3160,7 +3165,9 @@ function BasicComposer({
     content: string,
     sourceName?: string,
   ) => void;
-  onQueue: () => void;
+  onQueue: (
+    parameterOverrides?: Record<string, Record<string, ParameterValue>>,
+  ) => void;
   onOpenGuided: () => void;
   onOpenAdvanced: () => void;
 }): React.JSX.Element {
@@ -3169,6 +3176,7 @@ function BasicComposer({
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   const [canvasDropActive, setCanvasDropActive] = useState(false);
   const [iqmCredentialGate, setIqmCredentialGate] = useState<IQMCredentialGate>("checking");
+  const [hardwareShots, setHardwareShots] = useState("512");
   const [intentPlan, setIntentPlan] = useState<BasicIntentId[]>(
     () => selectedPath?.blocks.map((block) => block.id) ?? [],
   );
@@ -3197,6 +3205,30 @@ function BasicComposer({
     matchingPaths.length === 1 ? matchingPaths[0] : undefined
   );
   const workflow = planPath?.workflow;
+  const operationIndex = useMemo(
+    () => capabilityOperationIndex(capabilities),
+    [capabilities],
+  );
+  const hardwareExecutionNode = workflow?.definition.spec.nodes.find(
+    (node) => node.id === "execute",
+  );
+  const hardwareOperation = hardwareExecutionNode
+    ? operationIndex.get(
+      `${hardwareExecutionNode.operation.capability}@${hardwareExecutionNode.operation.version}/${hardwareExecutionNode.operation.operation}`,
+    )?.operation
+    : undefined;
+  const hardwareShotsDefinition = hardwareOperation?.parameters?.shots;
+  const hardwareShotsMinimum = hardwareShotsDefinition?.minimum ?? 1;
+  const hardwareShotsMaximum = hardwareShotsDefinition?.maximum ?? 4096;
+  const parsedHardwareShots = Number(hardwareShots);
+  const canTuneHardwareShots =
+    planPath?.id === "hardware" &&
+    Boolean(hardwareExecutionNode && hardwareShotsDefinition?.run_tunable);
+  const hardwareShotsValid =
+    !canTuneHardwareShots ||
+    (Number.isInteger(parsedHardwareShots) &&
+      parsedHardwareShots >= hardwareShotsMinimum &&
+      parsedHardwareShots <= hardwareShotsMaximum);
   const isPlanExecutable = Boolean(completePath && workflow);
   const hardwareCredentialBlocked =
     planPath?.id === "hardware" && iqmCredentialGate !== "ready";
@@ -3658,6 +3690,44 @@ function BasicComposer({
                   <p className="composer-basic-target-note">
                     Target selection is explicit when EQO Local starts: the isolated worker admits one configured device alias and keeps its endpoint and credential private. To use another target or device contract, open Advanced and publish a compatible workflow.
                   </p>
+                  {canTuneHardwareShots && hardwareExecutionNode && (
+                    <section
+                      className="composer-basic-experiment-settings"
+                      aria-labelledby="basic-experiment-settings-title"
+                    >
+                      <div>
+                        <h4 id="basic-experiment-settings-title">
+                          Experiment settings
+                        </h4>
+                        <p>
+                          Tune the measurement count for this run. This does not
+                          alter the published workflow.
+                        </p>
+                      </div>
+                      <label htmlFor="basic-hardware-shots">
+                        Measurement shots
+                        <input
+                          id="basic-hardware-shots"
+                          type="number"
+                          inputMode="numeric"
+                          min={hardwareShotsMinimum}
+                          max={hardwareShotsMaximum}
+                          step="1"
+                          value={hardwareShots}
+                          aria-describedby="basic-hardware-shots-help"
+                          onChange={(event) => setHardwareShots(event.target.value)}
+                        />
+                      </label>
+                      <p id="basic-hardware-shots-help">
+                        Choose a whole number from {hardwareShotsMinimum} to {hardwareShotsMaximum}. Higher values use more provider allocation.
+                      </p>
+                      {!hardwareShotsValid && (
+                        <p className="composer-basic-setting-error" role="alert">
+                          Enter a whole number from {hardwareShotsMinimum} to {hardwareShotsMaximum} before submitting.
+                        </p>
+                      )}
+                    </section>
+                  )}
                   <IQMCredentialPanel onGateChange={setHardwareCredentialGate} />
                 </section>
               )}
@@ -3842,10 +3912,12 @@ function BasicComposer({
                 <button
                   type="button"
                   className="composer-button is-primary"
-                  disabled={!isPlanExecutable || !inputReady || queueing || !readiness.canQueue || hardwareCredentialBlocked}
+                  disabled={!isPlanExecutable || !inputReady || queueing || !readiness.canQueue || hardwareCredentialBlocked || !hardwareShotsValid}
                   title={
                     !isPlanExecutable
                       ? "Complete a compatible Basic Composer path before submitting."
+                      : !hardwareShotsValid
+                        ? `Enter a whole number from ${hardwareShotsMinimum} to ${hardwareShotsMaximum}.`
                       : hardwareCredentialBlocked
                         ? iqmCredentialGate === "checking"
                           ? "Checking your personal IQM credential."
@@ -3856,7 +3928,11 @@ function BasicComposer({
                         ? planPath.actionLabel
                         : readiness.message
                   }
-                  onClick={onQueue}
+                  onClick={() => onQueue(
+                    canTuneHardwareShots && hardwareExecutionNode
+                      ? { [hardwareExecutionNode.id]: { shots: parsedHardwareShots } }
+                      : undefined,
+                  )}
                 >
                   {queueing ? (
                     <LoaderCircle size={14} className="composer-spin" aria-hidden="true" />

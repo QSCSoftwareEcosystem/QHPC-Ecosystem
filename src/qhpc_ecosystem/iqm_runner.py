@@ -547,6 +547,7 @@ class IQMAsyncRunner:
         clock: Clock = _utc_now,
         allowed_credential_references: Sequence[str] | None = None,
         credential_reference_for_request: Callable[[TaskRequest], str] | None = None,
+        admitted_device_alias: str | None = None,
         execution_target: str = "local-development",
     ) -> None:
         self.client = client
@@ -560,12 +561,24 @@ class IQMAsyncRunner:
         self.credential_reference_for_request = credential_reference_for_request
         if self.allowed_credential_references is not None and not self.allowed_credential_references:
             raise ValueError("IQM worker must allow at least one credential reference")
+        if admitted_device_alias is not None and (
+            not isinstance(admitted_device_alias, str)
+            or _ALIAS.fullmatch(admitted_device_alias) is None
+        ):
+            raise ValueError("IQM worker admitted device alias has an invalid format")
+        self.admitted_device_alias = admitted_device_alias
         if not re.fullmatch(r"[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*", execution_target):
             raise ValueError("IQM worker execution target has an invalid format")
         self.execution_targets = frozenset({execution_target})
 
     def _policy(self, request: TaskRequest) -> _RequestPolicy:
         policy = _policy(request, execution_target=next(iter(self.execution_targets)))
+        if self.admitted_device_alias is not None:
+            if policy.device_alias != "default":
+                raise TaskRejectedError(
+                    "IQM device alias is selected by the worker; workflows must request default"
+                )
+            policy = replace(policy, device_alias=self.admitted_device_alias)
         if self.credential_reference_for_request is not None:
             try:
                 reference = validate_secret_reference(

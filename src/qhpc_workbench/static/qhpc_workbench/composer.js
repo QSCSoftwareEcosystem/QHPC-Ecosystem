@@ -16350,7 +16350,7 @@ var Zf = {
 			})
 		});
 	},
-	submitRun(e, t, n, r) {
+	submitRun(e, t, n, r, i) {
 		return Xf("/runs", {
 			method: "POST",
 			body: JSON.stringify({
@@ -16358,7 +16358,8 @@ var Zf = {
 				version: t,
 				inputs: n,
 				execution_target: r,
-				created_by: "workbench-user"
+				created_by: "workbench-user",
+				parameter_overrides: i
 			})
 		});
 	},
@@ -18084,16 +18085,16 @@ function Sm() {
 		lt.length,
 		ut,
 		Je
-	]), pt = (0, y.useCallback)(async (e, t, n = {}) => {
-		let i = {};
-		for (let [r, a] of Object.entries(e.definition.spec.inputs)) {
+	]), pt = (0, y.useCallback)(async (e, t, n = {}, i) => {
+		let a = {};
+		for (let [r, i] of Object.entries(e.definition.spec.inputs)) {
 			let e = t[r]?.trim() ?? "";
-			if ((a.required ?? !0) && !e) throw Error(`Input artifact ${r} is required.`);
+			if ((i.required ?? !0) && !e) throw Error(`Input artifact ${r} is required.`);
 			if (!e) continue;
-			let o = im(a.artifact_type);
-			i[r] = (await Zf.createArtifact(a.artifact_type, n[r] || `${r}.${o}`, e)).id;
+			let o = im(i.artifact_type);
+			a[r] = (await Zf.createArtifact(i.artifact_type, n[r] || `${r}.${o}`, e)).id;
 		}
-		return Zf.submitRun(e.id, e.version, i, mm(e.definition, r));
+		return Zf.submitRun(e.id, e.version, a, mm(e.definition, r), i);
 	}, [r]), mt = (0, y.useCallback)(async () => {
 		if (b) {
 			re(!0);
@@ -18136,9 +18137,9 @@ function Sm() {
 		He,
 		Be,
 		pt
-	]), gt = (0, y.useCallback)(async () => {
-		let e = Re?.workflow;
-		if (!e) {
+	]), gt = (0, y.useCallback)(async (e) => {
+		let t = Re?.workflow;
+		if (!t) {
 			De(!0), Te("This published workflow is unavailable");
 			return;
 		}
@@ -18148,8 +18149,8 @@ function Sm() {
 		}
 		Ce(!0), De(!1), ke(null), Te(Re.id === "hardware" ? "Submitting hardware workflow" : "Submitting simulation");
 		try {
-			let t = await pt(e, ce[e.id] ?? {}, ue[e.id] ?? {});
-			ke(t.id), Te(`Queued · ${t.id}`);
+			let n = await pt(t, ce[t.id] ?? {}, ue[t.id] ?? {}, e);
+			ke(n.id), Te(`Queued · ${n.id}`);
 		} catch (e) {
 			De(!0), Te(cm(e));
 		} finally {
@@ -18329,7 +18330,7 @@ function Sm() {
 			readiness: Ue,
 			onSelect: _t,
 			onInput: bt,
-			onQueue: () => void gt(),
+			onQueue: (e) => void gt(e),
 			onOpenGuided: Ct,
 			onOpenAdvanced: () => {
 				ze && xt(ze, ce[ze.id] ?? {}, ue[ze.id] ?? {});
@@ -19007,23 +19008,23 @@ function wm({ onGateChange: e }) {
 	});
 }
 function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames: i, queueing: a, statusMessage: o, hasError: s, lastRunId: c, readiness: l, onSelect: u, onInput: d, onQueue: f, onOpenGuided: p, onOpenAdvanced: m }) {
-	let [h, g] = (0, y.useState)(null), [_, v] = (0, y.useState)(""), [b, S] = (0, y.useState)(0), [C, w] = (0, y.useState)(!1), [T, E] = (0, y.useState)("checking"), [D, O] = (0, y.useState)(() => t?.blocks.map((e) => e.id) ?? []), k = _.trim().toLocaleLowerCase(), A = e.filter((e) => !k || [
+	let [h, g] = (0, y.useState)(null), [_, v] = (0, y.useState)(""), [b, S] = (0, y.useState)(0), [C, w] = (0, y.useState)(!1), [T, E] = (0, y.useState)("checking"), [D, O] = (0, y.useState)("512"), [k, A] = (0, y.useState)(() => t?.blocks.map((e) => e.id) ?? []), j = _.trim().toLocaleLowerCase(), M = e.filter((e) => !j || [
 		e.title,
 		e.detail,
 		e.actionLabel,
 		...e.blocks.flatMap((e) => [e.title, e.detail])
-	].some((e) => e.toLocaleLowerCase().includes(k))), j = Kp.filter((e) => !k || [e.title, e.detail].some((e) => e.toLocaleLowerCase().includes(k))), M = e.filter((e) => D.every((t, n) => e.blocks[n]?.id === t)), N = M.find((e) => e.blocks.length === D.length), P = N ?? (M.length === 1 ? M[0] : void 0), F = P?.workflow, I = !!(N && F), L = P?.id === "hardware" && T !== "ready", R = (0, y.useCallback)((e) => E(e), []), z = new Set(M.map((e) => e.blocks[D.length]?.id).filter((e) => !!e)), B = D.map((e) => P?.blocks.find((t) => t.id === e) ?? qp.get(e)).filter((e) => !!e), V = F ? Object.entries(F.definition.spec.inputs) : [], [H, U] = V[0] ?? [], W = I && !!F && V.every(([e, t]) => !(t.required ?? !0) || !!r[e]?.trim()), G = B[b] ?? B[0], K = P?.blocks.find((e) => e.id === G?.id), ee = F && K?.nodeIds ? F.definition.spec.nodes.filter((e) => K.nodeIds?.includes(e.id)) : [], q = /* @__PURE__ */ new Set(), J = /* @__PURE__ */ new Set();
-	F && G && (G.kind === "input" ? V.forEach(([, e]) => q.add(e.artifact_type)) : G.kind === "output" ? Object.values(F.definition.spec.outputs).forEach((e) => J.add(e.artifact_type)) : ee.forEach((e) => {
-		Object.values(F.definition.spec.inputs).filter((t) => t.to.node === e.id).forEach((e) => q.add(e.artifact_type)), F.definition.spec.edges.filter((t) => t.to.node === e.id).forEach((e) => q.add(e.to.artifact_type)), F.definition.spec.edges.filter((t) => t.from.node === e.id).forEach((e) => J.add(e.from.artifact_type)), Object.values(F.definition.spec.outputs).filter((t) => t.from.node === e.id).forEach((e) => J.add(e.artifact_type));
+	].some((e) => e.toLocaleLowerCase().includes(j))), N = Kp.filter((e) => !j || [e.title, e.detail].some((e) => e.toLocaleLowerCase().includes(j))), P = e.filter((e) => k.every((t, n) => e.blocks[n]?.id === t)), F = P.find((e) => e.blocks.length === k.length), I = F ?? (P.length === 1 ? P[0] : void 0), L = I?.workflow, R = (0, y.useMemo)(() => ap(n), [n]), z = L?.definition.spec.nodes.find((e) => e.id === "execute"), B = (z ? R.get(`${z.operation.capability}@${z.operation.version}/${z.operation.operation}`)?.operation : void 0)?.parameters?.shots, V = B?.minimum ?? 1, H = B?.maximum ?? 4096, U = Number(D), W = I?.id === "hardware" && !!(z && B?.run_tunable), G = !W || Number.isInteger(U) && U >= V && U <= H, K = !!(F && L), ee = I?.id === "hardware" && T !== "ready", q = (0, y.useCallback)((e) => E(e), []), J = new Set(P.map((e) => e.blocks[k.length]?.id).filter((e) => !!e)), te = k.map((e) => I?.blocks.find((t) => t.id === e) ?? qp.get(e)).filter((e) => !!e), ne = L ? Object.entries(L.definition.spec.inputs) : [], [re, ie] = ne[0] ?? [], ae = K && !!L && ne.every(([e, t]) => !(t.required ?? !0) || !!r[e]?.trim()), oe = te[b] ?? te[0], se = I?.blocks.find((e) => e.id === oe?.id), ce = L && se?.nodeIds ? L.definition.spec.nodes.filter((e) => se.nodeIds?.includes(e.id)) : [], le = /* @__PURE__ */ new Set(), ue = /* @__PURE__ */ new Set();
+	L && oe && (oe.kind === "input" ? ne.forEach(([, e]) => le.add(e.artifact_type)) : oe.kind === "output" ? Object.values(L.definition.spec.outputs).forEach((e) => ue.add(e.artifact_type)) : ce.forEach((e) => {
+		Object.values(L.definition.spec.inputs).filter((t) => t.to.node === e.id).forEach((e) => le.add(e.artifact_type)), L.definition.spec.edges.filter((t) => t.to.node === e.id).forEach((e) => le.add(e.to.artifact_type)), L.definition.spec.edges.filter((t) => t.from.node === e.id).forEach((e) => ue.add(e.from.artifact_type)), Object.values(L.definition.spec.outputs).filter((t) => t.from.node === e.id).forEach((e) => ue.add(e.artifact_type));
 	}));
-	let te = ee.map((e) => e.execution_target).find(Boolean) ?? l.report?.target ?? "Published target", ne = F?.definition.spec.nodes.find((e) => e.id === "prepare")?.execution_target, re = F?.definition.spec.nodes.find((e) => e.id === "execute")?.execution_target, ie = ee.flatMap((e) => Object.entries(e.parameters).map(([t, n]) => ({
+	let de = ce.map((e) => e.execution_target).find(Boolean) ?? l.report?.target ?? "Published target", fe = L?.definition.spec.nodes.find((e) => e.id === "prepare")?.execution_target, pe = L?.definition.spec.nodes.find((e) => e.id === "execute")?.execution_target, me = ce.flatMap((e) => Object.entries(e.parameters).map(([t, n]) => ({
 		nodeId: e.id,
 		name: t,
 		value: n
-	}))), ae = P?.id === "transform" && F ? F.definition.spec.nodes.flatMap((e) => {
+	}))), he = I?.id === "transform" && L ? L.definition.spec.nodes.flatMap((e) => {
 		let t = n.find((t) => t.id === e.operation.capability && t.version === e.operation.version), r = t?.operations.find((t) => t.id === e.operation.operation);
 		if (e.operation.capability !== "qasmtrans-transpiler" || !r) return [];
-		let i = Object.entries(F.definition.spec.outputs).filter(([, t]) => t.from.node === e.id);
+		let i = Object.entries(L.definition.spec.outputs).filter(([, t]) => t.from.node === e.id);
 		return [{
 			node: e,
 			capability: t,
@@ -19034,27 +19035,27 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 		}];
 	}) : [];
 	(0, y.useEffect)(() => {
-		S((e) => Math.min(e, Math.max(0, B.length - 1)));
-	}, [B.length]);
-	let oe = (t) => {
+		S((e) => Math.min(e, Math.max(0, te.length - 1)));
+	}, [te.length]);
+	let ge = (t) => {
 		g(null);
 		let n = e.find((e) => e.id === t);
-		n && O(n.blocks.map((e) => e.id)), u(t);
-	}, se = (t) => {
-		if (!z.has(t)) return;
-		let n = [...D, t], r = e.filter((e) => n.every((t, n) => e.blocks[n]?.id === t)), i = r.find((e) => e.blocks.length === n.length) ?? (r.length === 1 ? r[0] : void 0);
-		g(null), O(n), i && u(i.id);
-	}, ce = () => {
-		g(null), S(0), O([]);
-	}, le = (e) => e.includes("application/x-eqo-basic-path") || e.includes("application/x-eqo-basic-intent"), ue = /* @__PURE__ */ (0, x.jsxs)("section", {
+		n && A(n.blocks.map((e) => e.id)), u(t);
+	}, _e = (t) => {
+		if (!J.has(t)) return;
+		let n = [...k, t], r = e.filter((e) => n.every((t, n) => e.blocks[n]?.id === t)), i = r.find((e) => e.blocks.length === n.length) ?? (r.length === 1 ? r[0] : void 0);
+		g(null), A(n), i && u(i.id);
+	}, ve = () => {
+		g(null), S(0), A([]);
+	}, ye = (e) => e.includes("application/x-eqo-basic-path") || e.includes("application/x-eqo-basic-intent"), be = /* @__PURE__ */ (0, x.jsxs)("section", {
 		className: `composer-basic-flow-section${C ? " is-drop-target" : ""}`,
 		"aria-labelledby": "basic-canvas-title",
 		"aria-describedby": "basic-canvas-hint",
 		onDragEnter: (e) => {
-			le(e.dataTransfer.types) && (e.preventDefault(), w(!0));
+			ye(e.dataTransfer.types) && (e.preventDefault(), w(!0));
 		},
 		onDragOver: (e) => {
-			le(e.dataTransfer.types) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy");
+			ye(e.dataTransfer.types) && (e.preventDefault(), e.dataTransfer.dropEffect = "copy");
 		},
 		onDragLeave: (e) => {
 			e.currentTarget === e.target && w(!1);
@@ -19063,11 +19064,11 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			t.preventDefault(), w(!1);
 			let n = t.dataTransfer.getData("application/x-eqo-basic-path");
 			if (e.some((e) => e.id === n)) {
-				oe(n);
+				ge(n);
 				return;
 			}
 			let r = t.dataTransfer.getData("application/x-eqo-basic-intent");
-			qp.has(r) && se(r);
+			qp.has(r) && _e(r);
 		},
 		children: [
 			/* @__PURE__ */ (0, x.jsxs)("div", {
@@ -19081,22 +19082,22 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				id: "basic-canvas-hint",
 				className: "composer-basic-canvas-hint",
 				role: "status",
-				children: [I ? `Compatible published workflow selected: ${N?.title}.` : z.size ? `Next compatible block: ${[...z].map((e) => qp.get(e)?.title).join(" or ")}.` : "Start a new plan with Circuit input.", " Drag a starter path here to switch the canvas, or build one compatible intent at a time."]
+				children: [K ? `Compatible published workflow selected: ${F?.title}.` : J.size ? `Next compatible block: ${[...J].map((e) => qp.get(e)?.title).join(" or ")}.` : "Start a new plan with Circuit input.", " Drag a starter path here to switch the canvas, or build one compatible intent at a time."]
 			}),
-			B.length ? /* @__PURE__ */ (0, x.jsx)("ol", {
+			te.length ? /* @__PURE__ */ (0, x.jsx)("ol", {
 				className: "composer-basic-flow",
-				"aria-label": `${P?.title ?? t?.title ?? "Basic"} workflow blocks`,
-				children: B.map((e, t) => /* @__PURE__ */ (0, x.jsxs)(y.Fragment, { children: [/* @__PURE__ */ (0, x.jsx)("li", { children: /* @__PURE__ */ (0, x.jsxs)("button", {
+				"aria-label": `${I?.title ?? t?.title ?? "Basic"} workflow blocks`,
+				children: te.map((e, t) => /* @__PURE__ */ (0, x.jsxs)(y.Fragment, { children: [/* @__PURE__ */ (0, x.jsx)("li", { children: /* @__PURE__ */ (0, x.jsxs)("button", {
 					type: "button",
-					className: `composer-basic-block is-${e.kind}${G?.id === e.id && b === t ? " is-selected" : ""}`,
-					"aria-pressed": G?.id === e.id && b === t,
+					className: `composer-basic-block is-${e.kind}${oe?.id === e.id && b === t ? " is-selected" : ""}`,
+					"aria-pressed": oe?.id === e.id && b === t,
 					onClick: () => S(t),
 					children: [/* @__PURE__ */ (0, x.jsx)("span", {
 						className: "composer-basic-block-index",
 						"aria-hidden": "true",
 						children: t + 1
 					}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] })]
-				}) }), t < B.length - 1 && /* @__PURE__ */ (0, x.jsx)("li", {
+				}) }), t < te.length - 1 && /* @__PURE__ */ (0, x.jsx)("li", {
 					className: "composer-basic-connector",
 					"aria-hidden": "true",
 					children: /* @__PURE__ */ (0, x.jsx)(yf, { size: 18 })
@@ -19140,8 +19141,8 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 				}),
 				/* @__PURE__ */ (0, x.jsxs)("div", {
 					className: "composer-basic-paths",
-					children: [A.map((e) => {
-						let t = e.id === N?.id;
+					children: [M.map((e) => {
+						let t = e.id === F?.id;
 						return /* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							"aria-pressed": t,
@@ -19152,14 +19153,14 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							},
 							onDragEnd: () => w(!1),
 							onClick: () => {
-								oe(e.id);
+								ge(e.id);
 							},
 							children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] }), /* @__PURE__ */ (0, x.jsx)(yf, {
 								size: 16,
 								"aria-hidden": "true"
 							})]
 						}, e.id);
-					}), !A.length && /* @__PURE__ */ (0, x.jsxs)("p", {
+					}), !M.length && /* @__PURE__ */ (0, x.jsxs)("p", {
 						className: "composer-basic-empty",
 						role: "status",
 						children: [
@@ -19175,12 +19176,12 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 					children: [
 						/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: "Build a path" }), /* @__PURE__ */ (0, x.jsx)("button", {
 							type: "button",
-							onClick: ce,
+							onClick: ve,
 							children: "Start new"
 						})] }),
 						/* @__PURE__ */ (0, x.jsx)("p", { children: "Drop the next compatible intent onto the canvas. EQO adds the typed connection." }),
-						j.map((e) => {
-							let t = z.has(e.id);
+						N.map((e) => {
+							let t = J.has(e.id);
 							return /* @__PURE__ */ (0, x.jsxs)("button", {
 								type: "button",
 								className: "composer-basic-intent",
@@ -19190,7 +19191,7 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 									t.dataTransfer.effectAllowed = "copy", t.dataTransfer.setData("application/x-eqo-basic-intent", e.id), t.dataTransfer.setData("text/plain", e.title);
 								},
 								onDragEnd: () => w(!1),
-								onClick: () => se(e.id),
+								onClick: () => _e(e.id),
 								title: t ? `Add ${e.title} to the compatible workflow path` : "Complete or restart the current path before this block can connect",
 								children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: e.title }), /* @__PURE__ */ (0, x.jsx)("small", { children: e.detail })] }), /* @__PURE__ */ (0, x.jsx)(yf, {
 									size: 15,
@@ -19207,25 +19208,25 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 			]
 		}), /* @__PURE__ */ (0, x.jsx)("main", {
 			className: "composer-basic-detail",
-			children: F ? /* @__PURE__ */ (0, x.jsxs)(x.Fragment, { children: [
+			children: L ? /* @__PURE__ */ (0, x.jsxs)(x.Fragment, { children: [
 				/* @__PURE__ */ (0, x.jsxs)("header", {
 					className: "composer-basic-header",
-					children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("h2", { children: P.title }), /* @__PURE__ */ (0, x.jsx)("p", { children: P.detail })] }), /* @__PURE__ */ (0, x.jsxs)("dl", { children: [
+					children: [/* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("h2", { children: I.title }), /* @__PURE__ */ (0, x.jsx)("p", { children: I.detail })] }), /* @__PURE__ */ (0, x.jsxs)("dl", { children: [
 						/* @__PURE__ */ (0, x.jsx)("dt", { children: "WORKFLOW" }),
 						/* @__PURE__ */ (0, x.jsxs)("dd", { children: [
-							F.id,
+							L.id,
 							"@",
-							F.version
+							L.version
 						] }),
 						/* @__PURE__ */ (0, x.jsx)("dt", { children: "OUTPUTS" }),
-						/* @__PURE__ */ (0, x.jsxs)("dd", { children: [Object.keys(F.definition.spec.outputs).length, " artifacts"] })
+						/* @__PURE__ */ (0, x.jsxs)("dd", { children: [Object.keys(L.definition.spec.outputs).length, " artifacts"] })
 					] })]
 				}),
 				/* @__PURE__ */ (0, x.jsxs)("div", {
 					className: "composer-basic-body",
 					children: [
-						ue,
-						G && /* @__PURE__ */ (0, x.jsxs)("section", {
+						be,
+						oe && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-block-inspector",
 							"aria-labelledby": "basic-block-inspector-title",
 							children: [
@@ -19233,33 +19234,33 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 									className: "composer-basic-section-heading",
 									children: [/* @__PURE__ */ (0, x.jsxs)("h3", {
 										id: "basic-block-inspector-title",
-										children: ["Inspect ", G.title]
-									}), /* @__PURE__ */ (0, x.jsxs)("p", { children: [G.detail, ". This is the published information EQO will preserve with the run."] })]
+										children: ["Inspect ", oe.title]
+									}), /* @__PURE__ */ (0, x.jsxs)("p", { children: [oe.detail, ". This is the published information EQO will preserve with the run."] })]
 								}),
 								/* @__PURE__ */ (0, x.jsxs)("dl", {
 									className: "composer-basic-block-facts",
 									children: [
-										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "INPUT HANDOFF" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: [...q].map(rm).join(", ") || "None" })] }),
-										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "OUTPUT HANDOFF" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: [...J].map(rm).join(", ") || "None" })] }),
-										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "EXECUTION TARGET" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: te })] }),
+										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "INPUT HANDOFF" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: [...le].map(rm).join(", ") || "None" })] }),
+										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "OUTPUT HANDOFF" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: [...ue].map(rm).join(", ") || "None" })] }),
+										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "EXECUTION TARGET" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: de })] }),
 										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("dt", { children: "ADMISSION" }), /* @__PURE__ */ (0, x.jsx)("dd", { children: l.canQueue ? "Ready after input" : l.message })] })
 									]
 								}),
-								G.kind === "input" && H && U && /* @__PURE__ */ (0, x.jsxs)("p", {
+								oe.kind === "input" && re && ie && /* @__PURE__ */ (0, x.jsxs)("p", {
 									className: "composer-basic-block-source",
 									children: [
 										"Source: ",
-										/* @__PURE__ */ (0, x.jsx)("strong", { children: i[H] || "Pasted circuit" }),
+										/* @__PURE__ */ (0, x.jsx)("strong", { children: i[re] || "Pasted circuit" }),
 										" · ",
-										U.artifact_type,
+										ie.artifact_type,
 										" · ",
-										(r[H] ?? "").length.toLocaleString(),
+										(r[re] ?? "").length.toLocaleString(),
 										" characters"
 									]
 								}),
-								!!ee.length && /* @__PURE__ */ (0, x.jsx)("div", {
+								!!ce.length && /* @__PURE__ */ (0, x.jsx)("div", {
 									className: "composer-basic-implementations",
-									children: ee.map((e) => {
+									children: ce.map((e) => {
 										let t = n.find((t) => t.id === e.operation.capability && t.version === e.operation.version)?.operations.find((t) => t.id === e.operation.operation);
 										return /* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: t?.title ?? e.operation.operation }), /* @__PURE__ */ (0, x.jsxs)("small", { children: [
 											e.operation.capability,
@@ -19270,9 +19271,9 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 										] })] }, e.id);
 									})
 								}),
-								!!ie.length && /* @__PURE__ */ (0, x.jsx)("dl", {
+								!!me.length && /* @__PURE__ */ (0, x.jsx)("dl", {
 									className: "composer-basic-block-parameters",
-									children: ie.map(({ nodeId: e, name: t, value: n }) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [
+									children: me.map(({ nodeId: e, name: t, value: n }) => /* @__PURE__ */ (0, x.jsxs)("div", { children: [
 										/* @__PURE__ */ (0, x.jsx)("dt", { children: am(t) }),
 										/* @__PURE__ */ (0, x.jsx)("dd", { children: om(t, n) }),
 										/* @__PURE__ */ (0, x.jsxs)("small", { children: [
@@ -19284,15 +19285,15 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 								})
 							]
 						}),
-						P.hardwareNotice && /* @__PURE__ */ (0, x.jsxs)("aside", {
+						I.hardwareNotice && /* @__PURE__ */ (0, x.jsxs)("aside", {
 							className: "composer-basic-hardware-notice",
 							role: "note",
 							children: [/* @__PURE__ */ (0, x.jsx)(bf, {
 								size: 16,
 								"aria-hidden": "true"
-							}), /* @__PURE__ */ (0, x.jsx)("span", { children: P.hardwareNotice })]
+							}), /* @__PURE__ */ (0, x.jsx)("span", { children: I.hardwareNotice })]
 						}),
-						P.id === "hardware" && /* @__PURE__ */ (0, x.jsxs)("section", {
+						I.id === "hardware" && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-target",
 							"aria-labelledby": "basic-hardware-target-title",
 							children: [
@@ -19302,9 +19303,9 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 								}), /* @__PURE__ */ (0, x.jsx)("p", { children: "Preparation stays local; the submitted circuit is pinned to a separately admitted hardware worker." })] }),
 								/* @__PURE__ */ (0, x.jsxs)("dl", { children: [
 									/* @__PURE__ */ (0, x.jsx)("dt", { children: "PREPARATION TARGET" }),
-									/* @__PURE__ */ (0, x.jsx)("dd", { children: ne ?? "Published local target" }),
+									/* @__PURE__ */ (0, x.jsx)("dd", { children: fe ?? "Published local target" }),
 									/* @__PURE__ */ (0, x.jsx)("dt", { children: "HARDWARE TARGET" }),
-									/* @__PURE__ */ (0, x.jsx)("dd", { children: re ?? "Checking admission" }),
+									/* @__PURE__ */ (0, x.jsx)("dd", { children: pe ?? "Checking admission" }),
 									/* @__PURE__ */ (0, x.jsx)("dt", { children: "DEVICE" }),
 									/* @__PURE__ */ (0, x.jsx)("dd", { children: "Worker-configured IQM device" })
 								] }),
@@ -19312,10 +19313,55 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 									className: "composer-basic-target-note",
 									children: "Target selection is explicit when EQO Local starts: the isolated worker admits one configured device alias and keeps its endpoint and credential private. To use another target or device contract, open Advanced and publish a compatible workflow."
 								}),
-								/* @__PURE__ */ (0, x.jsx)(wm, { onGateChange: R })
+								W && z && /* @__PURE__ */ (0, x.jsxs)("section", {
+									className: "composer-basic-experiment-settings",
+									"aria-labelledby": "basic-experiment-settings-title",
+									children: [
+										/* @__PURE__ */ (0, x.jsxs)("div", { children: [/* @__PURE__ */ (0, x.jsx)("h4", {
+											id: "basic-experiment-settings-title",
+											children: "Experiment settings"
+										}), /* @__PURE__ */ (0, x.jsx)("p", { children: "Tune the measurement count for this run. This does not alter the published workflow." })] }),
+										/* @__PURE__ */ (0, x.jsxs)("label", {
+											htmlFor: "basic-hardware-shots",
+											children: ["Measurement shots", /* @__PURE__ */ (0, x.jsx)("input", {
+												id: "basic-hardware-shots",
+												type: "number",
+												inputMode: "numeric",
+												min: V,
+												max: H,
+												step: "1",
+												value: D,
+												"aria-describedby": "basic-hardware-shots-help",
+												onChange: (e) => O(e.target.value)
+											})]
+										}),
+										/* @__PURE__ */ (0, x.jsxs)("p", {
+											id: "basic-hardware-shots-help",
+											children: [
+												"Choose a whole number from ",
+												V,
+												" to ",
+												H,
+												". Higher values use more provider allocation."
+											]
+										}),
+										!G && /* @__PURE__ */ (0, x.jsxs)("p", {
+											className: "composer-basic-setting-error",
+											role: "alert",
+											children: [
+												"Enter a whole number from ",
+												V,
+												" to ",
+												H,
+												" before submitting."
+											]
+										})
+									]
+								}),
+								/* @__PURE__ */ (0, x.jsx)(wm, { onGateChange: q })
 							]
 						}),
-						ae.map((e) => /* @__PURE__ */ (0, x.jsxs)("section", {
+						he.map((e) => /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-transformation-evidence",
 							"aria-labelledby": `transformation-evidence-${e.node.id}`,
 							children: [
@@ -19358,7 +19404,7 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 								})
 							]
 						}, e.node.id)),
-						H && U && /* @__PURE__ */ (0, x.jsxs)("section", {
+						re && ie && /* @__PURE__ */ (0, x.jsxs)("section", {
 							className: "composer-basic-input",
 							"aria-labelledby": "basic-input-title",
 							children: [
@@ -19381,11 +19427,11 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 											"Upload circuit",
 											/* @__PURE__ */ (0, x.jsx)("input", {
 												type: "file",
-												accept: P.inputAccept,
-												"aria-label": `Upload ${P.inputLabel} file`,
+												accept: I.inputAccept,
+												"aria-label": `Upload ${I.inputLabel} file`,
 												onChange: (e) => {
 													let t = e.currentTarget.files?.[0];
-													t && (g(null), t.text().then((e) => d(F.id, H, e, t.name)).catch((e) => g(cm(e))), e.currentTarget.value = "");
+													t && (g(null), t.text().then((e) => d(L.id, re, e, t.name)).catch((e) => g(cm(e))), e.currentTarget.value = "");
 												}
 											})
 										]
@@ -19393,28 +19439,28 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 										type: "button",
 										className: "composer-button is-secondary",
 										onClick: () => {
-											g(null), d(F.id, H, P.exampleContent, P.exampleName);
+											g(null), d(L.id, re, I.exampleContent, I.exampleName);
 										},
 										children: [/* @__PURE__ */ (0, x.jsx)(Cf, {
 											size: 14,
 											"aria-hidden": "true"
-										}), P.exampleLabel]
+										}), I.exampleLabel]
 									})]
 								}),
 								/* @__PURE__ */ (0, x.jsx)("textarea", {
 									rows: 8,
-									"aria-label": P.inputLabel,
+									"aria-label": I.inputLabel,
 									spellCheck: !1,
-									value: r[H] ?? "",
-									placeholder: P.inputPlaceholder,
-									onChange: (e) => d(F.id, H, e.target.value)
+									value: r[re] ?? "",
+									placeholder: I.inputPlaceholder,
+									onChange: (e) => d(L.id, re, e.target.value)
 								}),
 								/* @__PURE__ */ (0, x.jsxs)("div", {
 									className: "composer-basic-input-meta",
 									children: [
-										/* @__PURE__ */ (0, x.jsx)("span", { children: i[H] || "Pasted text" }),
-										/* @__PURE__ */ (0, x.jsxs)("span", { children: [(r[H] ?? "").length.toLocaleString(), " characters"] }),
-										/* @__PURE__ */ (0, x.jsx)("span", { children: U.artifact_type })
+										/* @__PURE__ */ (0, x.jsx)("span", { children: i[re] || "Pasted text" }),
+										/* @__PURE__ */ (0, x.jsxs)("span", { children: [(r[re] ?? "").length.toLocaleString(), " characters"] }),
+										/* @__PURE__ */ (0, x.jsx)("span", { children: ie.artifact_type })
 									]
 								}),
 								h && /* @__PURE__ */ (0, x.jsx)("p", {
@@ -19440,7 +19486,7 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 									id: "basic-output-title",
 									children: "What you will receive"
 								}), /* @__PURE__ */ (0, x.jsx)("p", { children: "Every result stays attached to the run with its exact workflow and target details." })]
-							}), /* @__PURE__ */ (0, x.jsx)("ul", { children: Object.entries(F.definition.spec.outputs).map(([e, t]) => /* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)(Cf, {
+							}), /* @__PURE__ */ (0, x.jsx)("ul", { children: Object.entries(L.definition.spec.outputs).map(([e, t]) => /* @__PURE__ */ (0, x.jsxs)("li", { children: [/* @__PURE__ */ (0, x.jsx)(Cf, {
 								size: 15,
 								"aria-hidden": "true"
 							}), /* @__PURE__ */ (0, x.jsxs)("span", { children: [/* @__PURE__ */ (0, x.jsx)("strong", { children: rm(t.artifact_type) }), /* @__PURE__ */ (0, x.jsx)("small", { children: e })] })] }, e)) })]
@@ -19490,9 +19536,9 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 						/* @__PURE__ */ (0, x.jsxs)("button", {
 							type: "button",
 							className: "composer-button is-primary",
-							disabled: !I || !W || a || !l.canQueue || L,
-							title: I ? L ? T === "checking" ? "Checking your personal IQM credential." : T === "required" ? "Save a personal IQM credential before submitting hardware work." : "Your personal IQM credential is unavailable. Retry the credential check." : l.canQueue ? P.actionLabel : l.message : "Complete a compatible Basic Composer path before submitting.",
-							onClick: f,
+							disabled: !K || !ae || a || !l.canQueue || ee || !G,
+							title: K ? G ? ee ? T === "checking" ? "Checking your personal IQM credential." : T === "required" ? "Save a personal IQM credential before submitting hardware work." : "Your personal IQM credential is unavailable. Retry the credential check." : l.canQueue ? I.actionLabel : l.message : `Enter a whole number from ${V} to ${H}.` : "Complete a compatible Basic Composer path before submitting.",
+							onClick: () => f(W && z ? { [z.id]: { shots: U } } : void 0),
 							children: [a ? /* @__PURE__ */ (0, x.jsx)(Mf, {
 								size: 14,
 								className: "composer-spin",
@@ -19500,13 +19546,13 @@ function Tm({ paths: e, selectedPath: t, capabilities: n, inputs: r, inputNames:
 							}) : /* @__PURE__ */ (0, x.jsx)(Rf, {
 								size: 14,
 								"aria-hidden": "true"
-							}), a ? "Submitting" : P.actionLabel]
+							}), a ? "Submitting" : I.actionLabel]
 						})
 					] })]
 				})
 			] }) : /* @__PURE__ */ (0, x.jsxs)("div", {
 				className: "composer-basic-body",
-				children: [ue, /* @__PURE__ */ (0, x.jsxs)("section", {
+				children: [be, /* @__PURE__ */ (0, x.jsxs)("section", {
 					className: "composer-basic-plan-boundary",
 					"aria-label": "Basic plan validation",
 					children: [/* @__PURE__ */ (0, x.jsx)(bf, {
@@ -36833,16 +36879,16 @@ var pA = /*#__PURE__*/ function() {
 
       uniform mat3 uPanZoomMatrix;
       uniform int  uAtlasSize;
-
+      
       // instanced
       in vec2 aPosition; // a vertex from the unit square
-
+      
       in mat3 aTransform; // used to transform verticies, eg into a bounding box
       in int aVertType; // the type of thing we are rendering
 
       // the z-index that is output when using picking mode
       in vec4 aIndex;
-
+      
       // For textures
       in int aAtlasId; // which shader unit/atlas to use
       in vec4 aTex; // x/y/w/h of texture in atlas
@@ -36862,7 +36908,7 @@ var pA = /*#__PURE__*/ function() {
       out vec4 vColor;
       out vec2 vPosition;
       // flat values are not interpolated
-      flat out int vAtlasId;
+      flat out int vAtlasId; 
       flat out int vVertType;
       flat out vec2 vTopRight;
       flat out vec2 vBotLeft;
@@ -36870,7 +36916,7 @@ var pA = /*#__PURE__*/ function() {
       flat out vec4 vBorderColor;
       flat out vec2 vBorderWidth;
       flat out vec4 vIndex;
-
+      
       void main(void) {
         int vid = gl_VertexID;
         vec2 position = aPosition; // TODO make this a vec3, simplifies some code below
@@ -36893,7 +36939,7 @@ var pA = /*#__PURE__*/ function() {
 
           gl_Position = vec4(uPanZoomMatrix * aTransform * vec3(position, 1.0), 1.0);
         }
-        else if(aVertType == ${TA} || aVertType == ${OA}
+        else if(aVertType == ${TA} || aVertType == ${OA} 
              || aVertType == ${EA} || aVertType == ${DA}) { // simple shapes
 
           // the bounding box is needed by the fragment shader
@@ -36923,7 +36969,7 @@ var pA = /*#__PURE__*/ function() {
 
           gl_Position = vec4(uPanZoomMatrix * vec3(point, 1.0), 1.0);
           vColor = aColor;
-        }
+        } 
         else if(aVertType == ${CA}) {
           vec2 pointA = aPointAPointB.xy;
           vec2 pointB = aPointAPointB.zw;
@@ -36972,7 +37018,7 @@ var pA = /*#__PURE__*/ function() {
           }
 
           vColor = aColor;
-        }
+        } 
         else if(aVertType == ${wA} && vid < 3) {
           // massage the first triangle into an edge arrow
           if(vid == 0)
@@ -37025,16 +37071,16 @@ var pA = /*#__PURE__*/ function() {
       ${vA}
 
       vec4 blend(vec4 top, vec4 bot) { // blend colors with premultiplied alpha
-        return vec4(
+        return vec4( 
           top.rgb + (bot.rgb * (1.0 - top.a)),
-          top.a   + (bot.a   * (1.0 - top.a))
+          top.a   + (bot.a   * (1.0 - top.a)) 
         );
       }
 
       vec4 distInterp(vec4 cA, vec4 cB, float d) { // interpolate color using Signed Distance
         // scale to the zoom level so that borders don't look blurry when zoomed in
         // note 1.5 is an aribitrary value chosen because it looks good
-        return mix(cA, cB, 1.0 - smoothstep(0.0, 1.5 / uZoom, abs(d)));
+        return mix(cA, cB, 1.0 - smoothstep(0.0, 1.5 / uZoom, abs(d))); 
       }
 
       void main(void) {
@@ -37043,7 +37089,7 @@ var pA = /*#__PURE__*/ function() {
           ${r.map(function(e) {
 					return `if(vAtlasId == ${e}) outColor = texture(uTexture${e}, vTexCoord);`;
 				}).join("\n	else ")}
-        }
+        } 
         else if(vVertType == ${wA}) {
           // mimics how canvas renderer uses context.globalCompositeOperation = 'destination-out';
           outColor = blend(vColor, uBGColor);
@@ -37052,7 +37098,7 @@ var pA = /*#__PURE__*/ function() {
         else if(vVertType == ${TA} && vBorderWidth == vec2(0.0)) { // simple rectangle with no border
           outColor = vColor; // unit square is already transformed to the rectangle, nothing else needs to be done
         }
-        else if(vVertType == ${TA} || vVertType == ${OA}
+        else if(vVertType == ${TA} || vVertType == ${OA} 
           || vVertType == ${EA} || vVertType == ${DA}) { // use SDF
 
           float outerBorder = vBorderWidth[0];
@@ -37087,7 +37133,7 @@ var pA = /*#__PURE__*/ function() {
               vec4 outerColor = outerBorder == 0.0 ? vec4(0) : vBorderColor;
               vec4 innerBorderColor = blend(vBorderColor, vColor);
               outColor = distInterp(innerBorderColor, outerColor, d);
-            }
+            } 
             else {
               vec4 outerColor;
               if(innerBorder == 0.0 && outerBorder == 0.0) {

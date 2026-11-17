@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Callable, Iterator, Protocol
+from typing import Any, Callable, Iterator, Mapping, Protocol
 from urllib.parse import unquote, urlparse
 
 from .contract import (
@@ -1513,6 +1513,75 @@ class WorkflowEngine:
             "definition": json.loads(row["definition"]),
         }
 
+    @staticmethod
+    def _validated_run_parameter_overrides(
+        definition: Mapping[str, Any],
+        resolution: Mapping[str, Any],
+        overrides: Mapping[str, Mapping[str, Any]] | None,
+    ) -> dict[str, dict[str, Any]]:
+        """Permit only registry-declared, bounded run-scoped parameters.
+
+        The immutable workflow remains the scientific recipe. Each accepted
+        override is copied into the persisted task operation, making the exact
+        effective configuration inspectable with the resulting run.
+        """
+
+        if overrides is None:
+            return {}
+        if not isinstance(overrides, Mapping):
+            raise ContractError("parameter_overrides must map workflow nodes to parameters")
+        nodes = {node["id"]: node for node in definition["spec"]["nodes"]}
+        unknown_nodes = sorted(set(overrides) - set(nodes))
+        if unknown_nodes:
+            raise ContractError(
+                "parameter overrides name unknown workflow nodes: "
+                + ", ".join(unknown_nodes)
+            )
+        accepted: dict[str, dict[str, Any]] = {}
+        for node_id, values in overrides.items():
+            if not isinstance(node_id, str) or not isinstance(values, Mapping) or not values:
+                raise ContractError(
+                    "each parameter override must map one workflow node to one or more values"
+                )
+            resolved = resolution.get(node_id)
+            if not isinstance(resolved, Mapping):
+                raise ContractError(f"workflow node {node_id} has no resolved operation")
+            operation = resolved.get("operation")
+            definitions = operation.get("parameters", {}) if isinstance(operation, Mapping) else {}
+            node_values: dict[str, Any] = {}
+            for name, value in values.items():
+                parameter = definitions.get(name) if isinstance(name, str) else None
+                if not isinstance(parameter, Mapping) or not parameter.get("run_tunable", False):
+                    raise ContractError(
+                        f"workflow parameter {node_id}.{name} is not run-tunable"
+                    )
+                expected_type = parameter.get("type")
+                valid_type = (
+                    (expected_type == "string" and isinstance(value, str))
+                    or (expected_type == "integer" and isinstance(value, int) and not isinstance(value, bool))
+                    or (expected_type == "number" and isinstance(value, (int, float)) and not isinstance(value, bool))
+                    or (expected_type == "boolean" and isinstance(value, bool))
+                )
+                if not valid_type:
+                    raise ContractError(
+                        f"workflow parameter {node_id}.{name} must be {expected_type}"
+                    )
+                if "enum" in parameter and value not in parameter["enum"]:
+                    raise ContractError(
+                        f"workflow parameter {node_id}.{name} is not an allowed value"
+                    )
+                if "minimum" in parameter and value < parameter["minimum"]:
+                    raise ContractError(
+                        f"workflow parameter {node_id}.{name} is below its minimum"
+                    )
+                if "maximum" in parameter and value > parameter["maximum"]:
+                    raise ContractError(
+                        f"workflow parameter {node_id}.{name} exceeds its maximum"
+                    )
+                node_values[name] = value
+            accepted[node_id] = node_values
+        return accepted
+
     def submit_run(
         self,
         workflow_id: str,
@@ -1524,6 +1593,7 @@ class WorkflowEngine:
         execution_class: str | None = None,
         created_by: str,
         study_id: str | None = None,
+        parameter_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         with self._connect() as connection:
             if study_id is not None and not connection.execute(
@@ -1539,6 +1609,10 @@ class WorkflowEngine:
             definition = json.loads(workflow_row["definition"])
             if registry is not None:
                 resolve_workflow(definition, registry)
+            resolution = json.loads(workflow_row["resolution"])
+            effective_overrides = self._validated_run_parameter_overrides(
+                definition, resolution, parameter_overrides
+            )
             declared_inputs = definition["spec"]["inputs"]
             unknown = sorted(set(inputs) - set(declared_inputs))
             if unknown:
@@ -1579,7 +1653,6 @@ class WorkflowEngine:
                     _json(inputs),
                 ),
             )
-            resolution = json.loads(workflow_row["resolution"])
             nodes = {node["id"]: node for node in definition["spec"]["nodes"]}
             default_execution_class = execution_class or _default_execution_class(
                 execution_target
@@ -1609,7 +1682,10 @@ class WorkflowEngine:
                                 "operation": operation["id"],
                                 "project": item["project"],
                                 "definition": operation,
-                                "parameters": nodes[node_id]["parameters"],
+                                "parameters": {
+                                    **nodes[node_id]["parameters"],
+                                    **effective_overrides.get(node_id, {}),
+                                },
                                 "execution_target": target,
                                 "execution_class": nodes[node_id].get(
                                     "execution_class", default_execution_class

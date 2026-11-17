@@ -1648,6 +1648,7 @@ def handler_for(context: APIContext) -> type[BaseHTTPRequestHandler]:
                         execution_class=execution_class,
                         created_by=body.get("created_by", "workbench-user"),
                         study_id=study_id,
+                        parameter_overrides=body.get("parameter_overrides"),
                     )
                     self._json_response(HTTPStatus.ACCEPTED, result)
                     return

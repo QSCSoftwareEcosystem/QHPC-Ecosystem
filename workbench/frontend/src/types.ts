@@ -19,6 +19,7 @@ export interface ParameterDefinition {
   enum?: ParameterValue[];
   minimum?: number;
   maximum?: number;
+  run_tunable?: boolean;
 }
 
 export interface OperationDefinition {
