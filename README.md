@@ -165,8 +165,10 @@ eqo local up \
 This starts a separately contained Ollama service on loopback only, pulls the
 admitted `gemma3:12b` package into EQO-owned local storage when absent, and
 passes its answer only through the contained ChatQEC service. The Workbench
-never connects to the model service. It requires Docker with NVIDIA GPU access;
-it cannot run with `USE_APPTAINER=1`.
+never connects to the model service. It requires Docker with NVIDIA GPU access.
+When `USE_APPTAINER=1` is selected for scientific operation runtimes, only the
+Gemma and contained ChatQEC tool sidecars use Docker; the workflow engine
+continues to use Apptainer.
 
 To use both optional services, provide the IQM endpoint and the device alias
 admitted for your account. This example uses `default`; replace it if your IQM

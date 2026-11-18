@@ -386,10 +386,6 @@ class LocalStackConfig:
                 raise LocalReleaseError(
                     "the only admitted local ChatQEC model is gemma-3-12b-it"
                 )
-            if apptainer_requested():
-                raise LocalReleaseError(
-                    "the managed local Gemma ChatQEC mode requires Docker"
-                )
             if host_oci_arch() not in _CHATQEC_OLLAMA_IMAGES:
                 raise LocalReleaseError(
                     "the managed local Gemma ChatQEC mode has no admitted image for this architecture"
@@ -757,10 +753,10 @@ def _local_image_label(builder: str, image: str, label: str) -> str | None:
     return value or None
 
 
-def ensure_chatqec_agent_oci_runtime() -> str:
+def ensure_chatqec_agent_oci_runtime(*, force_docker: bool = False) -> str:
     """Build the local ChatQEC service image from admitted parent images only."""
 
-    if apptainer_requested():
+    if apptainer_requested() and not force_docker:
         # The containerized ChatQEC agent is a published-port service that has no
         # Apptainer equivalent; under USE_APPTAINER=1 the supervisor runs the
         # same citation-backed assistant in-process instead of building it.
@@ -887,7 +883,9 @@ def remove_stale_chatqec_agent_container(config: LocalStackConfig) -> bool:
     checks to explain.
     """
 
-    if not config.assistant_enabled or apptainer_requested():
+    if not config.assistant_enabled or (
+        apptainer_requested() and not config.chatqec_local_model
+    ):
         return False
     names = [f"eqo-chatqec-{config.assistant_port}"]
     if config.chatqec_local_model:
@@ -1634,7 +1632,7 @@ def launch_local(
         ) from error
     ensure_ftqc_oci_runtime(config, paths)
     if config.assistant_enabled:
-        ensure_chatqec_agent_oci_runtime()
+        ensure_chatqec_agent_oci_runtime(force_docker=bool(config.chatqec_local_model))
     if config.chatqec_local_model:
         prepare_chatqec_ollama_store(paths)
     write_local_config(paths, config)
@@ -1845,7 +1843,8 @@ def supervise_local(
         qappswiki_graph=config.qappswiki_graph,
         chatqec_container_image=(
             CHATQEC_AGENT_OCI_IMAGE
-            if config.assistant_enabled and not apptainer_requested()
+            if config.assistant_enabled
+            and (not apptainer_requested() or config.chatqec_local_model)
             else ""
         ),
         chatqec_openai_model=config.chatqec_openai_model or "",

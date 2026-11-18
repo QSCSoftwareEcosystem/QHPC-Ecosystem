@@ -431,8 +431,10 @@ circuits in its contained tool environment and marks local measurements as
 execution evidence; Gemma only explains the bounded tool result and the pinned
 source-ledger excerpts.
 
-This prototype requires Docker with NVIDIA GPU support and cannot run under
-`USE_APPTAINER=1`. The model package is subject to its publisher's terms. It is
+This prototype requires Docker with NVIDIA GPU support. It may be combined with
+`USE_APPTAINER=1`: in that mixed local profile, the Gemma and contained
+ChatQEC-tool sidecars use Docker while scientific operation runtimes remain
+under Apptainer. The model package is subject to its publisher's terms. It is
 not a production model-RAG acceptance and does not enable Qdrant, web search,
 model-directed tool calls, or hardware access.
 

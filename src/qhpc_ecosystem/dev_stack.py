@@ -105,8 +105,6 @@ def build_service_specs(
             raise RuntimeError(
                 "select either the local OpenAI or managed local Gemma ChatQEC model"
             )
-        if apptainer_requested():
-            raise RuntimeError("the managed local Gemma ChatQEC mode requires Docker")
         if not all(
             (
                 config.chatqec_ollama_image,
@@ -193,9 +191,13 @@ def build_service_specs(
         api_command.extend(("--workflow", workflow))
     services = [ServiceSpec("api", tuple(api_command), api_environment)]
     if config.start_chatqec:
-        # Under USE_APPTAINER=1 there is no daemon to publish a service container;
-        # run the same citation-backed assistant in-process instead.
-        if config.chatqec_container_image and not apptainer_requested():
+        # The standard Apptainer profile uses the deterministic in-process
+        # assistant.  The explicitly requested local Gemma profile is the one
+        # exception: its model and contained circuit tools are Docker sidecars,
+        # while EQO operation runtimes remain under Apptainer control.
+        if config.chatqec_container_image and (
+            not apptainer_requested() or config.chatqec_ollama_model
+        ):
             try:
                 container_engine = find_oci_builder()
             except Exception as error:

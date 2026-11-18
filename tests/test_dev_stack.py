@@ -391,6 +391,26 @@ def test_containerized_chatqec_starts_the_managed_local_gemma_service(monkeypatc
     )
 
 
+def test_local_gemma_sidecars_are_allowed_with_apptainer_operation_runtimes(monkeypatch) -> None:
+    monkeypatch.setattr("qhpc_ecosystem.dev_stack.find_oci_builder", lambda: "docker")
+    monkeypatch.setattr("qhpc_ecosystem.dev_stack.apptainer_requested", lambda: True)
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "chatqec_container_image": "qhpc/chatqec-agent:test",
+            "chatqec_ollama_model": "gemma3:12b",
+            "chatqec_ollama_image": "ollama/ollama@sha256:admitted",
+            "chatqec_ollama_platform": "linux/arm64",
+            "chatqec_ollama_store": "/secure/eqo/chatqec-ollama",
+        }
+    )
+
+    services = build_service_specs(value)
+
+    assert "chatqec-model" in [service.name for service in services]
+    assert "chatqec" in [service.name for service in services]
+
+
 class FakeProcess:
     next_pid = 1000
 

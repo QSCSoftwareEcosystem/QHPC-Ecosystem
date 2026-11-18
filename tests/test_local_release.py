@@ -625,6 +625,14 @@ def test_local_gemma_chatqec_cannot_be_combined_with_openai() -> None:
         ).validate()
 
 
+def test_local_gemma_chatqec_allows_apptainer_for_scientific_runtimes(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(local_release, "apptainer_requested", lambda: True)
+
+    config(chatqec_local_model="gemma-3-12b-it").validate()
+
+
 def test_supervisor_launches_services_before_waiting_for_api(
     tmp_path: Path, monkeypatch
 ) -> None:
