@@ -354,6 +354,43 @@ def test_containerized_chatqec_scopes_openai_configuration_to_the_agent(monkeypa
     supervisor.stop()
 
 
+def test_containerized_chatqec_starts_the_managed_local_gemma_service(monkeypatch) -> None:
+    monkeypatch.setattr("qhpc_ecosystem.dev_stack.find_oci_builder", lambda: "docker")
+    value = DevStackConfig(
+        **{
+            **config().__dict__,
+            "chatqec_container_image": "qhpc/chatqec-agent:test",
+            "chatqec_ollama_model": "gemma3:12b",
+            "chatqec_ollama_image": "ollama/ollama@sha256:admitted",
+            "chatqec_ollama_platform": "linux/arm64",
+            "chatqec_ollama_store": "/secure/eqo/chatqec-ollama",
+        }
+    )
+
+    services = build_service_specs(value)
+    model = next(service for service in services if service.name == "chatqec-model")
+    chatqec = next(service for service in services if service.name == "chatqec")
+
+    assert [service.name for service in services][:3] == ["api", "chatqec-model", "chatqec"]
+    assert "--gpus" in model.command
+    assert "all" in model.command
+    assert "127.0.0.1:11434:11434" in model.command
+    assert "ollama/ollama@sha256:admitted" in model.command
+    assert "eqo-chatqec-model-11434" in model.cleanup_command
+    assert "QHPC_CHATQEC_OLLAMA_MODEL" in chatqec.command
+    assert "QHPC_CHATQEC_OLLAMA_URL" in chatqec.command
+    assert ("QHPC_CHATQEC_OLLAMA_MODEL", "gemma3:12b") in chatqec.environment
+    assert (
+        "QHPC_CHATQEC_OLLAMA_URL",
+        "http://host.docker.internal:11434",
+    ) in chatqec.environment
+    assert all(
+        "QHPC_CHATQEC_OLLAMA_MODEL" not in dict(service.environment)
+        for service in services
+        if service is not chatqec
+    )
+
+
 class FakeProcess:
     next_pid = 1000
 

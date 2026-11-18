@@ -138,6 +138,7 @@ credential. Add an optional capability only when you intend to use it:
 | Option | Enables | Credential handling |
 | --- | --- | --- |
 | `--chatqec-openai-model MODEL --prompt-for-openai-api-key` | Source-grounded model answers in ChatQEC | Prompts for `OPENAI_API_KEY` without echoing it; the key is scoped to the contained ChatQEC service. |
+| `--chatqec-local-model gemma-3-12b-it` | Source-grounded answers from an EQO-managed local Google Gemma 3 12B instruction model | No model-provider key. Docker starts a GPU-backed Ollama service bound only to loopback and stores the admitted model under EQO-owned local data. |
 | `--iqm-simulation` | Credential-free simulated IQM worker | No network call and no token. Results are labelled `simulated-iqm`. |
 | `--start-iqm-worker --iqm-endpoint URL --iqm-device-alias ALIAS --prompt-for-iqm-token` | Isolated internal-alpha IQM hardware worker | Prompts for `IQM_TOKEN` without echoing it; the token is scoped to that worker. |
 | `--start-iqm-worker --enable-user-iqm-credentials --iqm-credential-key-file PATH` | Per-user IQM hardware credentials | Uses an operator-owned encryption key and a per-user vault; each signed-in user supplies their token in the Workbench. |
@@ -152,6 +153,20 @@ eqo local up \
   --prompt-for-openai-api-key \
   --open
 ```
+
+For a local, GPU-backed Gemma deployment, use the one admitted model identity:
+
+```bash
+eqo local up \
+  --chatqec-local-model gemma-3-12b-it \
+  --timeout 900
+```
+
+This starts a separately contained Ollama service on loopback only, pulls the
+admitted `gemma3:12b` package into EQO-owned local storage when absent, and
+passes its answer only through the contained ChatQEC service. The Workbench
+never connects to the model service. It requires Docker with NVIDIA GPU access;
+it cannot run with `USE_APPTAINER=1`.
 
 To use both optional services, provide the IQM endpoint and the device alias
 admitted for your account. This example uses `default`; replace it if your IQM

@@ -46,6 +46,8 @@ PINNED_CHATQEC_REVISION = "a1ddc2e4916b1f4152fba4c94c9c7512eea0d977"
 UNCONFIGURED_CORPUS_REVISION = "sha256:" + ("0" * 64)
 _OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 _OPENAI_MAX_OUTPUT_TOKENS = 4096
+_OLLAMA_GEMMA3_12B_MODEL = "gemma3:12b"
+_OLLAMA_DEFAULT_URL = "http://host.docker.internal:11434"
 _CANONICAL_SOURCE_URL = "https://github.com/QSCSoftwareEcosystem/ChatQEC"
 _MODEL_INSTRUCTIONS = """You are ChatQEC, a careful quantum-error-correction assistant.
 Answer concisely, identify assumptions, and distinguish an explanation from an
@@ -595,6 +597,126 @@ class OpenAIResponsesBackend:
         )
 
 
+class OllamaGemmaBackend:
+    """Bounded local Gemma 3 backend exposed only by the managed Ollama service."""
+
+    def __init__(
+        self,
+        *,
+        model: str,
+        base_url: str = _OLLAMA_DEFAULT_URL,
+        transport: OpenAITransport | None = None,
+    ) -> None:
+        if model != _OLLAMA_GEMMA3_12B_MODEL:
+            raise ChatQECAgentServiceError(
+                "the local ChatQEC model must be the admitted Gemma 3 12B instruction model"
+            )
+        parsed = urlparse(base_url)
+        try:
+            port = parsed.port
+        except ValueError:
+            port = None
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname not in {"host.docker.internal", "127.0.0.1", "localhost"}
+            or port != 11434
+            or parsed.username
+            or parsed.password
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ChatQECAgentServiceError(
+                "the local ChatQEC model endpoint must be the managed loopback Ollama service"
+            )
+        self.model = model
+        self.base_url = base_url.rstrip("/")
+        self.transport = transport or self._request
+
+    @staticmethod
+    def _request(request: Request, timeout_seconds: float) -> Mapping[str, Any]:
+        try:
+            with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - fixed managed endpoint
+                payload = json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            raise ChatQECAgentServiceError(
+                f"local Gemma model request failed (HTTP {error.code})"
+            ) from error
+        except (OSError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ChatQECAgentServiceError("local Gemma model request failed") from error
+        if not isinstance(payload, Mapping):
+            raise ChatQECAgentServiceError("local Gemma model response was invalid")
+        return payload
+
+    def __call__(
+        self,
+        question: str,
+        history: Sequence[Mapping[str, str]],
+        tool_result: str | None,
+        source_context: str = "",
+    ) -> OpenAIResponse:
+        final_input = question
+        if tool_result is not None:
+            final_input += (
+                "\n\nA bounded local circuit tool executed before this request. "
+                "Use its result faithfully; do not call raw measurement samples detector events.\n"
+                "--- local tool result ---\n"
+                + tool_result[:24_000]
+                + "\n--- end local tool result ---"
+            )
+        if source_context:
+            final_input += (
+                "\n\n--- pinned source ledger ---\n"
+                + source_context[:12_000]
+                + "\n--- end pinned source ledger ---"
+            )
+        messages = [{"role": "system", "content": _MODEL_INSTRUCTIONS}]
+        messages.extend(
+            {"role": item["role"], "content": item["content"]} for item in history
+        )
+        messages.append({"role": "user", "content": final_input})
+        body = json.dumps(
+            {
+                "model": self.model,
+                "messages": messages,
+                "stream": False,
+                "options": {"temperature": 0.1, "num_predict": _OPENAI_MAX_OUTPUT_TOKENS},
+                "keep_alive": "15m",
+            },
+            separators=(",", ":"),
+        ).encode("utf-8")
+        request = Request(
+            self.base_url + "/api/chat",
+            data=body,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        payload = self.transport(request, 180.0)
+        message = payload.get("message")
+        text = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(text, str) or not text.strip():
+            detail = payload.get("error")
+            if isinstance(detail, str) and detail.strip():
+                raise ChatQECAgentServiceError("local Gemma model request failed")
+            raise ChatQECAgentServiceError(
+                "local Gemma model response did not contain answer text"
+            )
+        response_id = payload.get("created_at")
+        if not isinstance(response_id, str) or not response_id.strip():
+            response_id = "ollama-" + hashlib.sha256(body).hexdigest()[:24]
+        return OpenAIResponse(
+            text=text.strip(),
+            response_id=response_id[:256],
+            input_tokens=_ollama_usage(payload, "prompt_eval_count"),
+            output_tokens=_ollama_usage(payload, "eval_count"),
+        )
+
+
+def _ollama_usage(payload: Mapping[str, Any], name: str) -> int:
+    value = payload.get(name)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+
 class ChatQECMCPAgentResponder:
     """Contained ChatQEC tool responder with an optional model explainer."""
 
@@ -606,6 +728,8 @@ class ChatQECMCPAgentResponder:
         direct_tools: Callable[[str], tuple[str, list[dict[str, str]]] | None] | None = None,
         openai_model: str | None = None,
         openai_api_key: str | None = None,
+        ollama_model: str | None = None,
+        ollama_url: str | None = None,
         model_backend: Callable[
             [str, Sequence[Mapping[str, str]], str | None, str], OpenAIResponse
         ] | None = None,
@@ -623,17 +747,37 @@ class ChatQECMCPAgentResponder:
             raise ChatQECAgentServiceError(
                 "the local OpenAI ChatQEC mode requires both a model and an API key"
             )
+        if openai_model and ollama_model:
+            raise ChatQECAgentServiceError(
+                "select either the local OpenAI or managed local Gemma ChatQEC model"
+            )
+        if ollama_model and model_backend is not None:
+            raise ChatQECAgentServiceError(
+                "the managed local Gemma ChatQEC model does not accept a second model backend"
+            )
+        if ollama_url and not ollama_model:
+            raise ChatQECAgentServiceError(
+                "the local Gemma endpoint requires the admitted Gemma model"
+            )
         if model_backend is not None and not openai_model:
             raise ChatQECAgentServiceError("a model backend requires an OpenAI model identifier")
         self.openai_model = openai_model.strip() if openai_model else None
+        self.ollama_model = ollama_model.strip() if ollama_model else None
+        self.model_provider = "ollama" if self.ollama_model else "openai"
+        self.model_name = self.ollama_model or self.openai_model
         # The key is supplied only to the container environment.  Retrieval is
         # deterministic over the pinned local pages, never an implicit external
         # provider, vector store, or embedding service.
-        self.model_backend = model_backend or (
-            OpenAIResponsesBackend(model=self.openai_model, api_key=openai_api_key or "")
-            if self.openai_model
-            else None
-        )
+        self.model_backend = model_backend
+        if self.model_backend is None and self.openai_model:
+            self.model_backend = OpenAIResponsesBackend(
+                model=self.openai_model, api_key=openai_api_key or ""
+            )
+        if self.model_backend is None and self.ollama_model:
+            self.model_backend = OllamaGemmaBackend(
+                model=self.ollama_model,
+                base_url=ollama_url or _OLLAMA_DEFAULT_URL,
+            )
         self.upstream = None
 
     def health(self) -> dict[str, Any]:
@@ -716,8 +860,8 @@ class ChatQECMCPAgentResponder:
                 output_tokens = max(1, len(response_answer.split()) * 4 // 3)
             else:
                 response_answer = model_response.text
-                provider = "openai"
-                model = self.openai_model or "openai"
+                provider = self.model_provider
+                model = self.model_name or self.model_provider
                 model_response_id = model_response.response_id
                 input_tokens = model_response.input_tokens
                 output_tokens = model_response.output_tokens
@@ -890,6 +1034,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         None,
         openai_model=os.environ.get("QHPC_CHATQEC_OPENAI_MODEL"),
         openai_api_key=os.environ.get("OPENAI_API_KEY"),
+        ollama_model=os.environ.get("QHPC_CHATQEC_OLLAMA_MODEL"),
+        ollama_url=os.environ.get("QHPC_CHATQEC_OLLAMA_URL"),
     )
     serve_agent(responder, identity_token, host=options.host, port=options.port)
     return 0

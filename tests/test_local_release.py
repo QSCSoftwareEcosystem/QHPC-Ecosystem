@@ -602,6 +602,29 @@ def test_openai_chatqec_requires_a_complete_local_configuration() -> None:
         config(chatqec_openai_api_key="test-key").validate()
 
 
+def test_local_gemma_chatqec_persists_only_the_admitted_model(tmp_path: Path) -> None:
+    value = config(chatqec_local_model="gemma-3-12b-it")
+    value.validate()
+    command = supervisor_command(value, LocalPaths.discover(tmp_path))
+
+    assert command[command.index("--chatqec-local-model") + 1] == "gemma-3-12b-it"
+    assert value.as_dict()["chatqec_local_model"] == "gemma-3-12b-it"
+
+
+def test_local_gemma_chatqec_rejects_an_unadmitted_model() -> None:
+    with pytest.raises(LocalReleaseError, match="only admitted"):
+        config(chatqec_local_model="some-other-model").validate()
+
+
+def test_local_gemma_chatqec_cannot_be_combined_with_openai() -> None:
+    with pytest.raises(LocalReleaseError, match="either the local OpenAI"):
+        config(
+            chatqec_local_model="gemma-3-12b-it",
+            chatqec_openai_model="gpt-5.6-terra",
+            chatqec_openai_api_key="test-key",
+        ).validate()
+
+
 def test_supervisor_launches_services_before_waiting_for_api(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -835,6 +858,31 @@ def test_cli_local_openai_configuration_scopes_terminal_credential(
     assert captured[0].chatqec_openai_model == "gpt-5.6-terra"
     assert captured[0].chatqec_openai_api_key == "terminal-openai-secret"
     assert "terminal-openai-secret" not in capsys.readouterr().out
+
+
+def test_cli_local_gemma_configuration_needs_no_model_api_key(
+    tmp_path: Path, monkeypatch
+) -> None:
+    captured: list[LocalStackConfig] = []
+    monkeypatch.setattr(
+        local_release,
+        "launch_local",
+        lambda value, *_args, **_kwargs: captured.append(value) or {"status": "ready"},
+    )
+
+    assert cli.main(
+        [
+            "local",
+            "up",
+            "--home",
+            str(tmp_path),
+            "--chatqec-local-model",
+            "gemma-3-12b-it",
+        ]
+    ) == 0
+
+    assert captured[0].chatqec_local_model == "gemma-3-12b-it"
+    assert captured[0].chatqec_openai_api_key == ""
 
 
 def test_diagnostic_report_is_portable_and_secret_free(tmp_path: Path) -> None:

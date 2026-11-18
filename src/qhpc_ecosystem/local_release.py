@@ -25,7 +25,12 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import ProxyHandler, Request, build_opener
 
-from .container_engine import ContainerEngineError, apptainer_requested, verified_sif
+from .container_engine import (
+    ContainerEngineError,
+    apptainer_requested,
+    host_oci_arch,
+    verified_sif,
+)
 from .contract import document_digest
 from .local_assets import asset_path, assistant_source_path, default_workflow_paths
 from .local_adapters import FTQC_OCI_DIGEST, FTQC_OCI_IMAGE
@@ -55,6 +60,13 @@ CHATQEC_AGENT_OCI_IMAGE = "qhpc/chatqec-agent:a1ddc2e-dd19a85-linux-amd64-v1"
 CHATQEC_AGENT_TSIM_IMAGE = "qhpc/chatqec-tsim:dd19a85-linux-amd64"
 CHATQEC_AGENT_TSIM_DIGEST = "sha256:51a3efef25d4387ebc574844f68b7bcbc523c93e9d90ec692031e78b22c266c2"
 CHATQEC_AGENT_INPUT_LABEL = "org.qscsoftware.build-inputs-sha256"
+CHATQEC_LOCAL_GEMMA_MODEL = "gemma-3-12b-it"
+CHATQEC_OLLAMA_MODEL_TAG = "gemma3:12b"
+CHATQEC_OLLAMA_PORT = 11434
+_CHATQEC_OLLAMA_IMAGES = {
+    "amd64": "ollama/ollama@sha256:a372a1c0d1e15b68e9521189785c3ca17795c26c2356f8b1b10122cfb59ed0d7",
+    "arm64": "ollama/ollama@sha256:125793ec9ab40287b3bec4ba11df41d787e4d6a45c169f2198d49669a179977e",
+}
 _CHATQEC_AGENT_INPUTS = (
     "local_assets/chatqec-agent.Containerfile",
     "__init__.py",
@@ -260,6 +272,7 @@ class LocalStackConfig:
     iqm_user_credential_key: str = ""
     chatqec_openai_model: str | None = None
     chatqec_openai_api_key: str = ""
+    chatqec_local_model: str | None = None
     ftqc_source_checkout: str | None = None
     ftqc_runtime_manifest: str | None = None
     ftqc_dependency_cache: str | None = None
@@ -360,6 +373,27 @@ class LocalStackConfig:
                 raise LocalReleaseError(
                     "the local OpenAI ChatQEC mode requires Docker or Podman"
                 )
+        if self.chatqec_local_model:
+            if not self.assistant_enabled:
+                raise LocalReleaseError(
+                    "the managed local Gemma ChatQEC mode requires the Assistant service"
+                )
+            if self.chatqec_openai_model:
+                raise LocalReleaseError(
+                    "select either the local OpenAI or managed local Gemma ChatQEC model"
+                )
+            if self.chatqec_local_model != CHATQEC_LOCAL_GEMMA_MODEL:
+                raise LocalReleaseError(
+                    "the only admitted local ChatQEC model is gemma-3-12b-it"
+                )
+            if apptainer_requested():
+                raise LocalReleaseError(
+                    "the managed local Gemma ChatQEC mode requires Docker"
+                )
+            if host_oci_arch() not in _CHATQEC_OLLAMA_IMAGES:
+                raise LocalReleaseError(
+                    "the managed local Gemma ChatQEC mode has no admitted image for this architecture"
+                )
         if self.iqm_simulation_enabled and self.iqm_worker_enabled:
             raise LocalReleaseError(
                 "select either the safe IQM simulation worker or the IQM worker"
@@ -433,6 +467,7 @@ class LocalStackConfig:
                 self.iqm_user_credential_vault
             ),
             "chatqec_openai_model": self.chatqec_openai_model,
+            "chatqec_local_model": self.chatqec_local_model,
             "ftqc_source_checkout": self.ftqc_source_checkout,
             "ftqc_runtime_manifest": self.ftqc_runtime_manifest,
             "ftqc_dependency_cache": self.ftqc_dependency_cache,
@@ -786,6 +821,62 @@ def ensure_chatqec_agent_oci_runtime() -> str:
     return "built"
 
 
+def chatqec_ollama_image() -> tuple[str, str]:
+    """Return the architecture-specific, immutable Ollama image reference."""
+
+    architecture = host_oci_arch()
+    image = _CHATQEC_OLLAMA_IMAGES.get(architecture)
+    if image is None:
+        raise LocalReleaseError(
+            "the managed local Gemma ChatQEC mode has no admitted image for this architecture"
+        )
+    return image, f"linux/{architecture}"
+
+
+def prepare_chatqec_ollama_store(paths: LocalPaths) -> Path:
+    """Create the EQO-owned persistent model store without accepting a host path."""
+
+    store = paths.data_root / "chatqec-ollama"
+    store.mkdir(mode=0o700, parents=True, exist_ok=True)
+    try:
+        store.chmod(0o700)
+    except OSError as error:
+        raise LocalReleaseError("cannot protect the local ChatQEC model store") from error
+    return store
+
+
+def pull_chatqec_ollama_model(
+    *,
+    timeout_seconds: float,
+) -> None:
+    """Ensure the one admitted local Gemma model is present in its contained store."""
+
+    if timeout_seconds <= 0:
+        raise LocalReleaseError(
+            "EQO Local startup timed out before the local Gemma model could be prepared"
+        )
+    try:
+        builder = find_oci_builder()
+        subprocess.run(
+            [
+                builder,
+                "exec",
+                f"eqo-chatqec-model-{CHATQEC_OLLAMA_PORT}",
+                "ollama",
+                "pull",
+                CHATQEC_OLLAMA_MODEL_TAG,
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=timeout_seconds,
+        )
+    except (OSError, subprocess.SubprocessError, OperationRuntimeError) as error:
+        raise LocalReleaseError(
+            "the managed local Gemma model could not be prepared; verify Docker GPU access and model-registry connectivity"
+        ) from error
+
+
 def remove_stale_chatqec_agent_container(config: LocalStackConfig) -> bool:
     """Remove only the named local ChatQEC container left by a prior supervisor.
 
@@ -798,18 +889,24 @@ def remove_stale_chatqec_agent_container(config: LocalStackConfig) -> bool:
 
     if not config.assistant_enabled or apptainer_requested():
         return False
+    names = [f"eqo-chatqec-{config.assistant_port}"]
+    if config.chatqec_local_model:
+        names.append(f"eqo-chatqec-model-{CHATQEC_OLLAMA_PORT}")
+    removed = False
     try:
         builder = find_oci_builder()
-        completed = subprocess.run(
-            [builder, "rm", "--force", f"eqo-chatqec-{config.assistant_port}"],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=20,
-        )
+        for name in names:
+            completed = subprocess.run(
+                [builder, "rm", "--force", name],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=20,
+            )
+            removed = removed or completed.returncode == 0
     except (OSError, subprocess.SubprocessError, OperationRuntimeError):
         return False
-    return completed.returncode == 0
+    return removed
 
 
 def read_local_state(paths: LocalPaths) -> dict[str, Any] | None:
@@ -1162,16 +1259,18 @@ def _port_available(host: str, port: int) -> bool:
 
 
 def require_available_ports(config: LocalStackConfig) -> None:
-    ports = {
-        "Workbench": config.workbench_port,
-        "API": config.api_port,
-    }
+    ports = [
+        ("Workbench", config.host, config.workbench_port),
+        ("API", config.host, config.api_port),
+    ]
     if config.assistant_enabled:
-        ports["Assistant"] = config.assistant_port
+        ports.append(("Assistant", config.host, config.assistant_port))
+    if config.chatqec_local_model:
+        ports.append(("ChatQEC local model", "127.0.0.1", CHATQEC_OLLAMA_PORT))
     unavailable = [
-        f"{name} {config.host}:{port}"
-        for name, port in ports.items()
-        if not _port_available(config.host, port)
+        f"{name} {host}:{port}"
+        for name, host, port in ports
+        if not _port_available(host, port)
     ]
     if unavailable:
         raise LocalReleaseError(
@@ -1485,6 +1584,8 @@ def supervisor_command(
         command.append("--enable-user-iqm-credentials")
     if config.chatqec_openai_model:
         command.extend(("--chatqec-openai-model", config.chatqec_openai_model))
+    if config.chatqec_local_model:
+        command.extend(("--chatqec-local-model", config.chatqec_local_model))
     if config.ftqc_source_checkout:
         command.extend(("--ftqc-source-checkout", config.ftqc_source_checkout))
     if config.ftqc_runtime_manifest:
@@ -1534,6 +1635,8 @@ def launch_local(
     ensure_ftqc_oci_runtime(config, paths)
     if config.assistant_enabled:
         ensure_chatqec_agent_oci_runtime()
+    if config.chatqec_local_model:
+        prepare_chatqec_ollama_store(paths)
     write_local_config(paths, config)
     child_environment = {**os.environ, "PYTHONUNBUFFERED": "1"}
     child_environment.pop("IQM_TOKEN", None)
@@ -1747,6 +1850,15 @@ def supervise_local(
         ),
         chatqec_openai_model=config.chatqec_openai_model or "",
         chatqec_openai_api_key=config.chatqec_openai_api_key,
+        chatqec_ollama_model=(
+            CHATQEC_OLLAMA_MODEL_TAG if config.chatqec_local_model else ""
+        ),
+        chatqec_ollama_image=(chatqec_ollama_image()[0] if config.chatqec_local_model else ""),
+        chatqec_ollama_platform=(chatqec_ollama_image()[1] if config.chatqec_local_model else ""),
+        chatqec_ollama_store=(
+            str(prepare_chatqec_ollama_store(paths)) if config.chatqec_local_model else ""
+        ),
+        chatqec_ollama_port=CHATQEC_OLLAMA_PORT,
         poll_interval_seconds=config.poll_interval_seconds,
         lease_seconds=config.lease_seconds,
         worker_stale_after_seconds=config.worker_stale_after_seconds,
@@ -1814,6 +1926,13 @@ def supervise_local(
         # the API is becoming available.
         supervisor.start_api()
         supervisor.start_services()
+        if config.chatqec_local_model:
+            supervisor.wait_for_service(
+                "chatqec-model",
+                f"http://127.0.0.1:{CHATQEC_OLLAMA_PORT}/api/tags",
+                timeout_seconds=remaining_startup_time(),
+            )
+            pull_chatqec_ollama_model(timeout_seconds=remaining_startup_time())
         supervisor.wait_for_api(
             f"{config.api_url}/api/v1/health",
             timeout_seconds=remaining_startup_time(),

@@ -411,6 +411,31 @@ or workers; it is scoped to the ChatQEC container. The container needs outbound
 HTTPS access to the OpenAI Responses API while answers are being generated.
 `eqo local down` stops the service and removes that in-memory configuration.
 
+### Optional local Gemma ChatQEC prototype
+
+For an internal GPU-equipped prototype, ChatQEC can use the admitted local
+Google Gemma 3 12B instruction model without a model-provider API key:
+
+```bash
+eqo local up \
+  --chatqec-local-model gemma-3-12b-it \
+  --timeout 900
+```
+
+EQO starts an architecture-pinned Ollama OCI image and binds it only to
+`127.0.0.1`. Its persistent model store is owned under EQO Local data; the
+single admitted `gemma3:12b` package is retrieved there once and is not exposed
+to the Workbench or workflow contracts. The ChatQEC agent is the only component
+given the managed loopback model URL. It continues to execute explicit Stim/Tsim
+circuits in its contained tool environment and marks local measurements as
+execution evidence; Gemma only explains the bounded tool result and the pinned
+source-ledger excerpts.
+
+This prototype requires Docker with NVIDIA GPU support and cannot run under
+`USE_APPTAINER=1`. The model package is subject to its publisher's terms. It is
+not a production model-RAG acceptance and does not enable Qdrant, web search,
+model-directed tool calls, or hardware access.
+
 Developers may still pass `--assistant-source-checkout` to test an
 exact-revision Git checkout. Use `--no-assistant` when validating only the
 control plane.

@@ -9,6 +9,7 @@ from qhpc_ecosystem.chatqec_agent_service import (
     ChatQECAgentServiceError,
     ChatQECMCPAgentResponder,
     DirectCircuitTools,
+    OllamaGemmaBackend,
     OpenAIResponse,
     OpenAIResponsesBackend,
     _extract_circuit,
@@ -321,3 +322,42 @@ def test_openai_responses_backend_identifies_an_incomplete_reasoning_response() 
         match="output-token budget was exhausted",
     ):
         backend("Explain syndrome extraction.", (), None)
+
+
+def test_ollama_gemma_backend_uses_only_the_managed_loopback_service() -> None:
+    captured: list[object] = []
+
+    def transport(request, timeout_seconds):
+        captured.extend((request, timeout_seconds))
+        return {
+            "created_at": "2026-11-18T00:00:00Z",
+            "message": {"role": "assistant", "content": "Grounded local answer."},
+            "prompt_eval_count": 11,
+            "eval_count": 7,
+        }
+
+    backend = OllamaGemmaBackend(model="gemma3:12b", transport=transport)
+    result = backend(
+        "Explain syndrome extraction.",
+        (),
+        "Measurement Sample Output",
+        "Pinned ChatQEC source ledger (not external browsing):\n\n[S1] Syndrome Extraction",
+    )
+
+    request = captured[0]
+    assert request.full_url == "http://host.docker.internal:11434/api/chat"
+    assert request.get_header("Authorization") is None
+    payload = __import__("json").loads(request.data)
+    assert payload["model"] == "gemma3:12b"
+    assert payload["stream"] is False
+    assert payload["options"] == {"temperature": 0.1, "num_predict": 4096}
+    assert payload["messages"][0]["role"] == "system"
+    assert "Measurement Sample Output" in payload["messages"][-1]["content"]
+    assert "Pinned ChatQEC source ledger" in payload["messages"][-1]["content"]
+    assert captured[1] == 180.0
+    assert result == OpenAIResponse("Grounded local answer.", "2026-11-18T00:00:00Z", 11, 7)
+
+
+def test_ollama_gemma_backend_rejects_an_arbitrary_endpoint() -> None:
+    with pytest.raises(ChatQECAgentServiceError, match="managed loopback Ollama"):
+        OllamaGemmaBackend(model="gemma3:12b", base_url="http://example.test:11434")

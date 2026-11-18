@@ -540,6 +540,14 @@ def build_parser() -> argparse.ArgumentParser:
             ),
         )
         command.add_argument(
+            "--chatqec-local-model",
+            choices=("gemma-3-12b-it",),
+            help=(
+                "run the admitted local Google Gemma 3 12B instruction model through "
+                "an EQO-managed loopback Ollama container; requires Docker and a GPU"
+            ),
+        )
+        command.add_argument(
             "--ftqc-source-checkout",
             help="pinned FTQC Git checkout used only to build the admitted OCI image when absent",
         )
@@ -1957,6 +1965,10 @@ def dispatch(args: argparse.Namespace) -> int:
             raise LocalReleaseError(
                 "--prompt-for-openai-api-key requires --chatqec-openai-model"
             )
+        if args.chatqec_openai_model and args.chatqec_local_model:
+            raise LocalReleaseError(
+                "select either --chatqec-openai-model or --chatqec-local-model"
+            )
         iqm_token = ""
         if args.start_iqm_worker and not args.enable_user_iqm_credentials:
             if args.local_command == "up" and args.prompt_for_iqm_token:
@@ -2001,6 +2013,7 @@ def dispatch(args: argparse.Namespace) -> int:
             iqm_user_credential_key=iqm_credential_key,
             chatqec_openai_model=args.chatqec_openai_model,
             chatqec_openai_api_key=openai_api_key,
+            chatqec_local_model=args.chatqec_local_model,
             ftqc_source_checkout=ftqc_source_checkout,
             ftqc_runtime_manifest=ftqc_runtime_manifest,
             ftqc_dependency_cache=ftqc_dependency_cache,

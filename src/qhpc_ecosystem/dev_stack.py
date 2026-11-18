@@ -48,6 +48,11 @@ class DevStackConfig:
     chatqec_container_image: str = ""
     chatqec_openai_model: str = ""
     chatqec_openai_api_key: str = ""
+    chatqec_ollama_model: str = ""
+    chatqec_ollama_image: str = ""
+    chatqec_ollama_platform: str = ""
+    chatqec_ollama_store: str = ""
+    chatqec_ollama_port: int = 11434
     update_state_root: str = ".qhpc/live/updates"
     component_onboarding_state_root: str = ".qhpc/live/component-onboarding"
     workspace_root: str = "."
@@ -95,6 +100,21 @@ def build_service_specs(
         )
     if config.chatqec_openai_model and apptainer_requested():
         raise RuntimeError("the local OpenAI ChatQEC mode requires Docker or Podman")
+    if config.chatqec_ollama_model:
+        if config.chatqec_openai_model:
+            raise RuntimeError(
+                "select either the local OpenAI or managed local Gemma ChatQEC model"
+            )
+        if apptainer_requested():
+            raise RuntimeError("the managed local Gemma ChatQEC mode requires Docker")
+        if not all(
+            (
+                config.chatqec_ollama_image,
+                config.chatqec_ollama_platform,
+                config.chatqec_ollama_store,
+            )
+        ):
+            raise RuntimeError("the managed local Gemma ChatQEC mode is incomplete")
     base = (
         python_executable,
         "-m",
@@ -182,6 +202,42 @@ def build_service_specs(
                 raise RuntimeError(
                     "EQO Local ChatQEC agent requires Docker or Podman"
                 ) from error
+            if config.chatqec_ollama_model:
+                model_name = f"eqo-chatqec-model-{config.chatqec_ollama_port}"
+                services.append(
+                    ServiceSpec(
+                        "chatqec-model",
+                        (
+                            container_engine,
+                            "run",
+                            "--rm",
+                            "--name",
+                            model_name,
+                            "--platform",
+                            config.chatqec_ollama_platform,
+                            "--read-only",
+                            "--cap-drop",
+                            "ALL",
+                            "--security-opt",
+                            "no-new-privileges",
+                            "--tmpfs",
+                            "/tmp:rw,noexec,nosuid,size=512m",
+                            "--mount",
+                            (
+                                "type=bind,source="
+                                f"{config.chatqec_ollama_store},target=/root/.ollama"
+                            ),
+                            "--gpus",
+                            "all",
+                            "--publish",
+                            f"127.0.0.1:{config.chatqec_ollama_port}:11434",
+                            "--env",
+                            "OLLAMA_HOST=0.0.0.0:11434",
+                            config.chatqec_ollama_image,
+                        ),
+                        cleanup_command=(container_engine, "rm", "--force", model_name),
+                    )
+                )
             chatqec_command = [
                 container_engine,
                 "run",
@@ -224,6 +280,24 @@ def build_service_specs(
                     ("OPENAI_API_KEY", config.chatqec_openai_api_key),
                 )
                 chatqec_secrets += ("OPENAI_API_KEY",)
+            if config.chatqec_ollama_model:
+                chatqec_command.extend(
+                    (
+                        "--add-host",
+                        "host.docker.internal:host-gateway",
+                        "--env",
+                        "QHPC_CHATQEC_OLLAMA_MODEL",
+                        "--env",
+                        "QHPC_CHATQEC_OLLAMA_URL",
+                    )
+                )
+                chatqec_environment += (
+                    ("QHPC_CHATQEC_OLLAMA_MODEL", config.chatqec_ollama_model),
+                    (
+                        "QHPC_CHATQEC_OLLAMA_URL",
+                        f"http://host.docker.internal:{config.chatqec_ollama_port}",
+                    ),
+                )
             chatqec_command.append(config.chatqec_container_image)
             services.append(
                 ServiceSpec(
